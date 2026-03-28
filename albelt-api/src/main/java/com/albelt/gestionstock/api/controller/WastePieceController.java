@@ -1,0 +1,174 @@
+package com.albelt.gestionstock.api.controller;
+
+import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
+import com.albelt.gestionstock.domain.waste.dto.WastePieceResponse;
+import com.albelt.gestionstock.domain.waste.service.WastePieceService;
+import com.albelt.gestionstock.domain.waste.mapper.WastePieceMapper;
+import com.albelt.gestionstock.shared.enums.MaterialType;
+import com.albelt.gestionstock.shared.enums.WasteStatus;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * REST Controller for Waste Piece management
+ * Base path: /api/waste-pieces
+ * Reuse tracking and waste analytics
+ */
+@RestController
+@RequestMapping("/api/waste-pieces")
+@RequiredArgsConstructor
+@Slf4j
+public class WastePieceController {
+
+    private final WastePieceService wastePieceService;
+    private final WastePieceMapper wastePieceMapper;
+
+    /**
+     * Get all waste pieces (paginated)
+     * GET /api/waste-pieces?page={page}&size={size}
+     */
+    @GetMapping
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.debug("Fetching all waste pieces: page={}, size={}", page, size);
+        var wastePieces = wastePieceService.getAll(page, size);
+        var responses = wastePieceMapper.toResponseList(wastePieces);
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    /**
+     * Record a new waste piece from roll processing
+     * POST /api/waste-pieces
+     */
+    @PostMapping
+    public ResponseEntity<ApiResponse<WastePieceResponse>> recordWaste(
+            @RequestBody WastePieceRequest request) {
+        log.info("Recording waste piece: material={}, area_m2={}", 
+                 request.getMaterialType(), request.getLengthM());
+        var wastePiece = wastePieceService.recordWaste(request);
+        var response = wastePieceMapper.toResponse(wastePiece);
+        return ResponseEntity.ok(ApiResponse.success(response, "Waste piece recorded successfully"));
+    }
+
+    /**
+     * Get waste piece by ID
+     * GET /api/waste-pieces/{id}
+     */
+    @GetMapping("/{id}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<WastePieceResponse>> getById(@PathVariable UUID id) {
+        log.debug("Fetching waste piece: {}", id);
+        var wastePiece = wastePieceService.getById(id);
+        var response = wastePieceMapper.toResponse(wastePiece);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * Find reuse candidate waste piece
+     * GET /api/waste-pieces/reuse/find?material={material}&requiredArea={area}
+     */
+    @GetMapping("/reuse/find")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<WastePieceResponse>> findReuseCandidate(
+            @RequestParam MaterialType material,
+            @RequestParam BigDecimal requiredArea) {
+        log.debug("Finding reuse candidate: material={}, area={}", material, requiredArea);
+        var wasteOpt = wastePieceService.findReuseCandidate(material, requiredArea);
+        
+        if (wasteOpt.isPresent()) {
+            var response = wastePieceMapper.toResponse(wasteOpt.get());
+            return ResponseEntity.ok(ApiResponse.success(response, "Reuse candidate found"));
+        }
+        
+        return ResponseEntity.ok(ApiResponse.error("No suitable waste piece found for reuse"));
+    }
+
+    /**
+     * Get large available waste pieces
+     * GET /api/waste-pieces/reuse/large?page={page}&size={size}
+     */
+    @GetMapping("/reuse/large")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getLargeAvailablePieces(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.debug("Fetching large available waste pieces");
+        var wastePieces = wastePieceService.findLargeAvailablePieces(page, size);
+        var responses = wastePieceMapper.toResponseList(wastePieces);
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    /**
+     * Get available waste pieces by material
+     * GET /api/waste-pieces/available?material={material}&page={page}&size={size}
+     */
+    @GetMapping("/available")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getAvailableByMaterial(
+            @RequestParam MaterialType material,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.debug("Fetching available waste pieces for material: {}", material);
+        var wastePieces = wastePieceService.getAvailableByMaterial(material, page, size);
+        var responses = wastePieceMapper.toResponseList(wastePieces);
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    /**
+     * Mark waste piece as scrap
+     * PATCH /api/waste-pieces/{id}/mark-scrap
+     */
+    @PatchMapping("/{id}/mark-scrap")
+    public ResponseEntity<ApiResponse<WastePieceResponse>> markAsScrap(@PathVariable UUID id) {
+        log.info("Marking waste piece as scrap: {}", id);
+        var wastePiece = wastePieceService.markAsScrap(id);
+        var response = wastePieceMapper.toResponse(wastePiece);
+        return ResponseEntity.ok(ApiResponse.success(response, "Waste piece marked as scrap"));
+    }
+
+    /**
+     * Get waste count by status
+     * GET /api/waste-pieces/stats/count?status={status}
+     */
+    @GetMapping("/stats/count")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<Long>> countByStatus(@RequestParam WasteStatus status) {
+        log.debug("Getting waste count for status: {}", status);
+        long count = wastePieceService.countByStatus(status);
+        return ResponseEntity.ok(ApiResponse.success(count));
+    }
+
+    /**
+     * Get waste reuse efficiency
+     * GET /api/waste-pieces/stats/reuse-efficiency?material={material}
+     */
+    @GetMapping("/stats/reuse-efficiency")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<Double>> getWasteReuseEfficiency(@RequestParam MaterialType material) {
+        log.debug("Calculating waste reuse efficiency for material: {}", material);
+        double efficiency = wastePieceService.getWasteReuseEfficiency(material);
+        return ResponseEntity.ok(ApiResponse.success(efficiency, "Reuse efficiency: " + String.format("%.2f%%", efficiency)));
+    }
+
+    /**
+     * Get total waste area by material
+     * GET /api/waste-pieces/stats/total-area
+     */
+    @GetMapping("/stats/total-area")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<Object[]>>> getTotalWasteAreaByMaterial() {
+        log.debug("Getting total waste area by material");
+        var areas = wastePieceService.getTotalWasteAreaByMaterial();
+        return ResponseEntity.ok(ApiResponse.success(areas));
+    }
+}

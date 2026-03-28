@@ -1,0 +1,130 @@
+.language-switcher {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 8px 12px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: all 0.3s ease;
+}
+
+.language-switcher:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.lang-icon {
+  color: white;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.lang-buttons {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.lang-btn {
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.lang-flag {
+  font-size: 14px;
+  display: inline-block;
+}
+
+.lang-label {
+  display: inline-block;
+}
+
+.lang-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.lang-btn.active {
+  background-color: rgba(255, 255, 255, 0.95);
+  color: #CC3333;
+  border-color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* RTL Support */
+[dir="rtl"] .language-switcher {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .lang-buttons {
+  flex-direction: row-reverse;
+}
+
+@media (max-width: 768px) {
+  .language-switcher {
+    gap: 6px;
+    padding: 6px 10px;
+  }
+
+  .lang-btn {
+    padding: 5px 8px;
+    font-size: 11px;
+    gap: 3px;
+  }
+
+  .lang-flag {
+    font-size: 12px;
+  }
+
+  .lang-label {
+    display: none;
+  }
+
+  .lang-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .language-switcher {
+    gap: 4px;
+    padding: 4px 8px;
+  }
+
+  .lang-btn {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  .lang-flag {
+    font-size: 11px;
+  }
+
+  .lang-icon {
+    width: 14px;
+    height: 14px;
+    display: none;
+  }
+}
+    font-size: 0.7rem;
+  }
+}
+

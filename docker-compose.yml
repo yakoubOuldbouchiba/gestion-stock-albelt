@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: albelt-postgres
+    environment:
+      POSTGRES_DB: albelt_db
+      POSTGRES_USER: albelt_user
+      POSTGRES_PASSWORD: albelt_secure_password_123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U albelt_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - albelt-network
+
+  # Spring Boot Backend API
+  # albelt-api:
+  #   image: albelt-api:0.0.1-SNAPSHOT
+  #   container_name: albelt-api
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/albelt_db
+  #     SPRING_DATASOURCE_USERNAME: albelt_user
+  #     SPRING_DATASOURCE_PASSWORD: albelt_secure_password_123
+  #     SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+  #     SPRING_FLYWAY_ENABLED: "true"
+  #     SPRING_FLYWAY_LOCATIONS: classpath:db/migration
+  #     SPRING_PROFILES_ACTIVE: production
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - ./logs:/app/logs
+  #   restart: unless-stopped
+  #   networks:
+  #     - albelt-network
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+
+  # # React Frontend UI
+  # albelt-ui:
+  #   image: albelt-ui:latest
+  #   container_name: albelt-ui
+  #   depends_on:
+  #     - albelt-api
+  #   ports:
+  #     - "80:80"
+  #   environment:
+  #     REACT_APP_API_BASE_URL: http://albelt-api:8080/api
+  #   restart: unless-stopped
+  #   networks:
+  #     - albelt-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  albelt-network:
+    driver: bridge

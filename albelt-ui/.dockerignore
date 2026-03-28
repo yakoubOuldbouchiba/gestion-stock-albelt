@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+*.local
+.git
+.gitignore
+.env
+.env.*.local
+README.md
+.vscode
+.idea
+*.iml
+.DS_Store
+yarn.lock
+package-lock.json

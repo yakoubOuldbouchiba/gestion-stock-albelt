@@ -1,0 +1,14 @@
+export { InventoryPage } from './InventoryPage';
+export { RollDetailPage } from './RollDetailPage';
+export { RollMovementPage } from './RollMovementPage';
+export { MovementsListPage } from './MovementsListPage';
+export { ReportsPage } from './ReportsPage';
+export { SuppliersPage } from './SuppliersPage';
+export { UsersPage } from './UsersPage';
+export { AltierPage } from './AltierPage';
+export { TransferBonsPage } from './TransferBonsPage';
+export { MaterialChuteThresholdsPage } from './MaterialChuteThresholdsPage';
+export { ClientsPage } from './ClientsPage';
+export { CommandesListPage } from './CommandesListPage';
+export { CommandeCreatePage } from './CommandeCreatePage';
+export { CommandeDetailPage } from './CommandeDetailPage';

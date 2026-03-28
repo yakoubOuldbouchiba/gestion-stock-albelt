@@ -1,0 +1,61 @@
+package com.albelt.gestionstock.domain.waste.dto;
+
+import com.albelt.gestionstock.shared.enums.MaterialType;
+import lombok.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+/**
+ * DTO for returning waste piece data in API responses
+ * SAME STRUCTURE as RollResponse, with roll_id reference
+ * Aligned with clean V2 migration schema
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class WastePieceResponse {
+
+    private UUID id;
+
+    // Source Reference (ONLY DIFFERENCE from RollResponse)
+    private UUID rollId;
+
+    // Material Specifications (same as Roll)
+    private MaterialType materialType;
+    private Integer nbPlis;
+    private BigDecimal thicknessMm;
+
+    // Dimensions (same as Roll)
+    private Integer widthMm;
+    private Integer widthRemainingMm;
+    private BigDecimal lengthM;
+    private BigDecimal lengthRemainingM;
+    private BigDecimal areaM2;
+
+    // Status & Classification (same as Roll)
+    private String status;
+    private String wasteType;
+
+    // Location (same as Roll)
+    private UUID altierId;
+    private String altierLibelle;
+    private String qrCode;
+    private String originalQuantity;
+
+    // Processing tracking (same as Roll)
+    private Integer totalCuts;
+    private BigDecimal totalWasteAreaM2;
+    private LocalDateTime lastProcessingDate;
+
+    // Waste-specific tracking
+    private UUID commandeItemId;
+    private LocalDateTime classificationDate;
+
+    // Audit
+    private UUID createdBy;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+}

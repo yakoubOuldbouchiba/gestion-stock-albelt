@@ -1,0 +1,78 @@
+package com.albelt.gestionstock.domain.rolls.repository;
+
+import com.albelt.gestionstock.domain.rolls.entity.RollMovement;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+/**
+ * Repository for RollMovement entity
+ */
+@Repository
+public interface RollMovementRepository extends JpaRepository<RollMovement, UUID> {
+
+    /**
+     * Find all movements for a specific roll
+     */
+    List<RollMovement> findByRollIdOrderByDateEntreeDesc(UUID rollId);
+
+    /**
+     * Find movements for a roll within a date range
+     */
+    @Query("SELECT rm FROM RollMovement rm WHERE rm.roll.id = :rollId AND rm.dateEntree >= :startDate AND rm.dateEntree <= :endDate ORDER BY rm.dateEntree DESC")
+    List<RollMovement> findMovementsByRollInDateRange(
+            @Param("rollId") UUID rollId,
+            @Param("startDate") java.time.LocalDateTime startDate,
+            @Param("endDate") java.time.LocalDateTime endDate
+    );
+
+    /**
+     * Find all movements to a specific altier
+     */
+    List<RollMovement> findByToAltierIdOrderByDateEntreeDesc(UUID altierID);
+
+    /**
+     * Find all movements from a specific altier
+     */
+    List<RollMovement> findByFromAltierIdOrderByDateSortieDesc(UUID altierID);
+
+    /**
+     * Find the most recent movement for a roll (current location)
+     */
+    @Query("SELECT rm FROM RollMovement rm WHERE rm.roll.id = :rollId ORDER BY rm.dateEntree DESC LIMIT 1")
+    RollMovement findLatestMovementByRollId(@Param("rollId") UUID rollId);
+
+    /**
+     * Find all movements recorded by an operator
+     */
+    List<RollMovement> findByOperatorIdOrderByCreatedAtDesc(UUID operatorId);
+
+    /**
+     * Find pending receipts for a specific altier (movements without entry date)
+     */
+    @Query("SELECT rm FROM RollMovement rm WHERE rm.toAltier.id = :altierID AND rm.dateEntree IS NULL ORDER BY rm.dateSortie DESC")
+    List<RollMovement> findPendingReceiptsByAltier(@Param("altierID") UUID altierID);
+
+    /**
+     * Find all movements pending receipt (dateEntree is null)
+     */
+    @Query("SELECT rm FROM RollMovement rm WHERE rm.dateEntree IS NULL ORDER BY rm.dateSortie DESC")
+    List<RollMovement> findAllPendingReceipts();
+
+    /**
+     * Find all movements for a given transfer bon
+     */
+    List<RollMovement> findByTransferBon_IdOrderByCreatedAtDesc(UUID transferBonId);
+
+    /**
+     * Find movements for a given transfer bon that are not yet received
+     */
+    List<RollMovement> findByTransferBon_IdAndDateEntreeIsNullOrderByCreatedAtDesc(UUID transferBonId);
+
+    long countByTransferBon_Id(UUID transferBonId);
+
+    long countByTransferBon_IdAndStatusEntreeTrue(UUID transferBonId);
+}

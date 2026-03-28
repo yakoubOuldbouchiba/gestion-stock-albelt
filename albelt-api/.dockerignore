@@ -1,0 +1,17 @@
+target/
+.git/
+.gitignore
+.mvn/
+mvnw
+mvnw.cmd
+README.md
+.DS_Store
+*.log
+*.iml
+.idea/
+.vscode/
+node_modules/
+*.jar.original
+.classpath
+.project
+.settings/
