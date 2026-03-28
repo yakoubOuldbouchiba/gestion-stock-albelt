@@ -56,6 +56,12 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     @Query("SELECT wp FROM WastePiece wp WHERE wp.commandeItemId = :commandeItemId ORDER BY wp.areaM2 DESC")
     List<WastePiece> findByCommandeItem(@Param("commandeItemId") UUID commandeItemId);
 
+       /**
+        * Find waste pieces for a specific roll
+        */
+       @Query("SELECT wp FROM WastePiece wp WHERE wp.roll.id = :rollId ORDER BY wp.createdAt DESC")
+       List<WastePiece> findByRollId(@Param("rollId") UUID rollId);
+
     /**
      * Count waste pieces by status
      */

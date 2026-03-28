@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, User as UserIcon, MapPin } from 'lucide-react';
 import { useI18n } from '@hooks/useI18n';
+import { formatDate } from '../utils/date';
 import type { User as UserType, UserRole, Altier } from '../types/index';
 import { UserService } from '@services/userService';
 import { AltierService } from '@services/altierService';
@@ -370,10 +371,10 @@ export function UsersPage() {
                     </span>
                   </td>
                   <td className="timestamp">
-                    {user.lastLoginDate ? new Date(user.lastLoginDate).toLocaleDateString() : t('users.never')}
+                    {formatDate(user.lastLoginDate, t('users.never'))}
                   </td>
                   <td className="timestamp">
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : t('users.notApplicable')}
+                    {formatDate(user.createdAt, t('users.notApplicable'))}
                   </td>
                   <td>
                     <div className="action-buttons">

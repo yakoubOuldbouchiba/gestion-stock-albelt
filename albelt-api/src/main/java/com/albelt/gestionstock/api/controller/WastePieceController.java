@@ -10,6 +10,7 @@ import com.albelt.gestionstock.shared.enums.WasteStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,7 +56,18 @@ public class WastePieceController {
             @RequestBody WastePieceRequest request) {
         log.info("Recording waste piece: material={}, area_m2={}", 
                  request.getMaterialType(), request.getLengthM());
-        var wastePiece = wastePieceService.recordWaste(request);
+        
+        // Get current user from SecurityContext (JWT token)
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            log.error("No authentication found in SecurityContext!");
+            throw new IllegalStateException("User not authenticated");
+        }
+        
+        UUID currentUser = (UUID) authentication.getPrincipal();
+        log.info("Waste piece request: currentUser={}", currentUser);
+        
+        var wastePiece = wastePieceService.recordWaste(request, currentUser);
         var response = wastePieceMapper.toResponse(wastePiece);
         return ResponseEntity.ok(ApiResponse.success(response, "Waste piece recorded successfully"));
     }
@@ -71,6 +83,19 @@ public class WastePieceController {
         var wastePiece = wastePieceService.getById(id);
         var response = wastePieceMapper.toResponse(wastePiece);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * Get waste pieces by roll ID
+     * GET /api/waste-pieces/by-roll/{rollId}
+     */
+    @GetMapping("/by-roll/{rollId}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getByRollId(@PathVariable UUID rollId) {
+        log.debug("Fetching waste pieces for roll: {}", rollId);
+        var wastePieces = wastePieceService.getByRollId(rollId);
+        var responses = wastePieceMapper.toResponseList(wastePieces);
+        return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
     /**

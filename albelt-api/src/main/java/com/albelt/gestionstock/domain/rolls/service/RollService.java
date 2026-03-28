@@ -10,6 +10,7 @@ import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.altier.service.AltierService;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Service for Roll management
@@ -318,5 +316,67 @@ public class RollService {
      */
     public Roll save(Roll roll) {
         return rollRepository.save(roll);
+    }
+
+    /**
+     * Get available rolls by supplier, material type, and waste type
+     * Used for chute form dropdown when filtering rolls by supplier and material
+     */
+    @Transactional(readOnly = true)
+    public List<Roll> getRollsBySupplierAndMaterialAndWasteType(
+            UUID supplierId, 
+            MaterialType materialType,
+            WasteType wasteType) {
+        log.debug("Getting rolls: supplier={}, material={}, wasteType={}", 
+                 supplierId, materialType, wasteType);
+        
+        List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
+        return rollRepository.findBySupplierAndMaterialAndWasteType(
+            supplierId, materialType, wasteType, availableStatuses);
+    }
+
+    /**
+     * Get inventory statistics grouped by material and waste type
+     * Returns list of stats objects with material, wasteType, count, and totalArea
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getStatsByMaterialAndWasteType() {
+        log.debug("Fetching stats grouped by material and waste type");
+        
+        List<RollStatus> activeStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
+        List<Object[]> results = rollRepository.getStatsByMaterialAndWasteType(activeStatuses);
+        
+        return results.stream()
+            .map(row -> {
+                Map<String, Object> stat = new java.util.HashMap<>();
+                stat.put("material", row[0]);
+                stat.put("wasteType", row[1]);
+                stat.put("count", ((Number) row[2]).longValue());
+                stat.put("totalArea", row[3] != null ? row[3] : BigDecimal.ZERO);
+                return stat;
+            })
+            .toList();
+    }
+
+    /**
+     * Get inventory statistics grouped by material type only
+     * Aggregates across all waste types
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getStatsByMaterial() {
+        log.debug("Fetching stats grouped by material type");
+        
+        List<RollStatus> activeStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
+        List<Object[]> results = rollRepository.getStatsByMaterial(activeStatuses);
+        
+        return results.stream()
+            .map(row -> {
+                Map<String, Object> stat = new java.util.HashMap<>();
+                stat.put("material", row[0]);
+                stat.put("count", ((Number) row[1]).longValue());
+                stat.put("totalArea", row[2] != null ? row[2] : BigDecimal.ZERO);
+                return stat;
+            })
+            .toList();
     }
 }

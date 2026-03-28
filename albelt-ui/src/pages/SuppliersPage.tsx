@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useI18n } from '@hooks/useI18n';
+import { formatDate } from '../utils/date';
 import type { Supplier, SupplierRequest } from '../types/index';
 import { SupplierService } from '@services/supplierService';
 import '../styles/SuppliersPage.css';
@@ -332,8 +333,8 @@ export function SuppliersPage() {
               </div>
 
               <div className="supplier-timestamps">
-                <small>{t('common.created')}: {supplier.createdAt ? new Date(supplier.createdAt).toLocaleDateString() : 'N/A'}</small>
-                <small>{t('common.updated')}: {supplier.updatedAt ? new Date(supplier.updatedAt).toLocaleDateString() : 'N/A'}</small>
+                <small>{t('common.created')}: {formatDate(supplier.createdAt, 'N/A')}</small>
+                <small>{t('common.updated')}: {formatDate(supplier.updatedAt, 'N/A')}</small>
               </div>
             </div>
           ))

@@ -3,6 +3,7 @@ package com.albelt.gestionstock.domain.rolls.repository;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -100,4 +101,38 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
            "AND r.status IN (:statuses) ORDER BY r.receivedDate ASC")
     List<Roll> findAvailableByAltierIds(@Param("altierIds") List<UUID> altierIds,
                                        @Param("statuses") List<RollStatus> statuses);
+
+    /**
+     * Find rolls by supplier, material type, and waste type
+     * Used for chute form dropdown when selecting from existing rolls
+     */
+    @Query("SELECT r FROM Roll r WHERE r.supplier.id = :supplierId " +
+           "AND r.materialType = :materialType " +
+           "AND r.wasteType = :wasteType " +
+           "AND r.status IN (:statuses) " +
+           "ORDER BY r.receivedDate ASC")
+    List<Roll> findBySupplierAndMaterialAndWasteType(
+            @Param("supplierId") UUID supplierId,
+            @Param("materialType") MaterialType materialType,
+            @Param("wasteType") WasteType wasteType,
+            @Param("statuses") List<RollStatus> statuses);
+
+    /**
+     * Get statistics by material and waste type
+     * Returns count and total area for each combination
+     */
+    @Query("SELECT r.materialType, r.wasteType, COUNT(r), SUM(r.areaM2) FROM Roll r " +
+           "WHERE r.status IN (:statuses) " +
+           "GROUP BY r.materialType, r.wasteType")
+    List<Object[]> getStatsByMaterialAndWasteType(@Param("statuses") List<RollStatus> statuses);
+
+    /**
+     * Get statistics by material type only (aggregated across all waste types)
+     * Returns count and total area for each material
+     */
+    @Query("SELECT r.materialType, COUNT(r), SUM(r.areaM2) FROM Roll r " +
+           "WHERE r.status IN (:statuses) " +
+           "GROUP BY r.materialType")
+    List<Object[]> getStatsByMaterial(@Param("statuses") List<RollStatus> statuses);
 }
+

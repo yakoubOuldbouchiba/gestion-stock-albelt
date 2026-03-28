@@ -8,6 +8,7 @@ import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,8 +40,11 @@ public class WastePieceService {
 
     /**
      * Record a waste piece from a commande item processing
+     * @param request WastePieceRequest containing waste piece details
+     * @param createdBy UUID of user creating the waste piece
+     * @return Saved WastePiece entity
      */
-    public WastePiece recordWaste(WastePieceRequest request) {
+    public WastePiece recordWaste(WastePieceRequest request, UUID createdBy) {
         log.info("Recording waste piece: material={}, area_m2={}", 
                  request.getMaterialType(), request.getLengthM());
         
@@ -51,8 +55,11 @@ public class WastePieceService {
         // Create WastePiece with Roll reference
         WastePiece wastePiece = wastePieceMapper.toEntity(request, roll);
         
-        // Auto-categorize based on size and waste type
-        if ("REUSABLE".equalsIgnoreCase(wastePiece.getWasteType())) {
+        // Set the creator
+        wastePiece.setCreatedBy(createdBy);
+        
+        // Auto-categorize based on waste type
+        if (WasteType.CHUTE_EXPLOITABLE.name().equalsIgnoreCase(wastePiece.getWasteType())) {
             wastePiece.setStatus(WasteStatus.AVAILABLE);
             log.debug("Reusable waste piece marked as AVAILABLE: {}", wastePiece.getId());
         } else {
@@ -72,6 +79,15 @@ public class WastePieceService {
     public List<WastePiece> getAll(int page, int size) {
         log.debug("Fetching all waste pieces: page={}, size={}", page, size);
         return wastePieceRepository.findAll(PageRequest.of(page, size)).getContent();
+    }
+
+    /**
+     * Get waste pieces by roll ID
+     */
+    @Transactional(readOnly = true)
+    public List<WastePiece> getByRollId(UUID rollId) {
+        log.debug("Fetching waste pieces for roll: {}", rollId);
+        return wastePieceRepository.findByRollId(rollId);
     }
 
     /**

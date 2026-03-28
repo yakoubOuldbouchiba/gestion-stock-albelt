@@ -89,7 +89,16 @@
     "allWorkshops": "جميع ورش العمل",
     "allStatus": "جميع الحالات",
     "qrCode": "رمز الاستجابة السريعة",
-    "wasteType": "نوع النفايات"
+    "wasteType": "نوع النفايات",
+    "receivedDate": "تاريخ الاستقبال",
+    "material": "المادة",
+    "status": "الحالة",
+    "search": "بحث",
+    "addRollToInventory": "إضافة لفة إلى المخزون",
+    "chuteReusable": "خردة قابلة لإعادة الاستخدام",
+    "chuteDechet": "خردة النفايات",
+    "createChuteReusable": "إنشاء خردة قابلة لإعادة الاستخدام",
+    "createChuteWaste": "إنشاء خردة نفايات"
   },
   "rolls": {
     "title": "الرولات",
@@ -383,6 +392,7 @@
     "workshop": "الورشة",
     "unassigned": "غير مخصص",
     "receivedDate": "تاريخ الاستقبال",
+    "wasteType": "نوع الهدر",
     "materialSpecs": "مواصفات المادة",
     "plies": "عدد الطبقات",
     "thickness": "السمك",
@@ -391,10 +401,15 @@
     "length": "الطول",
     "area": "المساحة",
     "consumption": "تتبع الاستهلاك",
+    "totalArea": "المساحة الكلية",
+    "totalWaste": "إجمالي الهدر",
+    "totalCuts": "إجمالي القص",
     "initialArea": "المساحة الأولية",
     "consumed": "المستهلكة",
     "remaining": "المساحة المتبقية",
-    "lengthRemaining": "الطول المتبقي"
+    "lengthRemaining": "الطول المتبقي",
+    "chutesTitle": "الشطب لهذه اللفة",
+    "chutesEmpty": "لا توجد شطب مسجلة لهذه اللفة."
   },
   "materialChuteThresholds": {
     "title": "حدود المادة (تصنيف الفتحة)",

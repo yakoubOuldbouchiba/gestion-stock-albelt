@@ -5,6 +5,7 @@ import { WastePieceService } from '@services/wastePieceService';
 import { CuttingOperationService } from '@services/cuttingOperationService';
 import { RollService } from '@services/rollService';
 import { useI18n } from '@hooks/useI18n';
+import { formatDate } from '../utils/date';
 import '../styles/WastePage.css';
 
 export function WastePage() {
@@ -247,7 +248,7 @@ export function WastePage() {
               <div className="detail-row">
                 <span className="detail-label">{t('waste.detailCreated')}:</span>
                 <span className="detail-value">
-                  {new Date(selectedWaste.createdAt).toLocaleDateString()}
+                  {formatDate(selectedWaste.createdAt)}
                 </span>
               </div>
             </div>
@@ -408,7 +409,7 @@ export function WastePage() {
                   </td>
                   <td>{((waste.areaM2 || 0) > 3.0) ? t('waste.large') : t('waste.small')}</td>
                   <td>{((waste.status === 'AVAILABLE' || waste.status === 'RESERVED') && ((waste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}</td>
-                  <td>{new Date(waste.createdAt).toLocaleDateString()}</td>
+                  <td>{formatDate(waste.createdAt)}</td>
                   <td className="waste-actions">
                     <button
                       className="btn btn-sm btn-view"

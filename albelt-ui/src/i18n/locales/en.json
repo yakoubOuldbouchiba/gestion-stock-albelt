@@ -85,7 +85,16 @@
     "allWorkshops": "All Workshops",
     "allStatus": "All Status",
     "qrCode": "QR Code",
-    "wasteType": "Waste Type"
+    "wasteType": "Waste Type",
+    "receivedDate": "Received Date",
+    "material": "Material",
+    "status": "Status",
+    "search": "Search",
+    "addRollToInventory": "Add Roll to Inventory",
+    "chuteReusable": "Chute Reusable",
+    "chuteDechet": "Chute Waste",
+    "createChuteReusable": "Create Chute Reusable",
+    "createChuteWaste": "Create Chute Waste"
   },
   "rolls": {
     "title": "Rolls",
@@ -380,6 +389,7 @@
     "workshop": "Workshop",
     "unassigned": "Unassigned",
     "receivedDate": "Received Date",
+    "wasteType": "Waste Type",
     "materialSpecs": "Material Specifications",
     "plies": "Number of Plies",
     "thickness": "Thickness",
@@ -388,10 +398,15 @@
     "length": "Length",
     "area": "Area",
     "consumption": "Consumption Tracking",
+    "totalArea": "Total Area",
+    "totalWaste": "Total Waste",
+    "totalCuts": "Total Cuts",
     "initialArea": "Initial Area",
     "consumed": "Consumed",
     "remaining": "Remaining Area",
-    "lengthRemaining": "Length Remaining"
+    "lengthRemaining": "Length Remaining",
+    "chutesTitle": "Chutes for This Roll",
+    "chutesEmpty": "No chutes recorded for this roll."
   },
   "materialChuteThresholds": {
     "title": "Material Thresholds (Chute Classification)",

@@ -6,6 +6,7 @@ import { RollService } from '../services/rollService';
 import { Altier } from '../types/index';
 import { useAuthStore } from '@hooks/useAuth';
 import { useI18n } from '@hooks/useI18n';
+import { formatDateTime } from '../utils/date';
 import '../styles/RollMovementPage.css';
 
 export function RollMovementPage() {
@@ -210,15 +211,15 @@ export function RollMovementPage() {
 
   const formatDate = (dateValue: string | null | undefined | any[]) => {
     if (!dateValue) return '-';
-    
+
     // Handle array format from backend [year, month, day, hour, minute, second, nano]
     if (Array.isArray(dateValue)) {
       const [year, month, day, hour, minute] = dateValue;
-      return new Date(year, month - 1, day, hour, minute).toLocaleString();
+      return formatDateTime(new Date(year, month - 1, day, hour, minute));
     }
-    
+
     // Handle ISO string format
-    return new Date(dateValue).toLocaleString();
+    return formatDateTime(dateValue);
   };
 
   return (

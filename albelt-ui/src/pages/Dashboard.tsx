@@ -4,6 +4,7 @@ import type { InventoryMetrics, WasteMetrics, Roll } from '../types/index';
 import { RollService } from '@services/rollService';
 import { useI18n } from '@hooks/useI18n';
 import '../styles/Dashboard.css';
+import { formatDate } from '../utils/date';
 
 export function Dashboard() {
   const { t } = useI18n();
@@ -172,7 +173,7 @@ export function Dashboard() {
                     <td>{roll.lengthM.toFixed(2)}</td>
                     <td>{roll.areaM2.toFixed(2)}</td>
                     <td><span className={`status-badge status-${roll.status.toLowerCase()}`}>{roll.status}</span></td>
-                    <td>{new Date(roll.receivedDate).toLocaleDateString()}</td>
+                    <td>{formatDate(roll.receivedDate)}</td>
                   </tr>
                 ))}
               </tbody>

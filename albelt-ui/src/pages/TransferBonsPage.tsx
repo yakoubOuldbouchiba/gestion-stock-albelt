@@ -6,6 +6,7 @@ import { RollService } from '../services/rollService';
 import rollMovementService from '../services/rollMovementService';
 import transferBonService from '../services/transferBonService';
 import { useI18n } from '@hooks/useI18n';
+import { formatDateTime } from '../utils/date';
 import '../styles/TransferBonsPage.css';
 
 export function TransferBonsPage() {
@@ -160,9 +161,9 @@ export function TransferBonsPage() {
     if (!dateValue) return '-';
     if (Array.isArray(dateValue)) {
       const [year, month, day, hour, minute] = dateValue;
-      return new Date(year, month - 1, day, hour, minute).toLocaleString();
+      return formatDateTime(new Date(year, month - 1, day, hour, minute));
     }
-    return new Date(dateValue).toLocaleString();
+    return formatDateTime(dateValue);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

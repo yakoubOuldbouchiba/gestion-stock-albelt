@@ -9,6 +9,7 @@ import com.albelt.gestionstock.domain.rolls.mapper.RollMapper;
 import com.albelt.gestionstock.domain.users.service.UserAltierService;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -231,5 +232,46 @@ public class RollController {
         var roll = rollService.recordConsumption(id, wasteArea);
         var response = rollMapper.toResponse(roll);
         return ResponseEntity.ok(ApiResponse.success(response, "Consumption recorded successfully"));
+    }
+
+    /**
+     * Get available rolls by supplier, material type, and waste type
+     * Used for chute form dropdown filtering
+     * GET /api/rolls/filter/by-supplier-material-waste?supplierId={id}&material={type}&wasteType={type}
+     */
+    @GetMapping("/filter/by-supplier-material-waste")
+    public ResponseEntity<ApiResponse<List<RollResponse>>> getBySupplierMaterialWasteType(
+            @RequestParam UUID supplierId,
+            @RequestParam MaterialType material,
+            @RequestParam WasteType wasteType) {
+        log.debug("Finding rolls: supplier={}, material={}, wasteType={}", supplierId, material, wasteType);
+        
+        var rolls = rollService.getRollsBySupplierAndMaterialAndWasteType(supplierId, material, wasteType);
+        var responses = rollMapper.toResponseList(rolls);
+        return ResponseEntity.ok(ApiResponse.success(responses, "Rolls retrieved"));
+    }
+
+    /**
+     * Get inventory statistics grouped by material and waste type
+     * GET /api/rolls/stats/by-material-waste
+     */
+    @GetMapping("/stats/by-material-waste")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStatsByMaterialAndWaste() {
+        log.debug("Fetching stats by material and waste type");
+        
+        var stats = rollService.getStatsByMaterialAndWasteType();
+        return ResponseEntity.ok(ApiResponse.success(stats, "Stats retrieved"));
+    }
+
+    /**
+     * Get inventory statistics grouped by material type only
+     * GET /api/rolls/stats/by-material
+     */
+    @GetMapping("/stats/by-material")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStatsByMaterial() {
+        log.debug("Fetching stats by material type");
+        
+        var stats = rollService.getStatsByMaterial();
+        return ResponseEntity.ok(ApiResponse.success(stats, "Stats retrieved"));
     }
 }

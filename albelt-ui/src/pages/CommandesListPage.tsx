@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { formatDate } from '../utils/date';
 import { CommandeService } from '../services/commandeService';
 import { ClientService } from '../services/clientService';
 import type { Commande, Client, CommandeStatus } from '../types';
@@ -190,7 +191,7 @@ export function CommandesListPage() {
                   </td>
                   <td className="text-center">{commande.items?.length || 0}</td>
                   <td className="text-small">
-                    {new Date(commande.createdAt).toLocaleDateString()}
+                    {formatDate(commande.createdAt)}
                   </td>
                   <td className="actions-cell">
                     <button

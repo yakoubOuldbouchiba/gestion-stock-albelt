@@ -6,6 +6,9 @@ import type { Roll, RollRequest, MaterialType, RollStatus, WasteType, Supplier, 
 import { RollService } from '../services/rollService';
 import { SupplierService } from '../services/supplierService';
 import { AltierService } from '../services/altierService';
+import { WastePieceService } from '../services/wastePieceService';
+import { getMaterialColor } from '../utils/materialColors';
+import { formatDate } from '../utils/date';
 import '../styles/InventoryPage.css';
 
 export function InventoryPage() {
@@ -21,6 +24,9 @@ export function InventoryPage() {
   const [materialFilter, setMaterialFilter] = useState<MaterialType | 'ALL'>('ALL');
   const [statusFilter, setStatusFilter] = useState<RollStatus | 'ALL'>('ALL');
   const [altierFilter, setAltierFilter] = useState<string>('ALL');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'reusable' | 'waste'>('inventory');
+  const [showChuteForm, setShowChuteForm] = useState(false);
+  const [chuteWasteType, setChuteWasteType] = useState<WasteType | undefined>(undefined);
 
   const materials: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
   const statuses: RollStatus[] = ['AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED'];
@@ -35,13 +41,62 @@ export function InventoryPage() {
     areaM2: 50,
     status: 'AVAILABLE',
     supplierId: '',
-    altierLabel: '',
+    altierId: undefined,
     receivedDate: new Date().toISOString().split('T')[0],
+    wasteType: undefined,
   });
+
+  const [chuteRollId, setChuteRollId] = useState<string>('');
+  const [filteredChuteRolls, setFilteredChuteRolls] = useState<Roll[]>([]);
+  const [chuteRollsLoading, setChuteRollsLoading] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // Load filtered rolls when supplier and material change for chute form
+  useEffect(() => {
+    if (formData.supplierId && formData.materialType && chuteWasteType) {
+      loadFilteredChuteRolls();
+    } else {
+      setFilteredChuteRolls([]);
+    }
+  }, [formData.supplierId, formData.materialType, chuteWasteType]);
+
+  // Auto-populate form fields when a roll is selected for chute creation
+  useEffect(() => {
+    if (chuteRollId) {
+      const selectedChute = filteredChuteRolls.find(r => r.id === chuteRollId);
+      if (selectedChute) {
+        setFormData((prev) => ({
+          ...prev,
+          nbPlis: selectedChute.nbPlis,
+          thicknessMm: selectedChute.thicknessMm,
+          widthMm: selectedChute.widthMm,
+          lengthM: selectedChute.lengthM,
+          areaM2: selectedChute.areaM2,
+          altierId: selectedChute.altierId,
+          receivedDate: new Date().toISOString().split('T')[0],
+        }));
+      }
+    }
+  }, [chuteRollId, filteredChuteRolls]);
+
+  // Handle width/length changes and auto-calculate area
+  const handleDimensionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const numValue = parseFloat(value) || 0;
+    
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: numValue };
+      // Auto-calculate area: (width in mm / 1000) * length in m = area in m²
+      if (name === 'widthMm' || name === 'lengthM') {
+        const widthInMeters = updated.widthMm / 1000;
+        updated.areaM2 = widthInMeters * updated.lengthM;
+      }
+      return updated;
+    });
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -54,6 +109,13 @@ export function InventoryPage() {
       ]);
 
       if (rollsResponse.success && rollsResponse.data) {
+        console.log('[DEBUG] Loaded rolls:', rollsResponse.data);
+        console.log('[DEBUG] Rolls wasteType distribution:', 
+          rollsResponse.data.reduce((acc: any, r: Roll) => {
+            acc[r.wasteType || 'null'] = (acc[r.wasteType || 'null'] || 0) + 1;
+            return acc;
+          }, {})
+        );
         setRolls(rollsResponse.data);
       }
       if (suppliersResponse.success && suppliersResponse.data) {
@@ -67,6 +129,43 @@ export function InventoryPage() {
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadFilteredChuteRolls = async () => {
+    setChuteRollsLoading(true);
+    try {
+      if (!formData.supplierId || !formData.materialType || !chuteWasteType) {
+        setFilteredChuteRolls([]);
+        return;
+      }
+
+      console.log('[DEBUG] Loading filtered chute rolls with params:', {
+        supplierId: formData.supplierId,
+        materialType: formData.materialType,
+        chuteWasteType: chuteWasteType,
+      });
+
+      const response = await RollService.getBySupplierAndMaterialAndWasteType(
+        formData.supplierId,
+        formData.materialType,
+        'NORMAL' // Always filter for NORMAL rolls to convert to chutes
+      );
+
+      console.log('[DEBUG] Filtered chute rolls response:', response);
+
+      if (response.success && response.data) {
+        console.log('[DEBUG] Found', response.data.length, 'rolls');
+        setFilteredChuteRolls(response.data);
+      } else {
+        console.log('[DEBUG] No rolls found or response error');
+        setFilteredChuteRolls([]);
+      }
+    } catch (err) {
+      console.error('Failed to load filtered chute rolls:', err);
+      setFilteredChuteRolls([]);
+    } finally {
+      setChuteRollsLoading(false);
     }
   };
 
@@ -110,6 +209,7 @@ export function InventoryPage() {
       supplierId: '',
       altierId: undefined,
       receivedDate: new Date().toISOString().split('T')[0],
+      wasteType: undefined,
     });
   };
 
@@ -136,11 +236,42 @@ export function InventoryPage() {
 
   const stats = materials.map(material => ({
     material,
-    count: rolls.filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED').length,
+    count: rolls.filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'NORMAL').length,
     area: rolls
-      .filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED')
+      .filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'NORMAL')
       .reduce((sum: number, r: Roll) => sum + (r.areaM2 || 0), 0),
   }));
+
+  const statsReusable = materials.map(material => ({
+    material,
+    count: rolls.filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'CHUTE_EXPLOITABLE').length,
+    area: rolls
+      .filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'CHUTE_EXPLOITABLE')
+      .reduce((sum: number, r: Roll) => sum + (r.areaM2 || 0), 0),
+  }));
+
+  const statsWaste = materials.map(material => ({
+    material,
+    count: rolls.filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'DECHET').length,
+    area: rolls
+      .filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'DECHET')
+      .reduce((sum: number, r: Roll) => sum + (r.areaM2 || 0), 0),
+  }));
+
+  // Debug stats calculation
+  console.log('[DEBUG Stats] Total rolls:', rolls.length);
+  console.log('[DEBUG Stats] Rolls by status:', 
+    rolls.reduce((acc: any, r: Roll) => {
+      acc[r.status] = (acc[r.status] || 0) + 1;
+      return acc;
+    }, {})
+  );
+  console.log('[DEBUG Stats] Normal rolls with AVAILABLE/OPENED status:', 
+    rolls.filter(r => r.wasteType === 'NORMAL' && r.status !== 'EXHAUSTED').length
+  );
+  console.log('[DEBUG Stats] Stats object:', stats);
+  console.log('[DEBUG Stats] StatsReusable object:', statsReusable);
+  console.log('[DEBUG Stats] StatsWaste object:', statsWaste);
 
   if (isLoading) {
     return <div className="page-loading">{t('common.loading_data')}</div>;
@@ -150,27 +281,73 @@ export function InventoryPage() {
     <div className="inventory-page">
       <div className="page-header">
         <h1>{t('inventory.title')}</h1>
+      </div>
+
+      {error && <div className="error-banner">{error}</div>}
+
+      {/* Tab Navigation */}
+      <div className="tabs-container">
         <button
-          className="btn btn-primary"
-          onClick={() => setShowForm(true)}
+          className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`}
+          onClick={() => setActiveTab('inventory')}
         >
-          + {t('rolls.addRoll')}
+          {t('inventory.title') || 'Inventory'}
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'reusable' ? 'active' : ''}`}
+          onClick={() => setActiveTab('reusable')}
+        >
+          {t('inventory.chuteReusable') || 'Chute Reusable'}
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'waste' ? 'active' : ''}`}
+          onClick={() => setActiveTab('waste')}
+        >
+          {t('inventory.chuteDechet') || 'Chute Waste'}
         </button>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
 
-      {/* Statistics Cards */}
+      {/* Statistics Cards - Show based on active tab */}
+      {activeTab === 'inventory' && (
       <div className="stats-grid">
         {stats.map(stat => (
-          <div key={stat.material} className="stat-card">
-            <div className="stat-material">{stat.material}</div>
+          <div key={stat.material} className="stat-card" style={{ borderLeftColor: getMaterialColor(stat.material) }}>
+            <div className="stat-material" style={{ color: getMaterialColor(stat.material) }}>{stat.material}</div>
             <div className="stat-count">{stat.count}</div>
             <div className="stat-label">{t('inventory.availableRolls')}</div>
             <div className="stat-area">{stat.area.toFixed(2)} m²</div>
           </div>
         ))}
       </div>
+      )}
+
+      {activeTab === 'reusable' && (
+      <div className="stats-grid">
+        {statsReusable.map(stat => (
+          <div key={stat.material} className="stat-card" style={{ borderLeftColor: getMaterialColor(stat.material) }}>
+            <div className="stat-material" style={{ color: getMaterialColor(stat.material) }}>{stat.material}</div>
+            <div className="stat-count">{stat.count}</div>
+            <div className="stat-label">{t('inventory.chuteReusable')}</div>
+            <div className="stat-area">{stat.area.toFixed(2)} m²</div>
+          </div>
+        ))}
+      </div>
+      )}
+
+      {activeTab === 'waste' && (
+      <div className="stats-grid">
+        {statsWaste.map(stat => (
+          <div key={stat.material} className="stat-card" style={{ borderLeftColor: getMaterialColor(stat.material) }}>
+            <div className="stat-material" style={{ color: getMaterialColor(stat.material) }}>{stat.material}</div>
+            <div className="stat-count">{stat.count}</div>
+            <div className="stat-label">{t('inventory.chuteDechet')}</div>
+            <div className="stat-area">{stat.area.toFixed(2)} m²</div>
+          </div>
+        ))}
+      </div>
+      )}
 
       {/* Add Roll Form Modal */}
       {showForm && (
@@ -194,10 +371,10 @@ export function InventoryPage() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="altierLabel">{t('inventory.selectWorkshopLabel')} *</label>
-                  <select id="altierLabel" name="altierLabel" value={formData.altierLabel || ''} onChange={handleInputChange} required>
+                  <label htmlFor="altierId">{t('inventory.selectWorkshopLabel')} *</label>
+                  <select id="altierId" name="altierId" value={formData.altierId || ''} onChange={handleInputChange} required>
                     <option value="">{t('inventory.selectWorkshop')}</option>
-                    {altiers.map(altier => (<option key={altier.id} value={altier.libelle}>{altier.libelle}</option>))}
+                    {altiers.map(altier => (<option key={altier.id} value={altier.id}>{altier.libelle}</option>))}
                   </select>
                 </div>
                 <div className="form-group">
@@ -259,7 +436,202 @@ export function InventoryPage() {
         </div>
       )}
 
-      {/* Controls */}
+      {/* Unified Chute Form Modal */}
+      {showChuteForm && (
+        <div className="modal-overlay" onClick={() => {
+          setShowChuteForm(false);
+          setChuteRollId('');
+          setChuteWasteType(undefined);
+        }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>
+              {chuteWasteType === 'CHUTE_EXPLOITABLE' 
+                ? t('inventory.createChuteReusable') || 'Create Chute Reusable'
+                : t('inventory.createChuteWaste') || 'Create Chute Waste'}
+            </h2>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const selectedChute = filteredChuteRolls.find(r => r.id === chuteRollId);
+              if (!selectedChute) {
+                alert('Please select a roll');
+                return;
+              }
+              
+              const wasteData = {
+                rollId: chuteRollId,
+                materialType: selectedChute.materialType,
+                nbPlis: formData.nbPlis,
+                thicknessMm: formData.thicknessMm,
+                widthMm: formData.widthMm,
+                lengthM: formData.lengthM,
+                areaM2: formData.areaM2,
+                status: 'AVAILABLE',
+                wasteType: chuteWasteType,
+                altierID: formData.altierId,
+              };
+              
+              WastePieceService.create(wasteData).then(response => {
+                if (response.success) {
+                  loadData();
+                  setShowChuteForm(false);
+                  setChuteRollId('');
+                  setChuteWasteType(undefined);
+                  resetForm();
+                  alert('Waste piece created successfully!');
+                }
+              }).catch(err => {
+                console.error('Error creating waste piece:', err);
+                alert('Failed to create waste piece');
+              });
+            }} className="roll-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="supplierId">{t('navigation.suppliers')} *</label>
+                  <select id="supplierId" name="supplierId" value={formData.supplierId} onChange={handleInputChange} required>
+                    <option value="">{t('inventory.selectSupplier')}</option>
+                    {suppliers.map(supplier => (<option key={supplier.id} value={supplier.id}>{supplier.name || 'N/A'}</option>))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="materialType">{t('inventory.material')} *</label>
+                  <select id="materialType" name="materialType" value={formData.materialType} onChange={handleInputChange} required>
+                    {materials.map(mat => (<option key={mat} value={mat}>{mat}</option>))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="rollId">Select Roll *</label>
+                  <select 
+                    id="rollId" 
+                    value={chuteRollId} 
+                    onChange={(e) => setChuteRollId(e.target.value)} 
+                    required
+                    disabled={!formData.supplierId || !formData.materialType || chuteRollsLoading}
+                  >
+                    <option value="">
+                      {chuteRollsLoading
+                        ? 'Loading rolls...'
+                        : !formData.supplierId || !formData.materialType 
+                        ? 'Select supplier and material first' 
+                        : filteredChuteRolls.length === 0
+                        ? 'No rolls available'
+                        : 'Select a roll'}
+                    </option>
+                    {filteredChuteRolls.map(roll => (
+                      <option key={roll.id} value={roll.id}>
+                        Area: {roll.areaM2}m² | Width: {roll.widthMm}mm | Length: {roll.lengthM}m
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="receivedDate">{t('inventory.receivedDate')} *</label>
+                  <input type="date" id="receivedDate" name="receivedDate" value={formData.receivedDate} onChange={handleInputChange} required />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="altierId">{t('inventory.selectWorkshopLabel')} *</label>
+                  <select id="altierId" name="altierId" value={formData.altierId || ''} onChange={handleInputChange} required>
+                    <option value="">{t('inventory.selectWorkshop')}</option>
+                    {altiers.map(altier => (<option key={altier.id} value={altier.id}>{altier.libelle}</option>))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="nbPlis">{t('rolls.plies')} (from roll)</label>
+                  <input type="number" id="nbPlis" name="nbPlis" value={formData.nbPlis} disabled readOnly />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="thicknessMm">{t('rolls.thickness')} (from roll)</label>
+                  <input type="number" id="thicknessMm" name="thicknessMm" value={formData.thicknessMm} disabled readOnly placeholder="mm" step="0.1" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="widthMm">{t('rolls.width')} (mm) *</label>
+                  <input type="number" id="widthMm" name="widthMm" value={formData.widthMm} onChange={handleDimensionChange} placeholder="mm" required />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="lengthM">{t('rolls.length')} (m) *</label>
+                  <input type="number" id="lengthM" name="lengthM" value={formData.lengthM} onChange={handleDimensionChange} placeholder="m" step="0.01" required />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="areaM2">{t('rolls.area')} (m²) - Auto</label>
+                  <input type="number" id="areaM2" name="areaM2" value={formData.areaM2.toFixed(4)} disabled readOnly placeholder="m²" step="0.01" />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="qrCode">{t('inventory.qrCode')}</label>
+                  <input type="text" id="qrCode" name="qrCode" value={formData.qrCode || ''} onChange={handleInputChange} placeholder="QR code identifier" />
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary">
+                  {chuteWasteType === 'CHUTE_EXPLOITABLE' 
+                    ? t('inventory.createChuteReusable') || 'Create Chute'
+                    : t('inventory.createChuteWaste') || 'Create Waste Chute'}
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => {
+                  setShowChuteForm(false);
+                  setChuteRollId('');
+                  setChuteWasteType(undefined);
+                }}>{t('common.cancel')}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Controls and Table - Show based on active tab */}
+      {(activeTab === 'inventory' || activeTab === 'reusable' || activeTab === 'waste') && (
+      <div>
+      {/* Action Buttons - Above the list */}
+      <div className="action-buttons-section">
+        {activeTab === 'inventory' && (
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowForm(true)}
+          >
+            + {t('inventory.receiveNewRoll') || 'Receive Roll'}
+          </button>
+        )}
+        {activeTab === 'reusable' && (
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setChuteWasteType('CHUTE_EXPLOITABLE');
+              setShowChuteForm(true);
+            }}
+          >
+            + {t('inventory.createChuteReusable') || 'Create Chute'}
+          </button>
+        )}
+        {activeTab === 'waste' && (
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setChuteWasteType('DECHET');
+              setShowChuteForm(true);
+            }}
+          >
+            + {t('inventory.createChuteWaste') || 'Create Waste Chute'}
+          </button>
+        )}
+      </div>
+
       <div className="inventory-controls">
         <div className="search-box">
           <input type="text" placeholder={t('inventory.search')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="search-input" />
@@ -269,9 +641,13 @@ export function InventoryPage() {
         <div className="filters">
           <div className="filter-group">
             <label>{t('inventory.material')}:</label>
-            <select value={materialFilter} onChange={(e) => setMaterialFilter(e.target.value as MaterialType | 'ALL')} className="filter-select">
+            <select value={materialFilter} onChange={(e) => setMaterialFilter(e.target.value as MaterialType | 'ALL')} className="filter-select" style={{ position: 'relative' }}>
               <option value="ALL">{t('inventory.allMaterials')}</option>
-              {materials.map(mat => (<option key={mat} value={mat}>{mat}</option>))}
+              {materials.map(mat => (
+                <option key={mat} value={mat}>
+                  ■ {mat}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -295,7 +671,8 @@ export function InventoryPage() {
         </div>
       </div>
 
-      {/* Inventory Table */}
+      {/* Inventory Table - Show only on Inventory tab */}
+      {activeTab === 'inventory' && (
       <div className="inventory-table-container">
         {filteredRolls.length > 0 ? (
           <table className="inventory-table">
@@ -319,7 +696,14 @@ export function InventoryPage() {
                 const altierLabel = roll.altierLibelle || 'Unassigned';
                 return (
                   <tr key={roll.id}>
-                    <td><span className={`badge badge-${roll.materialType.toLowerCase()}`}>{roll.materialType}</span></td>
+                    <td>
+                      <span 
+                        className="badge-material" 
+                        style={{ backgroundColor: getMaterialColor(roll.materialType) }}
+                      >
+                        {roll.materialType}
+                      </span>
+                    </td>
                     <td>{supplier?.name || 'N/A'}</td>
                     <td><span className="workshop-badge">{altierLabel}</span></td>
                     <td>{(roll.areaM2 || 0).toFixed(2)}</td>
@@ -327,7 +711,7 @@ export function InventoryPage() {
                     <td>{((roll.areaM2 || 0) - (roll.totalWasteAreaM2 || 0)).toFixed(2)}</td>
                     <td><div className="percentage-cell"><span>{roll.totalWasteAreaM2 && roll.areaM2 ? ((roll.totalWasteAreaM2 / roll.areaM2) * 100).toFixed(1) : '0.0'}%</span></div></td>
                     <td><span className={`status-badge status-${roll.status.toLowerCase().replace('_', '-')}`}>{roll.status}</span></td>
-                    <td>{new Date(roll.receivedDate).toLocaleDateString()}</td>
+                    <td>{formatDate(roll.receivedDate)}</td>
                     <td><button className="btn btn-sm btn-view" onClick={() => navigate(`/roll/${roll.id}`)} title="View details"><Eye size={18} /></button></td>
                   </tr>
                 );
@@ -345,6 +729,103 @@ export function InventoryPage() {
           </div>
         )}
       </div>
+      )}
+
+      {/* Chute Reusable Table - Show only on Reusable tab */}
+      {activeTab === 'reusable' && (
+      <div className="inventory-table-container">
+        {filteredRolls.filter(r => r.wasteType === 'CHUTE_EXPLOITABLE').length > 0 ? (
+          <table className="inventory-table">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Supplier</th>
+                <th>Workshop</th>
+                <th>Area (m²)</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRolls.filter(r => r.wasteType === 'CHUTE_EXPLOITABLE').map((roll: Roll) => {
+                const supplier = suppliers.find(s => s.id === roll.supplierId);
+                const altierLabel = roll.altierLibelle || 'Unassigned';
+                return (
+                  <tr key={roll.id}>
+                    <td>
+                      <span 
+                        className="badge-material" 
+                        style={{ backgroundColor: getMaterialColor(roll.materialType) }}
+                      >
+                        {roll.materialType}
+                      </span>
+                    </td>
+                    <td>{supplier?.name || 'N/A'}</td>
+                    <td><span className="workshop-badge">{altierLabel}</span></td>
+                    <td>{(roll.areaM2 || 0).toFixed(2)}</td>
+                    <td><span className={`status-badge status-${roll.status.toLowerCase().replace('_', '-')}`}>{roll.status}</span></td>
+                    <td><button className="btn btn-sm btn-view" onClick={() => navigate(`/roll/${roll.id}`)} title="View details"><Eye size={18} /></button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <div className="empty-state">
+            <p>No reusable chute found</p>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* Chute Waste Table - Show only on Waste tab */}
+      {activeTab === 'waste' && (
+      <div className="inventory-table-container">
+        {filteredRolls.filter(r => r.wasteType === 'DECHET').length > 0 ? (
+          <table className="inventory-table">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Supplier</th>
+                <th>Workshop</th>
+                <th>Area (m²)</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRolls.filter(r => r.wasteType === 'DECHET').map((roll: Roll) => {
+                const supplier = suppliers.find(s => s.id === roll.supplierId);
+                const altierLabel = roll.altierLibelle || 'Unassigned';
+                return (
+                  <tr key={roll.id}>
+                    <td>
+                      <span 
+                        className="badge-material" 
+                        style={{ backgroundColor: getMaterialColor(roll.materialType) }}
+                      >
+                        {roll.materialType}
+                      </span>
+                    </td>
+                    <td>{supplier?.name || 'N/A'}</td>
+                    <td><span className="workshop-badge">{altierLabel}</span></td>
+                    <td>{(roll.areaM2 || 0).toFixed(2)}</td>
+                    <td><span className={`status-badge status-${roll.status.toLowerCase().replace('_', '-')}`}>{roll.status}</span></td>
+                    <td><button className="btn btn-sm btn-view" onClick={() => navigate(`/roll/${roll.id}`)} title="View details"><Eye size={18} /></button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <div className="empty-state">
+            <p>No waste chute found</p>
+          </div>
+        )}
+      </div>
+      )}
+      </div>
+      )}
     </div>
   );
 }

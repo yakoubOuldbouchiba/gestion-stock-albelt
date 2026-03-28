@@ -85,7 +85,16 @@
     "allWorkshops": "Tous les ateliers",
     "allStatus": "Tous les statuts",
     "qrCode": "Code QR",
-    "wasteType": "Type de déchet"
+    "wasteType": "Type de déchet",
+    "receivedDate": "Date de réception",
+    "material": "Matériau",
+    "status": "Statut",
+    "search": "Rechercher",
+    "addRollToInventory": "Ajouter un rouleau à l'inventaire",
+    "chuteReusable": "Chute Réutilisable",
+    "chuteDechet": "Chute Déchet",
+    "createChuteReusable": "Créer une chute réutilisable",
+    "createChuteWaste": "Créer une chute déchet"
   },
   "rolls": {
     "title": "Rouleaux",
@@ -380,6 +389,7 @@
     "workshop": "Atelier",
     "unassigned": "Non assigné",
     "receivedDate": "Date de réception",
+    "wasteType": "Type de déchet",
     "materialSpecs": "Spécifications du matériau",
     "plies": "Nombre de plis",
     "thickness": "Épaisseur",
@@ -388,10 +398,15 @@
     "length": "Longueur",
     "area": "Surface",
     "consumption": "Suivi de la consommation",
+    "totalArea": "Surface totale",
+    "totalWaste": "Déchets totaux",
+    "totalCuts": "Découpes totales",
     "initialArea": "Surface initiale",
     "consumed": "Consommé",
     "remaining": "Surface restante",
-    "lengthRemaining": "Longueur restante"
+    "lengthRemaining": "Longueur restante",
+    "chutesTitle": "Chutes pour ce rouleau",
+    "chutesEmpty": "Aucune chute enregistrée pour ce rouleau."
   },
   "materialChuteThresholds": {
     "title": "Seuils de Matière (Classification de Chute)",

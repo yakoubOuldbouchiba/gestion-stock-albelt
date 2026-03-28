@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Altier, AltierRequest } from '../types/index';
 import { AltierService } from '@services/altierService';
 import { useI18n } from '@hooks/useI18n';
+import { formatDate } from '../utils/date';
 import '../styles/AltierPage.css';
 
 export function AltierPage() {
@@ -215,7 +216,7 @@ export function AltierPage() {
                     <td className="libelle-cell">{altier.libelle}</td>
                     <td className="adresse-cell">{altier.adresse}</td>
                     <td className="date-cell">
-                      {new Date(altier.createdAt).toLocaleDateString()}
+                      {formatDate(altier.createdAt)}
                     </td>
                     <td className="actions-cell">
                       <button

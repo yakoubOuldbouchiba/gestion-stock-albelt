@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CommandeService } from '../services/commandeService';
 import { WastePieceService } from '../services/wastePieceService';
+import { formatDate, formatDateTime } from '../utils/date';
 import { RollService } from '../services/rollService';
 import type { Commande, CommandeItem, ItemStatus } from '../types';
 import '../styles/CommandeDetailPage.css';
@@ -224,18 +225,21 @@ export function CommandeDetailPage() {
       const wasteWidth = selectedRoll.widthMm - widthRemaining;
 
       if (wasteWidth > 0 && wasteLength > 0) {
-        // Create waste record
+        // Calculate waste area (m²)
+        const wasteAreaM2 = (wasteWidth / 1000) * wasteLength;
+
+        // Create waste record with all required fields
         const wasteData = {
           rollId: processingForm.rollId,
-          commandeItemId: selectedItem.id,
           materialType: selectedRoll.materialType,
+          nbPlis: selectedRoll.nbPlis,
+          thicknessMm: selectedRoll.thicknessMm,
           widthMm: wasteWidth,
           lengthM: wasteLength,
-          wasteType: processingForm.wasteType,
-          weightKg: processingForm.weightKg ? parseFloat(processingForm.weightKg) : 0,
-          notes: processingForm.notes,
+          areaM2: wasteAreaM2,
           status: 'AVAILABLE',
-          quantityPieces: 1,
+          wasteType: processingForm.wasteType,
+          altierID: selectedRoll.altierId,
         };
 
         await WastePieceService.create(wasteData);
@@ -319,7 +323,7 @@ export function CommandeDetailPage() {
           </div>
           <div className="info-item">
             <strong>Created Date</strong>
-            <p>{new Date(commande.createdAt).toLocaleString()}</p>
+            <p>{formatDateTime(commande.createdAt)}</p>
           </div>
           <div className="info-item">
             <strong>Total Items</strong>
@@ -449,7 +453,7 @@ export function CommandeDetailPage() {
                                 </span>
                                 <span className="waste-weight">{waste.weightKg}kg</span>
                                 <span className="waste-date">
-                                  {new Date(waste.createdAt).toLocaleDateString()}
+                                  {formatDate(waste.createdAt)}
                                 </span>
                               </div>
                             ))}

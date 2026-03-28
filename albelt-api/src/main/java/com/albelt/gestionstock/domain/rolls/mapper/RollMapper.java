@@ -5,6 +5,7 @@ import com.albelt.gestionstock.domain.rolls.dto.RollResponse;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -39,7 +40,7 @@ public class RollMapper {
                 .lengthRemainingM(request.getLengthRemainingM())
                 .areaM2(request.getAreaM2())
                 .status(request.getStatus())
-                .wasteType(request.getWasteType())
+                .wasteType(request.getWasteType() != null ? request.getWasteType() : WasteType.NORMAL)
                 .qrCode(request.getQrCode())
                 .originalQuantity(request.getOriginalQuantity())
                 .totalCuts(0)

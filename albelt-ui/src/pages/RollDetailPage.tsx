@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { Roll, RollStatus, Supplier } from '../types/index';
+import type { Roll, RollStatus, Supplier, WastePiece } from '../types/index';
 import { RollService } from '../services/rollService';
 import { SupplierService } from '../services/supplierService';
+import { WastePieceService } from '../services/wastePieceService';
 import { useI18n } from '@hooks/useI18n';
+import { formatDate } from '../utils/date';
 import '../styles/RollDetailPage.css';
 
 export function RollDetailPage() {
@@ -13,6 +15,7 @@ export function RollDetailPage() {
   
   const [roll, setRoll] = useState<Roll | null>(null);
   const [supplier, setSupplier] = useState<Supplier | null>(null);
+  const [wastePieces, setWastePieces] = useState<WastePiece[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,9 +31,10 @@ export function RollDetailPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [rollResponse, suppliersResponse] = await Promise.all([
+      const [rollResponse, suppliersResponse, wasteResponse] = await Promise.all([
         RollService.getById(rollId),
         SupplierService.getAll(),
+        WastePieceService.getByRoll(rollId),
       ]);
 
       if (rollResponse.success && rollResponse.data) {
@@ -42,6 +46,12 @@ export function RollDetailPage() {
         }
       } else {
         setError(t('rollDetail.failedToLoad'));
+      }
+
+      if (wasteResponse.success && wasteResponse.data) {
+        setWastePieces(wasteResponse.data);
+      } else {
+        setWastePieces([]);
       }
     } catch (err) {
       setError(t('rollDetail.failedToLoad'));
@@ -121,7 +131,7 @@ export function RollDetailPage() {
             </div>
             <div className="detail-item">
               <span className="label">{t('rollDetail.receivedDate')}:</span>
-              <span className="value">{new Date(roll.receivedDate).toLocaleDateString()}</span>
+              <span className="value">{formatDate(roll.receivedDate)}</span>
             </div>
           </div>
         </div>
@@ -206,7 +216,7 @@ export function RollDetailPage() {
               </select>
             </div>
             <div className="detail-item">
-              <span className="label">Waste Type:</span>
+              <span className="label">{t('rollDetail.wasteType')}:</span>
               <span className="value">{roll.wasteType || 'N/A'}</span>
             </div>
             <div className="detail-item full-width">
@@ -214,6 +224,40 @@ export function RollDetailPage() {
               <span className="value qr-code">{roll.qrCode || 'N/A'}</span>
             </div>
           </div>
+        </div>
+
+        <div className="detail-card">
+          <h2>{t('rollDetail.chutesTitle')}</h2>
+          {wastePieces.length === 0 ? (
+            <div className="empty-state">{t('rollDetail.chutesEmpty')}</div>
+          ) : (
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t('waste.tableWasteId')}</th>
+                    <th>{t('waste.tableDimensions')}</th>
+                    <th>{t('waste.tableArea')}</th>
+                    <th>{t('waste.tableStatus')}</th>
+                    <th>Type</th>
+                    <th>{t('waste.tableCreated')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {wastePieces.map(piece => (
+                    <tr key={piece.id}>
+                      <td>{piece.id}</td>
+                      <td>{piece.widthMm} mm × {piece.lengthM.toFixed(2)} m</td>
+                      <td>{piece.areaM2.toFixed(2)} m²</td>
+                      <td>{piece.status}</td>
+                      <td>{piece.wasteType || 'N/A'}</td>
+                      <td>{formatDate(piece.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -80,6 +80,13 @@ export const WastePieceService = {
   },
 
   /**
+   * Get waste pieces by roll
+   */
+  async getByRoll(rollId: string): Promise<ApiResponse<WastePiece[]>> {
+    return ApiService.get<WastePiece[]>(`/waste-pieces/by-roll/${rollId}`);
+  },
+
+  /**
    * Get waste pieces consumed in operation
    */
   async getConsumedInOperation(operationId: string): Promise<ApiResponse<WastePiece[]>> {

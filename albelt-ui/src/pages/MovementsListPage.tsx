@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FileText, Calendar, Trash2, Edit, ArrowRight, CheckCircle } from 'lucide-react';
 import rollMovementService, { RollMovement } from '../services/rollMovementService';
+import { formatDateTime } from '../utils/date';
 import { useAuthStore } from '@hooks/useAuth';
 import { useI18n } from '@hooks/useI18n';
 import { RollMovementForm } from '@components/RollMovementForm';
@@ -189,11 +190,11 @@ export function MovementsListPage() {
     // Handle array format from backend [year, month, day, hour, minute, second, nano]
     if (Array.isArray(dateValue)) {
       const [year, month, day, hour, minute] = dateValue;
-      return new Date(year, month - 1, day, hour, minute).toLocaleString();
+      return formatDateTime(new Date(year, month - 1, day, hour, minute));
     }
     
     // Handle ISO string format
-    return new Date(dateValue).toLocaleString();
+    return formatDateTime(dateValue);
   };
 
   if (loading) {
