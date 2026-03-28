@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS material_chute_thresholds (
     material_type VARCHAR(20) NOT NULL UNIQUE
         CHECK (material_type IN ('PU', 'PVC', 'CAOUTCHOUC')),
 
-    -- Minimum dimensions for reusable waste
+    -- Minimum dimensions for reusable waste (1m2 threshold)
     min_width_mm INTEGER NOT NULL DEFAULT 0 CHECK (min_width_mm >= 0),
     min_length_m DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (min_length_m >= 0),
 
@@ -25,9 +25,9 @@ CREATE TABLE IF NOT EXISTS material_chute_thresholds (
 -- Seed configuration
 INSERT INTO material_chute_thresholds (material_type, min_width_mm, min_length_m)
 VALUES
-  ('PU', 300, 1.0),
-  ('PVC', 300, 1.0),
-  ('CAOUTCHOUC', 300, 1.0)
+  ('PU', 1000, 1.0),
+  ('PVC', 1000, 1.0),
+  ('CAOUTCHOUC', 1000, 1.0)
 ON CONFLICT (material_type) DO NOTHING;
 
 -- ============================================================================

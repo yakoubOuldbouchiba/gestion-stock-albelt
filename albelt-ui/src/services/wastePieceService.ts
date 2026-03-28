@@ -73,7 +73,7 @@ export const WastePieceService = {
   },
 
   /**
-   * Get waste pieces by type (DECHET or REUSABLE)
+  * Get waste pieces by type (DECHET or CHUTE_EXPLOITABLE)
    */
   async getByType(type: string, page = 0, size = 20): Promise<ApiResponse<WastePiece[]>> {
     return ApiService.get<WastePiece[]>('/waste-pieces/by-type', { type, page, size });

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Eye } from 'lucide-react';
 import { useI18n } from '@hooks/useI18n';
-import type { Roll, RollRequest, MaterialType, RollStatus, WasteType, Supplier, Altier } from '../types/index';
+import type { Roll, RollRequest, MaterialType, RollStatus, WasteType, Supplier, Altier, WastePiece } from '../types/index';
 import { RollService } from '../services/rollService';
 import { SupplierService } from '../services/supplierService';
 import { AltierService } from '../services/altierService';
@@ -15,6 +15,7 @@ export function InventoryPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const [rolls, setRolls] = useState<Roll[]>([]);
+  const [wastePieces, setWastePieces] = useState<WastePiece[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [altiers, setAltiers] = useState<Altier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +31,6 @@ export function InventoryPage() {
 
   const materials: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
   const statuses: RollStatus[] = ['AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED'];
-  const wasteTypes: WasteType[] = ['CHUTE_EXPLOITABLE', 'DECHET', 'NORMAL'];
 
   const [formData, setFormData] = useState<RollRequest>({
     materialType: 'PU',
@@ -43,7 +43,6 @@ export function InventoryPage() {
     supplierId: '',
     altierId: undefined,
     receivedDate: new Date().toISOString().split('T')[0],
-    wasteType: undefined,
   });
 
   const [chuteRollId, setChuteRollId] = useState<string>('');
@@ -56,12 +55,12 @@ export function InventoryPage() {
 
   // Load filtered rolls when supplier and material change for chute form
   useEffect(() => {
-    if (formData.supplierId && formData.materialType && chuteWasteType) {
+    if (formData.supplierId && formData.materialType) {
       loadFilteredChuteRolls();
     } else {
       setFilteredChuteRolls([]);
     }
-  }, [formData.supplierId, formData.materialType, chuteWasteType]);
+  }, [formData.supplierId, formData.materialType]);
 
   // Auto-populate form fields when a roll is selected for chute creation
   useEffect(() => {
@@ -102,20 +101,14 @@ export function InventoryPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [rollsResponse, suppliersResponse, altiersResponse] = await Promise.all([
+      const [rollsResponse, suppliersResponse, altiersResponse, wasteResponse] = await Promise.all([
         RollService.getAll(),
         SupplierService.getAll(),
         AltierService.getAll(),
+        WastePieceService.getAll(0, 500),
       ]);
 
       if (rollsResponse.success && rollsResponse.data) {
-        console.log('[DEBUG] Loaded rolls:', rollsResponse.data);
-        console.log('[DEBUG] Rolls wasteType distribution:', 
-          rollsResponse.data.reduce((acc: any, r: Roll) => {
-            acc[r.wasteType || 'null'] = (acc[r.wasteType || 'null'] || 0) + 1;
-            return acc;
-          }, {})
-        );
         setRolls(rollsResponse.data);
       }
       if (suppliersResponse.success && suppliersResponse.data) {
@@ -123,6 +116,9 @@ export function InventoryPage() {
       }
       if (altiersResponse.success && altiersResponse.data) {
         setAltiers(altiersResponse.data);
+      }
+      if (wasteResponse.success && wasteResponse.data) {
+        setWastePieces(wasteResponse.data);
       }
     } catch (err) {
       setError(t('messages.failedToLoad'));
@@ -135,7 +131,7 @@ export function InventoryPage() {
   const loadFilteredChuteRolls = async () => {
     setChuteRollsLoading(true);
     try {
-      if (!formData.supplierId || !formData.materialType || !chuteWasteType) {
+      if (!formData.supplierId || !formData.materialType) {
         setFilteredChuteRolls([]);
         return;
       }
@@ -143,13 +139,11 @@ export function InventoryPage() {
       console.log('[DEBUG] Loading filtered chute rolls with params:', {
         supplierId: formData.supplierId,
         materialType: formData.materialType,
-        chuteWasteType: chuteWasteType,
       });
 
-      const response = await RollService.getBySupplierAndMaterialAndWasteType(
+      const response = await RollService.getBySupplierAndMaterial(
         formData.supplierId,
-        formData.materialType,
-        'NORMAL' // Always filter for NORMAL rolls to convert to chutes
+        formData.materialType
       );
 
       console.log('[DEBUG] Filtered chute rolls response:', response);
@@ -209,7 +203,6 @@ export function InventoryPage() {
       supplierId: '',
       altierId: undefined,
       receivedDate: new Date().toISOString().split('T')[0],
-      wasteType: undefined,
     });
   };
 
@@ -234,28 +227,48 @@ export function InventoryPage() {
     return matchesSearch && matchesMaterial && matchesStatus && matchesAltier;
   });
 
+  const filteredWastePieces = wastePieces.filter((piece: WastePiece) => {
+    const pieceAltier = piece.altierLibelle || '';
+
+    const matchesSearch =
+      (piece.materialType || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      pieceAltier.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesMaterial = materialFilter === 'ALL' || piece.materialType === materialFilter;
+    const matchesAltier = altierFilter === 'ALL' || pieceAltier === altierFilter;
+
+    return matchesSearch && matchesMaterial && matchesAltier;
+  });
+
+  const filteredReusablePieces = filteredWastePieces.filter(
+    (piece: WastePiece) => piece.wasteType === 'CHUTE_EXPLOITABLE'
+  );
+  const filteredScrapPieces = filteredWastePieces.filter(
+    (piece: WastePiece) => piece.wasteType === 'DECHET'
+  );
+
   const stats = materials.map(material => ({
     material,
-    count: rolls.filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'NORMAL').length,
+    count: rolls.filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED').length,
     area: rolls
-      .filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'NORMAL')
+      .filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED')
       .reduce((sum: number, r: Roll) => sum + (r.areaM2 || 0), 0),
   }));
 
   const statsReusable = materials.map(material => ({
     material,
-    count: rolls.filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'CHUTE_EXPLOITABLE').length,
-    area: rolls
-      .filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'CHUTE_EXPLOITABLE')
-      .reduce((sum: number, r: Roll) => sum + (r.areaM2 || 0), 0),
+    count: wastePieces.filter((p: WastePiece) => p.materialType === material && p.wasteType === 'CHUTE_EXPLOITABLE').length,
+    area: wastePieces
+      .filter((p: WastePiece) => p.materialType === material && p.wasteType === 'CHUTE_EXPLOITABLE')
+      .reduce((sum: number, p: WastePiece) => sum + (p.areaM2 || 0), 0),
   }));
 
   const statsWaste = materials.map(material => ({
     material,
-    count: rolls.filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'DECHET').length,
-    area: rolls
-      .filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED' && r.wasteType === 'DECHET')
-      .reduce((sum: number, r: Roll) => sum + (r.areaM2 || 0), 0),
+    count: wastePieces.filter((p: WastePiece) => p.materialType === material && p.wasteType === 'DECHET').length,
+    area: wastePieces
+      .filter((p: WastePiece) => p.materialType === material && p.wasteType === 'DECHET')
+      .reduce((sum: number, p: WastePiece) => sum + (p.areaM2 || 0), 0),
   }));
 
   // Debug stats calculation
@@ -265,9 +278,6 @@ export function InventoryPage() {
       acc[r.status] = (acc[r.status] || 0) + 1;
       return acc;
     }, {})
-  );
-  console.log('[DEBUG Stats] Normal rolls with AVAILABLE/OPENED status:', 
-    rolls.filter(r => r.wasteType === 'NORMAL' && r.status !== 'EXHAUSTED').length
   );
   console.log('[DEBUG Stats] Stats object:', stats);
   console.log('[DEBUG Stats] StatsReusable object:', statsReusable);
@@ -411,12 +421,6 @@ export function InventoryPage() {
                 <div className="form-group">
                   <label htmlFor="areaM2">{t('rolls.area')} *</label>
                   <input type="number" id="areaM2" name="areaM2" value={formData.areaM2} onChange={handleInputChange} required placeholder="e.g., 50" step="0.01" />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="wasteType">{t('inventory.wasteType')}</label>
-                  <select id="wasteType" name="wasteType" value={formData.wasteType || 'NORMAL'} onChange={handleInputChange}>
-                    {wasteTypes.map(type => (<option key={type} value={type}>{type}</option>))}
-                  </select>
                 </div>
               </div>
 
@@ -667,7 +671,13 @@ export function InventoryPage() {
             </select>
           </div>
 
-          <div className="results-count">{filteredRolls.length} {t('common.list')}</div>
+          <div className="results-count">
+            {(activeTab === 'inventory'
+              ? filteredRolls.length
+              : activeTab === 'reusable'
+              ? filteredReusablePieces.length
+              : filteredScrapPieces.length)} {t('common.list')}
+          </div>
         </div>
       </div>
 
@@ -734,37 +744,36 @@ export function InventoryPage() {
       {/* Chute Reusable Table - Show only on Reusable tab */}
       {activeTab === 'reusable' && (
       <div className="inventory-table-container">
-        {filteredRolls.filter(r => r.wasteType === 'CHUTE_EXPLOITABLE').length > 0 ? (
+        {filteredReusablePieces.length > 0 ? (
           <table className="inventory-table">
             <thead>
               <tr>
                 <th>Material</th>
-                <th>Supplier</th>
                 <th>Workshop</th>
                 <th>Area (m²)</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th>Type</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>
-              {filteredRolls.filter(r => r.wasteType === 'CHUTE_EXPLOITABLE').map((roll: Roll) => {
-                const supplier = suppliers.find(s => s.id === roll.supplierId);
-                const altierLabel = roll.altierLibelle || 'Unassigned';
+              {filteredReusablePieces.map((piece: WastePiece) => {
+                const altierLabel = piece.altierLibelle || 'Unassigned';
                 return (
-                  <tr key={roll.id}>
+                  <tr key={piece.id}>
                     <td>
                       <span 
-                        className="badge-material" 
-                        style={{ backgroundColor: getMaterialColor(roll.materialType) }}
+                        className="badge-material"
+                        style={{ backgroundColor: getMaterialColor(piece.materialType) }}
                       >
-                        {roll.materialType}
+                        {piece.materialType}
                       </span>
                     </td>
-                    <td>{supplier?.name || 'N/A'}</td>
                     <td><span className="workshop-badge">{altierLabel}</span></td>
-                    <td>{(roll.areaM2 || 0).toFixed(2)}</td>
-                    <td><span className={`status-badge status-${roll.status.toLowerCase().replace('_', '-')}`}>{roll.status}</span></td>
-                    <td><button className="btn btn-sm btn-view" onClick={() => navigate(`/roll/${roll.id}`)} title="View details"><Eye size={18} /></button></td>
+                    <td>{(piece.areaM2 || 0).toFixed(2)}</td>
+                    <td><span className={`status-badge status-${piece.status.toLowerCase().replace('_', '-')}`}>{piece.status}</span></td>
+                    <td>{piece.wasteType || 'N/A'}</td>
+                    <td>{formatDate(piece.createdAt)}</td>
                   </tr>
                 );
               })}
@@ -781,37 +790,36 @@ export function InventoryPage() {
       {/* Chute Waste Table - Show only on Waste tab */}
       {activeTab === 'waste' && (
       <div className="inventory-table-container">
-        {filteredRolls.filter(r => r.wasteType === 'DECHET').length > 0 ? (
+        {filteredScrapPieces.length > 0 ? (
           <table className="inventory-table">
             <thead>
               <tr>
                 <th>Material</th>
-                <th>Supplier</th>
                 <th>Workshop</th>
                 <th>Area (m²)</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th>Type</th>
+                <th>Created</th>
               </tr>
             </thead>
             <tbody>
-              {filteredRolls.filter(r => r.wasteType === 'DECHET').map((roll: Roll) => {
-                const supplier = suppliers.find(s => s.id === roll.supplierId);
-                const altierLabel = roll.altierLibelle || 'Unassigned';
+              {filteredScrapPieces.map((piece: WastePiece) => {
+                const altierLabel = piece.altierLibelle || 'Unassigned';
                 return (
-                  <tr key={roll.id}>
+                  <tr key={piece.id}>
                     <td>
                       <span 
-                        className="badge-material" 
-                        style={{ backgroundColor: getMaterialColor(roll.materialType) }}
+                        className="badge-material"
+                        style={{ backgroundColor: getMaterialColor(piece.materialType) }}
                       >
-                        {roll.materialType}
+                        {piece.materialType}
                       </span>
                     </td>
-                    <td>{supplier?.name || 'N/A'}</td>
                     <td><span className="workshop-badge">{altierLabel}</span></td>
-                    <td>{(roll.areaM2 || 0).toFixed(2)}</td>
-                    <td><span className={`status-badge status-${roll.status.toLowerCase().replace('_', '-')}`}>{roll.status}</span></td>
-                    <td><button className="btn btn-sm btn-view" onClick={() => navigate(`/roll/${roll.id}`)} title="View details"><Eye size={18} /></button></td>
+                    <td>{(piece.areaM2 || 0).toFixed(2)}</td>
+                    <td><span className={`status-badge status-${piece.status.toLowerCase().replace('_', '-')}`}>{piece.status}</span></td>
+                    <td>{piece.wasteType || 'N/A'}</td>
+                    <td>{formatDate(piece.createdAt)}</td>
                   </tr>
                 );
               })}

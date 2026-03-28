@@ -2,7 +2,6 @@ package com.albelt.gestionstock.domain.rolls.entity;
 
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
-import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import jakarta.persistence.*;
@@ -79,10 +78,6 @@ public class Roll {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private RollStatus status;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "waste_type")
-    private WasteType wasteType;
 
     // Location & Tracking
     @ManyToOne(fetch = FetchType.EAGER)

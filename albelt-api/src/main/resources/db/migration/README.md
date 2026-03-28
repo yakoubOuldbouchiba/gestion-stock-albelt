@@ -1,44 +1,45 @@
 # Clean Migration Structure
 
-**Date Restructured:** 2026-03-27
+**Date Restructured:** 2026-03-28
 
-All database migrations have been reorganized from a messy 22-file structure into a clean, logical 8-file framework.
+All database migrations have been reorganized into a clean, flat V1-V13 sequence.
 
 ## 📁 What's Here
 
 ```
 migration/
-├── 00_archive/                    # Original V1-V22 (kept for reference)
-├── 01_core/                       # V1: Core tables
-├── 02_inventory/                  # V2: Inventory tables  
-├── 03_orders/                     # V3: Order system
-├── 04_tracking/                   # V4: Stock tracking
-├── 05_configuration/              # V5: Configuration tables
-├── 06_indexes/                    # V6: Performance indexes
-├── 07_functions/                  # V7: Triggers & functions
-├── 08_sample_data/                # V8: Sample data
-└── README.md                      # This file
+├── V1__00_CREATE_CORE_TABLES.sql
+├── V2__01_CREATE_INVENTORY_TABLES.sql
+├── V3__02_CREATE_ORDERS_TABLES.sql
+├── V4__03_CREATE_STOCK_TRACKING.sql
+├── V5__04_CREATE_CONFIGURATION.sql
+├── V6__05_CREATE_INDEXES.sql
+├── V7__06_CREATE_TRIGGERS_AND_FUNCTIONS.sql
+├── V8__07_INSERT_SAMPLE_DATA.sql
+├── V9__09_UPDATE_USER_PASSWORDS.sql
+├── V10__10_FIX_ROLLS_ORIGINAL_QUANTITY_TYPE.sql
+├── V11__11_DEFAULT_ROLLS_WASTE_TYPE.sql
+├── V12__12_INSERT_SAMPLE_CHUTE_DATA.sql
+├── V13__13_UPDATE_WASTE_PIECES_STATUS_CHECK.sql
+└── README.md
 ```
 
 ##  ✨ What Changed
 
-### Before (22 Messy Files)
-- V1-V5: Initial schema + repeats
-- V6-V9: Altier & user mapping confusion
-- V10-V14: Roll movements + config patches
-- V15-V16: Clients management (scattered)
-- V17-V19: Orders system (incomplete)
-- V20-V22: **Patches to fix broken migrations**
-
-### After (8 Clean Files)
+### After (13 Clean Files)
 - **V1:** Users, Suppliers, Altiers
-- **V2:** Rolls, Waste Pieces
+- **V2:** Rolls, Waste Pieces + validation triggers
 - **V3:** Clients, Commandes, Items + Audit
 - **V4:** User-Altier, Roll Movements, Transfer Bons
 - **V5:** Configuration (Material Thresholds)
 - **V6:** All 30+ indexes (optimized)
 - **V7:** All triggers & functions
 - **V8:** Sample data
+- **V9:** User password hash fixes
+- **V10:** Roll original_quantity type fix
+- **V11:** Waste type defaults for waste_pieces
+- **V12:** Sample chute rolls
+- **V13:** Waste status check constraint
 
 ## 🔧 Migration Notes
 
@@ -59,6 +60,11 @@ All files use `CREATE TABLE IF NOT EXISTS` to support:
 | V6 | (30+ indexes) | Performance |
 | V7 | (triggers/functions) | Automation |
 | V8 | (sample data) | Development |
+| V9 | users | Password fix |
+| V10 | rolls | Column type fix |
+| V11 | waste_pieces | Defaults |
+| V12 | rolls | Sample data |
+| V13 | waste_pieces | Check constraints |
 
 ## 📝 Key Features
 
@@ -71,19 +77,17 @@ All files use `CREATE TABLE IF NOT EXISTS` to support:
 ## 🚀 Usage
 
 **For new database:**
-- Flyway automatically runs V1→V8 in order
-- All sample data is created
+- Flyway automatically runs V1→V13 in order
+- Sample data is created
 - Ready for development
 
 **For existing database:**
-- Old migrations (V1-V22) won't re-run (Flyway has history)
-- New clean structure is reference documentation
-- Database schema already matches
+- Flyway will apply the new sequence in order
+- Ensure your Flyway history is reset if you want a clean rebuild
 
 ## 📌 Important
 
-- ✅ **Archive folder (00_archive/):** Kept for historical reference only, won't interfere with Flyway
-- ✅ **Backward compatible:** Existing database unaffected
+- ✅ **Flat structure:** Single sequence for clarity
 - ✅ **Idempotent:** All CREATE/ALTER statements safe to re-run
 - ✅ **Documented:** Every table/column has clear comments
 

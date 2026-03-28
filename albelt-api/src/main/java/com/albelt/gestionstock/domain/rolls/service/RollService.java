@@ -10,7 +10,6 @@ import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.altier.service.AltierService;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
-import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -319,43 +318,15 @@ public class RollService {
     }
 
     /**
-     * Get available rolls by supplier, material type, and waste type
+     * Get available rolls by supplier and material type
      * Used for chute form dropdown when filtering rolls by supplier and material
      */
     @Transactional(readOnly = true)
-    public List<Roll> getRollsBySupplierAndMaterialAndWasteType(
-            UUID supplierId, 
-            MaterialType materialType,
-            WasteType wasteType) {
-        log.debug("Getting rolls: supplier={}, material={}, wasteType={}", 
-                 supplierId, materialType, wasteType);
-        
-        List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
-        return rollRepository.findBySupplierAndMaterialAndWasteType(
-            supplierId, materialType, wasteType, availableStatuses);
-    }
+    public List<Roll> getRollsBySupplierAndMaterial(UUID supplierId, MaterialType materialType) {
+        log.debug("Getting rolls: supplier={}, material={}", supplierId, materialType);
 
-    /**
-     * Get inventory statistics grouped by material and waste type
-     * Returns list of stats objects with material, wasteType, count, and totalArea
-     */
-    @Transactional(readOnly = true)
-    public List<Map<String, Object>> getStatsByMaterialAndWasteType() {
-        log.debug("Fetching stats grouped by material and waste type");
-        
-        List<RollStatus> activeStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
-        List<Object[]> results = rollRepository.getStatsByMaterialAndWasteType(activeStatuses);
-        
-        return results.stream()
-            .map(row -> {
-                Map<String, Object> stat = new java.util.HashMap<>();
-                stat.put("material", row[0]);
-                stat.put("wasteType", row[1]);
-                stat.put("count", ((Number) row[2]).longValue());
-                stat.put("totalArea", row[3] != null ? row[3] : BigDecimal.ZERO);
-                return stat;
-            })
-            .toList();
+        List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
+        return rollRepository.findBySupplierAndMaterial(supplierId, materialType, availableStatuses);
     }
 
     /**

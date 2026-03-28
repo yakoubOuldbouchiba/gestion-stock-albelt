@@ -72,7 +72,7 @@ SELECT
     rolls.material_type,
     600, 5.0, rolls.nb_plis, rolls.thickness_mm,
     600, 5.0,
-    (600::DECIMAL / 1000.0) * 5.0, 'AVAILABLE', 'NORMAL',
+    (600::DECIMAL / 1000.0) * 5.0, 'AVAILABLE', 'CHUTE_EXPLOITABLE',
     rolls.altier_id,
     '5m-waste',
     (SELECT id FROM users WHERE username = 'admin' LIMIT 1)

@@ -54,7 +54,7 @@ public class WastePieceRequest {
     // Status & Classification (same as Roll)
     private String status; // AVAILABLE, OPENED, SCRAP, etc.
 
-    private String wasteType; // NORMAL, CHUTE_EXPLOITABLE, DECHET
+    private String wasteType; // CHUTE_EXPLOITABLE, DECHET
 
     // Location (same as Roll)
     private UUID altierID;

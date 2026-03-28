@@ -76,7 +76,7 @@ public class WastePiece {
     private WasteStatus status;
 
     @Column(name = "waste_type", length = 50)
-    private String wasteType; // NORMAL, CHUTE_EXPLOITABLE, DECHET
+    private String wasteType; // CHUTE_EXPLOITABLE, DECHET
 
     // Location & Tracking (same as rolls)
     @ManyToOne(fetch = FetchType.EAGER)

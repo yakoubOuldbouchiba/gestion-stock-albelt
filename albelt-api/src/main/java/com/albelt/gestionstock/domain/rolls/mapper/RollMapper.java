@@ -5,7 +5,6 @@ import com.albelt.gestionstock.domain.rolls.dto.RollResponse;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
-import com.albelt.gestionstock.shared.enums.WasteType;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -40,7 +39,6 @@ public class RollMapper {
                 .lengthRemainingM(request.getLengthRemainingM())
                 .areaM2(request.getAreaM2())
                 .status(request.getStatus())
-                .wasteType(request.getWasteType() != null ? request.getWasteType() : WasteType.NORMAL)
                 .qrCode(request.getQrCode())
                 .originalQuantity(request.getOriginalQuantity())
                 .totalCuts(0)
@@ -94,9 +92,6 @@ public class RollMapper {
         if (request.getStatus() != null) {
             existing.setStatus(request.getStatus());
         }
-        if (request.getWasteType() != null) {
-            existing.setWasteType(request.getWasteType());
-        }
         if (request.getQrCode() != null) {
             existing.setQrCode(request.getQrCode());
         }
@@ -128,7 +123,6 @@ public class RollMapper {
                 .lengthRemainingM(entity.getLengthRemainingM())
                 .areaM2(entity.getAreaM2())
                 .status(entity.getStatus())
-                .wasteType(entity.getWasteType())
                 .altierId(entity.getAltier() != null ? entity.getAltier().getId() : null)
                 .altierLibelle(entity.getAltier() != null ? entity.getAltier().getLibelle() : null)
                 .qrCode(entity.getQrCode())

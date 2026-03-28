@@ -1,25 +1,23 @@
 -- ============================================================================
 -- V12: Insert Sample Chute Data
 -- ============================================================================
--- Description: Insert sample chute data (rolls with wasteType = 'CHUTE_EXPLOITABLE' 
--- and 'DECHET') for development and testing purposes
+-- Description: Insert sample roll data for chute development and testing purposes
 -- ============================================================================
 
 -- ============================================================================
--- Sample Reusable Chutes (wasteType = 'CHUTE_EXPLOITABLE')
+-- Sample Reusable Chutes
 -- ============================================================================
 INSERT INTO rolls (
     material_type, width_mm, length_m, nb_plis, thickness_mm,
     width_remaining_mm, length_remaining_m,
     area_m2, supplier_id, received_date, status,
-    waste_type, altier_id, original_quantity, created_by
+    altier_id, original_quantity, created_by
 )
 SELECT 
     material_type, width_mm, length_m, nb_plis, thickness_mm,
     width_mm, length_m,
     (width_mm::DECIMAL / 1000.0) * length_m,
     supplier_id, received_date::DATE, status,
-    'CHUTE_EXPLOITABLE',
     (SELECT id FROM altier LIMIT 1),
     original_quantity::INTEGER,
     (SELECT id FROM users WHERE username = 'admin' LIMIT 1)
@@ -34,24 +32,22 @@ WHERE NOT EXISTS (
     SELECT 1 FROM rolls 
     WHERE received_date = '2026-03-23'::DATE 
     AND material_type = 'PU'
-    AND waste_type = 'CHUTE_EXPLOITABLE'
 );
 
 -- ============================================================================
--- Sample Waste Chutes (wasteType = 'DECHET')
+-- Sample Waste Chutes
 -- ============================================================================
 INSERT INTO rolls (
     material_type, width_mm, length_m, nb_plis, thickness_mm,
     width_remaining_mm, length_remaining_m,
     area_m2, supplier_id, received_date, status,
-    waste_type, altier_id, original_quantity, created_by
+    altier_id, original_quantity, created_by
 )
 SELECT 
     material_type, width_mm, length_m, nb_plis, thickness_mm,
     width_mm, length_m,
     (width_mm::DECIMAL / 1000.0) * length_m,
     supplier_id, received_date::DATE, status,
-    'DECHET',
     (SELECT id FROM altier LIMIT 1),
     original_quantity::INTEGER,
     (SELECT id FROM users WHERE username = 'admin' LIMIT 1)
@@ -66,5 +62,4 @@ WHERE NOT EXISTS (
     SELECT 1 FROM rolls 
     WHERE received_date = '2026-03-22'::DATE 
     AND material_type = 'PU'
-    AND waste_type = 'DECHET'
 );

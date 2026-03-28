@@ -2,7 +2,6 @@ package com.albelt.gestionstock.domain.rolls.dto;
 
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
-import com.albelt.gestionstock.shared.enums.WasteType;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -41,8 +40,6 @@ public class RollResponse {
 
     // Status & Classification
     private RollStatus status;
-    private WasteType wasteType;
-    
     // Location (Altier) Reference
     private UUID altierId;
     private String altierLibelle;

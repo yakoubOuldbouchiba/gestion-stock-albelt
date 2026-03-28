@@ -1,5 +1,5 @@
 import ApiService from './api';
-import type { Roll, RollRequest, MaterialType, ApiResponse, WasteType } from '../types/index';
+import type { Roll, RollRequest, MaterialType, ApiResponse } from '../types/index';
 
 /**
  * Roll API Service - Focus on FIFO operations
@@ -80,18 +80,16 @@ export const RollService = {
   },
 
   /**
-   * Get rolls filtered by supplier, material type, and waste type
+   * Get rolls filtered by supplier and material type
    * Used for chute form dropdown
    */
-  async getBySupplierAndMaterialAndWasteType(
+  async getBySupplierAndMaterial(
     supplierId: string,
-    materialType: MaterialType,
-    wasteType: WasteType
+    materialType: MaterialType
   ): Promise<ApiResponse<Roll[]>> {
-    return ApiService.get<Roll[]>('/rolls/filter/by-supplier-material-waste', {
+    return ApiService.get<Roll[]>('/rolls/filter/by-supplier-material', {
       supplierId,
       material: materialType,
-      wasteType,
     });
   },
 };

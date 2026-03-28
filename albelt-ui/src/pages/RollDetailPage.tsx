@@ -201,7 +201,7 @@ export function RollDetailPage() {
         </div>
 
         <div className="detail-card">
-          <h2>Status & Classification</h2>
+          <h2>Status & Tracking</h2>
           <div className="detail-grid">
             <div className="detail-item full-width">
               <span className="label">Status:</span>
@@ -214,10 +214,6 @@ export function RollDetailPage() {
                   <option key={status} value={status}>{status}</option>
                 ))}
               </select>
-            </div>
-            <div className="detail-item">
-              <span className="label">{t('rollDetail.wasteType')}:</span>
-              <span className="value">{roll.wasteType || 'N/A'}</span>
             </div>
             <div className="detail-item full-width">
               <span className="label">QR Code:</span>

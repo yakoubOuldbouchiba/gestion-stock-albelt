@@ -27,7 +27,7 @@ export function CommandeDetailPage() {
     rollId: '',
     lengthUsedM: '',
     widthRemainingMm: '',
-    wasteType: 'DECHET' as 'DECHET' | 'REUSABLE',
+    wasteType: 'DECHET' as 'DECHET' | 'CHUTE_EXPLOITABLE',
     weightKg: '',
     notes: '',
   });
@@ -540,7 +540,7 @@ export function CommandeDetailPage() {
                     className="form-input"
                   >
                     <option value="DECHET">Déchet (Scrap)</option>
-                    <option value="REUSABLE">Réutilisable (Reusable)</option>
+                    <option value="CHUTE_EXPLOITABLE">Chute exploitable (Reusable)</option>
                   </select>
                 </div>
 

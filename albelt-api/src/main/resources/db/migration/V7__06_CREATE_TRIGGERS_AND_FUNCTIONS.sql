@@ -119,14 +119,23 @@ END $$;
 -- ============================================================================
 CREATE OR REPLACE FUNCTION auto_classify_waste()
 RETURNS TRIGGER AS $$
+DECLARE
+    v_min_width_mm INTEGER;
+    v_min_length_m DECIMAL(10,2);
 BEGIN
-    -- Waste >= 3.0 m2 is reusable, otherwise scrap
-    IF NEW.area_m2 >= 3.0 THEN
-        IF NEW.waste_type IS NULL OR NEW.waste_type = '' THEN
-            NEW.waste_type := 'REUSABLE';
-        END IF;
-    ELSE
-        IF NEW.waste_type IS NULL OR NEW.waste_type = '' THEN
+    -- Use material-specific thresholds from configuration
+    SELECT min_width_mm, min_length_m
+    INTO v_min_width_mm, v_min_length_m
+    FROM material_chute_thresholds
+    WHERE material_type = NEW.material_type;
+
+    v_min_width_mm := COALESCE(v_min_width_mm, 0);
+    v_min_length_m := COALESCE(v_min_length_m, 0);
+
+    IF NEW.waste_type IS NULL OR NEW.waste_type = '' THEN
+        IF NEW.width_mm >= v_min_width_mm AND NEW.length_m >= v_min_length_m THEN
+            NEW.waste_type := 'CHUTE_EXPLOITABLE';
+        ELSE
             NEW.waste_type := 'DECHET';
         END IF;
     END IF;

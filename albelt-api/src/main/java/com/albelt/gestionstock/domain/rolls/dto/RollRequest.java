@@ -2,7 +2,6 @@ package com.albelt.gestionstock.domain.rolls.dto;
 
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
-import com.albelt.gestionstock.shared.enums.WasteType;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
@@ -59,8 +58,6 @@ public class RollRequest {
     // Status & Classification
     @NotNull(message = "Status is required")
     private RollStatus status;
-
-    private WasteType wasteType;
 
     // Location (Altier) Reference
     private UUID altierId;

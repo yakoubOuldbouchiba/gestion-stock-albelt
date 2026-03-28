@@ -30,8 +30,7 @@ CREATE TABLE IF NOT EXISTS rolls (
     -- Status & Classification
     status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE'
         CHECK (status IN ('AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED')),
-    waste_type VARCHAR(50)
-        CHECK (waste_type IS NULL OR waste_type IN ('NORMAL', 'CHUTE_EXPLOITABLE', 'DECHET')),
+    
     
     -- Location & Tracking
     altier_id UUID REFERENCES altier(id) ON DELETE SET NULL,
@@ -75,8 +74,8 @@ CREATE TABLE IF NOT EXISTS waste_pieces (
     -- Status & Classification (same as rolls)
     status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE'
         CHECK (status IN ('AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED')),
-    waste_type VARCHAR(50)
-        CHECK (waste_type IS NULL OR waste_type IN ('NORMAL', 'CHUTE_EXPLOITABLE', 'DECHET')),
+    waste_type VARCHAR(50) NOT NULL DEFAULT 'DECHET'
+        CHECK (waste_type IN ('CHUTE_EXPLOITABLE', 'DECHET')),
     
     -- Location & Tracking (same as rolls)
     altier_id UUID REFERENCES altier(id) ON DELETE SET NULL,

@@ -55,8 +55,8 @@ export interface AltierRequest {
  */
 export type MaterialType = 'PU' | 'PVC' | 'CAOUTCHOUC';
 export type RollStatus = 'AVAILABLE' | 'OPENED' | 'EXHAUSTED' | 'ARCHIVED';
-export type WasteType = 'CHUTE_EXPLOITABLE' | 'DECHET' | 'NORMAL';
-export type WasteClassification = 'DECHET' | 'REUSABLE';
+export type WasteType = 'CHUTE_EXPLOITABLE' | 'DECHET';
+export type WasteClassification = 'DECHET' | 'CHUTE_EXPLOITABLE';
 export type CuttingOperationStatus = 'PREPARED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
 export type WasteItemStatus = 'AVAILABLE' | 'USED_IN_ORDER' | 'SCRAP' | 'RESERVED';
 export type WasteStatus = WasteItemStatus; // Alias for backend compatibility
@@ -97,7 +97,6 @@ export interface Roll {
   areaM2: number;
   
   status: RollStatus;
-  wasteType?: WasteType;
   qrCode?: string;
   originalQuantity?: number;
   
@@ -127,7 +126,6 @@ export interface RollRequest {
   lengthRemainingM?: number;
   areaM2: number;
   status: RollStatus;
-  wasteType?: WasteType;
   qrCode?: string;
   originalQuantity?: number;
   receivedDate: string;
@@ -190,7 +188,7 @@ export interface WastePiece {
   lengthRemainingM?: number;
   areaM2: number;
   status: WasteItemStatus;
-  wasteType?: string;
+  wasteType?: WasteType;
   altierId?: string;
   altierLibelle?: string;
   qrCode?: string;
@@ -209,7 +207,7 @@ export interface WastePieceRequest {
   materialType: MaterialType;
   widthMm: number;
   lengthM: number;
-  wasteType?: 'DECHET' | 'REUSABLE';
+  wasteType?: WasteType;
   quantityPieces?: number;
   weightKg?: number;
   notes?: string;
