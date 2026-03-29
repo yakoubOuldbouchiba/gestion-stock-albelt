@@ -3,6 +3,7 @@ package com.albelt.gestionstock.domain.rolls.mapper;
 import com.albelt.gestionstock.domain.rolls.dto.RollRequest;
 import com.albelt.gestionstock.domain.rolls.dto.RollResponse;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
+import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import org.springframework.stereotype.Component;
@@ -21,7 +22,7 @@ public class RollMapper {
     /**
      * Convert RollRequest DTO to Roll entity
      */
-    public Roll toEntity(RollRequest request, Supplier supplier, Altier altier, java.util.UUID createdBy) {
+    public Roll toEntity(RollRequest request, Supplier supplier, Altier altier, Color color, java.util.UUID createdBy) {
         if (request == null) {
             return null;
         }
@@ -40,7 +41,7 @@ public class RollMapper {
                 .areaM2(request.getAreaM2())
                 .status(request.getStatus())
                 .qrCode(request.getQrCode())
-                .originalQuantity(request.getOriginalQuantity())
+                .color(color)
                 .totalCuts(0)
                 .totalWasteAreaM2(BigDecimal.ZERO)
                 .createdBy(createdBy)
@@ -51,7 +52,7 @@ public class RollMapper {
     /**
      * Update existing Roll entity with request data
      */
-    public Roll updateEntity(Roll existing, RollRequest request, Supplier supplier, Altier altier) {
+    public Roll updateEntity(Roll existing, RollRequest request, Supplier supplier, Altier altier, Color color) {
         if (request == null) {
             return existing;
         }
@@ -95,8 +96,8 @@ public class RollMapper {
         if (request.getQrCode() != null) {
             existing.setQrCode(request.getQrCode());
         }
-        if (request.getOriginalQuantity() != null) {
-            existing.setOriginalQuantity(request.getOriginalQuantity());
+        if (color != null) {
+            existing.setColor(color);
         }
         
         return existing;
@@ -126,7 +127,9 @@ public class RollMapper {
                 .altierId(entity.getAltier() != null ? entity.getAltier().getId() : null)
                 .altierLibelle(entity.getAltier() != null ? entity.getAltier().getLibelle() : null)
                 .qrCode(entity.getQrCode())
-                .originalQuantity(entity.getOriginalQuantity())
+                .colorId(entity.getColor() != null ? entity.getColor().getId() : null)
+                .colorName(entity.getColor() != null ? entity.getColor().getName() : null)
+                .colorHexCode(entity.getColor() != null ? entity.getColor().getHexCode() : null)
                 .totalCuts(entity.getTotalCuts())
                 .totalWasteAreaM2(entity.getTotalWasteAreaM2())
                 .lastProcessingDate(entity.getLastProcessingDate())

@@ -19,6 +19,8 @@
     "export": "تصدير",
     "import": "استيراد",
     "systemTitle": "نظام إدارة المخزون",
+    "name": "الاسم",
+    "color": "اللون",
     "back": "رجوع",
     "next": "التالي",
     "previous": "السابق",
@@ -33,6 +35,9 @@
     "loading_data": "جاري تحميل البيانات...",
     "created": "تم الإنشاء",
     "status": "الحالة",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "actions": "الإجراءات",
     "reason": "السبب",
     "roll": "الرولا",
     "edit": "تعديل",
@@ -51,7 +56,8 @@
     "cutting": "القطع",
     "waste": "النفايات",
     "transferBons": "بونات النقل",
-    "materialChute": "حدود المواد"
+    "materialChute": "حدود المواد",
+    "colors": "الألوان"
   },
   "sidebar": {
     "main": "الرئيسية",
@@ -98,7 +104,10 @@
     "chuteReusable": "خردة قابلة لإعادة الاستخدام",
     "chuteDechet": "خردة النفايات",
     "createChuteReusable": "إنشاء خردة قابلة لإعادة الاستخدام",
-    "createChuteWaste": "إنشاء خردة نفايات"
+    "createChuteWaste": "إنشاء خردة نفايات",
+    "color": "اللون",
+    "selectColor": "اختر اللون",
+    "noColors": "لا توجد ألوان مُكوّنة"
   },
   "rolls": {
     "title": "الرولات",

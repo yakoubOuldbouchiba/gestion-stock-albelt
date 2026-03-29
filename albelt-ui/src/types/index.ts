@@ -73,6 +73,15 @@ export interface MaterialChuteThreshold {
   updatedAt: string;
 }
 
+export interface Color {
+  id: string;
+  name: string;
+  hexCode: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Roll {
   id: string;
   receivedDate: string;
@@ -98,7 +107,9 @@ export interface Roll {
   
   status: RollStatus;
   qrCode?: string;
-  originalQuantity?: number;
+  colorId?: string;
+  colorName?: string;
+  colorHexCode?: string;
   
   // Processing tracking
   totalCuts: number;
@@ -127,7 +138,7 @@ export interface RollRequest {
   areaM2: number;
   status: RollStatus;
   qrCode?: string;
-  originalQuantity?: number;
+  colorId?: string;
   receivedDate: string;
 }
 
@@ -192,7 +203,9 @@ export interface WastePiece {
   altierId?: string;
   altierLibelle?: string;
   qrCode?: string;
-  originalQuantity?: string;
+  colorId?: string;
+  colorName?: string;
+  colorHexCode?: string;
   totalCuts: number;
   totalWasteAreaM2: number;
   lastProcessingDate?: string | null;
@@ -207,6 +220,7 @@ export interface WastePieceRequest {
   materialType: MaterialType;
   widthMm: number;
   lengthM: number;
+  colorId?: string;
   wasteType?: WasteType;
   quantityPieces?: number;
   weightKg?: number;

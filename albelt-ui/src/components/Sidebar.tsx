@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Contact,
   ClipboardList,
+  Palette,
 } from 'lucide-react';
 import { useAuthStore } from '@hooks/useAuth';
 import { useI18n } from '@hooks/useI18n';
@@ -111,6 +112,14 @@ export function Sidebar() {
             >
               <AlertCircle size={20} className="nav-icon" />
               <span>{t('navigation.materialChute')}</span>
+            </Link>
+
+            <Link
+              to="/colors"
+              className={`nav-link ${isActive('/colors') ? 'active' : ''}`}
+            >
+              <Palette size={20} className="nav-icon" />
+              <span>{t('navigation.colors') || 'Colors'}</span>
             </Link>
           </div>
         )}

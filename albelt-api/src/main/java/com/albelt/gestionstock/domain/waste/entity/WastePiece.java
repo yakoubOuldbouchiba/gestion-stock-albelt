@@ -2,6 +2,7 @@ package com.albelt.gestionstock.domain.waste.entity;
 
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
+import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import jakarta.persistence.*;
@@ -86,8 +87,9 @@ public class WastePiece {
     @Column(name = "qr_code")
     private String qrCode;
 
-    @Column(name = "original_quantity")
-    private String originalQuantity;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "color_id")
+    private Color color;
 
     // Processing tracking (same as rolls)
     @Column(name = "total_cuts", nullable = false)

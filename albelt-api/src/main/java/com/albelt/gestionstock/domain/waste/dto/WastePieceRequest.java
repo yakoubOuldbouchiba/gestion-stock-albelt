@@ -59,7 +59,7 @@ public class WastePieceRequest {
     // Location (same as Roll)
     private UUID altierID;
     private String qrCode;
-    private String originalQuantity;
+    private UUID colorId;
 
     // Waste-specific tracking
     private UUID commandeItemId; // Link to specific order line

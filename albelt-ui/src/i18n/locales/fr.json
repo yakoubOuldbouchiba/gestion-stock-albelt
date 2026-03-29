@@ -19,6 +19,12 @@
     "export": "Exporter",
     "import": "Importer",
     "systemTitle": "Système de gestion de stock",
+    "name": "Nom",
+    "color": "Couleur",
+    "status": "Statut",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "actions": "Actions",
     "back": "Retour",
     "next": "Suivant",
     "previous": "Précédent",
@@ -47,7 +53,8 @@
     "cutting": "Découpe",
     "waste": "Déchets",
     "transferBons": "Bons de transfert",
-    "materialChute": "Seuils de matériau"
+    "materialChute": "Seuils de matériau",
+    "colors": "Couleurs"
   },
   "sidebar": {
     "main": "Principal",
@@ -94,7 +101,10 @@
     "chuteReusable": "Chute Réutilisable",
     "chuteDechet": "Chute Déchet",
     "createChuteReusable": "Créer une chute réutilisable",
-    "createChuteWaste": "Créer une chute déchet"
+    "createChuteWaste": "Créer une chute déchet",
+    "color": "Couleur",
+    "selectColor": "Sélectionner une couleur",
+    "noColors": "Aucune couleur configurée"
   },
   "rolls": {
     "title": "Rouleaux",

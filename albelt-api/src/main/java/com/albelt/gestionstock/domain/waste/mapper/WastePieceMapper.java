@@ -3,6 +3,7 @@ package com.albelt.gestionstock.domain.waste.mapper;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceResponse;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
+import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import org.springframework.stereotype.Component;
@@ -22,7 +23,7 @@ public class WastePieceMapper {
      * Convert WastePieceRequest DTO to WastePiece entity
      * NOTE: Roll reference must be set separately after fetching from repository
      */
-    public WastePiece toEntity(WastePieceRequest request) {
+    public WastePiece toEntity(WastePieceRequest request, Color color) {
         if (request == null) {
             return null;
         }
@@ -39,7 +40,7 @@ public class WastePieceMapper {
                 .status(request.getStatus() != null ? 
                     WasteStatus.valueOf(request.getStatus()) : WasteStatus.AVAILABLE)
                 .qrCode(request.getQrCode())
-                .originalQuantity(request.getOriginalQuantity())
+                .color(color)
                 .commandeItemId(request.getCommandeItemId())
                 .build();
         return wastePiece;
@@ -48,8 +49,8 @@ public class WastePieceMapper {
     /**
      * Convert WastePieceRequest DTO to WastePiece entity with Roll reference
      */
-    public WastePiece toEntity(WastePieceRequest request, Roll roll) {
-        WastePiece wastePiece = toEntity(request);
+    public WastePiece toEntity(WastePieceRequest request, Roll roll, Color color) {
+        WastePiece wastePiece = toEntity(request, color);
         if (wastePiece != null && roll != null) {
             wastePiece.setRoll(roll);
         }
@@ -59,7 +60,7 @@ public class WastePieceMapper {
     /**
      * Update existing WastePiece entity with request data
      */
-    public WastePiece updateEntity(WastePiece existing, WastePieceRequest request) {
+    public WastePiece updateEntity(WastePiece existing, WastePieceRequest request, Color color) {
         if (request == null) {
             return existing;
         }
@@ -96,8 +97,8 @@ public class WastePieceMapper {
         if (request.getQrCode() != null) {
             existing.setQrCode(request.getQrCode());
         }
-        if (request.getOriginalQuantity() != null) {
-            existing.setOriginalQuantity(request.getOriginalQuantity());
+        if (color != null) {
+            existing.setColor(color);
         }
         return existing;
     }
@@ -125,7 +126,9 @@ public class WastePieceMapper {
                 .altierId(entity.getAltier() != null ? entity.getAltier().getId() : null)
                 .altierLibelle(entity.getAltier() != null ? entity.getAltier().getLibelle() : null)
                 .qrCode(entity.getQrCode())
-                .originalQuantity(entity.getOriginalQuantity())
+                .colorId(entity.getColor() != null ? entity.getColor().getId() : null)
+                .colorName(entity.getColor() != null ? entity.getColor().getName() : null)
+                .colorHexCode(entity.getColor() != null ? entity.getColor().getHexCode() : null)
                 .totalCuts(entity.getTotalCuts())
                 .totalWasteAreaM2(entity.getTotalWasteAreaM2())
                 .lastProcessingDate(entity.getLastProcessingDate())

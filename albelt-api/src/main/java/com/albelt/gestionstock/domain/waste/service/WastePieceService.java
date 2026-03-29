@@ -4,6 +4,8 @@ import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.waste.mapper.WastePieceMapper;
 import com.albelt.gestionstock.domain.waste.repository.WastePieceRepository;
+import com.albelt.gestionstock.domain.colors.entity.Color;
+import com.albelt.gestionstock.domain.colors.service.ColorService;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.shared.enums.MaterialType;
@@ -37,6 +39,7 @@ public class WastePieceService {
     private final WastePieceRepository wastePieceRepository;
     private final RollRepository rollRepository;
     private final WastePieceMapper wastePieceMapper;
+    private final ColorService colorService;
 
     /**
      * Record a waste piece from a commande item processing
@@ -51,9 +54,16 @@ public class WastePieceService {
         // Fetch the Roll entity from the database using rollId
         Roll roll = rollRepository.findById(request.getRollId())
                 .orElseThrow(() -> ResourceNotFoundException.supplier(request.getRollId().toString()));
+
+        Color color = null;
+        if (request.getColorId() != null) {
+            color = colorService.getById(request.getColorId());
+        } else if (roll.getColor() != null) {
+            color = roll.getColor();
+        }
         
         // Create WastePiece with Roll reference
-        WastePiece wastePiece = wastePieceMapper.toEntity(request, roll);
+        WastePiece wastePiece = wastePieceMapper.toEntity(request, roll, color);
         
         // Set the creator
         wastePiece.setCreatedBy(createdBy);

@@ -30,13 +30,32 @@ VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================================
+-- Sample Colors
+-- ============================================================================
+INSERT INTO colors (name, hex_code)
+VALUES
+    ('Sand', '#D4A574'),
+    ('Ocean', '#4A90E2'),
+    ('Charcoal', '#2C3E50'),
+    ('Red', '#E53935'),
+    ('Blue', '#1E88E5'),
+    ('Yellow', '#FDD835'),
+    ('Green', '#43A047'),
+    ('Orange', '#FB8C00'),
+    ('Purple', '#8E24AA'),
+    ('Pink', '#D81B60'),
+    ('Brown', '#6D4C41'),
+    ('Gray', '#9E9E9E')
+ON CONFLICT (name) DO NOTHING;
+
+-- ============================================================================
 -- Sample Rolls
 -- ============================================================================
 INSERT INTO rolls (
     material_type, width_mm, length_m, nb_plis, thickness_mm,
     width_remaining_mm, length_remaining_m,
     area_m2, supplier_id, received_date, status, 
-    altier_id, original_quantity, created_by
+    altier_id, color_id, created_by
 )
 SELECT 
     material_type, width_mm, length_m, nb_plis, thickness_mm,
@@ -44,17 +63,17 @@ SELECT
     (width_mm::DECIMAL / 1000.0) * length_m,
     supplier_id, received_date::DATE, status,
     (SELECT id FROM altier LIMIT 1),
-    original_quantity,
+    (SELECT id FROM colors ORDER BY random() LIMIT 1),
     (SELECT id FROM users WHERE username = 'admin' LIMIT 1)
 FROM (
     VALUES
-    ('PU', 1200, 50.0, 1, 2.5, '2026-03-19', 'AVAILABLE', '50kg', (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1)),
-    ('PU', 1200, 45.0, 1, 2.5, '2026-03-20', 'AVAILABLE', '45kg', (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1)),
-    ('PU', 1000, 30.0, 1, 2.5, '2026-03-21', 'OPENED', '30kg', (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1)),
-    ('PVC', 1000, 40.0, 1, 2.0, '2026-03-18', 'AVAILABLE', '40kg', (SELECT id FROM suppliers WHERE name = 'Supplier PVC Europe' LIMIT 1)),
-    ('PVC', 900, 35.0, 1, 2.0, '2026-03-20', 'AVAILABLE', '35kg', (SELECT id FROM suppliers WHERE name = 'Supplier PVC Europe' LIMIT 1)),
-    ('CAOUTCHOUC', 1500, 25.0, 1, 3.0, '2026-03-22', 'AVAILABLE', '25kg', (SELECT id FROM suppliers WHERE name = 'Caoutchouc Direct' LIMIT 1))
-) AS v(material_type, width_mm, length_m, nb_plis, thickness_mm, received_date, status, original_quantity, supplier_id)
+    ('PU', 1200, 50.0, 1, 2.5, '2026-03-19', 'AVAILABLE', (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1)),
+    ('PU', 1200, 45.0, 1, 2.5, '2026-03-20', 'AVAILABLE', (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1)),
+    ('PU', 1000, 30.0, 1, 2.5, '2026-03-21', 'OPENED', (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1)),
+    ('PVC', 1000, 40.0, 1, 2.0, '2026-03-18', 'AVAILABLE', (SELECT id FROM suppliers WHERE name = 'Supplier PVC Europe' LIMIT 1)),
+    ('PVC', 900, 35.0, 1, 2.0, '2026-03-20', 'AVAILABLE', (SELECT id FROM suppliers WHERE name = 'Supplier PVC Europe' LIMIT 1)),
+    ('CAOUTCHOUC', 1500, 25.0, 1, 3.0, '2026-03-22', 'AVAILABLE', (SELECT id FROM suppliers WHERE name = 'Caoutchouc Direct' LIMIT 1))
+) AS v(material_type, width_mm, length_m, nb_plis, thickness_mm, received_date, status, supplier_id)
 WHERE NOT EXISTS (SELECT 1 FROM rolls WHERE received_date = '2026-03-19'::DATE AND material_type = 'PU');
 
 -- ============================================================================
@@ -65,7 +84,7 @@ INSERT INTO waste_pieces (
     roll_id, material_type, width_mm, length_m, nb_plis, thickness_mm,
     width_remaining_mm, length_remaining_m,
     area_m2, status, waste_type,
-    altier_id, original_quantity, created_by
+    altier_id, color_id, created_by
 )
 SELECT 
     rolls.id,
@@ -74,7 +93,7 @@ SELECT
     600, 5.0,
     (600::DECIMAL / 1000.0) * 5.0, 'AVAILABLE', 'CHUTE_EXPLOITABLE',
     rolls.altier_id,
-    '5m-waste',
+    rolls.color_id,
     (SELECT id FROM users WHERE username = 'admin' LIMIT 1)
 FROM rolls
 WHERE rolls.material_type = 'PU' AND rolls.status = 'OPENED'

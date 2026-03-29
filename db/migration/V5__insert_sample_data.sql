@@ -29,35 +29,44 @@ INSERT INTO suppliers (name, country, contact_person, email, phone, lead_time_da
 ('Caoutchouc Direct', 'DZ', 'Karim Saidi', 'karim@caout.dz', '+213 23 987 654', 5, 'Natural rubber - fast delivery');
 
 -- ============================================================================
+-- Sample Colors (Configured list for UI)
+-- ============================================================================
+
+INSERT INTO colors (name, hex_code) VALUES
+('PU', '#D4A574'),
+('PVC', '#4A90E2'),
+('CAOUTCHOUC', '#2C3E50');
+
+-- ============================================================================
 -- Sample Rolls (Various materials, dates, statuses)
 -- ============================================================================
 
-INSERT INTO rolls (material_type, width_mm, length_m, original_quantity, supplier_id, received_date, status, location, created_by) 
+INSERT INTO rolls (material_type, width_mm, length_m, supplier_id, received_date, status, location, color_id, created_by) 
 SELECT 
     material_type,
     width_mm,
     length_m,
-    original_quantity,
     supplier_id,
     received_date,
     status,
     location,
+    (SELECT id FROM colors WHERE name = material_type LIMIT 1),
     (SELECT id FROM users WHERE username = 'admin' LIMIT 1)
 FROM (
     VALUES
     -- PU Materials
-    ('PU', 1200, 50.0, '50kg', (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1), '2026-03-19', 'AVAILABLE', 'Chute-1'),
-    ('PU', 1200, 45.0, '45kg', (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1), '2026-03-20', 'AVAILABLE', 'Chute-2'),
-    ('PU', 1000, 30.0, '30kg', (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1), '2026-03-21', 'OPENED', 'Chute-3'),
+    ('PU', 1200, 50.0, (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1), '2026-03-19', 'AVAILABLE', 'Chute-1'),
+    ('PU', 1200, 45.0, (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1), '2026-03-20', 'AVAILABLE', 'Chute-2'),
+    ('PU', 1000, 30.0, (SELECT id FROM suppliers WHERE name = 'Fournisseur PU Algérie' LIMIT 1), '2026-03-21', 'OPENED', 'Chute-3'),
     
     -- PVC Materials
-    ('PVC', 1000, 40.0, '40kg', (SELECT id FROM suppliers WHERE name = 'Supplier PVC Europe' LIMIT 1), '2026-03-18', 'AVAILABLE', 'Chute-4'),
-    ('PVC', 900, 35.0, '35kg', (SELECT id FROM suppliers WHERE name = 'Supplier PVC Europe' LIMIT 1), '2026-03-20', 'AVAILABLE', 'Chute-5'),
+    ('PVC', 1000, 40.0, (SELECT id FROM suppliers WHERE name = 'Supplier PVC Europe' LIMIT 1), '2026-03-18', 'AVAILABLE', 'Chute-4'),
+    ('PVC', 900, 35.0, (SELECT id FROM suppliers WHERE name = 'Supplier PVC Europe' LIMIT 1), '2026-03-20', 'AVAILABLE', 'Chute-5'),
     
     -- Caoutchouc Materials
-    ('CAOUTCHOUC', 1500, 25.0, '25kg', (SELECT id FROM suppliers WHERE name = 'Caoutchouc Direct' LIMIT 1), '2026-03-22', 'AVAILABLE', 'Chute-6'),
-    ('CAOUTCHOUC', 1400, 20.0, '20kg', (SELECT id FROM suppliers WHERE name = 'Caoutchouc Direct' LIMIT 1), '2026-03-21', 'EXHAUSTED', 'Chute-7')
-) AS sample_rolls(material_type, width_mm, length_m, original_quantity, supplier_id, received_date, status, location);
+    ('CAOUTCHOUC', 1500, 25.0, (SELECT id FROM suppliers WHERE name = 'Caoutchouc Direct' LIMIT 1), '2026-03-22', 'AVAILABLE', 'Chute-6'),
+    ('CAOUTCHOUC', 1400, 20.0, (SELECT id FROM suppliers WHERE name = 'Caoutchouc Direct' LIMIT 1), '2026-03-21', 'EXHAUSTED', 'Chute-7')
+) AS sample_rolls(material_type, width_mm, length_m, supplier_id, received_date, status, location);
 
 -- ============================================================================
 -- Sample Cutting Operation (One complete example)
@@ -83,26 +92,28 @@ LIMIT 1;
 -- Sample Waste Pieces (From the cutting operation)
 -- ============================================================================
 
-INSERT INTO waste_pieces (from_cutting_operation_id, material_type, width_mm, length_m, status, notes)
+INSERT INTO waste_pieces (from_cutting_operation_id, material_type, width_mm, length_m, status, color_id, notes)
 SELECT
     co.id,
     'PU',
     600,
     2.10,
     'AVAILABLE',
+    (SELECT id FROM colors WHERE name = 'PU' LIMIT 1),
     'Large waste piece - suitable for reuse'
 FROM cutting_operations co
 WHERE co.notes = 'Standard cutting operation - no issues'
 LIMIT 1;
 
 -- Insert a small waste piece (will be auto-marked as SCRAP by trigger)
-INSERT INTO waste_pieces (from_cutting_operation_id, material_type, width_mm, length_m, status, notes)
+INSERT INTO waste_pieces (from_cutting_operation_id, material_type, width_mm, length_m, status, color_id, notes)
 SELECT
     co.id,
     'PU',
     200,
     1.50,
     'SCRAP',
+    (SELECT id FROM colors WHERE name = 'PU' LIMIT 1),
     'Small waste piece'
 FROM cutting_operations co
 WHERE co.notes = 'Standard cutting operation - no issues'

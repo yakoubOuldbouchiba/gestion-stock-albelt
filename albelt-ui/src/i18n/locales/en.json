@@ -19,6 +19,12 @@
     "export": "Export",
     "import": "Import",
     "systemTitle": "Stock Management System",
+    "name": "Name",
+    "color": "Color",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "actions": "Actions",
     "back": "Back",
     "next": "Next",
     "previous": "Previous",
@@ -47,7 +53,8 @@
     "cutting": "Cutting",
     "waste": "Waste",
     "transferBons": "Transfer Bons",
-    "materialChute": "Material Thresholds"
+    "materialChute": "Material Thresholds",
+    "colors": "Colors"
   },
   "sidebar": {
     "main": "Main",
@@ -94,7 +101,10 @@
     "chuteReusable": "Chute Reusable",
     "chuteDechet": "Chute Waste",
     "createChuteReusable": "Create Chute Reusable",
-    "createChuteWaste": "Create Chute Waste"
+    "createChuteWaste": "Create Chute Waste",
+    "color": "Color",
+    "selectColor": "Select Color",
+    "noColors": "No colors configured"
   },
   "rolls": {
     "title": "Rolls",

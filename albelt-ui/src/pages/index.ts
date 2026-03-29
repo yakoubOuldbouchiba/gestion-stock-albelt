@@ -8,6 +8,7 @@ export { UsersPage } from './UsersPage';
 export { AltierPage } from './AltierPage';
 export { TransferBonsPage } from './TransferBonsPage';
 export { MaterialChuteThresholdsPage } from './MaterialChuteThresholdsPage';
+export { ColorsPage } from './ColorsPage';
 export { ClientsPage } from './ClientsPage';
 export { CommandesListPage } from './CommandesListPage';
 export { CommandeCreatePage } from './CommandeCreatePage';

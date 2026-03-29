@@ -44,9 +44,11 @@ public class RollResponse {
     private UUID altierId;
     private String altierLibelle;
 
-    // QR Code & Original Quantity
+    // QR Code & Color
     private String qrCode;
-    private Integer originalQuantity;
+    private UUID colorId;
+    private String colorName;
+    private String colorHexCode;
 
     // Processing tracking
     private Integer totalCuts;

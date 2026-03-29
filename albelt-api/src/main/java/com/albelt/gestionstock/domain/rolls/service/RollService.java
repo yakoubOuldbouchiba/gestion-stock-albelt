@@ -4,6 +4,8 @@ import com.albelt.gestionstock.domain.rolls.dto.RollRequest;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.rolls.mapper.RollMapper;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
+import com.albelt.gestionstock.domain.colors.entity.Color;
+import com.albelt.gestionstock.domain.colors.service.ColorService;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
 import com.albelt.gestionstock.domain.suppliers.service.SupplierService;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
@@ -43,6 +45,7 @@ public class RollService {
     private final RollMapper rollMapper;
     private final SupplierService supplierService;
     private final AltierService altierService;
+    private final ColorService colorService;
 
     /**
      * Create a new roll from supplier delivery
@@ -66,8 +69,13 @@ public class RollService {
         if (request.getAltierId() != null) {
             altier = altierService.getById(request.getAltierId());
         }
+
+        Color color = null;
+        if (request.getColorId() != null) {
+            color = colorService.getById(request.getColorId());
+        }
         
-        Roll roll = rollMapper.toEntity(request, supplier, altier, createdBy);
+        Roll roll = rollMapper.toEntity(request, supplier, altier, color, createdBy);
         Roll saved = rollRepository.save(roll);
         
         log.info("Roll received successfully: id={}, material={}, area_m2={}, status=AVAILABLE, totalCuts=0, totalWaste=0m²", 

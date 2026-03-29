@@ -5,6 +5,18 @@
 -- ============================================================================
 
 -- ============================================================================
+-- COLORS Table (UI-configured color list)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS colors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(50) NOT NULL UNIQUE,
+    hex_code VARCHAR(7) NOT NULL CHECK (hex_code ~ '^#[0-9A-Fa-f]{6}$'),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
 -- ROLLS Table (Core Inventory - FIFO Based)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS rolls (
@@ -35,7 +47,6 @@ CREATE TABLE IF NOT EXISTS rolls (
     -- Location & Tracking
     altier_id UUID REFERENCES altier(id) ON DELETE SET NULL,
     qr_code VARCHAR(500),
-    original_quantity VARCHAR(20),
     
     -- Processing tracking
     total_cuts INTEGER NOT NULL DEFAULT 0,
@@ -80,7 +91,6 @@ CREATE TABLE IF NOT EXISTS waste_pieces (
     -- Location & Tracking (same as rolls)
     altier_id UUID REFERENCES altier(id) ON DELETE SET NULL,
     qr_code VARCHAR(500),
-    original_quantity VARCHAR(20),
     
     -- Processing tracking (same as rolls)
     total_cuts INTEGER NOT NULL DEFAULT 0,
@@ -98,6 +108,17 @@ CREATE TABLE IF NOT EXISTS waste_pieces (
 );
 
 -- ============================================================================
+-- Alter tables: remove original_quantity and add color_id
+-- ============================================================================
+ALTER TABLE rolls
+    DROP COLUMN IF EXISTS original_quantity,
+    ADD COLUMN color_id UUID REFERENCES colors(id) ON DELETE SET NULL;
+
+ALTER TABLE waste_pieces
+    DROP COLUMN IF EXISTS original_quantity,
+    ADD COLUMN color_id UUID REFERENCES colors(id) ON DELETE SET NULL;
+
+-- ============================================================================
 -- End V2: Inventory Tables Created
 -- ============================================================================
 
@@ -110,7 +131,7 @@ DECLARE
     source_roll RECORD;
 BEGIN
     -- Fetch source roll dimensions
-    SELECT width_mm, length_m, area_m2 INTO source_roll
+    SELECT width_mm, length_m, area_m2, color_id INTO source_roll
     FROM rolls
     WHERE id = NEW.roll_id;
     
@@ -131,6 +152,13 @@ BEGIN
         IF NEW.area_m2 > source_roll.area_m2 THEN
             RAISE EXCEPTION 'Waste piece area (%.4f m²) cannot exceed source roll area (%.4f m²)', 
                            NEW.area_m2, source_roll.area_m2;
+        END IF;
+
+        -- Enforce same color as parent roll
+        IF NEW.color_id IS NULL THEN
+            NEW.color_id := source_roll.color_id;
+        ELSIF NEW.color_id <> source_roll.color_id THEN
+            RAISE EXCEPTION 'Waste piece color must match parent roll color';
         END IF;
     END IF;
     

@@ -18,6 +18,7 @@ import {
   AltierPage,
   TransferBonsPage,
   MaterialChuteThresholdsPage,
+  ColorsPage,
   ClientsPage,
   CommandesListPage,
   CommandeCreatePage,
@@ -196,6 +197,17 @@ export function App() {
             <AdminRoute>
               <Layout>
                 <MaterialChuteThresholdsPage />
+              </Layout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/colors"
+          element={
+            <AdminRoute>
+              <Layout>
+                <ColorsPage />
               </Layout>
             </AdminRoute>
           }

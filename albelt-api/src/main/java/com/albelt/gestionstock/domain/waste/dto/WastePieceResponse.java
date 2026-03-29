@@ -43,7 +43,9 @@ public class WastePieceResponse {
     private UUID altierId;
     private String altierLibelle;
     private String qrCode;
-    private String originalQuantity;
+    private UUID colorId;
+    private String colorName;
+    private String colorHexCode;
 
     // Processing tracking (same as Roll)
     private Integer totalCuts;

@@ -62,7 +62,7 @@ public class RollRequest {
     // Location (Altier) Reference
     private UUID altierId;
 
-    // QR Code & Original Quantity
+    // QR Code & Color
     private String qrCode;
-    private Integer originalQuantity;
+    private UUID colorId;
 }
