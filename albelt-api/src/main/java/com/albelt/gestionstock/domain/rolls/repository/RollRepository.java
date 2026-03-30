@@ -3,6 +3,7 @@ package com.albelt.gestionstock.domain.rolls.repository;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -100,6 +101,33 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
            "AND r.status IN (:statuses) ORDER BY r.receivedDate ASC")
     List<Roll> findAvailableByAltierIds(@Param("altierIds") List<UUID> altierIds,
                                        @Param("statuses") List<RollStatus> statuses);
+
+    /**
+     * Paged roll search with optional filters and altier restriction
+     */
+    @Query("SELECT r FROM Roll r " +
+           "WHERE r.altier.id IN (:altierIds) " +
+           "AND (:status IS NULL OR r.status = :status) " +
+           "AND (:materialType IS NULL OR r.materialType = :materialType) " +
+           "AND (:supplierId IS NULL OR r.supplier.id = :supplierId) " +
+           "AND (:altierId IS NULL OR r.altier.id = :altierId) " +
+           "AND r.receivedDate >= :fromDate " +
+           "AND r.receivedDate <= :toDate " +
+           "AND (:search = '' OR " +
+           "LOWER(r.qrCode) LIKE CONCAT('%', :search, '%') OR " +
+           "LOWER(r.supplier.name) LIKE CONCAT('%', :search, '%') OR " +
+           "LOWER(r.altier.libelle) LIKE CONCAT('%', :search, '%') OR " +
+           "LOWER(r.materialType) LIKE CONCAT('%', :search, '%'))")
+    Page<Roll> findFiltered(
+            @Param("altierIds") List<UUID> altierIds,
+            @Param("status") RollStatus status,
+            @Param("materialType") MaterialType materialType,
+            @Param("supplierId") UUID supplierId,
+            @Param("altierId") UUID altierId,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate,
+            @Param("search") String search,
+            Pageable pageable);
 
     /**
      * Find rolls by supplier and material type

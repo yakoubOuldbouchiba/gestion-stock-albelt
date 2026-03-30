@@ -38,14 +38,19 @@ export function TransferBonsPage() {
   const [bonDetails, setBonDetails] = useState<(TransferBon & { movements?: RollMovement[] }) | null>(null);
   const [confirmData, setConfirmData] = useState({ dateEntree: getCurrentDateTimeLocal() });
 
+  const toArray = <T,>(data: any): T[] => {
+    if (Array.isArray(data)) return data;
+    return data?.items ?? data?.content ?? [];
+  };
+
   const userAltierIds = user?.altierIds || [];
   const userAvailableAltiers = useMemo(
-    () => altiers.filter((a) => userAltierIds.includes(a.id)),
+    () => toArray<Altier>(altiers).filter((a) => userAltierIds.includes(a.id)),
     [altiers, userAltierIds]
   );
 
   const otherAltiers = useMemo(
-    () => altiers.filter((a) => a.id !== formData.fromAltierID),
+    () => toArray<Altier>(altiers).filter((a) => a.id !== formData.fromAltierID),
     [altiers, formData.fromAltierID]
   );
 
@@ -63,15 +68,16 @@ export function TransferBonsPage() {
         ]);
 
         if (altResponse.success && altResponse.data) {
-          setAltiers(altResponse.data);
-          const firstAltier = altResponse.data.find((a) => userAltierIds.includes(a.id));
+          const altItems = toArray<Altier>(altResponse.data);
+          setAltiers(altItems);
+          const firstAltier = altItems.find((a) => userAltierIds.includes(a.id));
           if (firstAltier && !formData.fromAltierID) {
             setFormData((prev) => ({ ...prev, fromAltierID: firstAltier.id }));
           }
         }
 
         if (bonsResponse.success && bonsResponse.data) {
-          setBons(bonsResponse.data);
+          setBons(toArray<TransferBon>(bonsResponse.data));
         }
       } catch (e) {
         console.error(e);
@@ -101,7 +107,8 @@ export function TransferBonsPage() {
 
         const excludedRollIds = new Set<string>();
         if (outgoingResponse.success && outgoingResponse.data) {
-          for (const movement of outgoingResponse.data) {
+          const outgoingItems = toArray<RollMovement>(outgoingResponse.data);
+          for (const movement of outgoingItems) {
             // Exclude rolls already included in an active bon (not yet received)
             if (movement.transferBonId && !movement.dateEntree) {
               excludedRollIds.add(movement.rollId);
@@ -110,14 +117,15 @@ export function TransferBonsPage() {
         }
 
         if (rollsResponse.success && rollsResponse.data) {
+          const rollItems = toArray<Roll>(rollsResponse.data);
           // Cache roll details for later display (bon details table)
           const rollMap: Record<string, Roll> = {};
-          for (const roll of rollsResponse.data) {
+          for (const roll of rollItems) {
             rollMap[roll.id] = roll;
           }
           setRollDetailsById((prev) => ({ ...rollMap, ...prev }));
 
-          const filtered = rollsResponse.data.filter((roll) => {
+          const filtered = rollItems.filter((roll) => {
             const isAtFromAltier = roll.altierId === formData.fromAltierID;
             const isAvailable = roll.status === 'AVAILABLE' || roll.status === 'OPENED';
             const isExcluded = excludedRollIds.has(roll.id);
@@ -188,7 +196,7 @@ export function TransferBonsPage() {
   const reloadBons = async () => {
     const bonsResponse = await transferBonService.listBons();
     if (bonsResponse.success && bonsResponse.data) {
-      setBons(bonsResponse.data);
+      setBons(toArray<TransferBon>(bonsResponse.data));
     }
   };
 

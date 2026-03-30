@@ -10,7 +10,8 @@ import type {
   ClientAddressRequest,
   ClientRepresentative,
   ClientRepresentativeRequest,
-  ApiResponse
+  ApiResponse,
+  PagedResponse
 } from '../types/index';
 
 /**
@@ -22,8 +23,15 @@ export const ClientService = {
   /**
    * Get all clients
    */
-  async getAll(): Promise<ApiResponse<Client[]>> {
-    return ApiService.get<Client[]>('/clients');
+  async getAll(params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<ApiResponse<PagedResponse<Client>>> {
+    return ApiService.get<PagedResponse<Client>>('/clients', params);
   },
 
   /**

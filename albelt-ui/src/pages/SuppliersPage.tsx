@@ -4,6 +4,7 @@ import { useI18n } from '@hooks/useI18n';
 import { formatDate } from '../utils/date';
 import type { Supplier, SupplierRequest } from '../types/index';
 import { SupplierService } from '@services/supplierService';
+import { Pagination } from '@components/Pagination';
 import '../styles/SuppliersPage.css';
 
 export function SuppliersPage() {
@@ -14,6 +15,10 @@ export function SuppliersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 20;
   const [formData, setFormData] = useState<SupplierRequest>({
     name: '',
     address: '',
@@ -25,16 +30,22 @@ export function SuppliersPage() {
   });
 
   useEffect(() => {
-    loadSuppliers();
-  }, []);
+    loadSuppliers(page, searchTerm);
+  }, [page, searchTerm]);
 
-  const loadSuppliers = async () => {
+  const loadSuppliers = async (pageIndex: number, search: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await SupplierService.getAll();
+      const response = await SupplierService.getAll({
+        page: pageIndex,
+        size: pageSize,
+        search: search || undefined,
+      });
       if (response.success && response.data) {
-        setSuppliers(response.data);
+        setSuppliers(response.data.items || []);
+        setTotalPages(response.data.totalPages || 0);
+        setTotalElements(response.data.totalElements || 0);
       }
     } catch (err) {
       setError(t('messages.failedToLoad'));
@@ -60,13 +71,14 @@ export function SuppliersPage() {
       if (editingId) {
         const response = await SupplierService.update(editingId, formData);
         if (response.success) {
-          setSuppliers(suppliers.map(s => s.id === editingId ? response.data! : s));
           setEditingId(null);
+          await loadSuppliers(page, searchTerm);
         }
       } else {
         const response = await SupplierService.create(formData);
         if (response.success) {
-          setSuppliers([...suppliers, response.data!]);
+          setPage(0);
+          await loadSuppliers(0, searchTerm);
         }
       }
       resetForm();
@@ -99,7 +111,7 @@ export function SuppliersPage() {
     try {
       const response = await SupplierService.delete(id);
       if (response.success) {
-        setSuppliers(suppliers.filter(s => s.id !== id));
+        await loadSuppliers(page, searchTerm);
       }
     } catch (err) {
       setError(t('messages.failedToDelete'));
@@ -125,12 +137,6 @@ export function SuppliersPage() {
     setShowForm(false);
   };
 
-  const filteredSuppliers = suppliers.filter(supplier =>
-    (supplier.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (supplier.city || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (supplier.country || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   if (isLoading) {
     return <div className="page-loading">{t('messages.loading')}</div>;
   }
@@ -155,13 +161,16 @@ export function SuppliersPage() {
             type="text"
             placeholder={t('suppliers.searchPlaceholder')}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(0);
+            }}
             className="search-input"
           />
           <Search size={18} className="search-icon" />
         </div>
         <div className="results-count">
-          {filteredSuppliers.length} {filteredSuppliers.length !== 1 ? t('suppliers.plural') : t('suppliers.singular')}
+            {totalElements} {totalElements !== 1 ? t('suppliers.plural') : t('suppliers.singular')}
         </div>
       </div>
 
@@ -280,8 +289,8 @@ export function SuppliersPage() {
       )}
 
       <div className="suppliers-grid">
-        {filteredSuppliers.length > 0 ? (
-          filteredSuppliers.map(supplier => (
+        {suppliers.length > 0 ? (
+          suppliers.map(supplier => (
             <div key={supplier.id} className="supplier-card">
               <div className="supplier-header">
                 <h3>{supplier.name}</h3>
@@ -347,6 +356,8 @@ export function SuppliersPage() {
           </div>
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }

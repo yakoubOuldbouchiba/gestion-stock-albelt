@@ -17,6 +17,7 @@ import {
   ReportsPage,
   AltierPage,
   TransferBonsPage,
+  PurchaseBonsPage,
   MaterialChuteThresholdsPage,
   ColorsPage,
   ClientsPage,
@@ -107,6 +108,17 @@ export function App() {
             <ProtectedRoute>
               <Layout>
                 <TransferBonsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/purchase-bons"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <PurchaseBonsPage />
               </Layout>
             </ProtectedRoute>
           }

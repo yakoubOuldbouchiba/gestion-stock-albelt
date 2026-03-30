@@ -1,6 +1,8 @@
 package com.albelt.gestionstock.domain.commandes.repository;
 
 import com.albelt.gestionstock.domain.commandes.entity.Commande;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -49,4 +51,21 @@ public interface CommandeRepository extends JpaRepository<Commande, UUID> {
      */
     @Query("SELECT c FROM Commande c ORDER BY c.createdAt DESC")
     List<Commande> findAllOrderByCreatedAtDesc();
+
+    /**
+     * Paged order search with optional filters
+     */
+    @Query("SELECT c FROM Commande c " +
+           "WHERE (:status IS NULL OR c.status = :status) " +
+           "AND (:clientId IS NULL OR c.client.id = :clientId) " +
+           "AND c.createdAt >= :fromDate " +
+           "AND c.createdAt <= :toDate " +
+           "AND (:search = '' OR LOWER(c.numeroCommande) LIKE CONCAT('%', :search, '%')) ")
+    Page<Commande> findFiltered(
+            @Param("status") String status,
+            @Param("clientId") UUID clientId,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            @Param("search") String search,
+            Pageable pageable);
 }

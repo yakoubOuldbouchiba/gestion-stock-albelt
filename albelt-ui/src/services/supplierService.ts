@@ -1,5 +1,5 @@
 import ApiService from './api';
-import type { Supplier, SupplierRequest, ApiResponse } from '../types/index';
+import type { Supplier, SupplierRequest, ApiResponse, PagedResponse } from '../types/index';
 
 /**
  * Supplier API Service
@@ -8,8 +8,15 @@ export const SupplierService = {
   /**
    * Get all suppliers
    */
-  async getAll(): Promise<ApiResponse<Supplier[]>> {
-    return ApiService.get<Supplier[]>('/suppliers');
+  async getAll(params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    country?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<ApiResponse<PagedResponse<Supplier>>> {
+    return ApiService.get<PagedResponse<Supplier>>('/suppliers', params);
   },
 
   /**

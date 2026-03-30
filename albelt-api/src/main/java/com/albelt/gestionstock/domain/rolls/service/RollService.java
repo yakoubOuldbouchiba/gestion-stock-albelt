@@ -16,6 +16,9 @@ import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -151,6 +154,37 @@ public class RollService {
     }
 
     /**
+     * Get paged rolls for user's altiers with optional filters
+     */
+    @Transactional(readOnly = true)
+    public Page<Roll> getByUserAltiersPaged(List<UUID> userAltierIds,
+                                            RollStatus status,
+                                            MaterialType materialType,
+                                            UUID supplierId,
+                                            UUID altierId,
+                                            java.time.LocalDate fromDate,
+                                            java.time.LocalDate toDate,
+                                            String search,
+                                            int page,
+                                            int size) {
+        if (userAltierIds == null || userAltierIds.isEmpty()) {
+            return Page.empty();
+        }
+
+        String normalizedSearch = normalize(search);
+        if (normalizedSearch == null) {
+            normalizedSearch = "";
+        } else {
+            normalizedSearch = normalizedSearch.toLowerCase(Locale.ROOT);
+        }
+        java.time.LocalDate effectiveFromDate = fromDate != null ? fromDate : java.time.LocalDate.of(1970, 1, 1);
+        java.time.LocalDate effectiveToDate = toDate != null ? toDate : java.time.LocalDate.of(2100, 1, 1);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "receivedDate"));
+        return rollRepository.findFiltered(userAltierIds, status, materialType, supplierId, altierId,
+            effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
+    }
+
+    /**
      * Get available rolls in user's assigned altiers
      */
     @Transactional(readOnly = true)
@@ -256,6 +290,12 @@ public class RollService {
             default:
                 return false;
         }
+    }
+
+    private String normalize(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     /**

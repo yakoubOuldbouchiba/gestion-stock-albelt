@@ -2,6 +2,8 @@ package com.albelt.gestionstock.domain.users.repository;
 
 import com.albelt.gestionstock.domain.users.entity.User;
 import com.albelt.gestionstock.shared.enums.UserRole;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -55,4 +57,24 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * Check if email exists
      */
     boolean existsByEmailIgnoreCase(String email);
+
+    /**
+     * Paged user search with optional filters
+     */
+    @Query("SELECT u FROM User u " +
+           "WHERE (:search = '' OR " +
+           "LOWER(u.username) LIKE CONCAT('%', :search, '%') OR " +
+           "LOWER(u.email) LIKE CONCAT('%', :search, '%') OR " +
+           "LOWER(u.fullName) LIKE CONCAT('%', :search, '%')) " +
+           "AND (u.role = COALESCE(:role, u.role)) " +
+           "AND (u.isActive = COALESCE(:isActive, u.isActive)) " +
+           "AND (u.createdAt >= COALESCE(:fromDate, u.createdAt)) " +
+           "AND (u.createdAt <= COALESCE(:toDate, u.createdAt))")
+    Page<User> findFiltered(
+            @Param("search") String search,
+            @Param("role") UserRole role,
+            @Param("isActive") Boolean isActive,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            Pageable pageable);
 }

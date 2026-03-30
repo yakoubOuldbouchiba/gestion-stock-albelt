@@ -1,6 +1,8 @@
 package com.albelt.gestionstock.domain.clients.repository;
 
 import com.albelt.gestionstock.domain.clients.entity.Client;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -44,6 +46,21 @@ public interface ClientRepository extends JpaRepository<Client, UUID> {
      */
     @Query("SELECT c FROM Client c ORDER BY c.createdAt DESC")
     List<Client> findAllRecentFirst();
+
+        /**
+         * Paged client search with optional filters
+         */
+          @Query("SELECT c FROM Client c " +
+              "WHERE (:search = '' OR LOWER(c.name) LIKE CONCAT('%', :search, '%')) " +
+              "AND (:isActive IS NULL OR c.isActive = :isActive) " +
+              "AND c.createdAt >= :fromDate " +
+              "AND c.createdAt <= :toDate")
+        Page<Client> findFiltered(
+            @Param("search") String search,
+            @Param("isActive") Boolean isActive,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            Pageable pageable);
 
     /**
      * Count active clients

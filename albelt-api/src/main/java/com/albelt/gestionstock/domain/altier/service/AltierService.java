@@ -7,6 +7,9 @@ import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +52,24 @@ public class AltierService {
     public List<Altier> getAll() {
         log.debug("Fetching all altiers");
         return altierRepository.findAll();
+    }
+
+    /**
+     * Get altiers with pagination and optional filters
+     */
+    @Transactional(readOnly = true)
+    public Page<Altier> getAllPaged(String search, java.time.LocalDateTime fromDate,
+                                    java.time.LocalDateTime toDate, int page, int size) {
+        String normalizedSearch = normalize(search);
+        if (normalizedSearch == null) {
+            normalizedSearch = "";
+        } else {
+            normalizedSearch = normalizedSearch.toLowerCase(java.util.Locale.ROOT);
+        }
+        java.time.LocalDateTime effectiveFromDate = fromDate != null ? fromDate : java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
+        java.time.LocalDateTime effectiveToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return altierRepository.findFiltered(normalizedSearch, effectiveFromDate, effectiveToDate, pageable);
     }
 
     /**
@@ -98,5 +119,11 @@ public class AltierService {
         log.info("Deleting altier: {}", id);
         var altier = getById(id);
         altierRepository.delete(altier);
+    }
+
+    private String normalize(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

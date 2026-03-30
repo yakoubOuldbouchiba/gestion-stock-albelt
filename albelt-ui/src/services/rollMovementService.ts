@@ -1,5 +1,5 @@
 import ApiService from './api';
-import type { ApiResponse } from '../types/index';
+import type { ApiResponse, PagedResponse } from '../types/index';
 
 export interface RollMovement {
   id: string;
@@ -73,8 +73,8 @@ class RollMovementService {
   /**
    * Get movement history for a roll
    */
-  async getRollMovementHistory(rollId: string): Promise<ApiResponse<RollMovement[]>> {
-    return ApiService.get<RollMovement[]>(`/roll-movements/roll/${rollId}/history`);
+  async getRollMovementHistory(rollId: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/roll/${rollId}/history`, { page, size });
   }
 
   /**
@@ -87,29 +87,29 @@ class RollMovementService {
   /**
    * Get incoming movements for an altier
    */
-  async getIncomingMovements(altierID: string): Promise<ApiResponse<RollMovement[]>> {
-    return ApiService.get<RollMovement[]>(`/roll-movements/altier/${altierID}/incoming`);
+  async getIncomingMovements(altierID: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/altier/${altierID}/incoming`, { page, size });
   }
 
   /**
    * Get outgoing movements for an altier
    */
-  async getOutgoingMovements(altierID: string): Promise<ApiResponse<RollMovement[]>> {
-    return ApiService.get<RollMovement[]>(`/roll-movements/altier/${altierID}/outgoing`);
+  async getOutgoingMovements(altierID: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/altier/${altierID}/outgoing`, { page, size });
   }
 
   /**
    * Get movements from an altier (alias for outgoing movements)
    */
-  async getMovementsFromAltier(altierID: string): Promise<ApiResponse<RollMovement[]>> {
-    return this.getOutgoingMovements(altierID);
+  async getMovementsFromAltier(altierID: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return this.getOutgoingMovements(altierID, page, size);
   }
 
   /**
    * Get movements recorded by an operator
    */
-  async getOperatorMovements(operatorId: string): Promise<ApiResponse<RollMovement[]>> {
-    return ApiService.get<RollMovement[]>(`/roll-movements/operator/${operatorId}`);
+  async getOperatorMovements(operatorId: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/operator/${operatorId}`, { page, size });
   }
 
   /**
@@ -138,15 +138,15 @@ class RollMovementService {
   /**
    * Get pending receipts for a specific altier
    */
-  async getPendingReceiptsByAltier(altierID: string): Promise<ApiResponse<RollMovement[]>> {
-    return ApiService.get<RollMovement[]>(`/roll-movements/altier/${altierID}/pending-receipts`);
+  async getPendingReceiptsByAltier(altierID: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/altier/${altierID}/pending-receipts`, { page, size });
   }
 
   /**
    * Get all pending receipts (admin)
    */
-  async getAllPendingReceipts(): Promise<ApiResponse<RollMovement[]>> {
-    return ApiService.get<RollMovement[]>(`/roll-movements/pending-receipts`);
+  async getAllPendingReceipts(page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/pending-receipts`, { page, size });
   }
 }
 

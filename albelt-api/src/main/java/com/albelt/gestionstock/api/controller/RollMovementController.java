@@ -3,6 +3,7 @@ package com.albelt.gestionstock.api.controller;
 import com.albelt.gestionstock.domain.rolls.dto.RollMovementDTO;
 import com.albelt.gestionstock.domain.rolls.service.RollMovementService;
 import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.api.response.PagedResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -83,14 +84,23 @@ public class RollMovementController {
      * GET /api/roll-movements/roll/{rollId}/history
      */
     @GetMapping("/roll/{rollId}/history")
-    public ResponseEntity<ApiResponse<List<RollMovementDTO>>> getRollMovementHistory(
-            @PathVariable UUID rollId
-    ) {
+        public ResponseEntity<ApiResponse<PagedResponse<RollMovementDTO>>> getRollMovementHistory(
+            @PathVariable UUID rollId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+        ) {
         log.info("Fetching movement history for roll: {}", rollId);
         
         try {
-            List<RollMovementDTO> history = rollMovementService.getRollMovementHistory(rollId);
-            return ResponseEntity.ok(ApiResponse.success(history, "Movement history retrieved"));
+            var history = rollMovementService.getRollMovementHistoryPaged(rollId, page, size);
+            var paged = PagedResponse.<RollMovementDTO>builder()
+                .items(history.getContent())
+                .page(history.getNumber())
+                .size(history.getSize())
+                .totalElements(history.getTotalElements())
+                .totalPages(history.getTotalPages())
+                .build();
+            return ResponseEntity.ok(ApiResponse.success(paged, "Movement history retrieved"));
         } catch (Exception e) {
             log.error("Error fetching movement history", e);
             return ResponseEntity.ok(ApiResponse.error("Failed to fetch movement history: " + e.getMessage()));
@@ -125,14 +135,23 @@ public class RollMovementController {
      * GET /api/roll-movements/altier/{altierID}/incoming
      */
     @GetMapping("/altier/{altierID}/incoming")
-    public ResponseEntity<ApiResponse<List<RollMovementDTO>>> getMovementsToAltier(
-            @PathVariable UUID altierID
-    ) {
+        public ResponseEntity<ApiResponse<PagedResponse<RollMovementDTO>>> getMovementsToAltier(
+            @PathVariable UUID altierID,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+        ) {
         log.info("Fetching incoming movements for altier: {}", altierID);
         
         try {
-            List<RollMovementDTO> movements = rollMovementService.getMovementsToAltier(altierID);
-            return ResponseEntity.ok(ApiResponse.success(movements, "Incoming movements retrieved"));
+            var movements = rollMovementService.getMovementsToAltierPaged(altierID, page, size);
+            var paged = PagedResponse.<RollMovementDTO>builder()
+                .items(movements.getContent())
+                .page(movements.getNumber())
+                .size(movements.getSize())
+                .totalElements(movements.getTotalElements())
+                .totalPages(movements.getTotalPages())
+                .build();
+            return ResponseEntity.ok(ApiResponse.success(paged, "Incoming movements retrieved"));
         } catch (Exception e) {
             log.error("Error fetching incoming movements", e);
             return ResponseEntity.ok(ApiResponse.error("Failed to fetch incoming movements: " + e.getMessage()));
@@ -144,14 +163,23 @@ public class RollMovementController {
      * GET /api/roll-movements/altier/{altierID}/outgoing
      */
     @GetMapping("/altier/{altierID}/outgoing")
-    public ResponseEntity<ApiResponse<List<RollMovementDTO>>> getMovementsFromAltier(
-            @PathVariable UUID altierID
-    ) {
+        public ResponseEntity<ApiResponse<PagedResponse<RollMovementDTO>>> getMovementsFromAltier(
+            @PathVariable UUID altierID,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+        ) {
         log.info("Fetching outgoing movements for altier: {}", altierID);
         
         try {
-            List<RollMovementDTO> movements = rollMovementService.getMovementsFromAltier(altierID);
-            return ResponseEntity.ok(ApiResponse.success(movements, "Outgoing movements retrieved"));
+            var movements = rollMovementService.getMovementsFromAltierPaged(altierID, page, size);
+            var paged = PagedResponse.<RollMovementDTO>builder()
+                .items(movements.getContent())
+                .page(movements.getNumber())
+                .size(movements.getSize())
+                .totalElements(movements.getTotalElements())
+                .totalPages(movements.getTotalPages())
+                .build();
+            return ResponseEntity.ok(ApiResponse.success(paged, "Outgoing movements retrieved"));
         } catch (Exception e) {
             log.error("Error fetching outgoing movements", e);
             return ResponseEntity.ok(ApiResponse.error("Failed to fetch outgoing movements: " + e.getMessage()));
@@ -163,14 +191,23 @@ public class RollMovementController {
      * GET /api/roll-movements/operator/{operatorId}
      */
     @GetMapping("/operator/{operatorId}")
-    public ResponseEntity<ApiResponse<List<RollMovementDTO>>> getOperatorMovements(
-            @PathVariable UUID operatorId
-    ) {
+        public ResponseEntity<ApiResponse<PagedResponse<RollMovementDTO>>> getOperatorMovements(
+            @PathVariable UUID operatorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+        ) {
         log.info("Fetching movements for operator: {}", operatorId);
         
         try {
-            List<RollMovementDTO> movements = rollMovementService.getOperatorMovements(operatorId);
-            return ResponseEntity.ok(ApiResponse.success(movements, "Operator movements retrieved"));
+            var movements = rollMovementService.getOperatorMovementsPaged(operatorId, page, size);
+            var paged = PagedResponse.<RollMovementDTO>builder()
+                .items(movements.getContent())
+                .page(movements.getNumber())
+                .size(movements.getSize())
+                .totalElements(movements.getTotalElements())
+                .totalPages(movements.getTotalPages())
+                .build();
+            return ResponseEntity.ok(ApiResponse.success(paged, "Operator movements retrieved"));
         } catch (Exception e) {
             log.error("Error fetching operator movements", e);
             return ResponseEntity.ok(ApiResponse.error("Failed to fetch operator movements: " + e.getMessage()));
@@ -225,14 +262,23 @@ public class RollMovementController {
      * GET /api/roll-movements/altier/{altierID}/pending-receipts
      */
     @GetMapping("/altier/{altierID}/pending-receipts")
-    public ResponseEntity<ApiResponse<List<RollMovementDTO>>> getPendingReceiptsByAltier(
-            @PathVariable UUID altierID
-    ) {
+        public ResponseEntity<ApiResponse<PagedResponse<RollMovementDTO>>> getPendingReceiptsByAltier(
+            @PathVariable UUID altierID,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+        ) {
         log.info("Fetching pending receipts for altier: {}", altierID);
         
         try {
-            List<RollMovementDTO> movements = rollMovementService.getPendingReceiptsByAltier(altierID);
-            return ResponseEntity.ok(ApiResponse.success(movements, "Pending receipts retrieved"));
+            var movements = rollMovementService.getPendingReceiptsByAltierPaged(altierID, page, size);
+            var paged = PagedResponse.<RollMovementDTO>builder()
+                .items(movements.getContent())
+                .page(movements.getNumber())
+                .size(movements.getSize())
+                .totalElements(movements.getTotalElements())
+                .totalPages(movements.getTotalPages())
+                .build();
+            return ResponseEntity.ok(ApiResponse.success(paged, "Pending receipts retrieved"));
         } catch (Exception e) {
             log.error("Error fetching pending receipts", e);
             return ResponseEntity.ok(ApiResponse.error("Failed to fetch pending receipts: " + e.getMessage()));
@@ -244,12 +290,21 @@ public class RollMovementController {
      * GET /api/roll-movements/pending-receipts
      */
     @GetMapping("/pending-receipts")
-    public ResponseEntity<ApiResponse<List<RollMovementDTO>>> getAllPendingReceipts() {
+    public ResponseEntity<ApiResponse<PagedResponse<RollMovementDTO>>> getAllPendingReceipts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         log.info("Fetching all pending receipts");
         
         try {
-            List<RollMovementDTO> movements = rollMovementService.getAllPendingReceipts();
-            return ResponseEntity.ok(ApiResponse.success(movements, "All pending receipts retrieved"));
+            var movements = rollMovementService.getAllPendingReceiptsPaged(page, size);
+            var paged = PagedResponse.<RollMovementDTO>builder()
+                    .items(movements.getContent())
+                    .page(movements.getNumber())
+                    .size(movements.getSize())
+                    .totalElements(movements.getTotalElements())
+                    .totalPages(movements.getTotalPages())
+                    .build();
+            return ResponseEntity.ok(ApiResponse.success(paged, "All pending receipts retrieved"));
         } catch (Exception e) {
             log.error("Error fetching all pending receipts", e);
             return ResponseEntity.ok(ApiResponse.error("Failed to fetch pending receipts: " + e.getMessage()));

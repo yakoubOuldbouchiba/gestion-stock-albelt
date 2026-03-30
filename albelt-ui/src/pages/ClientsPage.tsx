@@ -6,6 +6,7 @@ import type {
   ClientRequest,
 } from '../types/index';
 import { ClientService } from '@services/clientService';
+import { Pagination } from '@components/Pagination';
 import '../styles/ClientsPage.css';
 
 export function ClientsPage() {
@@ -16,6 +17,10 @@ export function ClientsPage() {
   const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 20;
 
   // Form states
   const [clientForm, setClientForm] = useState<ClientRequest>({
@@ -58,38 +63,25 @@ export function ClientsPage() {
   });
 
   useEffect(() => {
-    loadClients();
-  }, []);
+    loadClients(page, searchTerm);
+  }, [page, searchTerm]);
 
-  const loadClients = async () => {
+  const loadClients = async (pageIndex: number, search: string) => {
     setError(null);
     try {
-      const response = await ClientService.getAll();
+      const response = await ClientService.getAll({
+        page: pageIndex,
+        size: pageSize,
+        search: search || undefined
+      });
       if (response.success && response.data) {
-        setClients(response.data);
+        setClients(response.data.items || []);
+        setTotalPages(response.data.totalPages || 0);
+        setTotalElements(response.data.totalElements || 0);
       }
     } catch (err) {
       setError(t('clients.failedToLoadClients'));
       console.error(err);
-    }
-  };
-
-  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const term = e.target.value;
-    setSearchTerm(term);
-
-    if (term.trim() === '') {
-      loadClients();
-      return;
-    }
-
-    try {
-      const response = await ClientService.searchByName(term);
-      if (response.success && response.data) {
-        setClients(response.data);
-      }
-    } catch (err) {
-      console.error('Search error:', err);
     }
   };
 
@@ -104,7 +96,8 @@ export function ClientsPage() {
     try {
       const response = await ClientService.create(clientForm);
       if (response.success && response.data) {
-        setClients([...clients, response.data]);
+        setPage(0);
+        await loadClients(0, searchTerm);
         resetForms();
         setShowAddForm(false);
       }
@@ -125,7 +118,7 @@ export function ClientsPage() {
     try {
       const response = await ClientService.update(id, clientForm);
       if (response.success && response.data) {
-        setClients(clients.map(c => c.id === id ? response.data! : c));
+        await loadClients(page, searchTerm);
         setEditingClientId(null);
         resetForms();
       }
@@ -143,12 +136,17 @@ export function ClientsPage() {
     try {
       const response = await ClientService.deactivate(id);
       if (response.success) {
-        setClients(clients.map(c => c.id === id ? { ...c, isActive: false } : c));
+        await loadClients(page, searchTerm);
       }
     } catch (err) {
       setError(t('clients.failedToDeleteClient'));
       console.error(err);
     }
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setPage(0);
   };
 
   const handleAddPhone = () => {
@@ -392,7 +390,6 @@ export function ClientsPage() {
                     type="tel"
                     value={tempPhone.phoneNumber}
                     onChange={e => setTempPhone({ ...tempPhone, phoneNumber: e.target.value })}
-                    placeholder={t('clients.phoneNumber')}
                   />
                 </div>
                 <div className="form-group">
@@ -834,6 +831,8 @@ export function ClientsPage() {
           ))
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }

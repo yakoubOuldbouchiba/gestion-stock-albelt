@@ -1,5 +1,5 @@
 import ApiService from './api';
-import type { ApiResponse, TransferBon } from '../types/index';
+import type { ApiResponse, TransferBon, PagedResponse } from '../types/index';
 
 export interface TransferBonCreateRequest {
   fromAltierID: string;
@@ -23,8 +23,17 @@ class TransferBonService {
     return ApiService.post<TransferBon>(`/transfer-bons?${params.toString()}`);
   }
 
-  async listBons(): Promise<ApiResponse<TransferBon[]>> {
-    return ApiService.get<TransferBon[]>(`/transfer-bons`);
+  async listBons(params?: {
+    page?: number;
+    size?: number;
+    fromAltierId?: string;
+    toAltierId?: string;
+    status?: string;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<ApiResponse<PagedResponse<TransferBon>>> {
+    return ApiService.get<PagedResponse<TransferBon>>(`/transfer-bons`, params);
   }
 
   async getBonDetails(bonId: string): Promise<ApiResponse<TransferBon>> {

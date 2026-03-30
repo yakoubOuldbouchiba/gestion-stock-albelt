@@ -22,12 +22,13 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "waste_pieces", indexes = {
-        @Index(name = "idx_waste_pieces_roll_id", columnList = "roll_id"),
-        @Index(name = "idx_waste_pieces_material_type", columnList = "material_type"),
-        @Index(name = "idx_waste_pieces_status", columnList = "status"),
-        @Index(name = "idx_waste_pieces_commande_item", columnList = "commande_item_id"),
-        @Index(name = "idx_waste_pieces_created_by", columnList = "created_by"),
-        @Index(name = "idx_waste_pieces_altier_id", columnList = "altier_id")
+    @Index(name = "idx_waste_pieces_roll_id", columnList = "roll_id"),
+    @Index(name = "idx_waste_pieces_parent_id", columnList = "parent_waste_piece_id"),
+    @Index(name = "idx_waste_pieces_material_type", columnList = "material_type"),
+    @Index(name = "idx_waste_pieces_status", columnList = "status"),
+    @Index(name = "idx_waste_pieces_commande_item", columnList = "commande_item_id"),
+    @Index(name = "idx_waste_pieces_created_by", columnList = "created_by"),
+    @Index(name = "idx_waste_pieces_altier_id", columnList = "altier_id")
 })
 @Data
 @NoArgsConstructor
@@ -43,6 +44,12 @@ public class WastePiece {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "roll_id", nullable = false)
     private Roll roll;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "parent_waste_piece_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private WastePiece parentWastePiece;
 
     // Material Specifications (same as rolls)
     @Enumerated(EnumType.STRING)

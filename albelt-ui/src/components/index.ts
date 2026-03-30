@@ -5,3 +5,4 @@ export { ProtectedRoute } from './ProtectedRoute';
 export { AdminRoute } from './AdminRoute';
 export { RollMovementForm } from './RollMovementForm';
 export { LanguageSwitcher } from './LanguageSwitcher';
+export { Pagination } from './Pagination';

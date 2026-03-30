@@ -1,5 +1,5 @@
 import ApiService from './api';
-import type { WastePiece, MaterialType, ApiResponse } from '../types/index';
+import type { WastePiece, MaterialType, ApiResponse, PagedResponse, WasteStatus } from '../types/index';
 
 /**
  * Waste Piece API Service - Focus on reuse tracking and waste reduction
@@ -68,8 +68,17 @@ export const WastePieceService = {
   /**
    * Get all waste pieces with pagination
    */
-  async getAll(page = 0, size = 20): Promise<ApiResponse<WastePiece[]>> {
-    return ApiService.get<WastePiece[]>('/waste-pieces', { page, size });
+  async getAll(params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    materialType?: MaterialType;
+    status?: WasteStatus;
+    altierId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<ApiResponse<PagedResponse<WastePiece>>> {
+    return ApiService.get<PagedResponse<WastePiece>>('/waste-pieces', params);
   },
 
   /**

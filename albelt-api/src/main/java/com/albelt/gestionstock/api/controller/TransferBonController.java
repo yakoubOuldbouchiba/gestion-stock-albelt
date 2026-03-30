@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.rolls.dto.TransferBonDTO;
 import com.albelt.gestionstock.domain.rolls.service.TransferBonService;
 import lombok.RequiredArgsConstructor;
@@ -48,9 +49,28 @@ public class TransferBonController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<TransferBonDTO>>> listBons() {
+    public ResponseEntity<ApiResponse<PagedResponse<TransferBonDTO>>> listBons(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) UUID fromAltierId,
+            @RequestParam(required = false) UUID toAltierId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
         try {
-            return ResponseEntity.ok(ApiResponse.success(transferBonService.listBons(), "Transfer bons retrieved"));
+            Boolean statusEntree = parseStatusEntree(status);
+            LocalDateTime fromDate = parseDateTimeStart(dateFrom);
+            LocalDateTime toDate = parseDateTimeEnd(dateTo);
+            var pageResult = transferBonService.listBonsPaged(fromAltierId, toAltierId, statusEntree, fromDate, toDate, search, page, size);
+            var paged = PagedResponse.<TransferBonDTO>builder()
+                    .items(pageResult.getContent())
+                    .page(pageResult.getNumber())
+                    .size(pageResult.getSize())
+                    .totalElements(pageResult.getTotalElements())
+                    .totalPages(pageResult.getTotalPages())
+                    .build();
+            return ResponseEntity.ok(ApiResponse.success(paged, "Transfer bons retrieved"));
         } catch (Exception e) {
             log.error("Error listing transfer bons", e);
             return ResponseEntity.ok(ApiResponse.error("Failed to list transfer bons: " + e.getMessage()));
@@ -131,5 +151,23 @@ public class TransferBonController {
                 throw new IllegalArgumentException("Invalid datetime format: " + dateTimeStr, e2);
             }
         }
+    }
+
+    private Boolean parseStatusEntree(String status) {
+        if (status == null || status.trim().isEmpty()) return null;
+        String normalized = status.trim().toUpperCase();
+        if ("RECEIVED".equals(normalized)) return true;
+        if ("PENDING".equals(normalized)) return false;
+        return null;
+    }
+
+    private LocalDateTime parseDateTimeStart(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atStartOfDay();
+    }
+
+    private LocalDateTime parseDateTimeEnd(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atTime(23, 59, 59);
     }
 }

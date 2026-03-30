@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.domain.commandes.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.commandes.dto.*;
 import com.albelt.gestionstock.domain.commandes.entity.*;
 import com.albelt.gestionstock.domain.commandes.mapper.CommandeMapper;
@@ -57,13 +58,29 @@ public class CommandeController {
      * GET /api/commandes
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CommandeResponse>>> getAllOrders() {
+    public ResponseEntity<ApiResponse<PagedResponse<CommandeResponse>>> getAllOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) UUID clientId,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
         log.info("GET /api/commandes - Fetch all orders");
 
-        List<Commande> commandes = commandeService.getAll();
-        List<CommandeResponse> responses = commandeMapper.toResponseList(commandes);
+        var fromDate = parseDateStart(dateFrom);
+        var toDate = parseDateEnd(dateTo);
+        var result = commandeService.getAllPaged(status, clientId, fromDate, toDate, search, page, size);
+        var responses = commandeMapper.toResponseList(result.getContent());
+        var paged = PagedResponse.<CommandeResponse>builder()
+                .items(responses)
+                .page(result.getNumber())
+                .size(result.getSize())
+                .totalElements(result.getTotalElements())
+                .totalPages(result.getTotalPages())
+                .build();
 
-        return ResponseEntity.ok(ApiResponse.success(responses, "Orders retrieved successfully"));
+        return ResponseEntity.ok(ApiResponse.success(paged, "Orders retrieved successfully"));
     }
 
     /**
@@ -256,6 +273,16 @@ public class CommandeController {
 
         itemService.delete(itemId);
         return ResponseEntity.noContent().build();
+    }
+
+    private java.time.LocalDateTime parseDateStart(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atStartOfDay();
+    }
+
+    private java.time.LocalDateTime parseDateEnd(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atTime(23, 59, 59);
     }
 
     // ==================== HELPER METHODS ====================

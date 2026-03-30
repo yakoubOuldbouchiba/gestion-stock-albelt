@@ -7,6 +7,9 @@ import com.albelt.gestionstock.domain.clients.mapper.ClientMapper;
 import com.albelt.gestionstock.domain.clients.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,6 +80,19 @@ public class ClientService {
     public List<Client> getAll() {
         log.info("Fetching all clients");
         return clientRepository.findAll();
+    }
+
+    /**
+     * Get clients with pagination and optional filters
+     */
+    @Transactional(readOnly = true)
+    public Page<Client> getAllPaged(String search, Boolean isActive, java.time.LocalDateTime fromDate,
+                                    java.time.LocalDateTime toDate, int page, int size) {
+        String normalizedSearch = normalizeSearch(search);
+        java.time.LocalDateTime safeFromDate = fromDate != null ? fromDate : java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
+        java.time.LocalDateTime safeToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return clientRepository.findFiltered(normalizedSearch, isActive, safeFromDate, safeToDate, pageable);
     }
 
     /**
@@ -153,6 +169,12 @@ public class ClientService {
         
         Client client = getById(id);
         clientRepository.delete(client);
+    }
+
+    private String normalizeSearch(String value) {
+        if (value == null) return "";
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? "" : trimmed.toLowerCase();
     }
 
     // ==================== PHONE MANAGEMENT ====================

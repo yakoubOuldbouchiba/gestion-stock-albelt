@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.clients.dto.*;
 import com.albelt.gestionstock.domain.clients.mapper.ClientMapper;
 import com.albelt.gestionstock.domain.clients.service.ClientService;
@@ -48,12 +49,28 @@ public class ClientController {
 
     @GetMapping
     @Operation(summary = "Get all clients", description = "Retrieves all clients including active and inactive ones")
-    public ResponseEntity<ApiResponse<List<ClientResponse>>> getAll() {
+    public ResponseEntity<ApiResponse<PagedResponse<ClientResponse>>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
         log.info("GET /api/clients - Get all clients");
         try {
-            var clients = clientService.getAll();
-            var responses = clientMapper.toResponseList(clients);
-            return ResponseEntity.ok(ApiResponse.success(responses, "Clients retrieved successfully"));
+            Boolean isActive = parseStatus(status);
+            var fromDate = parseDateStart(dateFrom);
+            var toDate = parseDateEnd(dateTo);
+            var clients = clientService.getAllPaged(search, isActive, fromDate, toDate, page, size);
+            var responses = clientMapper.toResponseList(clients.getContent());
+            var paged = PagedResponse.<ClientResponse>builder()
+                    .items(responses)
+                    .page(clients.getNumber())
+                    .size(clients.getSize())
+                    .totalElements(clients.getTotalElements())
+                    .totalPages(clients.getTotalPages())
+                    .build();
+            return ResponseEntity.ok(ApiResponse.success(paged, "Clients retrieved successfully"));
         } catch (Exception e) {
             log.error("Error retrieving clients", e);
             throw e;
@@ -154,6 +171,24 @@ public class ClientController {
             log.error("Error deleting client", e);
             throw e;
         }
+    }
+
+    private Boolean parseStatus(String status) {
+        if (status == null || status.trim().isEmpty()) return null;
+        String normalized = status.trim().toUpperCase();
+        if ("ACTIVE".equals(normalized)) return true;
+        if ("INACTIVE".equals(normalized)) return false;
+        return null;
+    }
+
+    private java.time.LocalDateTime parseDateStart(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atStartOfDay();
+    }
+
+    private java.time.LocalDateTime parseDateEnd(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atTime(23, 59, 59);
     }
 
     // ==================== PHONE MANAGEMENT ====================

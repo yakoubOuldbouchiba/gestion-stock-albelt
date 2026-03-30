@@ -1,5 +1,5 @@
 import ApiService from './api';
-import type { Altier, AltierRequest, ApiResponse } from '../types/index';
+import type { Altier, AltierRequest, ApiResponse, PagedResponse } from '../types/index';
 
 /**
  * Altier API Service
@@ -8,8 +8,14 @@ export const AltierService = {
   /**
    * Get all altiers
    */
-  async getAll(): Promise<ApiResponse<Altier[]>> {
-    return ApiService.get<Altier[]>('/altiers');
+  async getAll(params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<ApiResponse<PagedResponse<Altier>>> {
+    return ApiService.get<PagedResponse<Altier>>('/altiers', params);
   },
 
   /**

@@ -26,7 +26,9 @@ export function Dashboard() {
       const response = await RollService.getAll();
       
       if (response.success && response.data) {
-        const rolls = response.data;
+        const rolls = Array.isArray(response.data)
+          ? response.data
+          : response.data.items ?? (response.data as any).content ?? [];
         setRecentRolls(rolls.slice(0, 5));
 
         // Calculate inventory metrics

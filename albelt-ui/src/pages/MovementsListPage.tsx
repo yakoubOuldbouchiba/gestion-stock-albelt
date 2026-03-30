@@ -55,8 +55,11 @@ export function MovementsListPage() {
         const response = await rollMovementService.getMovementsFromAltier(altierID);
         console.log(`Created movements response for altier ${altierID}:`, response);
         if (response.success && response.data) {
-          allCreatedMovements = [...allCreatedMovements, ...response.data];
-          console.log(`Loaded ${response.data.length} created movements from altier ${altierID}`);
+          const items = Array.isArray(response.data)
+            ? response.data
+            : response.data.items ?? (response.data as any).content ?? [];
+          allCreatedMovements = [...allCreatedMovements, ...items];
+          console.log(`Loaded ${items.length} created movements from altier ${altierID}`);
         } else {
           console.error(`Failed to fetch created movements for altier ${altierID}:`, response.message);
         }
@@ -72,8 +75,11 @@ export function MovementsListPage() {
         const response = await rollMovementService.getPendingReceiptsByAltier(altierID);
         console.log(`Pending receipts response for altier ${altierID}:`, response);
         if (response.success && response.data) {
-          allPendingMovements = [...allPendingMovements, ...response.data];
-          console.log(`Loaded ${response.data.length} pending receipts for altier ${altierID}`);
+          const items = Array.isArray(response.data)
+            ? response.data
+            : response.data.items ?? (response.data as any).content ?? [];
+          allPendingMovements = [...allPendingMovements, ...items];
+          console.log(`Loaded ${items.length} pending receipts for altier ${altierID}`);
         } else {
           console.error(`Failed to fetch pending receipts for altier ${altierID}:`, response.message);
         }

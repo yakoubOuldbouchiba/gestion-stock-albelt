@@ -22,6 +22,7 @@ public class WastePieceResponse {
 
     // Source Reference (ONLY DIFFERENCE from RollResponse)
     private UUID rollId;
+    private UUID parentWastePieceId;
 
     // Material Specifications (same as Roll)
     private MaterialType materialType;

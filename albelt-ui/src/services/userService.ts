@@ -1,5 +1,5 @@
 import ApiService from './api';
-import type { User, UserRole, ApiResponse } from '../types/index';
+import type { User, UserRole, ApiResponse, PagedResponse } from '../types/index';
 
 /**
  * User API Service
@@ -24,6 +24,21 @@ export const UserService = {
    */
   async getAllActive(): Promise<ApiResponse<User[]>> {
     return ApiService.get<User[]>('/users/active');
+  },
+
+  /**
+   * Get users with pagination
+   */
+  async getAll(params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    role?: UserRole;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<ApiResponse<PagedResponse<User>>> {
+    return ApiService.get<PagedResponse<User>>('/users', params);
   },
 
   /**

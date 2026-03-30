@@ -30,10 +30,16 @@ export function CommandesListPage() {
         ]);
         
         if (commandesRes.data) {
-          setCommandes(commandesRes.data);
+          const items = Array.isArray(commandesRes.data)
+            ? commandesRes.data
+            : commandesRes.data.items ?? (commandesRes.data as any).content ?? [];
+          setCommandes(items);
         }
         if (clientsRes.data) {
-          setClients(clientsRes.data);
+          const items = Array.isArray(clientsRes.data)
+            ? clientsRes.data
+            : clientsRes.data.items ?? (clientsRes.data as any).content ?? [];
+          setClients(items);
         }
         setError(null);
       } catch (err) {
@@ -47,8 +53,12 @@ export function CommandesListPage() {
     fetchData();
   }, []);
 
+  const safeCommandes = Array.isArray(commandes)
+    ? commandes
+    : (commandes as any)?.items ?? (commandes as any)?.content ?? [];
+
   // Filter orders based on search and filters
-  const filteredCommandes = commandes.filter((commande) => {
+  const filteredCommandes = safeCommandes.filter((commande: Commande) => {
     const matchesSearch =
       commande.numeroCommande.toLowerCase().includes(searchQuery.toLowerCase()) ||
       commande.clientName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -71,7 +81,7 @@ export function CommandesListPage() {
     if (window.confirm('Are you sure you want to delete this order?')) {
       try {
         await CommandeService.delete(id);
-        setCommandes(commandes.filter((c) => c.id !== id));
+        setCommandes(safeCommandes.filter((c: Commande) => c.id !== id));
       } catch (err) {
         setError('Failed to delete order');
       }

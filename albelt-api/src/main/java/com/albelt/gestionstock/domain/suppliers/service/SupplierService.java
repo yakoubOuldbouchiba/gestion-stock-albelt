@@ -7,6 +7,9 @@ import com.albelt.gestionstock.domain.suppliers.repository.SupplierRepository;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -87,6 +90,30 @@ public class SupplierService {
     }
 
     /**
+     * Get suppliers with pagination and optional filters
+     */
+    @Transactional(readOnly = true)
+    public Page<Supplier> getAllPaged(String search, String country, java.time.LocalDateTime fromDate,
+                                      java.time.LocalDateTime toDate, int page, int size) {
+        String normalizedSearch = normalize(search);
+        String normalizedCountry = normalize(country);
+        if (normalizedSearch == null) {
+            normalizedSearch = "";
+        } else {
+            normalizedSearch = normalizedSearch.toLowerCase(java.util.Locale.ROOT);
+        }
+        if (normalizedCountry == null) {
+            normalizedCountry = "";
+        } else {
+            normalizedCountry = normalizedCountry.toLowerCase(java.util.Locale.ROOT);
+        }
+        java.time.LocalDateTime effectiveFromDate = fromDate != null ? fromDate : java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
+        java.time.LocalDateTime effectiveToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return supplierRepository.findFiltered(normalizedSearch, normalizedCountry, effectiveFromDate, effectiveToDate, pageable);
+    }
+
+    /**
      * Search suppliers by country
      */
     @Transactional(readOnly = true)
@@ -100,7 +127,13 @@ public class SupplierService {
     @Transactional(readOnly = true)
     public List<Supplier> searchByName(String namePattern) {
         log.debug("Searching suppliers by pattern: {}", namePattern);
-        return supplierRepository.searchByNamePattern(namePattern);
+        String normalizedPattern = normalize(namePattern);
+        if (normalizedPattern == null) {
+            normalizedPattern = "";
+        } else {
+            normalizedPattern = normalizedPattern.toLowerCase(java.util.Locale.ROOT);
+        }
+        return supplierRepository.searchByNamePattern(normalizedPattern);
     }
 
     /**
@@ -122,5 +155,11 @@ public class SupplierService {
     @Transactional(readOnly = true)
     public boolean exists(UUID id) {
         return supplierRepository.existsById(id);
+    }
+
+    private String normalize(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

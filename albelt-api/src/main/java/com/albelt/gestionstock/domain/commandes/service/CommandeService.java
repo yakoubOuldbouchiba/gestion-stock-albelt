@@ -9,6 +9,9 @@ import com.albelt.gestionstock.domain.clients.repository.ClientRepository;
 import com.albelt.gestionstock.domain.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,6 +109,20 @@ public class CommandeService {
     }
 
     /**
+     * Get orders with pagination and optional filters
+     */
+    @Transactional(readOnly = true)
+    public Page<Commande> getAllPaged(String status, UUID clientId, java.time.LocalDateTime fromDate,
+                                      java.time.LocalDateTime toDate, String search, int page, int size) {
+        String normalizedStatus = normalizeNullable(status);
+        String normalizedSearch = normalizeSearch(search);
+        java.time.LocalDateTime safeFromDate = fromDate != null ? fromDate : java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
+        java.time.LocalDateTime safeToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return commandeRepository.findFiltered(normalizedStatus, clientId, safeFromDate, safeToDate, normalizedSearch, pageable);
+    }
+
+    /**
      * Get orders by client
      */
     @Transactional(readOnly = true)
@@ -193,5 +210,17 @@ public class CommandeService {
         }
 
         return commandeRepository.save(commande);
+    }
+
+    private String normalizeNullable(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizeSearch(String value) {
+        if (value == null) return "";
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? "" : trimmed.toLowerCase();
     }
 }

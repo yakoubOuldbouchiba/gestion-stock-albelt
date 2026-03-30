@@ -113,6 +113,7 @@ public class WastePieceMapper {
         return WastePieceResponse.builder()
                 .id(entity.getId())
                 .rollId(entity.getRoll() != null ? entity.getRoll().getId() : null)
+            .parentWastePieceId(entity.getParentWastePiece() != null ? entity.getParentWastePiece().getId() : null)
                 .materialType(entity.getMaterialType())
                 .nbPlis(entity.getNbPlis())
                 .thicknessMm(entity.getThicknessMm())

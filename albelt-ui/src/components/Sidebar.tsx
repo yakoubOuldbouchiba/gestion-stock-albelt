@@ -4,6 +4,7 @@ import {
   Package,
   ArrowRightLeft,
   FileText,
+  FilePlus,
   Factory,
   Briefcase,
   Users,
@@ -67,6 +68,13 @@ export function Sidebar() {
           >
             <FileText size={20} className="nav-icon" />
             <span>{t('navigation.transferBons')}</span>
+          </Link>
+          <Link
+            to="/purchase-bons"
+            className={`nav-link ${isActive('/purchase-bons') ? 'active' : ''}`}
+          >
+            <FilePlus size={20} className="nav-icon" />
+            <span>{t('navigation.purchaseBons')}</span>
           </Link>
 
         </div>

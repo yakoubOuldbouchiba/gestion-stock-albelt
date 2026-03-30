@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.users.entity.User;
 import com.albelt.gestionstock.domain.users.service.UserService;
 import com.albelt.gestionstock.shared.enums.UserRole;
@@ -22,6 +23,34 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class UserController {
+    /**
+     * Get users with pagination and filters
+     * GET /api/users?page={page}&size={size}
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse<PagedResponse<User>>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) UserRole role,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
+        log.debug("Fetching users with pagination");
+        Boolean isActive = parseStatus(status);
+        var fromDate = parseDateStart(dateFrom);
+        var toDate = parseDateEnd(dateTo);
+        var users = userService.getAllPaged(search, role, isActive, fromDate, toDate, page, size);
+        var paged = PagedResponse.<User>builder()
+                .items(users.getContent())
+                .page(users.getNumber())
+                .size(users.getSize())
+                .totalElements(users.getTotalElements())
+                .totalPages(users.getTotalPages())
+                .build();
+        return ResponseEntity.ok(ApiResponse.success(paged));
+    }
+
 
     private final UserService userService;
 
@@ -117,5 +146,23 @@ public class UserController {
         log.info("Changing user role: id={}, newRole={}", id, newRole);
         userService.changeRole(id, newRole);
         return ResponseEntity.ok(ApiResponse.success(null, "User role changed"));
+    }
+
+    private Boolean parseStatus(String status) {
+        if (status == null || status.trim().isEmpty()) return null;
+        String normalized = status.trim().toUpperCase();
+        if ("ACTIVE".equals(normalized)) return true;
+        if ("INACTIVE".equals(normalized)) return false;
+        return null;
+    }
+
+    private java.time.LocalDateTime parseDateStart(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atStartOfDay();
+    }
+
+    private java.time.LocalDateTime parseDateEnd(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atTime(23, 59, 59);
     }
 }

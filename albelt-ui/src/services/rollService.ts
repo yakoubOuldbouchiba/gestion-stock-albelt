@@ -1,5 +1,5 @@
 import ApiService from './api';
-import type { Roll, RollRequest, MaterialType, ApiResponse } from '../types/index';
+import type { Roll, RollRequest, MaterialType, ApiResponse, PagedResponse, RollStatus } from '../types/index';
 
 /**
  * Roll API Service - Focus on FIFO operations
@@ -8,8 +8,18 @@ export const RollService = {
   /**
    * Get all rolls
    */
-  async getAll(): Promise<ApiResponse<Roll[]>> {
-    return ApiService.get<Roll[]>('/rolls');
+  async getAll(params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    status?: RollStatus;
+    materialType?: MaterialType;
+    supplierId?: string;
+    altierId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<ApiResponse<PagedResponse<Roll>>> {
+    return ApiService.get<PagedResponse<Roll>>('/rolls', params);
   },
 
   /**

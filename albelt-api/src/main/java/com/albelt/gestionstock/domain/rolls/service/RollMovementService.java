@@ -13,6 +13,9 @@ import com.albelt.gestionstock.domain.users.entity.User;
 import com.albelt.gestionstock.domain.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -136,6 +139,12 @@ public class RollMovementService {
                 .collect(Collectors.toList());
     }
 
+    public Page<RollMovementDTO> getRollMovementHistoryPaged(UUID rollId, int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateEntree"));
+        return rollMovementRepository.findByRollIdOrderByDateEntreeDesc(rollId, pageable)
+                .map(rollMovementMapper::toDTO);
+    }
+
     /**
      * Get current location of a roll (latest movement)
      */
@@ -154,6 +163,12 @@ public class RollMovementService {
                 .collect(Collectors.toList());
     }
 
+    public Page<RollMovementDTO> getMovementsToAltierPaged(UUID altierID, int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateEntree"));
+        return rollMovementRepository.findByToAltierIdOrderByDateEntreeDesc(altierID, pageable)
+                .map(rollMovementMapper::toDTO);
+    }
+
     /**
      * Get all movements from a specific altier
      */
@@ -164,6 +179,12 @@ public class RollMovementService {
                 .collect(Collectors.toList());
     }
 
+    public Page<RollMovementDTO> getMovementsFromAltierPaged(UUID altierID, int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateSortie"));
+        return rollMovementRepository.findByFromAltierIdOrderByDateSortieDesc(altierID, pageable)
+                .map(rollMovementMapper::toDTO);
+    }
+
     /**
      * Get movements recorded by an operator
      */
@@ -172,6 +193,12 @@ public class RollMovementService {
                 .stream()
                 .map(rollMovementMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    public Page<RollMovementDTO> getOperatorMovementsPaged(UUID operatorId, int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return rollMovementRepository.findByOperatorIdOrderByCreatedAtDesc(operatorId, pageable)
+                .map(rollMovementMapper::toDTO);
     }
 
     /**
@@ -252,6 +279,12 @@ public class RollMovementService {
                 .collect(Collectors.toList());
     }
 
+    public Page<RollMovementDTO> getPendingReceiptsByAltierPaged(UUID altierID, int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateSortie"));
+        return rollMovementRepository.findPendingReceiptsByAltier(altierID, pageable)
+                .map(rollMovementMapper::toDTO);
+    }
+
     /**
      * Get all pending receipts (movements without entry date)
      */
@@ -261,6 +294,12 @@ public class RollMovementService {
                 .stream()
                 .map(rollMovementMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    public Page<RollMovementDTO> getAllPendingReceiptsPaged(int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateSortie"));
+        return rollMovementRepository.findAllPendingReceipts(pageable)
+                .map(rollMovementMapper::toDTO);
     }
 
     /**

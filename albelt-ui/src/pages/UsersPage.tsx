@@ -6,6 +6,7 @@ import type { User as UserType, UserRole, Altier } from '../types/index';
 import { UserService } from '@services/userService';
 import { AltierService } from '@services/altierService';
 import userAltierService from '@services/userAltierService';
+import { Pagination } from '@components/Pagination';
 import '../styles/UsersPage.css';
 
 export function UsersPage() {
@@ -22,21 +23,38 @@ export function UsersPage() {
   const [showAltierModal, setShowAltierModal] = useState(false);
   const [newRole, setNewRole] = useState<UserRole>('OPERATOR');
   const [selectedAltiers, setSelectedAltiers] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 20;
 
   const roles: UserRole[] = ['ADMIN', 'OPERATOR', 'READONLY'];
 
   useEffect(() => {
-    loadUsers();
+    loadUsers(page, searchTerm, roleFilter, statusFilter);
     loadAltiers();
-  }, []);
+  }, [page, searchTerm, roleFilter, statusFilter]);
 
-  const loadUsers = async () => {
+  const loadUsers = async (
+    pageIndex: number,
+    search: string,
+    role: UserRole | 'ALL',
+    status: 'ALL' | 'ACTIVE' | 'INACTIVE'
+  ) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await UserService.getAllActive();
+      const response = await UserService.getAll({
+        page: pageIndex,
+        size: pageSize,
+        search: search || undefined,
+        role: role === 'ALL' ? undefined : role,
+        status: status === 'ALL' ? undefined : status,
+      });
       if (response.success && response.data) {
-        setUsers(response.data);
+        setUsers(response.data.items || []);
+        setTotalPages(response.data.totalPages || 0);
+        setTotalElements(response.data.totalElements || 0);
       }
     } catch (err) {
       setError(t('messages.failedToLoad'));
@@ -48,9 +66,9 @@ export function UsersPage() {
 
   const loadAltiers = async () => {
     try {
-      const response = await AltierService.getAll();
+      const response = await AltierService.getAll({ page: 0, size: 200 });
       if (response.success && response.data) {
-        setAltiers(response.data);
+        setAltiers(response.data.items || []);
       }
     } catch (err) {
       console.error('Failed to load altiers:', err);
@@ -66,7 +84,7 @@ export function UsersPage() {
       setError(null);
       const response = await UserService.deactivateUser(userId);
       if (response.success) {
-        setUsers(users.map(u => u.id === userId ? { ...u, isActive: false } : u));
+        await loadUsers(page, searchTerm, roleFilter, statusFilter);
       }
     } catch (err) {
       setError(t('messages.failedToDeactivate'));
@@ -79,7 +97,7 @@ export function UsersPage() {
       setError(null);
       const response = await UserService.activateUser(userId);
       if (response.success) {
-        setUsers(users.map(u => u.id === userId ? { ...u, isActive: true } : u));
+        await loadUsers(page, searchTerm, roleFilter, statusFilter);
       }
     } catch (err) {
       setError(t('messages.failedToActivate'));
@@ -94,7 +112,7 @@ export function UsersPage() {
       setError(null);
       const response = await UserService.changeRole(selectedUser.id, newRole);
       if (response.success) {
-        setUsers(users.map(u => u.id === selectedUser.id ? { ...u, role: newRole } : u));
+        await loadUsers(page, searchTerm, roleFilter, statusFilter);
         setShowRoleModal(false);
         setSelectedUser(null);
       }
@@ -163,26 +181,6 @@ export function UsersPage() {
     setSelectedAltiers(newSet);
   };
 
-  const filteredUsers = users.filter(user => {
-    // Search filter
-    const matchesSearch = 
-      (user.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-
-    // Role filter
-    const matchesRole = roleFilter === 'ALL' || user.role === roleFilter;
-
-    // Status filter
-    let matchesStatus = true;
-    if (statusFilter === 'ACTIVE') {
-      matchesStatus = user.isActive;
-    } else if (statusFilter === 'INACTIVE') {
-      matchesStatus = !user.isActive;
-    }
-
-    return matchesSearch && matchesRole && matchesStatus;
-  });
-
   if (isLoading) {
     return <div className="page-loading">{t('users.loading')}</div>;
   }
@@ -193,7 +191,7 @@ export function UsersPage() {
         <h1>{t('users.title')}</h1>
         <div className="header-stats">
           <div className="stat-badge">
-            <span className="stat-value">{users.length}</span>
+            <span className="stat-value">{totalElements}</span>
             <span className="stat-label">{t('users.totalUsers')}</span>
           </div>
           <div className="stat-badge active">
@@ -215,7 +213,10 @@ export function UsersPage() {
             type="text"
             placeholder={t('users.searchPlaceholder')}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(0);
+            }}
             className="search-input"
           />
           <Search size={18} className="search-icon" />
@@ -226,13 +227,16 @@ export function UsersPage() {
             <label>{t('users.roleLabel')}</label>
             <select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as UserRole | 'ALL')}
+              onChange={(e) => {
+                setRoleFilter(e.target.value as UserRole | 'ALL');
+                setPage(0);
+              }}
               className="filter-select"
             >
               <option value="ALL">{t('users.allRoles')}</option>
               <option value="ADMIN">{t('users.roleAdmin')}</option>
-              <option value="SUPERVISOR">{t('users.roleSupervisor')}</option>
               <option value="OPERATOR">{t('users.roleOperator')}</option>
+              <option value="READONLY">{t('users.roleReadOnly')}</option>
             </select>
           </div>
 
@@ -240,7 +244,10 @@ export function UsersPage() {
             <label>{t('users.statusLabel')}</label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE')}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE');
+                setPage(0);
+              }}
               className="filter-select"
             >
               <option value="ALL">{t('users.allUsers')}</option>
@@ -250,7 +257,7 @@ export function UsersPage() {
           </div>
 
           <div className="results-count">
-            {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
+            {totalElements} user{totalElements !== 1 ? 's' : ''}
           </div>
         </div>
       </div>
@@ -340,7 +347,7 @@ export function UsersPage() {
       )}
 
       <div className="users-table-container">
-        {filteredUsers.length > 0 ? (
+        {users.length > 0 ? (
           <table className="users-table">
             <thead>
               <tr>
@@ -354,7 +361,7 @@ export function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map(user => (
+              {users.map(user => (
                 <tr key={user.id} className={`user-row ${!user.isActive ? 'inactive' : ''}`}>
                   <td className="username">{user.username || t('users.notApplicable')}</td>
                   <td className="email">
@@ -424,6 +431,8 @@ export function UsersPage() {
           </div>
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }

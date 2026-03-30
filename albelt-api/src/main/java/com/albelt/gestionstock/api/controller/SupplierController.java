@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.suppliers.dto.SupplierRequest;
 import com.albelt.gestionstock.domain.suppliers.dto.SupplierResponse;
 import com.albelt.gestionstock.domain.suppliers.service.SupplierService;
@@ -46,11 +47,26 @@ public class SupplierController {
      * GET /api/suppliers
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<SupplierResponse>>> getAll() {
+    public ResponseEntity<ApiResponse<PagedResponse<SupplierResponse>>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
         log.debug("Fetching all suppliers");
-        var suppliers = supplierService.getAll();
-        var responses = supplierMapper.toResponseList(suppliers);
-        return ResponseEntity.ok(ApiResponse.success(responses, "Suppliers retrieved successfully"));
+        var fromDate = parseDateStart(dateFrom);
+        var toDate = parseDateEnd(dateTo);
+        var suppliers = supplierService.getAllPaged(search, country, fromDate, toDate, page, size);
+        var responses = supplierMapper.toResponseList(suppliers.getContent());
+        var paged = PagedResponse.<SupplierResponse>builder()
+                .items(responses)
+                .page(suppliers.getNumber())
+                .size(suppliers.getSize())
+                .totalElements(suppliers.getTotalElements())
+                .totalPages(suppliers.getTotalPages())
+                .build();
+        return ResponseEntity.ok(ApiResponse.success(paged, "Suppliers retrieved successfully"));
     }
 
     /**
@@ -124,5 +140,15 @@ public class SupplierController {
         log.info("Deleting supplier: {}", id);
         supplierService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Supplier deleted successfully"));
+    }
+
+    private java.time.LocalDateTime parseDateStart(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atStartOfDay();
+    }
+
+    private java.time.LocalDateTime parseDateEnd(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atTime(23, 59, 59);
     }
 }

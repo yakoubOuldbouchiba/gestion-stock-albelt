@@ -19,8 +19,9 @@ import java.util.UUID;
 public class WastePieceRequest {
 
     // Source Reference (ONLY DIFFERENCE from RollRequest)
-    @NotNull(message = "Roll ID is required")
     private UUID rollId;
+
+    private UUID parentWastePieceId;
 
     // Material Specifications (same as Roll)
     @NotNull(message = "Material type is required")

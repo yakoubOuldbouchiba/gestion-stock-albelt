@@ -7,6 +7,7 @@ export { SuppliersPage } from './SuppliersPage';
 export { UsersPage } from './UsersPage';
 export { AltierPage } from './AltierPage';
 export { TransferBonsPage } from './TransferBonsPage';
+export { PurchaseBonsPage } from './PurchaseBonsPage';
 export { MaterialChuteThresholdsPage } from './MaterialChuteThresholdsPage';
 export { ColorsPage } from './ColorsPage';
 export { ClientsPage } from './ClientsPage';

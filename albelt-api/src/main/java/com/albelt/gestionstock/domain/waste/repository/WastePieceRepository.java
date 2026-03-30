@@ -3,6 +3,7 @@ package com.albelt.gestionstock.domain.waste.repository;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -38,6 +39,27 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
            "AND wp.status = :status ORDER BY wp.areaM2 DESC")
     List<WastePiece> findLargeAvailablePieces(@Param("status") WasteStatus status,
                                               Pageable pageable);
+
+    /**
+     * Paged waste piece search with optional filters
+     */
+    @Query("SELECT wp FROM WastePiece wp " +
+           "WHERE (:materialType IS NULL OR wp.materialType = :materialType) " +
+           "AND (:status IS NULL OR wp.status = :status) " +
+           "AND (:altierId IS NULL OR wp.altier.id = :altierId) " +
+           "AND wp.createdAt >= :fromDate " +
+           "AND wp.createdAt <= :toDate " +
+           "AND (:search = '' OR " +
+           "LOWER(wp.qrCode) LIKE CONCAT('%', :search, '%') OR " +
+           "LOWER(wp.materialType) LIKE CONCAT('%', :search, '%')) ")
+    Page<WastePiece> findFiltered(
+            @Param("materialType") MaterialType materialType,
+            @Param("status") WasteStatus status,
+            @Param("altierId") UUID altierId,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            @Param("search") String search,
+            Pageable pageable);
 
     /**
      * Find reuse candidates with sufficient area

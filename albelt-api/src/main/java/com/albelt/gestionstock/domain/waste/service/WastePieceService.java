@@ -14,7 +14,9 @@ import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,20 +52,44 @@ public class WastePieceService {
     public WastePiece recordWaste(WastePieceRequest request, UUID createdBy) {
         log.info("Recording waste piece: material={}, area_m2={}", 
                  request.getMaterialType(), request.getLengthM());
-        
-        // Fetch the Roll entity from the database using rollId
-        Roll roll = rollRepository.findById(request.getRollId())
-                .orElseThrow(() -> ResourceNotFoundException.supplier(request.getRollId().toString()));
+
+        WastePiece parentWastePiece = null;
+        Roll roll = null;
+
+        if (request.getParentWastePieceId() != null) {
+            parentWastePiece = wastePieceRepository.findById(request.getParentWastePieceId())
+                    .orElseThrow(() -> ResourceNotFoundException.supplier(request.getParentWastePieceId().toString()));
+            roll = parentWastePiece.getRoll();
+        }
+
+        if (request.getRollId() != null) {
+            Roll requestedRoll = rollRepository.findById(request.getRollId())
+                    .orElseThrow(() -> ResourceNotFoundException.supplier(request.getRollId().toString()));
+            if (roll != null && !requestedRoll.getId().equals(roll.getId())) {
+                throw new IllegalArgumentException("Roll ID must match parent waste piece roll");
+            }
+            roll = requestedRoll;
+        }
+
+        if (roll == null) {
+            throw new IllegalArgumentException("Roll ID or parent waste piece ID is required");
+        }
 
         Color color = null;
         if (request.getColorId() != null) {
             color = colorService.getById(request.getColorId());
         } else if (roll.getColor() != null) {
             color = roll.getColor();
+        } else if (parentWastePiece != null && parentWastePiece.getColor() != null) {
+            color = parentWastePiece.getColor();
         }
         
         // Create WastePiece with Roll reference
         WastePiece wastePiece = wastePieceMapper.toEntity(request, roll, color);
+
+        if (parentWastePiece != null) {
+            wastePiece.setParentWastePiece(parentWastePiece);
+        }
         
         // Set the creator
         wastePiece.setCreatedBy(createdBy);
@@ -89,6 +115,25 @@ public class WastePieceService {
     public List<WastePiece> getAll(int page, int size) {
         log.debug("Fetching all waste pieces: page={}, size={}", page, size);
         return wastePieceRepository.findAll(PageRequest.of(page, size)).getContent();
+    }
+
+    /**
+     * Get waste pieces with pagination and optional filters
+     */
+    @Transactional(readOnly = true)
+    public Page<WastePiece> getAllPaged(MaterialType materialType, WasteStatus status, UUID altierId,
+                                        java.time.LocalDateTime fromDate, java.time.LocalDateTime toDate,
+                                        String search, int page, int size) {
+        String normalizedSearch = normalize(search);
+        if (normalizedSearch == null) {
+            normalizedSearch = "";
+        } else {
+            normalizedSearch = normalizedSearch.toLowerCase(java.util.Locale.ROOT);
+        }
+        java.time.LocalDateTime effectiveFromDate = fromDate != null ? fromDate : java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
+        java.time.LocalDateTime effectiveToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return wastePieceRepository.findFiltered(materialType, status, altierId, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
     }
 
     /**
@@ -201,5 +246,11 @@ public class WastePieceService {
     @Transactional(readOnly = true)
     public List<Object[]> getTotalWasteAreaByMaterial() {
         return wastePieceRepository.getTotalWasteAreaByMaterial(WasteStatus.AVAILABLE);
+    }
+
+    private String normalize(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

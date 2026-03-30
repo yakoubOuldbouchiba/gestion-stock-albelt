@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceResponse;
 import com.albelt.gestionstock.domain.waste.service.WastePieceService;
@@ -38,13 +39,28 @@ public class WastePieceController {
      */
     @GetMapping
     @Transactional(readOnly = true)
-    public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getAll(
+    public ResponseEntity<ApiResponse<PagedResponse<WastePieceResponse>>> getAll(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) MaterialType materialType,
+            @RequestParam(required = false) WasteStatus status,
+            @RequestParam(required = false) UUID altierId,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
         log.debug("Fetching all waste pieces: page={}, size={}", page, size);
-        var wastePieces = wastePieceService.getAll(page, size);
-        var responses = wastePieceMapper.toResponseList(wastePieces);
-        return ResponseEntity.ok(ApiResponse.success(responses));
+        var fromDate = parseDateStart(dateFrom);
+        var toDate = parseDateEnd(dateTo);
+        var wastePieces = wastePieceService.getAllPaged(materialType, status, altierId, fromDate, toDate, search, page, size);
+        var responses = wastePieceMapper.toResponseList(wastePieces.getContent());
+        var paged = PagedResponse.<WastePieceResponse>builder()
+                .items(responses)
+                .page(wastePieces.getNumber())
+                .size(wastePieces.getSize())
+                .totalElements(wastePieces.getTotalElements())
+                .totalPages(wastePieces.getTotalPages())
+                .build();
+        return ResponseEntity.ok(ApiResponse.success(paged));
     }
 
     /**
@@ -195,5 +211,15 @@ public class WastePieceController {
         log.debug("Getting total waste area by material");
         var areas = wastePieceService.getTotalWasteAreaByMaterial();
         return ResponseEntity.ok(ApiResponse.success(areas));
+    }
+
+    private java.time.LocalDateTime parseDateStart(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atStartOfDay();
+    }
+
+    private java.time.LocalDateTime parseDateEnd(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atTime(23, 59, 59);
     }
 }

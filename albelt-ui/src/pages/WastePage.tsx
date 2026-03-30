@@ -215,6 +215,12 @@ export function WastePage() {
                 <span className="detail-label">{t('waste.detailWasteId')}:</span>
                 <span className="detail-value">{selectedWaste.id.substring(0, 8)}</span>
               </div>
+              {selectedWaste.parentWastePieceId && (
+                <div className="detail-row">
+                  <span className="detail-label">{t('waste.detailParentWaste') || 'Parent Waste Piece'}:</span>
+                  <span className="detail-value">{selectedWaste.parentWastePieceId.substring(0, 8)}</span>
+                </div>
+              )}
               <div className="detail-row">
                 <span className="detail-label">{t('waste.detailMaterial')}:</span>
                 <span className={`badge badge-${selectedWaste.materialType.toLowerCase()}`}>
@@ -383,6 +389,7 @@ export function WastePage() {
                 <th>{t('waste.tableDimensions')}</th>
                 <th>{t('waste.tableArea')}</th>
                 <th>{t('waste.tableStatus')}</th>
+                <th>{t('waste.tableParent')}</th>
                 <th>{t('waste.tableSize')}</th>
                 <th>{t('waste.tableReuse')}</th>
                 <th>{t('waste.tableCreated')}</th>
@@ -407,6 +414,7 @@ export function WastePage() {
                       {getStatusLabel(waste.status)}
                     </span>
                   </td>
+                  <td>{waste.parentWastePieceId ? waste.parentWastePieceId.substring(0, 8) : '-'}</td>
                   <td>{((waste.areaM2 || 0) > 3.0) ? t('waste.large') : t('waste.small')}</td>
                   <td>{((waste.status === 'AVAILABLE' || waste.status === 'RESERVED') && ((waste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}</td>
                   <td>{formatDate(waste.createdAt)}</td>

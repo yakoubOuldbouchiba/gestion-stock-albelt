@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.rolls.dto.RollRequest;
 import com.albelt.gestionstock.domain.rolls.dto.RollResponse;
 import com.albelt.gestionstock.domain.rolls.dto.RollStatusRequest;
@@ -44,7 +45,16 @@ public class RollController {
      * - Other roles: returns only rolls from assigned altiers
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<RollResponse>>> getAll() {
+    public ResponseEntity<ApiResponse<PagedResponse<RollResponse>>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) RollStatus status,
+            @RequestParam(required = false) MaterialType materialType,
+            @RequestParam(required = false) UUID supplierId,
+            @RequestParam(required = false) UUID altierId,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
         UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         log.debug("Fetching rolls for user: {}", currentUser);
         
@@ -54,12 +64,40 @@ public class RollController {
         // If user has no accessible altiers, return empty list
         if (accessibleAltierIds.isEmpty()) {
             log.warn("User {} has no accessible altiers", currentUser);
-            return ResponseEntity.ok(ApiResponse.success(List.of(), "No accessible rolls"));
+            var empty = PagedResponse.<RollResponse>builder()
+                    .items(List.of())
+                    .page(page)
+                    .size(size)
+                    .totalElements(0)
+                    .totalPages(0)
+                    .build();
+            return ResponseEntity.ok(ApiResponse.success(empty, "No accessible rolls"));
         }
         
-        var rolls = rollService.getByUserAltiers(accessibleAltierIds);
-        var responses = rollMapper.toResponseList(rolls);
-        return ResponseEntity.ok(ApiResponse.success(responses, "Rolls retrieved"));
+        var fromDate = parseDate(dateFrom);
+        var toDate = parseDate(dateTo);
+
+        var rolls = rollService.getByUserAltiersPaged(
+                accessibleAltierIds,
+                status,
+                materialType,
+                supplierId,
+                altierId,
+                fromDate,
+                toDate,
+                search,
+                page,
+                size
+        );
+        var responses = rollMapper.toResponseList(rolls.getContent());
+        var paged = PagedResponse.<RollResponse>builder()
+                .items(responses)
+                .page(rolls.getNumber())
+                .size(rolls.getSize())
+                .totalElements(rolls.getTotalElements())
+                .totalPages(rolls.getTotalPages())
+                .build();
+        return ResponseEntity.ok(ApiResponse.success(paged, "Rolls retrieved"));
     }
 
     /**
@@ -259,5 +297,10 @@ public class RollController {
         
         var stats = rollService.getStatsByMaterial();
         return ResponseEntity.ok(ApiResponse.success(stats, "Stats retrieved"));
+    }
+
+    private java.time.LocalDate parseDate(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim());
     }
 }

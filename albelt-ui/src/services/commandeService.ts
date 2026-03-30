@@ -3,7 +3,8 @@ import type {
   Commande,
   CommandeRequest,
   CommandeItem,
-  ApiResponse
+  ApiResponse,
+  PagedResponse
 } from '../types/index';
 
 /**
@@ -15,8 +16,16 @@ export const CommandeService = {
   /**
    * Get all orders
    */
-  async getAll(): Promise<ApiResponse<Commande[]>> {
-    return ApiService.get<Commande[]>('/commandes');
+  async getAll(params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    status?: string;
+    clientId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<ApiResponse<PagedResponse<Commande>>> {
+    return ApiService.get<PagedResponse<Commande>>('/commandes', params);
   },
 
   /**

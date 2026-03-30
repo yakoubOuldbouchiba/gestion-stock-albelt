@@ -13,6 +13,9 @@ import com.albelt.gestionstock.domain.users.entity.User;
 import com.albelt.gestionstock.domain.users.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,6 +80,18 @@ public class TransferBonService {
                 .stream()
                 .map(transferBonMapper::toSummaryDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransferBonDTO> listBonsPaged(UUID fromAltierId, UUID toAltierId, Boolean statusEntree,
+                                              LocalDateTime fromDate, LocalDateTime toDate,
+                                              String search, int page, int size) {
+        String normalizedSearch = normalizeSearch(search);
+        LocalDateTime safeFromDate = fromDate != null ? fromDate : LocalDateTime.of(1970, 1, 1, 0, 0);
+        LocalDateTime safeToDate = toDate != null ? toDate : LocalDateTime.of(2100, 1, 1, 0, 0);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return transferBonRepository.findFiltered(fromAltierId, toAltierId, statusEntree, safeFromDate, safeToDate, normalizedSearch, pageable)
+                .map(transferBonMapper::toSummaryDTO);
     }
 
     @Transactional(readOnly = true)
@@ -199,5 +214,11 @@ public class TransferBonService {
 
         long remaining = rollMovementRepository.countByTransferBon_Id(bonId);
         log.info("Removed movement {} from pending transfer bon {} (remaining movements={})", movementId, bonId, remaining);
+    }
+
+    private String normalizeSearch(String value) {
+        if (value == null) return "";
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? "" : trimmed.toLowerCase();
     }
 }

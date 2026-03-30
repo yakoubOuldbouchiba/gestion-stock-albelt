@@ -6,6 +6,9 @@ import com.albelt.gestionstock.shared.enums.UserRole;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +60,19 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<User> getAllActive() {
         return userRepository.findAllActive();
+    }
+
+    /**
+     * Get users with pagination and optional filters
+     */
+    @Transactional(readOnly = true)
+    public Page<User> getAllPaged(String search, UserRole role, Boolean isActive,
+                                  LocalDateTime fromDate, LocalDateTime toDate, int page, int size) {
+        String normalizedSearch = normalize(search);
+        LocalDateTime safeFromDate = fromDate != null ? fromDate : LocalDateTime.of(1970, 1, 1, 0, 0);
+        LocalDateTime safeToDate = toDate != null ? toDate : LocalDateTime.of(2100, 1, 1, 0, 0);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return userRepository.findFiltered(normalizedSearch, role, isActive, safeFromDate, safeToDate, pageable);
     }
 
     /**
@@ -130,5 +146,11 @@ public class UserService {
         user.setRole(newRole);
         userRepository.save(user);
         log.info("User role changed: id={}, old_role={}, new_role={}", userId, oldRole, newRole);
+    }
+
+    private String normalize(String value) {
+        if (value == null) return "";
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? "" : trimmed.toLowerCase();
     }
 }

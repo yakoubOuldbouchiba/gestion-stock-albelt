@@ -22,13 +22,18 @@ export function AltierPage() {
     loadAltiers();
   }, []);
 
+  const toArray = <T,>(data: any): T[] => {
+    if (Array.isArray(data)) return data;
+    return data?.items ?? data?.content ?? [];
+  };
+
   const loadAltiers = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const response = await AltierService.getAll();
       if (response.success && response.data) {
-        setAltiers(response.data);
+        setAltiers(toArray<Altier>(response.data));
       }
     } catch (err) {
       setError(t('altier.failedToLoad'));
@@ -109,7 +114,8 @@ export function AltierPage() {
     setShowForm(false);
   };
 
-  const filteredAltiers = altiers.filter(altier =>
+  const safeAltiers = toArray<Altier>(altiers);
+  const filteredAltiers = safeAltiers.filter(altier =>
     altier.libelle.toLowerCase().includes(searchTerm.toLowerCase()) ||
     altier.adresse.toLowerCase().includes(searchTerm.toLowerCase())
   );

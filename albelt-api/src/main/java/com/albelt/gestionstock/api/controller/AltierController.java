@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.altier.dto.AltierRequest;
 import com.albelt.gestionstock.domain.altier.dto.AltierResponse;
 import com.albelt.gestionstock.domain.altier.mapper.AltierMapper;
@@ -46,11 +47,25 @@ public class AltierController {
      * GET /api/altiers
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<AltierResponse>>> getAll() {
+    public ResponseEntity<ApiResponse<PagedResponse<AltierResponse>>> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
         log.debug("Fetching all altiers");
-        var altiers = altierService.getAll();
-        var responses = altierMapper.toResponseList(altiers);
-        return ResponseEntity.ok(ApiResponse.success(responses, "Altiers retrieved successfully"));
+        var fromDate = parseDateStart(dateFrom);
+        var toDate = parseDateEnd(dateTo);
+        var altiers = altierService.getAllPaged(search, fromDate, toDate, page, size);
+        var responses = altierMapper.toResponseList(altiers.getContent());
+        var paged = PagedResponse.<AltierResponse>builder()
+                .items(responses)
+                .page(altiers.getNumber())
+                .size(altiers.getSize())
+                .totalElements(altiers.getTotalElements())
+                .totalPages(altiers.getTotalPages())
+                .build();
+        return ResponseEntity.ok(ApiResponse.success(paged, "Altiers retrieved successfully"));
     }
 
     /**
@@ -100,5 +115,15 @@ public class AltierController {
         log.info("Deleting altier: {}", id);
         altierService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Altier deleted successfully"));
+    }
+
+    private java.time.LocalDateTime parseDateStart(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atStartOfDay();
+    }
+
+    private java.time.LocalDateTime parseDateEnd(String value) {
+        if (value == null || value.trim().isEmpty()) return null;
+        return java.time.LocalDate.parse(value.trim()).atTime(23, 59, 59);
     }
 }

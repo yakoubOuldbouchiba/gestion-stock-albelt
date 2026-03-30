@@ -9,6 +9,17 @@ export interface ApiResponse<T> {
 }
 
 /**
+ * Paged API Response
+ */
+export interface PagedResponse<T> {
+  items: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+/**
  * Supplier Types
  */
 export interface Supplier {
@@ -188,6 +199,7 @@ export interface CuttingOperationRequest {
 export interface WastePiece {
   id: string;
   rollId: string;
+  parentWastePieceId?: string | null;
   commandeItemId?: string | null;
   createdBy: string;
   materialType: MaterialType;
@@ -215,7 +227,8 @@ export interface WastePiece {
 }
 
 export interface WastePieceRequest {
-  rollId: string;
+  rollId?: string;
+  parentWastePieceId?: string;
   commandeItemId?: string;
   materialType: MaterialType;
   widthMm: number;
@@ -364,6 +377,71 @@ export interface TransferBon {
   createdAt: string;
   updatedAt: string;
   movementCount?: number;
+}
+
+/**
+ * Bon d'achat (PurchaseBon) Types
+ */
+export type PurchaseBonStatus = 'DRAFT' | 'VALIDATED';
+
+export interface PurchaseBonItemRequest {
+  materialType: MaterialType;
+  nbPlis: number;
+  thicknessMm: number;
+  widthMm: number;
+  lengthM: number;
+  areaM2: number;
+  quantity: number;
+  colorId?: string;
+  altierId?: string;
+  qrCode?: string;
+}
+
+export interface PurchaseBonItem {
+  id: string;
+  lineNumber: number;
+  materialType: MaterialType;
+  nbPlis: number;
+  thicknessMm: number;
+  widthMm: number;
+  lengthM: number;
+  areaM2: number;
+  quantity: number;
+  colorId?: string;
+  colorName?: string;
+  colorHexCode?: string;
+  altierId?: string;
+  altierLibelle?: string;
+  qrCode?: string;
+}
+
+export interface PurchaseBonRequest {
+  reference: string;
+  bonDate: string;
+  supplierId: string;
+  notes?: string;
+  items: PurchaseBonItemRequest[];
+}
+
+export interface PurchaseBon {
+  id: string;
+  reference: string;
+  bonDate: string;
+  supplierId: string;
+  supplierName?: string;
+  status: PurchaseBonStatus;
+  notes?: string;
+  createdBy?: {
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+  };
+  validatedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  itemCount?: number;
+  items?: PurchaseBonItem[];
 }
 
 /**

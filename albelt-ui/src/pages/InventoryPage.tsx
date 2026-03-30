@@ -10,6 +10,7 @@ import { WastePieceService } from '../services/wastePieceService';
 import { ColorService } from '../services/colorService';
 import { getMaterialColor } from '../utils/materialColors';
 import { formatDate } from '../utils/date';
+import { Pagination } from '@components/Pagination';
 import '../styles/InventoryPage.css';
 
 export function InventoryPage() {
@@ -29,6 +30,13 @@ export function InventoryPage() {
   const [altierFilter, setAltierFilter] = useState<string>('ALL');
   const [activeTab, setActiveTab] = useState<'inventory' | 'reusable' | 'waste'>('inventory');
   const [showChuteForm, setShowChuteForm] = useState(false);
+  const [rollPage, setRollPage] = useState(0);
+  const [rollTotalPages, setRollTotalPages] = useState(0);
+  const [rollTotalElements, setRollTotalElements] = useState(0);
+  const [wastePage, setWastePage] = useState(0);
+  const [wasteTotalPages, setWasteTotalPages] = useState(0);
+  const [wasteTotalElements, setWasteTotalElements] = useState(0);
+  const pageSize = 20;
 
   const materials: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
   const statuses: RollStatus[] = ['AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED'];
@@ -50,22 +58,39 @@ export function InventoryPage() {
   const [chuteRollId, setChuteRollId] = useState<string>('');
   const [filteredChuteRolls, setFilteredChuteRolls] = useState<Roll[]>([]);
   const [chuteRollsLoading, setChuteRollsLoading] = useState(false);
+  const [chuteSourceType, setChuteSourceType] = useState<'ROLL' | 'WASTE_PIECE'>('ROLL');
+  const [parentWastePieceId, setParentWastePieceId] = useState<string>('');
+  const [parentWastePieces, setParentWastePieces] = useState<WastePiece[]>([]);
+  const [parentWastePiecesLoading, setParentWastePiecesLoading] = useState(false);
 
   useEffect(() => {
-    loadData();
+    loadLookups();
   }, []);
+
+  useEffect(() => {
+    loadRolls(rollPage, searchTerm, materialFilter, statusFilter, altierFilter);
+  }, [rollPage, searchTerm, materialFilter, statusFilter, altierFilter]);
+
+  useEffect(() => {
+    if (activeTab !== 'inventory') {
+      loadWastePieces(wastePage, searchTerm, materialFilter, altierFilter);
+    }
+  }, [wastePage, searchTerm, materialFilter, altierFilter, activeTab]);
 
   // Load filtered rolls when supplier and material change for chute form
   useEffect(() => {
-    if (formData.supplierId && formData.materialType) {
+    if (chuteSourceType === 'ROLL' && formData.supplierId && formData.materialType) {
       loadFilteredChuteRolls();
     } else {
       setFilteredChuteRolls([]);
     }
-  }, [formData.supplierId, formData.materialType]);
+  }, [formData.supplierId, formData.materialType, chuteSourceType]);
 
   // Auto-populate form fields when a roll is selected for chute creation
   useEffect(() => {
+    if (chuteSourceType !== 'ROLL') {
+      return;
+    }
     if (chuteRollId) {
       const selectedChute = filteredChuteRolls.find(r => r.id === chuteRollId);
       if (selectedChute) {
@@ -82,7 +107,36 @@ export function InventoryPage() {
         }));
       }
     }
-  }, [chuteRollId, filteredChuteRolls]);
+  }, [chuteRollId, filteredChuteRolls, chuteSourceType]);
+
+  useEffect(() => {
+    if (chuteSourceType !== 'WASTE_PIECE') {
+      return;
+    }
+    if (parentWastePieceId) {
+      const selectedParent = parentWastePieces.find(piece => piece.id === parentWastePieceId);
+      if (selectedParent) {
+        setFormData((prev) => ({
+          ...prev,
+          materialType: selectedParent.materialType,
+          nbPlis: selectedParent.nbPlis,
+          thicknessMm: selectedParent.thicknessMm,
+          widthMm: selectedParent.widthMm,
+          lengthM: selectedParent.lengthM,
+          areaM2: (selectedParent.widthMm / 1000) * selectedParent.lengthM,
+          altierId: selectedParent.altierId,
+          colorId: selectedParent.colorId,
+          receivedDate: new Date().toISOString().split('T')[0],
+        }));
+      }
+    }
+  }, [parentWastePieceId, parentWastePieces, chuteSourceType]);
+
+  useEffect(() => {
+    if (showChuteForm && chuteSourceType === 'WASTE_PIECE') {
+      loadParentWastePieces();
+    }
+  }, [showChuteForm, chuteSourceType]);
 
   // Handle width/length changes and auto-calculate area
   const handleDimensionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,29 +154,21 @@ export function InventoryPage() {
     });
   };
 
-  const loadData = async () => {
+  const loadLookups = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [rollsResponse, suppliersResponse, altiersResponse, wasteResponse, colorsResponse] = await Promise.all([
-        RollService.getAll(),
-        SupplierService.getAll(),
-        AltierService.getAll(),
-        WastePieceService.getAll(0, 500),
+      const [suppliersResponse, altiersResponse, colorsResponse] = await Promise.all([
+        SupplierService.getAll({ page: 0, size: 200 }),
+        AltierService.getAll({ page: 0, size: 200 }),
         ColorService.getAll(),
       ]);
 
-      if (rollsResponse.success && rollsResponse.data) {
-        setRolls(rollsResponse.data);
-      }
       if (suppliersResponse.success && suppliersResponse.data) {
-        setSuppliers(suppliersResponse.data);
+        setSuppliers(suppliersResponse.data.items || []);
       }
       if (altiersResponse.success && altiersResponse.data) {
-        setAltiers(altiersResponse.data);
-      }
-      if (wasteResponse.success && wasteResponse.data) {
-        setWastePieces(wasteResponse.data);
+        setAltiers(altiersResponse.data.items || []);
       }
       if (colorsResponse.success && colorsResponse.data) {
         setColors(colorsResponse.data);
@@ -170,6 +216,87 @@ export function InventoryPage() {
     }
   };
 
+  const loadParentWastePieces = async () => {
+    setParentWastePiecesLoading(true);
+    try {
+      const response = await WastePieceService.getAll({
+        page: 0,
+        size: 200,
+        status: 'AVAILABLE',
+      });
+      if (response.success && response.data) {
+        setParentWastePieces(response.data.items || []);
+      } else {
+        setParentWastePieces([]);
+      }
+    } catch (err) {
+      console.error('Failed to load parent waste pieces:', err);
+      setParentWastePieces([]);
+    } finally {
+      setParentWastePiecesLoading(false);
+    }
+  };
+
+  const loadRolls = async (
+    pageIndex: number,
+    search: string,
+    material: MaterialType | 'ALL',
+    status: RollStatus | 'ALL',
+    altierId: string
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await RollService.getAll({
+        page: pageIndex,
+        size: pageSize,
+        search: search || undefined,
+        materialType: material === 'ALL' ? undefined : material,
+        status: status === 'ALL' ? undefined : status,
+        altierId: altierId === 'ALL' ? undefined : altierId,
+      });
+      if (response.success && response.data) {
+        setRolls(response.data.items || []);
+        setRollTotalPages(response.data.totalPages || 0);
+        setRollTotalElements(response.data.totalElements || 0);
+      }
+    } catch (err) {
+      setError(t('messages.failedToLoad'));
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadWastePieces = async (
+    pageIndex: number,
+    search: string,
+    material: MaterialType | 'ALL',
+    altierId: string
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await WastePieceService.getAll({
+        page: pageIndex,
+        size: pageSize,
+        search: search || undefined,
+        materialType: material === 'ALL' ? undefined : material,
+        altierId: altierId === 'ALL' ? undefined : altierId,
+      });
+      if (response.success && response.data) {
+        setWastePieces(response.data.items || []);
+        setWasteTotalPages(response.data.totalPages || 0);
+        setWasteTotalElements(response.data.totalElements || 0);
+      }
+    } catch (err) {
+      setError(t('messages.failedToLoad'));
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev: RollRequest) => ({
@@ -188,7 +315,8 @@ export function InventoryPage() {
     try {
       const response = await RollService.receive(formData);
       if (response.success) {
-        setRolls([...rolls, response.data!]);
+        setRollPage(0);
+        await loadRolls(0, searchTerm, materialFilter, statusFilter, altierFilter);
         resetForm();
         setShowForm(false);
       }
@@ -220,39 +348,10 @@ export function InventoryPage() {
     setShowForm(false);
   };
 
-  const filteredRolls = rolls.filter((roll: Roll) => {
-    const supplier = suppliers.find(s => s.id === roll.supplierId);
-    const rollAltier = roll.altierLibelle || '';
-    
-    const matchesSearch =
-      (roll.materialType || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (supplier?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rollAltier.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesMaterial = materialFilter === 'ALL' || roll.materialType === materialFilter;
-    const matchesStatus = statusFilter === 'ALL' || roll.status === statusFilter;
-    const matchesAltier = altierFilter === 'ALL' || rollAltier === altierFilter;
-
-    return matchesSearch && matchesMaterial && matchesStatus && matchesAltier;
-  });
-
-  const filteredWastePieces = wastePieces.filter((piece: WastePiece) => {
-    const pieceAltier = piece.altierLibelle || '';
-
-    const matchesSearch =
-      (piece.materialType || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pieceAltier.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesMaterial = materialFilter === 'ALL' || piece.materialType === materialFilter;
-    const matchesAltier = altierFilter === 'ALL' || pieceAltier === altierFilter;
-
-    return matchesSearch && matchesMaterial && matchesAltier;
-  });
-
-  const filteredReusablePieces = filteredWastePieces.filter(
+  const reusablePieces = wastePieces.filter(
     (piece: WastePiece) => piece.wasteType === 'CHUTE_EXPLOITABLE'
   );
-  const filteredScrapPieces = filteredWastePieces.filter(
+  const scrapPieces = wastePieces.filter(
     (piece: WastePiece) => piece.wasteType === 'DECHET'
   );
 
@@ -308,19 +407,28 @@ export function InventoryPage() {
       <div className="tabs-container">
         <button
           className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`}
-          onClick={() => setActiveTab('inventory')}
+          onClick={() => {
+            setActiveTab('inventory');
+            setRollPage(0);
+          }}
         >
           {t('inventory.title') || 'Inventory'}
         </button>
         <button
           className={`tab-button ${activeTab === 'reusable' ? 'active' : ''}`}
-          onClick={() => setActiveTab('reusable')}
+          onClick={() => {
+            setActiveTab('reusable');
+            setWastePage(0);
+          }}
         >
           {t('inventory.chuteReusable') || 'Chute Reusable'}
         </button>
         <button
           className={`tab-button ${activeTab === 'waste' ? 'active' : ''}`}
-          onClick={() => setActiveTab('waste')}
+          onClick={() => {
+            setActiveTab('waste');
+            setWastePage(0);
+          }}
         >
           {t('inventory.chuteDechet') || 'Chute Waste'}
         </button>
@@ -476,6 +584,8 @@ export function InventoryPage() {
         <div className="modal-overlay" onClick={() => {
           setShowChuteForm(false);
           setChuteRollId('');
+          setParentWastePieceId('');
+          setChuteSourceType('ROLL');
         }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>
@@ -483,30 +593,45 @@ export function InventoryPage() {
             </h2>
             <form onSubmit={(e) => {
               e.preventDefault();
-              const selectedChute = filteredChuteRolls.find(r => r.id === chuteRollId);
-              if (!selectedChute) {
-                alert('Please select a roll');
-                return;
+              let selectedRoll: Roll | undefined;
+              let selectedParent: WastePiece | undefined;
+
+              if (chuteSourceType === 'ROLL') {
+                selectedRoll = filteredChuteRolls.find(r => r.id === chuteRollId);
+                if (!selectedRoll) {
+                  alert('Please select a roll');
+                  return;
+                }
+              } else {
+                selectedParent = parentWastePieces.find(piece => piece.id === parentWastePieceId);
+                if (!selectedParent) {
+                  alert('Please select a parent waste piece');
+                  return;
+                }
               }
-              
+
               const wasteData = {
-                rollId: chuteRollId,
-                materialType: selectedChute.materialType,
+                rollId: selectedRoll?.id || selectedParent?.rollId,
+                parentWastePieceId: selectedParent?.id,
+                materialType: selectedRoll?.materialType || selectedParent?.materialType,
                 nbPlis: formData.nbPlis,
                 thicknessMm: formData.thicknessMm,
                 widthMm: formData.widthMm,
                 lengthM: formData.lengthM,
                 areaM2: formData.areaM2,
                 status: 'AVAILABLE',
-                altierID: formData.altierId,
-                colorId: selectedChute.colorId,
+                altierID: selectedRoll?.altierId || selectedParent?.altierId,
+                colorId: selectedRoll?.colorId || selectedParent?.colorId,
               };
               
               WastePieceService.create(wasteData).then(response => {
                 if (response.success) {
-                  loadData();
+                  setWastePage(0);
+                  loadWastePieces(0, searchTerm, materialFilter, altierFilter);
                   setShowChuteForm(false);
                   setChuteRollId('');
+                  setParentWastePieceId('');
+                  setChuteSourceType('ROLL');
                   resetForm();
                   alert('Waste piece created successfully!');
                 }
@@ -515,6 +640,27 @@ export function InventoryPage() {
                 alert('Failed to create waste piece');
               });
             }} className="roll-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="chuteSourceType">Source Type *</label>
+                  <select
+                    id="chuteSourceType"
+                    value={chuteSourceType}
+                    onChange={(e) => {
+                      const nextType = e.target.value as 'ROLL' | 'WASTE_PIECE';
+                      setChuteSourceType(nextType);
+                      setChuteRollId('');
+                      setParentWastePieceId('');
+                    }}
+                    required
+                  >
+                    <option value="ROLL">Roll</option>
+                    <option value="WASTE_PIECE">Waste Piece</option>
+                  </select>
+                </div>
+              </div>
+
+              {chuteSourceType === 'ROLL' && (
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="supplierId">{t('navigation.suppliers')} *</label>
@@ -530,34 +676,65 @@ export function InventoryPage() {
                   </select>
                 </div>
               </div>
+              )}
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="rollId">Select Roll *</label>
-                  <select 
-                    id="rollId" 
-                    value={chuteRollId} 
-                    onChange={(e) => setChuteRollId(e.target.value)} 
-                    required
-                    disabled={!formData.supplierId || !formData.materialType || chuteRollsLoading}
-                  >
-                    <option value="">
-                      {chuteRollsLoading
-                        ? 'Loading rolls...'
-                        : !formData.supplierId || !formData.materialType 
-                        ? 'Select supplier and material first' 
-                        : filteredChuteRolls.length === 0
-                        ? 'No rolls available'
-                        : 'Select a roll'}
-                    </option>
-                    {filteredChuteRolls.map(roll => (
-                      <option key={roll.id} value={roll.id}>
-                        Area: {roll.areaM2}m² | Width: {roll.widthMm}mm | Length: {roll.lengthM}m
+              {chuteSourceType === 'ROLL' && (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="rollId">Select Roll *</label>
+                    <select 
+                      id="rollId" 
+                      value={chuteRollId} 
+                      onChange={(e) => setChuteRollId(e.target.value)} 
+                      required
+                      disabled={!formData.supplierId || !formData.materialType || chuteRollsLoading}
+                    >
+                      <option value="">
+                        {chuteRollsLoading
+                          ? 'Loading rolls...'
+                          : !formData.supplierId || !formData.materialType 
+                          ? 'Select supplier and material first' 
+                          : filteredChuteRolls.length === 0
+                          ? 'No rolls available'
+                          : 'Select a roll'}
                       </option>
-                    ))}
-                  </select>
+                      {filteredChuteRolls.map(roll => (
+                        <option key={roll.id} value={roll.id}>
+                          Area: {roll.areaM2}m² | Width: {roll.widthMm}mm | Length: {roll.lengthM}m
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {chuteSourceType === 'WASTE_PIECE' && (
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="parentWastePieceId">Select Parent Waste Piece *</label>
+                    <select
+                      id="parentWastePieceId"
+                      value={parentWastePieceId}
+                      onChange={(e) => setParentWastePieceId(e.target.value)}
+                      required
+                      disabled={parentWastePiecesLoading}
+                    >
+                      <option value="">
+                        {parentWastePiecesLoading
+                          ? 'Loading waste pieces...'
+                          : parentWastePieces.length === 0
+                          ? 'No waste pieces available'
+                          : 'Select a waste piece'}
+                      </option>
+                      {parentWastePieces.map(piece => (
+                        <option key={piece.id} value={piece.id}>
+                          {piece.materialType} | Area: {piece.areaM2.toFixed(2)}m² | Width: {piece.widthMm}mm | Length: {piece.lengthM}m
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
 
               <div className="form-row">
                 <div className="form-group">
@@ -566,7 +743,7 @@ export function InventoryPage() {
                 </div>
                 <div className="form-group">
                   <label htmlFor="altierId">{t('inventory.selectWorkshopLabel')} *</label>
-                  <select id="altierId" name="altierId" value={formData.altierId || ''} onChange={handleInputChange} required>
+                  <select id="altierId" name="altierId" value={formData.altierId || ''} onChange={handleInputChange} required disabled={chuteSourceType === 'WASTE_PIECE'}>
                     <option value="">{t('inventory.selectWorkshop')}</option>
                     {altiers.map(altier => (<option key={altier.id} value={altier.id}>{altier.libelle}</option>))}
                   </select>
@@ -616,6 +793,8 @@ export function InventoryPage() {
                 <button type="button" className="btn btn-secondary" onClick={() => {
                   setShowChuteForm(false);
                   setChuteRollId('');
+                  setParentWastePieceId('');
+                  setChuteSourceType('ROLL');
                 }}>{t('common.cancel')}</button>
               </div>
             </form>
@@ -660,14 +839,33 @@ export function InventoryPage() {
 
       <div className="inventory-controls">
         <div className="search-box">
-          <input type="text" placeholder={t('inventory.search')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="search-input" />
+          <input
+            type="text"
+            placeholder={t('inventory.search')}
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setRollPage(0);
+              setWastePage(0);
+            }}
+            className="search-input"
+          />
           <Search size={18} className="search-icon" />
         </div>
 
         <div className="filters">
           <div className="filter-group">
             <label>{t('inventory.material')}:</label>
-            <select value={materialFilter} onChange={(e) => setMaterialFilter(e.target.value as MaterialType | 'ALL')} className="filter-select" style={{ position: 'relative' }}>
+            <select
+              value={materialFilter}
+              onChange={(e) => {
+                setMaterialFilter(e.target.value as MaterialType | 'ALL');
+                setRollPage(0);
+                setWastePage(0);
+              }}
+              className="filter-select"
+              style={{ position: 'relative' }}
+            >
               <option value="ALL">{t('inventory.allMaterials')}</option>
               {materials.map(mat => (
                 <option key={mat} value={mat}>
@@ -679,26 +877,43 @@ export function InventoryPage() {
 
           <div className="filter-group">
             <label>{t('sidebar.workshops')}:</label>
-            <select value={altierFilter} onChange={(e) => setAltierFilter(e.target.value)} className="filter-select">
+            <select
+              value={altierFilter}
+              onChange={(e) => {
+                setAltierFilter(e.target.value);
+                setRollPage(0);
+                setWastePage(0);
+              }}
+              className="filter-select"
+            >
               <option value="ALL">{t('inventory.allWorkshops')}</option>
-              {altiers.map(altier => (<option key={altier.id} value={altier.libelle}>{altier.libelle}</option>))}
+              {altiers.map(altier => (
+                <option key={altier.id} value={altier.id}>
+                  {altier.libelle}
+                </option>
+              ))}
             </select>
           </div>
 
-          <div className="filter-group">
-            <label>{t('inventory.status')}:</label>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as RollStatus | 'ALL')} className="filter-select">
-              <option value="ALL">{t('inventory.allStatus')}</option>
-              {statuses.map(status => (<option key={status} value={status}>{status}</option>))}
-            </select>
-          </div>
+          {activeTab === 'inventory' && (
+            <div className="filter-group">
+              <label>{t('inventory.status')}:</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as RollStatus | 'ALL');
+                  setRollPage(0);
+                }}
+                className="filter-select"
+              >
+                <option value="ALL">{t('inventory.allStatus')}</option>
+                {statuses.map(status => (<option key={status} value={status}>{status}</option>))}
+              </select>
+            </div>
+          )}
 
           <div className="results-count">
-            {(activeTab === 'inventory'
-              ? filteredRolls.length
-              : activeTab === 'reusable'
-              ? filteredReusablePieces.length
-              : filteredScrapPieces.length)} {t('common.list')}
+            {(activeTab === 'inventory' ? rollTotalElements : wasteTotalElements)} {t('common.list')}
           </div>
         </div>
       </div>
@@ -706,24 +921,25 @@ export function InventoryPage() {
       {/* Inventory Table - Show only on Inventory tab */}
       {activeTab === 'inventory' && (
       <div className="inventory-table-container">
-        {filteredRolls.length > 0 ? (
+        {rolls.length > 0 ? (
           <table className="inventory-table">
             <thead>
               <tr>
-                <th>Material</th>
-                <th>Supplier</th>
-                <th>Workshop</th>
-                <th>Area (m²)</th>
+                <th>{t('waste.tableMaterial')}</th>
+                <th>{t('waste.tableParent')}</th>
+                <th>{t('waste.tableSupplier') || 'Supplier'}</th>
+                <th>{t('waste.tableWorkshop') || 'Workshop'}</th>
+                <th>{t('waste.tableArea')}</th>
                 <th>Waste (m²)</th>
                 <th>Available (m²)</th>
                 <th>Waste %</th>
-                <th>Status</th>
-                <th>Received</th>
-                <th>Actions</th>
+                <th>{t('waste.tableStatus')}</th>
+                <th>{t('waste.tableCreated')}</th>
+                <th>{t('waste.tableActions')}</th>
               </tr>
             </thead>
             <tbody>
-              {filteredRolls.map((roll: Roll) => {
+              {rolls.map((roll: Roll) => {
                 const supplier = suppliers.find(s => s.id === roll.supplierId);
                 const altierLabel = roll.altierLibelle || 'Unassigned';
                 const materialDetails = `${roll.widthMm ?? 'N/A'}mm × ${roll.lengthM ?? 'N/A'}m • ${roll.nbPlis ?? 'N/A'} plis`;
@@ -764,11 +980,14 @@ export function InventoryPage() {
         )}
       </div>
       )}
+      {activeTab === 'inventory' && (
+        <Pagination page={rollPage} totalPages={rollTotalPages} onPageChange={setRollPage} />
+      )}
 
       {/* Chute Reusable Table - Show only on Reusable tab */}
       {activeTab === 'reusable' && (
       <div className="inventory-table-container">
-        {filteredReusablePieces.length > 0 ? (
+        {reusablePieces.length > 0 ? (
           <table className="inventory-table">
             <thead>
               <tr>
@@ -785,7 +1004,7 @@ export function InventoryPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredReusablePieces.map((piece: WastePiece) => {
+              {reusablePieces.map((piece: WastePiece) => {
                 const altierLabel = piece.altierLibelle || 'Unassigned';
                 const rollForPiece = rolls.find(r => r.id === piece.rollId);
                 const supplier = rollForPiece ? suppliers.find(s => s.id === rollForPiece.supplierId) : undefined;
@@ -834,11 +1053,14 @@ export function InventoryPage() {
         )}
       </div>
       )}
+      {activeTab === 'reusable' && (
+        <Pagination page={wastePage} totalPages={wasteTotalPages} onPageChange={setWastePage} />
+      )}
 
       {/* Chute Waste Table - Show only on Waste tab */}
       {activeTab === 'waste' && (
       <div className="inventory-table-container">
-        {filteredScrapPieces.length > 0 ? (
+        {scrapPieces.length > 0 ? (
           <table className="inventory-table">
             <thead>
               <tr>
@@ -855,7 +1077,7 @@ export function InventoryPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredScrapPieces.map((piece: WastePiece) => {
+              {scrapPieces.map((piece: WastePiece) => {
                 const altierLabel = piece.altierLibelle || 'Unassigned';
                 const rollForPiece = rolls.find(r => r.id === piece.rollId);
                 const supplier = rollForPiece ? suppliers.find(s => s.id === rollForPiece.supplierId) : undefined;
@@ -867,14 +1089,10 @@ export function InventoryPage() {
                 return (
                   <tr key={piece.id}>
                     <td>
-                      <span 
-                        className="badge-material"
-                        style={{ backgroundColor: getMaterialColor(piece.materialType, piece.colorHexCode) }}
-                      >
-                        {piece.materialType}
-                      </span>
+                      <span className="badge-material" style={{ backgroundColor: getMaterialColor(piece.materialType, piece.colorHexCode) }}>{piece.materialType}</span>
                       <div className="material-details">{materialDetails}</div>
                     </td>
+                    <td>{piece.parentWastePieceId ? piece.parentWastePieceId.substring(0, 8) : '-'}</td>
                     <td>{supplier?.name || 'N/A'}</td>
                     <td><span className="workshop-badge">{altierLabel}</span></td>
                     <td>{wasteArea.toFixed(2)}</td>
@@ -903,6 +1121,9 @@ export function InventoryPage() {
           </div>
         )}
       </div>
+      )}
+      {activeTab === 'waste' && (
+        <Pagination page={wastePage} totalPages={wasteTotalPages} onPageChange={setWastePage} />
       )}
       </div>
       )}

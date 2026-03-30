@@ -1,6 +1,8 @@
 package com.albelt.gestionstock.domain.rolls.repository;
 
 import com.albelt.gestionstock.domain.rolls.entity.RollMovement;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,6 +21,8 @@ public interface RollMovementRepository extends JpaRepository<RollMovement, UUID
      */
     List<RollMovement> findByRollIdOrderByDateEntreeDesc(UUID rollId);
 
+    Page<RollMovement> findByRollIdOrderByDateEntreeDesc(UUID rollId, Pageable pageable);
+
     /**
      * Find movements for a roll within a date range
      */
@@ -34,10 +38,14 @@ public interface RollMovementRepository extends JpaRepository<RollMovement, UUID
      */
     List<RollMovement> findByToAltierIdOrderByDateEntreeDesc(UUID altierID);
 
+    Page<RollMovement> findByToAltierIdOrderByDateEntreeDesc(UUID altierID, Pageable pageable);
+
     /**
      * Find all movements from a specific altier
      */
     List<RollMovement> findByFromAltierIdOrderByDateSortieDesc(UUID altierID);
+
+    Page<RollMovement> findByFromAltierIdOrderByDateSortieDesc(UUID altierID, Pageable pageable);
 
     /**
      * Find the most recent movement for a roll (current location)
@@ -50,17 +58,25 @@ public interface RollMovementRepository extends JpaRepository<RollMovement, UUID
      */
     List<RollMovement> findByOperatorIdOrderByCreatedAtDesc(UUID operatorId);
 
+    Page<RollMovement> findByOperatorIdOrderByCreatedAtDesc(UUID operatorId, Pageable pageable);
+
     /**
      * Find pending receipts for a specific altier (movements without entry date)
      */
     @Query("SELECT rm FROM RollMovement rm WHERE rm.toAltier.id = :altierID AND rm.dateEntree IS NULL ORDER BY rm.dateSortie DESC")
     List<RollMovement> findPendingReceiptsByAltier(@Param("altierID") UUID altierID);
 
+    @Query("SELECT rm FROM RollMovement rm WHERE rm.toAltier.id = :altierID AND rm.dateEntree IS NULL ORDER BY rm.dateSortie DESC")
+    Page<RollMovement> findPendingReceiptsByAltier(@Param("altierID") UUID altierID, Pageable pageable);
+
     /**
      * Find all movements pending receipt (dateEntree is null)
      */
     @Query("SELECT rm FROM RollMovement rm WHERE rm.dateEntree IS NULL ORDER BY rm.dateSortie DESC")
     List<RollMovement> findAllPendingReceipts();
+
+    @Query("SELECT rm FROM RollMovement rm WHERE rm.dateEntree IS NULL ORDER BY rm.dateSortie DESC")
+    Page<RollMovement> findAllPendingReceipts(Pageable pageable);
 
     /**
      * Find all movements for a given transfer bon
