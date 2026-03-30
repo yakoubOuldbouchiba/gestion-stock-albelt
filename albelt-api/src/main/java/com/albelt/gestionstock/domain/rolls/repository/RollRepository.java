@@ -150,5 +150,10 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
            "WHERE r.status IN (:statuses) " +
            "GROUP BY r.materialType")
     List<Object[]> getStatsByMaterial(@Param("statuses") List<RollStatus> statuses);
+       /**
+        * Group by color, nbPlis, thicknessMm, materialType, altierId, status
+        */
+       @Query("SELECT r.color.id, r.nbPlis, r.thicknessMm, r.materialType, r.altier.id, r.status, COUNT(r), SUM(r.areaM2) FROM Roll r GROUP BY r.color.id, r.nbPlis, r.thicknessMm, r.materialType, r.altier.id, r.status")
+       List<Object[]> groupByAllFields();
 }
 

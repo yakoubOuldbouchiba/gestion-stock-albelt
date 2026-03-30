@@ -110,4 +110,9 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     @Query("SELECT COUNT(CASE WHEN wp.status = 'USED_IN_ORDER' THEN 1 END) as reused, " +
            "COUNT(*) as total FROM WastePiece wp WHERE wp.materialType = :materialType")
     Object[] getWasteReuseStats(@Param("materialType") MaterialType materialType);
+       /**
+        * Group by color, nbPlis, thicknessMm, materialType, altierId, status
+        */
+       @Query("SELECT wp.color.id, wp.nbPlis, wp.thicknessMm, wp.materialType, wp.altier.id, wp.status, COUNT(wp), SUM(wp.areaM2) FROM WastePiece wp GROUP BY wp.color.id, wp.nbPlis, wp.thicknessMm, wp.materialType, wp.altier.id, wp.status")
+       List<Object[]> groupByAllFields();
 }

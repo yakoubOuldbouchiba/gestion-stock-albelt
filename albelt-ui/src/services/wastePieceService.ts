@@ -5,6 +5,12 @@ import type { WastePiece, MaterialType, ApiResponse, PagedResponse, WasteStatus 
  * Waste Piece API Service - Focus on reuse tracking and waste reduction
  */
 export const WastePieceService = {
+    /**
+     * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+     */
+    async getGroupedByAllFields(): Promise<ApiResponse<any[]>> {
+      return ApiService.get<any[]>('/waste-pieces/grouped');
+    },
   /**
    * CRITICAL: Find waste piece for reuse
    */

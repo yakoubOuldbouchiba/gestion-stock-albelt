@@ -5,6 +5,12 @@ import type { Roll, RollRequest, MaterialType, ApiResponse, PagedResponse, RollS
  * Roll API Service - Focus on FIFO operations
  */
 export const RollService = {
+    /**
+     * Get grouped roll statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+     */
+    async getGroupedByAllFields(): Promise<ApiResponse<any[]>> {
+      return ApiService.get<any[]>('/rolls/grouped');
+    },
   /**
    * Get all rolls
    */

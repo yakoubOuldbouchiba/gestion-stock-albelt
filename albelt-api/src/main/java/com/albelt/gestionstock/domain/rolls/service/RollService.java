@@ -43,6 +43,13 @@ import java.util.*;
 @RequiredArgsConstructor
 @Slf4j
 public class RollService {
+    /**
+     * Get grouped roll statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+     */
+    @Transactional(readOnly = true)
+    public List<Object[]> getGroupedByAllFields() {
+        return rollRepository.groupByAllFields();
+    }
 
     private final RollRepository rollRepository;
     private final RollMapper rollMapper;

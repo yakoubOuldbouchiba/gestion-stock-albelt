@@ -37,6 +37,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class WastePieceService {
+    /**
+     * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+     */
+    @Transactional(readOnly = true)
+    public List<Object[]> getGroupedByAllFields() {
+        return wastePieceRepository.groupByAllFields();
+    }
 
     private final WastePieceRepository wastePieceRepository;
     private final RollRepository rollRepository;

@@ -11,6 +11,28 @@ import '../styles/WastePage.css';
 export function WastePage() {
   const { t } = useI18n();
   const [wastePieces, setWastePieces] = useState<WastePiece[]>([]);
+  // Grouped stats state
+  const [showGrouped, setShowGrouped] = useState(false);
+  const [groupedStats, setGroupedStats] = useState<any[]>([]);
+  const [groupedLoading, setGroupedLoading] = useState(false);
+    // Fetch grouped stats when toggled on
+    useEffect(() => {
+      if (showGrouped) {
+        setGroupedLoading(true);
+        WastePieceService.getGroupedByAllFields().then(res => {
+          if (res.success && res.data) {
+            // Only show DECHET (waste) rows
+            setGroupedStats(res.data.filter(row => row[5] === 'DECHET'));
+          } else {
+            setGroupedStats([]);
+          }
+          setGroupedLoading(false);
+        }).catch(() => {
+          setGroupedStats([]);
+          setGroupedLoading(false);
+        });
+      }
+    }, [showGrouped]);
   const [cuttingOperations, setCuttingOperations] = useState<CuttingOperation[]>([]);
   const [rolls, setRolls] = useState<Roll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,7 +76,7 @@ export function WastePage() {
         setCuttingOperations(operationsResponse.data);
       }
       if (rollsResponse.success && rollsResponse.data) {
-        setRolls(rollsResponse.data);
+        setRolls(rollsResponse.data.items || []);
       }
 
       // Calculate statistics
@@ -158,6 +180,58 @@ export function WastePage() {
 
   return (
     <div className="waste-page">
+      {/* Grouped stats toggle */}
+      <div style={{ margin: '16px 0' }}>
+        <label style={{ fontWeight: 500 }}>
+          <input
+            type="checkbox"
+            checked={showGrouped}
+            onChange={e => setShowGrouped(e.target.checked)}
+            style={{ marginRight: 8 }}
+          />
+          {t('waste.showGroupedStats') || 'Show Grouped Statistics'}
+        </label>
+      </div>
+
+      {/* Grouped statistics table */}
+      {showGrouped && (
+        <div className="grouped-stats-table-container" style={{ marginBottom: 24 }}>
+          {groupedLoading ? (
+            <div>{t('common.loading_data') || 'Loading grouped statistics...'}</div>
+          ) : groupedStats.length === 0 ? (
+            <div>{t('waste.noGroupedStats') || 'No grouped statistics found.'}</div>
+          ) : (
+            <table className="grouped-stats-table">
+              <thead>
+                <tr>
+                  <th>{t('inventory.color') || 'Color'}</th>
+                  <th>{t('rolls.plies') || 'Nb Plis'}</th>
+                  <th>{t('rolls.thickness') || 'Thickness (mm)'}</th>
+                  <th>{t('inventory.material') || 'Material'}</th>
+                  <th>{t('sidebar.workshops') || 'Workshop'}</th>
+                  <th>{t('inventory.status') || 'Status'}</th>
+                  <th>{t('inventory.count') || 'Count'}</th>
+                  <th>{t('inventory.totalArea') || 'Total Area (m²)'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupedStats.map((row, idx) => (
+                  <tr key={idx}>
+                    <td>{row[0] || '-'}</td>
+                    <td>{row[1]}</td>
+                    <td>{row[2]}</td>
+                    <td>{row[3]}</td>
+                    <td>{row[4]}</td>
+                    <td>{row[5]}</td>
+                    <td>{row[6]}</td>
+                    <td>{row[7] ? Number(row[7]).toFixed(2) : '0.00'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
       <div className="page-header">
         <h1>{t('waste.title')}</h1>
         <button className="btn btn-primary" onClick={loadData}>
@@ -167,43 +241,45 @@ export function WastePage() {
 
       {error && <div className="error-banner">{error}</div>}
 
-      {/* Statistics Cards */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-count" style={{ color: '#2ecc71' }}>
-            {stats.totalAvailable}
+      {/* Statistics Cards (hide when grouped) */}
+      {!showGrouped && (
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-count" style={{ color: '#2ecc71' }}>
+              {stats.totalAvailable}
+            </div>
+            <div className="stat-label">{t('waste.availableForReuse')}</div>
+            <div className="stat-percentage">{stats.totalWasteArea.toFixed(2)} m²</div>
           </div>
-          <div className="stat-label">{t('waste.availableForReuse')}</div>
-          <div className="stat-percentage">{stats.totalWasteArea.toFixed(2)} m²</div>
+          <div className="stat-card">
+            <div className="stat-count" style={{ color: '#3498db' }}>
+              {stats.totalUsed}
+            </div>
+            <div className="stat-label">{t('waste.successfullyReused')}</div>
+            <div className="stat-percentage">
+              {stats.totalAvailable + stats.totalUsed > 0
+                ? ((stats.totalUsed / (stats.totalAvailable + stats.totalUsed)) * 100).toFixed(1)
+                : 0}%
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-count" style={{ color: '#e74c3c' }}>
+              {stats.totalScrap}
+            </div>
+            <div className="stat-label">{t('waste.scrapDiscarded')}</div>
+            <div className="stat-percentage">
+              {stats.totalAvailable + stats.totalScrap > 0
+                ? ((stats.totalScrap / (stats.totalAvailable + stats.totalScrap)) * 100).toFixed(1)
+                : 0}%
+            </div>
+          </div>
+          <div className="stat-card waste-efficiency">
+            <div className="stat-count">{stats.reuseEfficiency.toFixed(1)}</div>
+            <div className="stat-label">{t('waste.reuseEfficiency')}</div>
+            <div className="stat-percentage">%</div>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-count" style={{ color: '#3498db' }}>
-            {stats.totalUsed}
-          </div>
-          <div className="stat-label">{t('waste.successfullyReused')}</div>
-          <div className="stat-percentage">
-            {stats.totalAvailable + stats.totalUsed > 0
-              ? ((stats.totalUsed / (stats.totalAvailable + stats.totalUsed)) * 100).toFixed(1)
-              : 0}%
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-count" style={{ color: '#e74c3c' }}>
-            {stats.totalScrap}
-          </div>
-          <div className="stat-label">{t('waste.scrapDiscarded')}</div>
-          <div className="stat-percentage">
-            {stats.totalAvailable + stats.totalScrap > 0
-              ? ((stats.totalScrap / (stats.totalAvailable + stats.totalScrap)) * 100).toFixed(1)
-              : 0}%
-          </div>
-        </div>
-        <div className="stat-card waste-efficiency">
-          <div className="stat-count">{stats.reuseEfficiency.toFixed(1)}</div>
-          <div className="stat-label">{t('waste.reuseEfficiency')}</div>
-          <div className="stat-percentage">%</div>
-        </div>
-      </div>
+      )}
 
       {/* Waste Detail Modal */}
       {showDetail && selectedWaste && (
@@ -378,79 +454,81 @@ export function WastePage() {
         </div>
       </div>
 
-      {/* Waste Pieces Table */}
-      <div className="waste-table-container">
-        {filteredWastePieces.length > 0 ? (
-          <table className="waste-table">
-            <thead>
-              <tr>
-                <th>{t('waste.tableWasteId')}</th>
-                <th>{t('waste.tableMaterial')}</th>
-                <th>{t('waste.tableDimensions')}</th>
-                <th>{t('waste.tableArea')}</th>
-                <th>{t('waste.tableStatus')}</th>
-                <th>{t('waste.tableParent')}</th>
-                <th>{t('waste.tableSize')}</th>
-                <th>{t('waste.tableReuse')}</th>
-                <th>{t('waste.tableCreated')}</th>
-                <th>{t('waste.tableActions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredWastePieces.map(waste => (
-                <tr key={waste.id} className={`waste-row waste-${waste.status.toLowerCase()}`}>
-                  <td className="waste-id">{waste.id.substring(0, 8)}</td>
-                  <td>
-                    <span className={`badge badge-${waste.materialType.toLowerCase()}`}>
-                      {waste.materialType}
-                    </span>
-                  </td>
-                  <td>
-                    {waste.widthMm}mm × {waste.lengthM}m
-                  </td>
-                  <td className="waste-area">{(waste.areaM2 || 0).toFixed(2)}</td>
-                  <td>
-                    <span className={`status-badge ${getStatusColor(waste.status)}`}>
-                      {getStatusLabel(waste.status)}
-                    </span>
-                  </td>
-                  <td>{waste.parentWastePieceId ? waste.parentWastePieceId.substring(0, 8) : '-'}</td>
-                  <td>{((waste.areaM2 || 0) > 3.0) ? t('waste.large') : t('waste.small')}</td>
-                  <td>{((waste.status === 'AVAILABLE' || waste.status === 'RESERVED') && ((waste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}</td>
-                  <td>{formatDate(waste.createdAt)}</td>
-                  <td className="waste-actions">
-                    <button
-                      className="btn btn-sm btn-view"
-                      onClick={() => {
-                        setSelectedWaste(waste);
-                        setShowDetail(true);
-                      }}
-                    >
-                      {t('waste.view')}
-                    </button>
-                    {waste.status === 'AVAILABLE' && (
-                      <button
-                        className="btn btn-sm btn-success"
-                        onClick={() => {
-                          setSelectedForReuse(waste);
-                          setShowReuseModal(true);
-                        }}
-                        title={t('waste.reuseTooltip')}
-                      >
-                        ♻ {t('waste.reuse')}
-                      </button>
-                    )}
-                  </td>
+      {/* Waste Pieces Table (hide when grouped) */}
+      {!showGrouped && (
+        <div className="waste-table-container">
+          {filteredWastePieces.length > 0 ? (
+            <table className="waste-table">
+              <thead>
+                <tr>
+                  <th>{t('waste.tableWasteId')}</th>
+                  <th>{t('waste.tableMaterial')}</th>
+                  <th>{t('waste.tableDimensions')}</th>
+                  <th>{t('waste.tableArea')}</th>
+                  <th>{t('waste.tableStatus')}</th>
+                  <th>{t('waste.tableParent')}</th>
+                  <th>{t('waste.tableSize')}</th>
+                  <th>{t('waste.tableReuse')}</th>
+                  <th>{t('waste.tableCreated')}</th>
+                  <th>{t('waste.tableActions')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="empty-state">
-            <p>{t('waste.noPiecesFound')}</p>
-          </div>
-        )}
-      </div>
+              </thead>
+              <tbody>
+                {filteredWastePieces.map(waste => (
+                  <tr key={waste.id} className={`waste-row waste-${waste.status.toLowerCase()}`}>
+                    <td className="waste-id">{waste.id.substring(0, 8)}</td>
+                    <td>
+                      <span className={`badge badge-${waste.materialType.toLowerCase()}`}>
+                        {waste.materialType}
+                      </span>
+                    </td>
+                    <td>
+                      {waste.widthMm}mm × {waste.lengthM}m
+                    </td>
+                    <td className="waste-area">{(waste.areaM2 || 0).toFixed(2)}</td>
+                    <td>
+                      <span className={`status-badge ${getStatusColor(waste.status)}`}>
+                        {getStatusLabel(waste.status)}
+                      </span>
+                    </td>
+                    <td>{waste.parentWastePieceId ? waste.parentWastePieceId.substring(0, 8) : '-'}</td>
+                    <td>{((waste.areaM2 || 0) > 3.0) ? t('waste.large') : t('waste.small')}</td>
+                    <td>{((waste.status === 'AVAILABLE' || waste.status === 'RESERVED') && ((waste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}</td>
+                    <td>{formatDate(waste.createdAt)}</td>
+                    <td className="waste-actions">
+                      <button
+                        className="btn btn-sm btn-view"
+                        onClick={() => {
+                          setSelectedWaste(waste);
+                          setShowDetail(true);
+                        }}
+                      >
+                        {t('waste.view')}
+                      </button>
+                      {waste.status === 'AVAILABLE' && (
+                        <button
+                          className="btn btn-sm btn-success"
+                          onClick={() => {
+                            setSelectedForReuse(waste);
+                            setShowReuseModal(true);
+                          }}
+                          title={t('waste.reuseTooltip')}
+                        >
+                          ♻ {t('waste.reuse')}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="empty-state">
+              <p>{t('waste.noPiecesFound')}</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -34,6 +34,16 @@ import java.util.UUID;
 @Slf4j
 public class RollController {
 
+    /**
+     * Get grouped roll statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+     * GET /api/rolls/grouped
+     */
+    @GetMapping("/grouped")
+    public ResponseEntity<ApiResponse<List<Object[]>>> getGroupedByAllFields() {
+        var grouped = rollService.getGroupedByAllFields();
+        return ResponseEntity.ok(ApiResponse.success(grouped));
+    }
+
     private final RollService rollService;
     private final RollMapper rollMapper;
     private final UserAltierService userAltierService;

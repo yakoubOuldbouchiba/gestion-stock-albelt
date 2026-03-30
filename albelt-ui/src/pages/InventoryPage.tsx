@@ -14,6 +14,72 @@ import { Pagination } from '@components/Pagination';
 import '../styles/InventoryPage.css';
 
 export function InventoryPage() {
+    // Per-tab grouped statistics state
+    const [showGroupedInventory, setShowGroupedInventory] = useState(false);
+    const [groupedStatsInventory, setGroupedStatsInventory] = useState<any[]>([]);
+    const [groupedLoadingInventory, setGroupedLoadingInventory] = useState(false);
+
+    const [showGroupedReusable, setShowGroupedReusable] = useState(false);
+    const [groupedStatsReusable, setGroupedStatsReusable] = useState<any[]>([]);
+    const [groupedLoadingReusable, setGroupedLoadingReusable] = useState(false);
+
+    const [showGroupedWaste, setShowGroupedWaste] = useState(false);
+    const [groupedStatsWaste, setGroupedStatsWaste] = useState<any[]>([]);
+    const [groupedLoadingWaste, setGroupedLoadingWaste] = useState(false);
+
+    // Fetch grouped stats for each tab
+    useEffect(() => {
+      if (showGroupedInventory) {
+        setGroupedLoadingInventory(true);
+        RollService.getGroupedByAllFields().then(res => {
+          if (res.success && res.data) {
+            setGroupedStatsInventory(res.data);
+          } else {
+            setGroupedStatsInventory([]);
+          }
+          setGroupedLoadingInventory(false);
+        }).catch(() => {
+          setGroupedStatsInventory([]);
+          setGroupedLoadingInventory(false);
+        });
+      }
+    }, [showGroupedInventory]);
+
+    useEffect(() => {
+      if (showGroupedReusable) {
+        setGroupedLoadingReusable(true);
+        // For reusable, use WastePieceService and filter by CHUTE_EXPLOITABLE
+        WastePieceService.getGroupedByAllFields().then(res => {
+          if (res.success && res.data) {
+            setGroupedStatsReusable(res.data.filter(row => row[5] === 'CHUTE_EXPLOITABLE'));
+          } else {
+            setGroupedStatsReusable([]);
+          }
+          setGroupedLoadingReusable(false);
+        }).catch(() => {
+          setGroupedStatsReusable([]);
+          setGroupedLoadingReusable(false);
+        });
+      }
+    }, [showGroupedReusable]);
+
+    useEffect(() => {
+      if (showGroupedWaste) {
+        setGroupedLoadingWaste(true);
+        // For waste, use WastePieceService and filter by DECHET
+        WastePieceService.getGroupedByAllFields().then(res => {
+          if (res.success && res.data) {
+            setGroupedStatsWaste(res.data.filter(row => row[5] === 'DECHET'));
+          } else {
+            setGroupedStatsWaste([]);
+          }
+          setGroupedLoadingWaste(false);
+        }).catch(() => {
+          setGroupedStatsWaste([]);
+          setGroupedLoadingWaste(false);
+        });
+      }
+    }, [showGroupedWaste]);
   const navigate = useNavigate();
   const { t } = useI18n();
   const [rolls, setRolls] = useState<Roll[]>([]);
@@ -403,6 +469,8 @@ export function InventoryPage() {
 
       {error && <div className="error-banner">{error}</div>}
 
+      {/* Per-tab grouped toggles and tables */}
+      {/* Tab Navigation */}
       {/* Tab Navigation */}
       <div className="tabs-container">
         <button
@@ -438,42 +506,198 @@ export function InventoryPage() {
 
       {/* Statistics Cards - Show based on active tab */}
       {activeTab === 'inventory' && (
-      <div className="stats-grid">
-        {stats.map(stat => (
-          <div key={stat.material} className="stat-card" style={{ borderLeftColor: getMaterialColor(stat.material) }}>
-            <div className="stat-material" style={{ color: getMaterialColor(stat.material) }}>{stat.material}</div>
-            <div className="stat-count">{stat.count}</div>
-            <div className="stat-label">{t('inventory.availableRolls')}</div>
-            <div className="stat-area">{stat.area.toFixed(2)} m²</div>
+        <>
+          <div style={{ margin: '16px 0' }}>
+            <label style={{ fontWeight: 500 }}>
+              <input
+                type="checkbox"
+                checked={showGroupedInventory}
+                onChange={e => setShowGroupedInventory(e.target.checked)}
+                style={{ marginRight: 8 }}
+              />
+              {t('inventory.showGroupedStats') || 'Show Grouped Statistics'}
+            </label>
           </div>
-        ))}
-      </div>
+          {showGroupedInventory ? (
+            <div className="grouped-stats-table-container" style={{ marginBottom: 24 }}>
+              {groupedLoadingInventory ? (
+                <div>{t('common.loading_data') || 'Loading grouped statistics...'}</div>
+              ) : groupedStatsInventory.length === 0 ? (
+                <div>{t('inventory.noGroupedStats') || 'No grouped statistics found.'}</div>
+              ) : (
+                <table className="grouped-stats-table">
+                  <thead>
+                    <tr>
+                      <th>{t('inventory.color') || 'Color'}</th>
+                      <th>{t('rolls.plies') || 'Nb Plis'}</th>
+                      <th>{t('rolls.thickness') || 'Thickness (mm)'}</th>
+                      <th>{t('inventory.material') || 'Material'}</th>
+                      <th>{t('sidebar.workshops') || 'Workshop'}</th>
+                      <th>{t('inventory.status') || 'Status'}</th>
+                      <th>{t('inventory.count') || 'Count'}</th>
+                      <th>{t('inventory.totalArea') || 'Total Area (m²)'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupedStatsInventory.map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{row[0] || '-'}</td>
+                        <td>{row[1]}</td>
+                        <td>{row[2]}</td>
+                        <td>{row[3]}</td>
+                        <td>{row[4]}</td>
+                        <td>{row[5]}</td>
+                        <td>{row[6]}</td>
+                        <td>{row[7] ? Number(row[7]).toFixed(2) : '0.00'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ) : (
+            <div className="stats-grid">
+              {stats.map(stat => (
+                <div key={stat.material} className="stat-card" style={{ borderLeftColor: getMaterialColor(stat.material) }}>
+                  <div className="stat-material" style={{ color: getMaterialColor(stat.material) }}>{stat.material}</div>
+                  <div className="stat-count">{stat.count}</div>
+                  <div className="stat-label">{t('inventory.availableRolls')}</div>
+                  <div className="stat-area">{stat.area.toFixed(2)} m²</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {activeTab === 'reusable' && (
-      <div className="stats-grid">
-        {statsReusable.map(stat => (
-          <div key={stat.material} className="stat-card" style={{ borderLeftColor: getMaterialColor(stat.material) }}>
-            <div className="stat-material" style={{ color: getMaterialColor(stat.material) }}>{stat.material}</div>
-            <div className="stat-count">{stat.count}</div>
-            <div className="stat-label">{t('inventory.chuteReusable')}</div>
-            <div className="stat-area">{stat.area.toFixed(2)} m²</div>
+        <>
+          <div style={{ margin: '16px 0' }}>
+            <label style={{ fontWeight: 500 }}>
+              <input
+                type="checkbox"
+                checked={showGroupedReusable}
+                onChange={e => setShowGroupedReusable(e.target.checked)}
+                style={{ marginRight: 8 }}
+              />
+              {t('inventory.showGroupedStats') || 'Show Grouped Statistics'}
+            </label>
           </div>
-        ))}
-      </div>
+          {showGroupedReusable ? (
+            <div className="grouped-stats-table-container" style={{ marginBottom: 24 }}>
+              {groupedLoadingReusable ? (
+                <div>{t('common.loading_data') || 'Loading grouped statistics...'}</div>
+              ) : groupedStatsReusable.length === 0 ? (
+                <div>{t('inventory.noGroupedStats') || 'No grouped statistics found.'}</div>
+              ) : (
+                <table className="grouped-stats-table">
+                  <thead>
+                    <tr>
+                      <th>{t('inventory.color') || 'Color'}</th>
+                      <th>{t('rolls.plies') || 'Nb Plis'}</th>
+                      <th>{t('rolls.thickness') || 'Thickness (mm)'}</th>
+                      <th>{t('inventory.material') || 'Material'}</th>
+                      <th>{t('sidebar.workshops') || 'Workshop'}</th>
+                      <th>{t('inventory.status') || 'Status'}</th>
+                      <th>{t('inventory.count') || 'Count'}</th>
+                      <th>{t('inventory.totalArea') || 'Total Area (m²)'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupedStatsReusable.map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{row[0] || '-'}</td>
+                        <td>{row[1]}</td>
+                        <td>{row[2]}</td>
+                        <td>{row[3]}</td>
+                        <td>{row[4]}</td>
+                        <td>{row[5]}</td>
+                        <td>{row[6]}</td>
+                        <td>{row[7] ? Number(row[7]).toFixed(2) : '0.00'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ) : (
+            <div className="stats-grid">
+              {statsReusable.map(stat => (
+                <div key={stat.material} className="stat-card" style={{ borderLeftColor: getMaterialColor(stat.material) }}>
+                  <div className="stat-material" style={{ color: getMaterialColor(stat.material) }}>{stat.material}</div>
+                  <div className="stat-count">{stat.count}</div>
+                  <div className="stat-label">{t('inventory.chuteReusable')}</div>
+                  <div className="stat-area">{stat.area.toFixed(2)} m²</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {activeTab === 'waste' && (
-      <div className="stats-grid">
-        {statsWaste.map(stat => (
-          <div key={stat.material} className="stat-card" style={{ borderLeftColor: getMaterialColor(stat.material) }}>
-            <div className="stat-material" style={{ color: getMaterialColor(stat.material) }}>{stat.material}</div>
-            <div className="stat-count">{stat.count}</div>
-            <div className="stat-label">{t('inventory.chuteDechet')}</div>
-            <div className="stat-area">{stat.area.toFixed(2)} m²</div>
+        <>
+          <div style={{ margin: '16px 0' }}>
+            <label style={{ fontWeight: 500 }}>
+              <input
+                type="checkbox"
+                checked={showGroupedWaste}
+                onChange={e => setShowGroupedWaste(e.target.checked)}
+                style={{ marginRight: 8 }}
+              />
+              {t('inventory.showGroupedStats') || 'Show Grouped Statistics'}
+            </label>
           </div>
-        ))}
-      </div>
+          {showGroupedWaste ? (
+            <div className="grouped-stats-table-container" style={{ marginBottom: 24 }}>
+              {groupedLoadingWaste ? (
+                <div>{t('common.loading_data') || 'Loading grouped statistics...'}</div>
+              ) : groupedStatsWaste.length === 0 ? (
+                <div>{t('inventory.noGroupedStats') || 'No grouped statistics found.'}</div>
+              ) : (
+                <table className="grouped-stats-table">
+                  <thead>
+                    <tr>
+                      <th>{t('inventory.color') || 'Color'}</th>
+                      <th>{t('rolls.plies') || 'Nb Plis'}</th>
+                      <th>{t('rolls.thickness') || 'Thickness (mm)'}</th>
+                      <th>{t('inventory.material') || 'Material'}</th>
+                      <th>{t('sidebar.workshops') || 'Workshop'}</th>
+                      <th>{t('inventory.status') || 'Status'}</th>
+                      <th>{t('inventory.count') || 'Count'}</th>
+                      <th>{t('inventory.totalArea') || 'Total Area (m²)'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupedStatsWaste.map((row, idx) => (
+                      <tr key={idx}>
+                        <td>{row[0] || '-'}</td>
+                        <td>{row[1]}</td>
+                        <td>{row[2]}</td>
+                        <td>{row[3]}</td>
+                        <td>{row[4]}</td>
+                        <td>{row[5]}</td>
+                        <td>{row[6]}</td>
+                        <td>{row[7] ? Number(row[7]).toFixed(2) : '0.00'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          ) : (
+            <div className="stats-grid">
+              {statsWaste.map(stat => (
+                <div key={stat.material} className="stat-card" style={{ borderLeftColor: getMaterialColor(stat.material) }}>
+                  <div className="stat-material" style={{ color: getMaterialColor(stat.material) }}>{stat.material}</div>
+                  <div className="stat-count">{stat.count}</div>
+                  <div className="stat-label">{t('inventory.chuteDechet')}</div>
+                  <div className="stat-area">{stat.area.toFixed(2)} m²</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Add Roll Form Modal */}

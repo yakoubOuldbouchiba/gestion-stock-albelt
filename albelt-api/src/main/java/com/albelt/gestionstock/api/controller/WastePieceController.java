@@ -30,6 +30,16 @@ import java.util.UUID;
 @Slf4j
 public class WastePieceController {
 
+    /**
+     * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+     * GET /api/waste-pieces/grouped
+     */
+    @GetMapping("/grouped")
+    public ResponseEntity<ApiResponse<List<Object[]>>> getGroupedByAllFields() {
+        var grouped = wastePieceService.getGroupedByAllFields();
+        return ResponseEntity.ok(ApiResponse.success(grouped));
+    }
+
     private final WastePieceService wastePieceService;
     private final WastePieceMapper wastePieceMapper;
 
