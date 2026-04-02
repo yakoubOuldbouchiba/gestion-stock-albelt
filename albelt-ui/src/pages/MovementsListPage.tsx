@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
-import { FileText, Calendar, Trash2, Edit, ArrowRight, CheckCircle } from 'lucide-react';
 import rollMovementService, { RollMovement } from '../services/rollMovementService';
 import { formatDateTime } from '../utils/date';
 import { useAuthStore } from '@hooks/useAuth';
 import { useI18n } from '@hooks/useI18n';
-import { RollMovementForm } from '@components/RollMovementForm';
-import '../styles/MovementsListPage.css';
+import { RollMovementForm } from '../components/RollMovementForm';
+import { Button } from 'primereact/button';
+import { TabView, TabPanel } from 'primereact/tabview';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
+import { Message } from 'primereact/message';
+import { Tag } from 'primereact/tag';
+import { ProgressSpinner } from 'primereact/progressspinner';
 
 export function MovementsListPage() {
   const { user } = useAuthStore();
@@ -151,8 +158,10 @@ export function MovementsListPage() {
     }
   };
 
-  const handleConfirmReceipt = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmReceipt = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e && 'preventDefault' in e) {
+      e.preventDefault();
+    }
     
     if (!selectedMovementId || !user) return;
     
@@ -203,27 +212,109 @@ export function MovementsListPage() {
     return formatDateTime(dateValue);
   };
 
+  const tabIndex = activeTab === 'created' ? 0 : 1;
+
+  const statusBody = (movement: RollMovement) => (
+    <Tag
+      value={movement.dateEntree ? t('movementsList.delivered') : t('movementsList.pending')}
+      severity={movement.dateEntree ? 'success' : 'warning'}
+    />
+  );
+
+  const fromAltierBody = (movement: RollMovement) => (
+    <div>
+      {movement.fromAltier ? (
+        <>
+          <strong>{movement.fromAltier.libelle}</strong>
+          <div>{movement.fromAltier.adresse}</div>
+        </>
+      ) : (
+        <em>Supplier</em>
+      )}
+    </div>
+  );
+
+  const toAltierBody = (movement: RollMovement) => (
+    <div>
+      <strong>{movement.toAltier.libelle}</strong>
+      <div>{movement.toAltier.adresse}</div>
+    </div>
+  );
+
+  const bonBody = (movement: RollMovement) => (
+    movement.transferBonId ? `${movement.transferBonId.substring(0, 8)}...` : '-'
+  );
+
+  const createdActionsBody = (movement: RollMovement) => (
+    <div style={{ display: 'flex', gap: '0.5rem' }}>
+      {!movement.dateEntree && (
+        <>
+          <Button
+            icon="pi pi-pencil"
+            text
+            onClick={() => handleEditMovement(movement)}
+            aria-label={t('common.edit')}
+          />
+          <Button
+            icon="pi pi-trash"
+            text
+            severity="danger"
+            onClick={() => handleDelete(movement.id)}
+            disabled={deleting === movement.id}
+            aria-label={t('common.delete')}
+          />
+        </>
+      )}
+    </div>
+  );
+
+  const pendingActionsBody = (movement: RollMovement) => (
+    <Button
+      icon="pi pi-check"
+      label={t('movementsList.confirmBtn')}
+      text
+      onClick={() => {
+        setShowConfirmForm(true);
+        setSelectedMovementId(movement.id);
+      }}
+    />
+  );
+
+  const confirmFooter = (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+      <Button type="submit" label={t('movementsList.confirmBtn')} onClick={handleConfirmReceipt} />
+      <Button
+        type="button"
+        label={t('common.cancel')}
+        severity="secondary"
+        onClick={() => {
+          setShowConfirmForm(false);
+          setSelectedMovementId(null);
+        }}
+      />
+    </div>
+  );
+
   if (loading) {
-    return <div className="movements-list-page"><div className="loading">{t('movementsList.loading')}</div></div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
   }
 
   return (
-    <div className="movements-list-page">
-      <div className="page-header">
-        <div className="header-content">
-          <div>
-            <h1>{t('movementsList.title')}</h1>
-            <p>{t('movementsList.subtitle')}</p>
-          </div>
-          <button className="btn-create-movement" onClick={handleCreateMovement}>
-            <ArrowRight size={18} /> {t('movementsList.createBtn')}
-          </button>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <div>
+          <h1>{t('movementsList.title')}</h1>
+          <p>{t('movementsList.subtitle')}</p>
         </div>
+        <Button icon="pi pi-plus" label={t('movementsList.createBtn')} onClick={handleCreateMovement} />
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <Message severity="error" text={error} />}
 
-      {/* Movement Form Modal */}
       {showMovementForm && user && (
         <RollMovementForm
           mode={formMode}
@@ -235,227 +326,68 @@ export function MovementsListPage() {
         />
       )}
 
-      <div className="tabs">
-        <button 
-          className={`tab-button ${activeTab === 'created' ? 'active' : ''}`}
-          onClick={() => setActiveTab('created')}
-        >
-          <FileText size={18} /> {t('movementsList.createdTab', { count: createdMovements.length })}
-        </button>
-        <button 
-          className={`tab-button ${activeTab === 'pending' ? 'active' : ''}`}
-          onClick={() => setActiveTab('pending')}
-        >
-          <Calendar size={18} /> {t('movementsList.pendingTab', { count: pendingMovements.length })}
-        </button>
-      </div>
-
-      {showConfirmForm && selectedMovementId && (
-        <div className="confirm-form-overlay">
-          <div className="confirm-form-container">
-            <form onSubmit={handleConfirmReceipt}>
-              <h3>{t('movementsList.confirmTitle')}</h3>
-              <div className="form-group">
-                <label htmlFor="dateEntree">{t('movementsList.dateEntree')} *</label>
-                <input 
-                  type="datetime-local"
-                  id="dateEntree"
-                  name="dateEntree"
-                  value={confirmData.dateEntree}
-                  onChange={handleConfirmInputChange}
-                  required
-                />
-              </div>
-              <div className="form-actions">
-                <button type="submit" className="btn-submit">{t('movementsList.confirmBtn')}</button>
-                <button 
-                  type="button" 
-                  className="btn-cancel" 
-                  onClick={() => {
-                    setShowConfirmForm(false);
-                    setSelectedMovementId(null);
-                  }}
-                >
-                  {t('common.cancel')}
-                </button>
-              </div>
-            </form>
-          </div>
+      <Dialog
+        header={t('movementsList.confirmTitle')}
+        visible={showConfirmForm && !!selectedMovementId}
+        onHide={() => {
+          setShowConfirmForm(false);
+          setSelectedMovementId(null);
+        }}
+        footer={confirmFooter}
+      >
+        <div style={{ display: 'grid', gap: '0.5rem' }}>
+          <label htmlFor="dateEntree">{t('movementsList.dateEntree')} *</label>
+          <InputText
+            type="datetime-local"
+            id="dateEntree"
+            name="dateEntree"
+            value={confirmData.dateEntree}
+            onChange={handleConfirmInputChange}
+            required
+          />
         </div>
-      )}
+      </Dialog>
 
-      {/* Created Movements Tab */}
-      {activeTab === 'created' && (
-        <div className="tab-content">
+      <TabView
+        activeIndex={tabIndex}
+        onTabChange={(e) => setActiveTab(e.index === 0 ? 'created' : 'pending')}
+      >
+        <TabPanel header={t('movementsList.createdTab', { count: createdMovements.length })}>
           {createdMovements.length === 0 ? (
-            <div className="empty-state">
-              <p>{t('movementsList.noCreatedMovements')}</p>
-            </div>
+            <Message severity="info" text={t('movementsList.noCreatedMovements')} />
           ) : (
-            <div className="movements-list">
-              <table className="movements-table">
-                <thead>
-                  <tr>
-                    <th>{t('common.roll')}</th>
-                    <th>{t('movementsList.bon')}</th>
-                    <th>{t('movementsList.from')}</th>
-                    <th>{t('movementsList.to')}</th>
-                    <th>{t('movementsList.exitDate')}</th>
-                    <th>{t('movementsList.entryDate')}</th>
-                    <th>{t('common.status')}</th>
-                    <th>{t('common.reason')}</th>
-                    <th>{t('common.action')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {createdMovements.map(movement => (
-                    <tr key={movement.id} className="movement-row">
-                      <td>
-                        <strong>{movement.rollId}</strong>
-                      </td>
-                      <td>
-                        {movement.transferBonId ? (
-                          <span title={movement.transferBonId}>
-                            {movement.transferBonId.substring(0, 8)}...
-                          </span>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td>
-                        {movement.fromAltier ? (
-                          <>
-                            <strong>{movement.fromAltier.libelle}</strong>
-                            <br />
-                            <small>{movement.fromAltier.adresse}</small>
-                          </>
-                        ) : (
-                          <em>Supplier</em>
-                        )}
-                      </td>
-                      <td>
-                        <strong>{movement.toAltier.libelle}</strong>
-                        <br />
-                        <small>{movement.toAltier.adresse}</small>
-                      </td>
-                      <td>{formatDate(movement.dateSortie)}</td>
-                      <td>{formatDate(movement.dateEntree)}</td>
-                      <td>
-                        <span className={`badge ${movement.dateEntree ? 'received' : 'pending'}`}>
-                          {movement.dateEntree ? t('movementsList.delivered') : t('movementsList.pending')}
-                        </span>
-                      </td>
-                      <td>{movement.reason || t('common.dash')}</td>
-                      <td>
-                        <div className="action-buttons">
-                          {!movement.dateEntree && (
-                            <>
-                              <button 
-                                type="button"
-                                className="btn-edit"
-                                onClick={() => handleEditMovement(movement)}
-                                title={t('movementsList.editTitle')}
-                              >
-                                <Edit size={16} /> {t('common.edit')}
-                              </button>
-                              <button 
-                                type="button"
-                                className="btn-delete"
-                                onClick={() => handleDelete(movement.id)}
-                                disabled={deleting === movement.id}
-                              >
-                                <Trash2 size={16} /> {deleting === movement.id ? t('movementsList.deleting') : t('common.delete')}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable value={createdMovements} dataKey="id" size="small">
+              <Column header={t('common.roll')} field="rollId" />
+              <Column header={t('movementsList.bon')} body={bonBody} />
+              <Column header={t('movementsList.from')} body={fromAltierBody} />
+              <Column header={t('movementsList.to')} body={toAltierBody} />
+              <Column header={t('movementsList.exitDate')} body={(m: RollMovement) => formatDate(m.dateSortie)} />
+              <Column header={t('movementsList.entryDate')} body={(m: RollMovement) => formatDate(m.dateEntree)} />
+              <Column header={t('common.status')} body={statusBody} />
+              <Column header={t('common.reason')} body={(m: RollMovement) => m.reason || t('common.dash')} />
+              <Column header={t('common.action')} body={createdActionsBody} />
+            </DataTable>
           )}
-        </div>
-      )}
-
-      {/* Pending Receipts Tab */}
-      {activeTab === 'pending' && (
-        <div className="tab-content">
+        </TabPanel>
+        <TabPanel header={t('movementsList.pendingTab', { count: pendingMovements.length })}>
           {pendingMovements.length === 0 ? (
-            <div className="empty-state">
-              <p>{t('movementsList.noPendingReceipts')}</p>
-            </div>
+            <Message severity="info" text={t('movementsList.noPendingReceipts')} />
           ) : (
-            <div className="movements-list">
-              <table className="movements-table">
-                <thead>
-                  <tr>
-                    <th>{t('common.roll')}</th>
-                    <th>{t('movementsList.bon')}</th>
-                    <th>{t('movementsList.from')}</th>
-                    <th>{t('movementsList.toYourAltier')}</th>
-                    <th>{t('movementsList.exitDate')}</th>
-                    <th>{t('movementsList.createdBy')}</th>
-                    <th>{t('common.reason')}</th>
-                    <th>{t('common.action')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingMovements.map(movement => (
-                    <tr key={movement.id} className="movement-row">
-                      <td>
-                        <strong>{movement.rollId}</strong>
-                      </td>
-                      <td>
-                        {movement.transferBonId ? (
-                          <span title={movement.transferBonId}>
-                            {movement.transferBonId.substring(0, 8)}...
-                          </span>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td>
-                        {movement.fromAltier ? (
-                          <>
-                            <strong>{movement.fromAltier.libelle}</strong>
-                            <br />
-                            <small>{movement.fromAltier.adresse}</small>
-                          </>
-                        ) : (
-                          <em>Supplier</em>
-                        )}
-                      </td>
-                      <td>
-                        <strong>{movement.toAltier.libelle}</strong>
-                        <br />
-                        <small>{movement.toAltier.adresse}</small>
-                      </td>
-                      <td>{formatDate(movement.dateSortie)}</td>
-                      <td>{movement.operator.username}</td>
-                      <td>{movement.reason || t('common.dash')}</td>
-                      <td>
-                        <button 
-                          type="button" 
-                          className="btn-confirm"
-                          onClick={() => {
-                            setShowConfirmForm(true);
-                            setSelectedMovementId(movement.id);
-                          }}
-                          title={t('movementsList.confirmTitle')}
-                        >
-                          <CheckCircle size={16} /> {t('movementsList.confirmBtn')}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable value={pendingMovements} dataKey="id" size="small">
+              <Column header={t('common.roll')} field="rollId" />
+              <Column header={t('movementsList.bon')} body={bonBody} />
+              <Column header={t('movementsList.from')} body={fromAltierBody} />
+              <Column header={t('movementsList.toYourAltier')} body={toAltierBody} />
+              <Column header={t('movementsList.exitDate')} body={(m: RollMovement) => formatDate(m.dateSortie)} />
+              <Column header={t('movementsList.createdBy')} body={(m: RollMovement) => m.operator.username} />
+              <Column header={t('common.reason')} body={(m: RollMovement) => m.reason || t('common.dash')} />
+              <Column header={t('common.action')} body={pendingActionsBody} />
+            </DataTable>
           )}
-        </div>
-      )}
+        </TabPanel>
+      </TabView>
     </div>
   );
 }
+
+export default MovementsListPage;

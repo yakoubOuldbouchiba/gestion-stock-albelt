@@ -1,5 +1,5 @@
 import ApiService from './api';
-import type { WastePiece, MaterialType, ApiResponse, PagedResponse, WasteStatus } from '../types/index';
+import type { WastePiece, MaterialType, ApiResponse, PagedResponse, WasteStatus, WasteType } from '../types/index';
 
 /**
  * Waste Piece API Service - Focus on reuse tracking and waste reduction
@@ -8,8 +8,8 @@ export const WastePieceService = {
     /**
      * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
      */
-    async getGroupedByAllFields(): Promise<ApiResponse<any[]>> {
-      return ApiService.get<any[]>('/waste-pieces/grouped');
+    async getGroupedByAllFields(type : WasteType): Promise<ApiResponse<any[]>> {
+      return ApiService.get<any[]>('/waste-pieces/grouped', { type });
     },
   /**
    * CRITICAL: Find waste piece for reuse

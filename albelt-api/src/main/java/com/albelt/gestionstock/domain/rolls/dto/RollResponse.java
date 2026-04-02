@@ -58,6 +58,9 @@ public class RollResponse {
     // Audit
     private UUID createdBy;
     private LocalDateTime createdAt;
+
+    // External/Internal Reference
+    private String reference;
     private LocalDateTime updatedAt;
 
     // Convenience flag for FIFO context

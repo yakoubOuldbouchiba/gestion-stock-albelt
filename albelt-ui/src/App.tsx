@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { useAuthStore } from '@hooks/useAuth';
 import { useI18n } from '@hooks/useI18n';
 import ProtectedRoute from '@components/ProtectedRoute';
@@ -7,24 +7,27 @@ import AdminRoute from '@components/AdminRoute';
 import Layout from '@components/Layout';
 import LoginPage from '@pages/LoginPage';
 import Dashboard from '@pages/Dashboard';
+import LazyLoadingFallback from '@components/LazyLoadingFallback';
 import {
   InventoryPage,
-  RollDetailPage,
-  RollMovementPage,
-  MovementsListPage,
-  SuppliersPage,
-  UsersPage,
-  ReportsPage,
-  AltierPage,
-  TransferBonsPage,
-  PurchaseBonsPage,
-  MaterialChuteThresholdsPage,
-  ColorsPage,
-  ClientsPage,
-  CommandesListPage,
-  CommandeCreatePage,
-  CommandeDetailPage,
 } from '@pages/index';
+
+// Lazy load all other pages
+const RollDetailPage = lazy(() => import('./pages/RollDetailPage'));
+const RollMovementPage = lazy(() => import('./pages/RollMovementPage'));
+const MovementsListPage = lazy(() => import('./pages/MovementsListPage'));
+const SuppliersPage = lazy(() => import('./pages/SuppliersPage'));
+const UsersPage = lazy(() => import('./pages/UsersPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const AltierPage = lazy(() => import('./pages/AltierPage'));
+const TransferBonsPage = lazy(() => import('./pages/TransferBonsPage'));
+const PurchaseBonsPage = lazy(() => import('./pages/PurchaseBonsPage'));
+const MaterialChuteThresholdsPage = lazy(() => import('./pages/MaterialChuteThresholdsPage'));
+const ColorsPage = lazy(() => import('./pages/ColorsPage'));
+const ClientsPage = lazy(() => import('./pages/ClientsPage'));
+const CommandesListPage = lazy(() => import('./pages/CommandesListPage'));
+const CommandeCreatePage = lazy(() => import('./pages/CommandeCreatePage'));
+const CommandeDetailPage = lazy(() => import('./pages/CommandeDetailPage'));
 import './App.css';
 
 export function App() {
@@ -74,7 +77,9 @@ export function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <RollDetailPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <RollDetailPage />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           }
@@ -85,7 +90,9 @@ export function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <RollMovementPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <RollMovementPage />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           }
@@ -96,7 +103,9 @@ export function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <MovementsListPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <MovementsListPage />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           }
@@ -107,7 +116,9 @@ export function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <TransferBonsPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <TransferBonsPage />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           }
@@ -118,7 +129,9 @@ export function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <PurchaseBonsPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <PurchaseBonsPage />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           }
@@ -131,7 +144,9 @@ export function App() {
           element={
             <AdminRoute>
               <Layout>
-                <SuppliersPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <SuppliersPage />
+                </Suspense>
               </Layout>
             </AdminRoute>
           }
@@ -142,7 +157,9 @@ export function App() {
           element={
             <AdminRoute>
               <Layout>
-                <ClientsPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <ClientsPage />
+                </Suspense>
               </Layout>
             </AdminRoute>
           }
@@ -153,7 +170,9 @@ export function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <CommandesListPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <CommandesListPage />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           }
@@ -164,7 +183,9 @@ export function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <CommandeCreatePage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <CommandeCreatePage />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           }
@@ -175,7 +196,9 @@ export function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <CommandeDetailPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <CommandeDetailPage />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           }
@@ -186,7 +209,9 @@ export function App() {
           element={
             <AdminRoute>
               <Layout>
-                <AltierPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <AltierPage />
+                </Suspense>
               </Layout>
             </AdminRoute>
           }
@@ -197,7 +222,9 @@ export function App() {
           element={
             <AdminRoute>
               <Layout>
-                <UsersPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <UsersPage />
+                </Suspense>
               </Layout>
             </AdminRoute>
           }
@@ -208,7 +235,9 @@ export function App() {
           element={
             <AdminRoute>
               <Layout>
-                <MaterialChuteThresholdsPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <MaterialChuteThresholdsPage />
+                </Suspense>
               </Layout>
             </AdminRoute>
           }
@@ -219,7 +248,9 @@ export function App() {
           element={
             <AdminRoute>
               <Layout>
-                <ColorsPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <ColorsPage />
+                </Suspense>
               </Layout>
             </AdminRoute>
           }
@@ -230,7 +261,9 @@ export function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <ReportsPage />
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <ReportsPage />
+                </Suspense>
               </Layout>
             </ProtectedRoute>
           }

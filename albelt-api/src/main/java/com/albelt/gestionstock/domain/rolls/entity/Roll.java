@@ -116,6 +116,10 @@ public class Roll {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // External/Internal Reference
+    @Column(name = "reference", length = 100)
+    private String reference;
+
     /**
      * Check if roll has enough area for a requested size
      */

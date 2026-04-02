@@ -1,5 +1,7 @@
 package com.albelt.gestionstock.domain.waste.mapper;
 
+import com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse;
+import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceResponse;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
@@ -19,6 +21,33 @@ import java.util.stream.Collectors;
 @Component
 public class WastePieceMapper {
 
+
+
+    /**
+     * Convert Object[] from groupByAllFields to RollGroupedStatsResponse DTO
+     */
+    public WastePieceGroupedStatsResponse toGroupedStatsResponse(Object[] row) {
+        if (row == null || row.length < 11) return null;
+        return WastePieceGroupedStatsResponse.builder()
+                .colorId((java.util.UUID) row[0])
+                .colorName((String) row[1])
+                .colorHexCode((String) row[2])
+                .nbPlis((Integer) row[3])
+                .thicknessMm(row[4] instanceof java.math.BigDecimal ? ((java.math.BigDecimal) row[4]) : row[4] != null ? new java.math.BigDecimal(row[4].toString()) : null)
+                .materialType((com.albelt.gestionstock.shared.enums.MaterialType) row[5])
+                .altierId((java.util.UUID) row[6])
+                .altierName((String) row[7])
+                .status((com.albelt.gestionstock.shared.enums.WasteStatus) row[8])
+                .rollCount(row[9] instanceof Long ? (Long) row[9] : row[9] != null ? Long.valueOf(row[9].toString()) : null)
+                .totalAreaM2(row[10] instanceof java.math.BigDecimal ? (java.math.BigDecimal) row[10] : row[10] != null ? new java.math.BigDecimal(row[10].toString()) : null)
+                .totalWasteAreaM2(row[11] instanceof java.math.BigDecimal ? (java.math.BigDecimal) row[11] : row[11] != null ? new java.math.BigDecimal(row[11].toString()) : null)
+                .build();
+    }
+
+    public List<WastePieceGroupedStatsResponse> toGroupedStatsResponseList(List<Object[]> rows) {
+        if (rows == null) return List.of();
+        return rows.stream().map(this::toGroupedStatsResponse).collect(Collectors.toList());
+    }
     /**
      * Convert WastePieceRequest DTO to WastePiece entity
      * NOTE: Roll reference must be set separately after fetching from repository
@@ -63,6 +92,9 @@ public class WastePieceMapper {
     public WastePiece updateEntity(WastePiece existing, WastePieceRequest request, Color color) {
         if (request == null) {
             return existing;
+        }
+        if(request.getReference() != null) {
+            existing.setReference(request.getReference());
         }
         if (request.getMaterialType() != null) {
             existing.setMaterialType(request.getMaterialType());
@@ -115,6 +147,8 @@ public class WastePieceMapper {
                 .rollId(entity.getRoll() != null ? entity.getRoll().getId() : null)
             .parentWastePieceId(entity.getParentWastePiece() != null ? entity.getParentWastePiece().getId() : null)
                 .materialType(entity.getMaterialType())
+                .supplierId(entity.getRoll() != null ? entity.getRoll().getSupplier().getId() : entity.getParentWastePiece().getRoll().getSupplier().getId() )
+                .supplierName(entity.getRoll() != null ? entity.getRoll().getSupplier().getName() : entity.getParentWastePiece().getRoll().getSupplier().getName() )
                 .nbPlis(entity.getNbPlis())
                 .thicknessMm(entity.getThicknessMm())
                 .widthMm(entity.getWidthMm())
@@ -138,6 +172,7 @@ public class WastePieceMapper {
                 .createdBy(entity.getCreatedBy())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
+                .reference(entity.getReference())
                 .build();
     }
 

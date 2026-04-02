@@ -47,8 +47,9 @@ public class RollService {
      * Get grouped roll statistics by color, nbPlis, thicknessMm, materialType, altierId, status
      */
     @Transactional(readOnly = true)
-    public List<Object[]> getGroupedByAllFields() {
-        return rollRepository.groupByAllFields();
+    public List<com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse> getGroupedByAllFields() {
+        List<Object[]> rows = rollRepository.groupByAllFields();
+        return rollMapper.toGroupedStatsResponseList(rows);
     }
 
     private final RollRepository rollRepository;

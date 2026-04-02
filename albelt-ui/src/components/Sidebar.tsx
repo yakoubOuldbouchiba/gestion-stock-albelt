@@ -53,7 +53,7 @@ export function Sidebar() {
             className={`nav-link ${isActive('/commandes') ? 'active' : ''}`}
           >
             <ClipboardList size={20} className="nav-icon" />
-            <span>Orders</span>
+            <span>{t('navigation.orders')}</span>
           </Link>
           <Link
             to="/movements"

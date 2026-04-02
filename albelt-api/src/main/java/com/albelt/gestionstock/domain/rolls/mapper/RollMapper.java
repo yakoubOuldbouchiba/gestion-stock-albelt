@@ -2,6 +2,7 @@ package com.albelt.gestionstock.domain.rolls.mapper;
 
 import com.albelt.gestionstock.domain.rolls.dto.RollRequest;
 import com.albelt.gestionstock.domain.rolls.dto.RollResponse;
+import com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
@@ -20,6 +21,32 @@ import java.util.stream.Collectors;
 public class RollMapper {
 
     /**
+     * Convert Object[] from groupByAllFields to RollGroupedStatsResponse DTO
+     */
+    public RollGroupedStatsResponse toGroupedStatsResponse(Object[] row) {
+        if (row == null || row.length < 11) return null;
+        return RollGroupedStatsResponse.builder()
+                .colorId((java.util.UUID) row[0])
+                .colorName((String) row[1])
+                .colorHexCode((String) row[2])
+                .nbPlis((Integer) row[3])
+                .thicknessMm(row[4] instanceof java.math.BigDecimal ? ((java.math.BigDecimal) row[4]) : row[4] != null ? new java.math.BigDecimal(row[4].toString()) : null)
+                .materialType((com.albelt.gestionstock.shared.enums.MaterialType) row[5])
+                .altierId((java.util.UUID) row[6])
+                .altierName((String) row[7])
+                .status((com.albelt.gestionstock.shared.enums.RollStatus) row[8])
+                .rollCount(row[9] instanceof Long ? (Long) row[9] : row[9] != null ? Long.valueOf(row[9].toString()) : null)
+                .totalAreaM2(row[10] instanceof java.math.BigDecimal ? (java.math.BigDecimal) row[10] : row[10] != null ? new java.math.BigDecimal(row[10].toString()) : null)
+                .totalWasteAreaM2(row[11] instanceof java.math.BigDecimal ? (java.math.BigDecimal) row[11] : row[11] != null ? new java.math.BigDecimal(row[11].toString()) : null)
+                .build();
+    }
+
+    public List<RollGroupedStatsResponse> toGroupedStatsResponseList(List<Object[]> rows) {
+        if (rows == null) return List.of();
+        return rows.stream().map(this::toGroupedStatsResponse).collect(Collectors.toList());
+    }
+
+    /**
      * Convert RollRequest DTO to Roll entity
      */
     public Roll toEntity(RollRequest request, Supplier supplier, Altier altier, Color color, java.util.UUID createdBy) {
@@ -28,24 +55,25 @@ public class RollMapper {
         }
         
         Roll roll = Roll.builder()
-                .receivedDate(request.getReceivedDate())
-                .supplier(supplier)
-                .altier(altier)
-                .materialType(request.getMaterialType())
-                .nbPlis(request.getNbPlis())
-                .thicknessMm(request.getThicknessMm())
-                .widthMm(request.getWidthMm())
-                .widthRemainingMm(request.getWidthRemainingMm())
-                .lengthM(request.getLengthM())
-                .lengthRemainingM(request.getLengthRemainingM())
-                .areaM2(request.getAreaM2())
-                .status(request.getStatus())
-                .qrCode(request.getQrCode())
-                .color(color)
-                .totalCuts(0)
-                .totalWasteAreaM2(BigDecimal.ZERO)
-                .createdBy(createdBy)
-                .build();
+            .receivedDate(request.getReceivedDate())
+            .supplier(supplier)
+            .altier(altier)
+            .materialType(request.getMaterialType())
+            .nbPlis(request.getNbPlis())
+            .thicknessMm(request.getThicknessMm())
+            .widthMm(request.getWidthMm())
+            .widthRemainingMm(request.getWidthRemainingMm())
+            .lengthM(request.getLengthM())
+            .lengthRemainingM(request.getLengthRemainingM())
+            .areaM2(request.getAreaM2())
+            .status(request.getStatus())
+            .qrCode(request.getQrCode())
+            .color(color)
+            .totalCuts(0)
+            .totalWasteAreaM2(BigDecimal.ZERO)
+            .createdBy(createdBy)
+            .reference(request.getReference())
+            .build();
         return roll;
     }
 
@@ -59,6 +87,9 @@ public class RollMapper {
         
         if (request.getReceivedDate() != null) {
             existing.setReceivedDate(request.getReceivedDate());
+        }
+        if(request.getReference() != null) {
+            existing.setReference(request.getReference());
         }
         if (supplier != null) {
             existing.setSupplier(supplier);
@@ -112,6 +143,7 @@ public class RollMapper {
         }
         return RollResponse.builder()
                 .id(entity.getId())
+                .reference(entity.getReference())
                 .receivedDate(entity.getReceivedDate())
                 .supplierId(entity.getSupplier() != null ? entity.getSupplier().getId() : null)
                 .supplierName(entity.getSupplier() != null ? entity.getSupplier().getName() : null)

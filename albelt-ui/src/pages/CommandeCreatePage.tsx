@@ -1,24 +1,53 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from 'primereact/button';
+import { Dropdown } from 'primereact/dropdown';
+import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { Card } from 'primereact/card';
+import { Toast } from 'primereact/toast';
+import { InputNumber } from 'primereact/inputnumber';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Message } from 'primereact/message';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { CommandeService } from '../services/commandeService';
 import { ClientService } from '../services/clientService';
+import { useI18n } from '@hooks/useI18n';
 import type { Client, CommandeRequest, CommandeItemRequest, MaterialType, TypeMouvement } from '../types';
-import '../styles/CommandeCreatePage.css';
+
+interface ClientOption {
+  label: string;
+  value: string;
+}
+
+interface MaterialOption {
+  label: string;
+  value: MaterialType;
+}
+
+interface MouvementOption {
+  label: string;
+  value: TypeMouvement;
+}
 
 export function CommandeCreatePage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
+  const toastRef = useRef<Toast>(null);
 
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
-  // Form state for order header
+  // Form state
   const [numeroCommande, setNumeroCommande] = useState('');
-  const [selectedClient, setSelectedClient] = useState('');
+  const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Form state for items
+  // Items state
   const [items, setItems] = useState<CommandeItemRequest[]>([
     {
       materialType: 'PU',
@@ -34,54 +63,98 @@ export function CommandeCreatePage() {
     },
   ]);
 
-  const materials: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
-  const mouvements: TypeMouvement[] = ['ENCOURS', 'COUPE', 'SORTIE', 'RETOUR'];
+  const materials: MaterialOption[] = [
+    { label: 'PU', value: 'PU' },
+    { label: 'PVC', value: 'PVC' },
+    { label: 'CAOUTCHOUC', value: 'CAOUTCHOUC' },
+  ];
+
+  const mouvements: MouvementOption[] = [
+    { label: 'EN COURS', value: 'ENCOURS' },
+    { label: 'COUPE', value: 'COUPE' },
+    { label: 'SORTIE', value: 'SORTIE' },
+    { label: 'RETOUR', value: 'RETOUR' },
+  ];
 
   // Fetch clients on mount
   useEffect(() => {
     const fetchClients = async () => {
       try {
+        setLoading(true);
         const res = await ClientService.getAll();
-        if (res.data) {
-          setClients(res.data);
+        console.log('Clients response:', res);
+        
+        if (res && res.data) {
+          const dataArray = Array.isArray(res.data) ? res.data : (res.data.items || []);
+          const clientOptions: ClientOption[] = dataArray.map((client: Client) => ({
+            label: client.name,
+            value: client.id,
+          }));
+          setClients(clientOptions);
+          if (clientOptions.length === 0) {
+            setError(t('commandes.noClientsAvailable'));
+          }
+        } else {
+          throw new Error('Invalid response format');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching clients:', err);
-        setError('Failed to load clients');
+        setError(t('commandes.errorLoadingClients'));
+        toastRef.current?.show({
+          severity: 'error',
+          summary: t('commandes.error'),
+          detail: err?.message || t('commandes.errorLoadingClients'),
+        });
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchClients();
-  }, []);
+  }, [t]);
 
   // Generate order number
-  const generateOrderNumber = () => {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000);
-    setNumeroCommande(`CMD-${timestamp}-${random}`);
+  const generateOrderNumber = async () => {
+    try {
+      const uniqueNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      setNumeroCommande(uniqueNumber);
+    } catch (err) {
+      console.error('Error generating order number:', err);
+    }
   };
 
-  const handleAddItem = () => {
-    const newLineNumber = Math.max(...items.map((i) => i.lineNumber || 0)) + 1;
-    setItems([
-      ...items,
-      {
-        materialType: 'PU',
-        nbPlis: 1,
-        thicknessMm: 2.5,
-        longueurM: 5,
-        longueurToleranceM: 0,
-        largeurMm: 1000,
-        quantite: 1,
-        surfaceConsommeeM2: 5,
-        typeMouvement: 'COUPE',
-        lineNumber: newLineNumber,
-      },
-    ]);
+  // Validation
+  const validateForm = (): boolean => {
+    const errors: { [key: string]: string } = {};
+
+    if (!numeroCommande || numeroCommande.trim() === '') {
+      errors.numeroCommande = t('commandes.orderNumberRequired');
+    }
+    if (!selectedClient) {
+      errors.selectedClient = t('commandes.clientRequired');
+    }
+    if (items.length === 0) {
+      errors.items = t('commandes.itemsRequired');
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  const handleRemoveItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
+  const calculateSummary = () => {
+    const totalItems = items.length;
+    const totalSurface = items.reduce((sum, item) => sum + calculateSurface(item), 0);
+    const totalQuantity = items.reduce((sum, item) => sum + item.quantite, 0);
+
+    return {
+      totalItems,
+      totalSurface: totalSurface.toFixed(2),
+      totalQuantity,
+    };
+  };
+
+  const calculateSurface = (item: CommandeItemRequest): number => {
+    return (item.longueurM * item.largeurMm) / 1000;
   };
 
   const handleItemChange = (index: number, field: keyof CommandeItemRequest, value: unknown) => {
@@ -90,319 +163,334 @@ export function CommandeCreatePage() {
     setItems(newItems);
   };
 
-  const calculateSurface = (item: CommandeItemRequest): number => {
-    return (item.longueurM * item.largeurMm) / 1000;
+  const handleAddItem = () => {
+    const newItem: CommandeItemRequest = {
+      materialType: 'PU',
+      nbPlis: 1,
+      thicknessMm: 2.5,
+      longueurM: 5,
+      longueurToleranceM: 0,
+      largeurMm: 1000,
+      quantite: 1,
+      surfaceConsommeeM2: 5,
+      typeMouvement: 'COUPE',
+      lineNumber: items.length + 1,
+    };
+    setItems([...items, newItem]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    confirmDialog({
+      message: t('commandes.confirmDelete'),
+      header: t('commandes.confirm'),
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        setItems(items.filter((_, i) => i !== index));
+      },
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!numeroCommande || !selectedClient || items.length === 0) {
-      setError('Please fill in all required fields');
+    if (!validateForm()) {
+      setError(t('commandes.requiredFieldsError'));
+      toastRef.current?.show({
+        severity: 'error',
+        summary: t('commandes.error'),
+        detail: t('commandes.requiredFieldsError'),
+      });
       return;
     }
 
     try {
       setLoading(true);
-      setError(null);
 
-      // Validate items
-      const validItems = items.map((item, index) => ({
-        ...item,
-        lineNumber: index + 1,
-        surfaceConsommeeM2: calculateSurface(item),
-      }));
-
-      const request: CommandeRequest = {
+      const commandeRequest: CommandeRequest = {
         numeroCommande,
-        clientId: selectedClient,
-        status: 'PENDING',
+        clientId: selectedClient!,
         description,
         notes,
-        items: validItems,
+        items,
       };
 
-      const res = await CommandeService.create(request);
-      
-      if (res.data?.id) {
-        navigate(`/commandes/${res.data.id}`);
+      const res = await CommandeService.create(commandeRequest);
+
+      if (res.data) {
+        toastRef.current?.show({
+          severity: 'success',
+          summary: t('commandes.success'),
+          detail: t('commandes.orderCreatedSuccessfully'),
+          life: 3000,
+        });
+
+        setTimeout(() => {
+          navigate('/commandes');
+        }, 1500);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating order:', err);
-      setError('Failed to create order. Please check your input and try again.');
+      const errorMsg = err.response?.data?.message || t('commandes.createError');
+      setError(errorMsg);
+      toastRef.current?.show({
+        severity: 'error',
+        summary: t('commandes.error'),
+        detail: errorMsg,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    if (window.confirm('Are you sure you want to cancel? Unsaved changes will be lost.')) {
-      navigate('/commandes');
-    }
+    confirmDialog({
+      message: t('commandes.confirmCancel'),
+      header: t('commandes.confirm'),
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        navigate('/commandes');
+      },
+    });
   };
 
+  const summary = calculateSummary();
+
+  const materialBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+    <Dropdown
+      value={rowData.materialType}
+      onChange={(e) => handleItemChange(rowIndex.rowIndex, 'materialType', e.value)}
+      options={materials}
+      optionLabel="label"
+      optionValue="value"
+      placeholder={t('commandes.selectMaterial')}
+      filter
+      showClear={false}
+      style={{ width: '100%' }}
+    />
+  );
+
+  const quantiteBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+    <InputNumber
+      value={rowData.quantite}
+      onValueChange={(e) => handleItemChange(rowIndex.rowIndex, 'quantite', e.value || 0)}
+      min={1}
+      max={1000}
+      style={{ width: '100%' }}
+    />
+  );
+
+  const mouvementBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+    <Dropdown
+      value={rowData.typeMouvement}
+      onChange={(e) => handleItemChange(rowIndex.rowIndex, 'typeMouvement', e.value)}
+      options={mouvements}
+      optionLabel="label"
+      optionValue="value"
+      placeholder={t('commandes.selectMouvement')}
+      filter
+      showClear={false}
+      style={{ width: '100%' }}
+    />
+  );
+
+  const surfaceBodyTemplate = (rowData: CommandeItemRequest) => (
+    <span>{calculateSurface(rowData).toFixed(2)} m²</span>
+  );
+
+  const actionsBodyTemplate = (_: any, rowIndex: any) => (
+    <Button
+      icon="pi pi-trash"
+      severity="danger"
+      rounded
+      text
+      className="p-button-sm"
+      onClick={() => handleRemoveItem(rowIndex.rowIndex)}
+      disabled={items.length === 1}
+    />
+  );
+
   return (
-    <div className="commande-create-page">
-      <div className="page-header">
-        <h1>Create New Order</h1>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1.5rem' }}>
+      <Toast ref={toastRef} />
+      <ConfirmDialog />
+
+      {error && (
+        <div style={{ marginBottom: '1rem' }}>
+          <Message severity="error" text={error} />
+        </div>
+      )}
+
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h1 style={{ margin: '0 0 0.5rem 0' }}>{t('commandes.createOrder')}</h1>
+        <p style={{ margin: 0 }}>{t('commandes.fillDetailsBelow')}</p>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
+      >
+        {/* Order Header Card */}
+        <Card title={t('commandes.orderHeader')}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '1rem',
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label>{t('commandes.orderNumber')} *</label>
+              <div className="p-inputgroup">
+                <InputText
+                  value={numeroCommande}
+                  onChange={(e) => {
+                    setNumeroCommande(e.target.value);
+                    if (formErrors.numeroCommande) {
+                      setFormErrors({ ...formErrors, numeroCommande: '' });
+                    }
+                  }}
+                  placeholder={t('commandes.orderNumberPlaceholder')}
+                  className={formErrors.numeroCommande ? 'p-invalid' : ''}
+                />
+                <Button
+                  type="button"
+                  label={t('commandes.autoGenerate')}
+                  icon="pi pi-refresh"
+                  onClick={generateOrderNumber}
+                  severity="secondary"
+                />
+              </div>
+              {formErrors.numeroCommande && (
+                <small className="p-error">{formErrors.numeroCommande}</small>
+              )}
+            </div>
 
-      <form onSubmit={handleSubmit} className="commande-form">
-        {/* Order Header Section */}
-        <div className="form-section">
-          <h2>Order Header</h2>
-
-          <div className="form-group">
-            <label>Order Number *</label>
-            <div className="input-with-button">
-              <input
-                type="text"
-                value={numeroCommande}
-                onChange={(e) => setNumeroCommande(e.target.value)}
-                placeholder="CMD-XXXXXXXXX"
-                required
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label>{t('commandes.client')} *</label>
+              <Dropdown
+                options={clients}
+                value={selectedClient}
+                onChange={(e) => {
+                  setSelectedClient(e.value);
+                  if (formErrors.selectedClient) {
+                    setFormErrors({ ...formErrors, selectedClient: '' });
+                  }
+                }}
+                optionLabel="label"
+                optionValue="value"
+                placeholder={t('commandes.selectClient')}
+                filter
+                showClear
+                disabled={loading}
+                className={formErrors.selectedClient ? 'p-invalid' : ''}
+                style={{ width: '100%' }}
               />
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={generateOrderNumber}
-              >
-                Auto-Generate
-              </button>
+              {formErrors.selectedClient && (
+                <small className="p-error">{formErrors.selectedClient}</small>
+              )}
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Client *</label>
-            <select
-              value={selectedClient}
-              onChange={(e) => setSelectedClient(e.target.value)}
-              required
-            >
-              <option value="">Select a client...</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Description</label>
-            <textarea
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+            <label>{t('commandes.description')}</label>
+            <InputTextarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Order description..."
+              placeholder={t('commandes.descriptionPlaceholder')}
               rows={3}
+              style={{ width: '100%' }}
             />
           </div>
 
-          <div className="form-group">
-            <label>Notes</label>
-            <textarea
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>
+            <label>{t('commandes.notes')}</label>
+            <InputTextarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Additional notes..."
+              placeholder={t('commandes.notesPlaceholder')}
               rows={3}
+              style={{ width: '100%' }}
             />
           </div>
-        </div>
+        </Card>
 
-        {/* Items Section */}
-        <div className="form-section">
-          <div className="section-header">
-            <h2>Order Items</h2>
-            <button
+        {/* Items Summary Card */}
+        <Card>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+              gap: '1rem',
+              textAlign: 'center',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.875rem' }}>{t('commandes.totalItems')}</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{summary.totalItems}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.875rem' }}>{t('commandes.totalQuantity')}</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{summary.totalQuantity}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.875rem' }}>{t('commandes.totalSurface')}</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{summary.totalSurface} m²</div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Items Table */}
+        <Card title={t('commandes.orderItems')}>
+          {formErrors.items && (
+            <div className="p-error" style={{ marginBottom: '0.75rem' }}>
+              {formErrors.items}
+            </div>
+          )}
+
+          <DataTable value={items} className="p-datatable-sm">
+            <Column field="lineNumber" header={t('commandes.lineNumber')} style={{ width: '60px' }} />
+            <Column field="materialType" header={t('commandes.material')} body={materialBodyTemplate} />
+            <Column field="nbPlis" header={t('commandes.plies')} style={{ width: '80px' }} />
+            <Column field="thicknessMm" header={t('commandes.thickness')} style={{ width: '100px' }} />
+            <Column field="longueurM" header={t('commandes.length')} style={{ width: '100px' }} />
+            <Column field="largeurMm" header={t('commandes.width')} style={{ width: '100px' }} />
+            <Column field="quantite" header={t('commandes.quantity')} body={quantiteBodyTemplate} />
+            <Column field="typeMouvement" header={t('commandes.movement')} body={mouvementBodyTemplate} />
+            <Column body={surfaceBodyTemplate} header={t('commandes.surface')} style={{ width: '100px' }} />
+            <Column body={actionsBodyTemplate} style={{ width: '60px' }} />
+          </DataTable>
+
+          <div style={{ marginTop: '1rem' }}>
+            <Button
               type="button"
-              className="btn btn-secondary btn-sm"
+              label={`+ ${t('commandes.addItem')}`}
+              icon="pi pi-plus"
               onClick={handleAddItem}
-            >
-              + Add Item
-            </button>
+              severity="success"
+            />
           </div>
-
-          <div className="items-list">
-            {items.map((item, index) => (
-              <div key={index} className="item-card">
-                <div className="item-header">
-                  <h3>Item #{index + 1}</h3>
-                  {items.length > 1 && (
-                    <button
-                      type="button"
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleRemoveItem(index)}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-
-                <div className="item-grid">
-                  <div className="form-group">
-                    <label>Material Type *</label>
-                    <select
-                      value={item.materialType}
-                      onChange={(e) =>
-                        handleItemChange(index, 'materialType', e.target.value)
-                      }
-                      required
-                    >
-                      {materials.map((mat) => (
-                        <option key={mat} value={mat}>
-                          {mat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Plies *</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.nbPlis}
-                      onChange={(e) =>
-                        handleItemChange(index, 'nbPlis', parseInt(e.target.value))
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Thickness (mm) *</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      value={item.thicknessMm}
-                      onChange={(e) =>
-                        handleItemChange(index, 'thicknessMm', parseFloat(e.target.value))
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Length (m) *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={item.longueurM}
-                      onChange={(e) =>
-                        handleItemChange(index, 'longueurM', parseFloat(e.target.value))
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Length Tolerance (m)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.longueurToleranceM || 0}
-                      onChange={(e) =>
-                        handleItemChange(
-                          index,
-                          'longueurToleranceM',
-                          parseFloat(e.target.value)
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Width (mm) *</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={item.largeurMm}
-                      onChange={(e) =>
-                        handleItemChange(index, 'largeurMm', parseInt(e.target.value))
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Quantity *</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantite}
-                      onChange={(e) =>
-                        handleItemChange(index, 'quantite', parseInt(e.target.value))
-                      }
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Movement Type *</label>
-                    <select
-                      value={item.typeMouvement}
-                      onChange={(e) =>
-                        handleItemChange(index, 'typeMouvement', e.target.value)
-                      }
-                      required
-                    >
-                      {mouvements.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Surface (m²)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={calculateSurface(item).toFixed(4)}
-                      disabled
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Observations</label>
-                  <textarea
-                    value={item.observations || ''}
-                    onChange={(e) =>
-                      handleItemChange(index, 'observations', e.target.value)
-                    }
-                    placeholder="Item notes..."
-                    rows={2}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        </Card>
 
         {/* Form Actions */}
-        <div className="form-actions">
-          <button
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <Button
             type="submit"
-            className="btn btn-primary btn-lg"
-            disabled={loading}
-          >
-            {loading ? 'Creating...' : 'Create Order'}
-          </button>
-          <button
+            label={t('commandes.createOrder')}
+            icon="pi pi-check"
+            loading={loading}
+            severity="success"
+          />
+          <Button
             type="button"
-            className="btn btn-secondary btn-lg"
+            label={t('commandes.cancel')}
+            icon="pi pi-times"
             onClick={handleCancel}
-          >
-            Cancel
-          </button>
+            severity="secondary"
+          />
         </div>
       </form>
     </div>
   );
 }
+
+export default CommandeCreatePage;

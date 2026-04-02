@@ -1,13 +1,21 @@
-import { useEffect, useState } from 'react';
-import { Search, User as UserIcon, MapPin } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@hooks/useI18n';
 import { formatDate } from '../utils/date';
 import type { User as UserType, UserRole, Altier } from '../types/index';
 import { UserService } from '@services/userService';
 import { AltierService } from '@services/altierService';
 import userAltierService from '@services/userAltierService';
-import { Pagination } from '@components/Pagination';
-import '../styles/UsersPage.css';
+import { Button } from 'primereact/button';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
+import { Dropdown } from 'primereact/dropdown';
+import { Tag } from 'primereact/tag';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
+import { RadioButton } from 'primereact/radiobutton';
+import { Checkbox } from 'primereact/checkbox';
 
 export function UsersPage() {
   const { t } = useI18n();
@@ -181,258 +189,215 @@ export function UsersPage() {
     setSelectedAltiers(newSet);
   };
 
+  const roleOptions = useMemo(() => (
+    [
+      { label: t('users.allRoles'), value: 'ALL' as const },
+      { label: t('users.roleAdmin'), value: 'ADMIN' as const },
+      { label: t('users.roleOperator'), value: 'OPERATOR' as const },
+      { label: t('users.roleReadOnly'), value: 'READONLY' as const },
+    ]
+  ), [t]);
+
+  const statusOptions = useMemo(() => (
+    [
+      { label: t('users.allUsers'), value: 'ALL' as const },
+      { label: t('users.active'), value: 'ACTIVE' as const },
+      { label: t('users.inactive'), value: 'INACTIVE' as const },
+    ]
+  ), [t]);
+
+  const roleDialogFooter = (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+      <Button label={t('common.cancel')} severity="secondary" onClick={() => setShowRoleModal(false)} />
+      <Button label={t('users.updateBtn')} onClick={handleChangeRole} />
+    </div>
+  );
+
+  const altierDialogFooter = (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+      <Button label={t('common.cancel')} severity="secondary" onClick={() => setShowAltierModal(false)} />
+      <Button label={t('users.saveChangesBtn')} onClick={handleSaveAltiers} />
+    </div>
+  );
+
+  const roleSeverity = (role: UserRole) => {
+    if (role === 'ADMIN') return 'danger';
+    if (role === 'OPERATOR') return 'info';
+    return 'secondary';
+  };
+
   if (isLoading) {
-    return <div className="page-loading">{t('users.loading')}</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
   }
 
   return (
-    <div className="users-page">
-      <div className="page-header">
-        <h1>{t('users.title')}</h1>
-        <div className="header-stats">
-          <div className="stat-badge">
-            <span className="stat-value">{totalElements}</span>
-            <span className="stat-label">{t('users.totalUsers')}</span>
-          </div>
-          <div className="stat-badge active">
-            <span className="stat-value">{users.filter(u => u.isActive).length}</span>
-            <span className="stat-label">{t('users.active')}</span>
-          </div>
-          <div className="stat-badge inactive">
-            <span className="stat-value">{users.filter(u => !u.isActive).length}</span>
-            <span className="stat-label">{t('users.inactive')}</span>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+        <div>
+          <h1 style={{ margin: 0 }}>{t('users.title')}</h1>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+            <Tag value={`${totalElements} ${t('users.totalUsers')}`} severity="info" />
+            <Tag value={`${users.filter(u => u.isActive).length} ${t('users.active')}`} severity="success" />
+            <Tag value={`${users.filter(u => !u.isActive).length} ${t('users.inactive')}`} severity="secondary" />
           </div>
         </div>
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && <Message severity="error" text={error} />}
 
-      <div className="users-controls">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder={t('users.searchPlaceholder')}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', margin: '1rem 0' }}>
+        <span className="p-input-icon-left" style={{ width: '100%', maxWidth: '360px' }}>
+          <i className="pi pi-search" />
+          <InputText
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setPage(0);
             }}
-            className="search-input"
+            placeholder={t('users.searchPlaceholder')}
+            style={{ width: '100%' }}
           />
-          <Search size={18} className="search-icon" />
-        </div>
-
-        <div className="filters">
-          <div className="filter-group">
-            <label>{t('users.roleLabel')}</label>
-            <select
-              value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value as UserRole | 'ALL');
-                setPage(0);
-              }}
-              className="filter-select"
-            >
-              <option value="ALL">{t('users.allRoles')}</option>
-              <option value="ADMIN">{t('users.roleAdmin')}</option>
-              <option value="OPERATOR">{t('users.roleOperator')}</option>
-              <option value="READONLY">{t('users.roleReadOnly')}</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label>{t('users.statusLabel')}</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE');
-                setPage(0);
-              }}
-              className="filter-select"
-            >
-              <option value="ALL">{t('users.allUsers')}</option>
-              <option value="ACTIVE">{t('users.active')}</option>
-              <option value="INACTIVE">{t('users.inactive')}</option>
-            </select>
-          </div>
-
-          <div className="results-count">
-            {totalElements} user{totalElements !== 1 ? 's' : ''}
-          </div>
-        </div>
+        </span>
+        <Dropdown
+          value={roleFilter}
+          options={roleOptions}
+          onChange={(e) => {
+            setRoleFilter(e.value as UserRole | 'ALL');
+            setPage(0);
+          }}
+          placeholder={t('users.roleLabel')}
+          style={{ minWidth: '200px' }}
+        />
+        <Dropdown
+          value={statusFilter}
+          options={statusOptions}
+          onChange={(e) => {
+            setStatusFilter(e.value as 'ALL' | 'ACTIVE' | 'INACTIVE');
+            setPage(0);
+          }}
+          placeholder={t('users.statusLabel')}
+          style={{ minWidth: '200px' }}
+        />
       </div>
 
-      {showRoleModal && selectedUser && (
-        <div className="modal-overlay" onClick={() => setShowRoleModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>{t('users.changeRoleTitle')}</h2>
-            <p>{t('users.updateRoleFor')} <strong>{selectedUser.username}</strong></p>
+      <DataTable
+        value={users}
+        dataKey="id"
+        lazy
+        paginator
+        first={page * pageSize}
+        rows={pageSize}
+        totalRecords={totalElements}
+        onPage={(e) => setPage(e.page ?? 0)}
+        emptyMessage={t('users.noUsersFound')}
+        size="small"
+      >
+        <Column header={t('users.username')} body={(row: UserType) => row.username || t('users.notApplicable')} />
+        <Column
+          header={t('users.email')}
+          body={(row: UserType) => row.email ? <a href={`mailto:${row.email}`}>{row.email}</a> : t('users.notApplicable')}
+        />
+        <Column
+          header={t('users.role')}
+          body={(row: UserType) => (
+            <Tag value={row.role} severity={roleSeverity(row.role)} />
+          )}
+        />
+        <Column
+          header={t('common.status')}
+          body={(row: UserType) => (
+            <Tag value={row.isActive ? t('users.active') : t('users.inactive')} severity={row.isActive ? 'success' : 'secondary'} />
+          )}
+        />
+        <Column header={t('users.lastLogin')} body={(row: UserType) => formatDate(row.lastLoginDate, t('users.never'))} />
+        <Column header={t('users.created')} body={(row: UserType) => formatDate(row.createdAt, t('users.notApplicable'))} />
+        <Column
+          header={t('common.action')}
+          body={(row: UserType) => (
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <Button icon="pi pi-user-edit" text onClick={() => openRoleModal(row)} aria-label={t('users.changeRoleTitle')} />
+              <Button icon="pi pi-map-marker" text onClick={() => openAltierModal(row)} aria-label={t('users.manageAccessTitle')} />
+              {row.isActive ? (
+                <Button label={t('users.deactivateBtn')} severity="danger" text onClick={() => handleDeactivateUser(row.id)} />
+              ) : (
+                <Button label={t('users.activateBtn')} text onClick={() => handleActivateUser(row.id)} />
+              )}
+            </div>
+          )}
+        />
+      </DataTable>
 
-            <div className="role-selection">
-              {roles.map(role => (
-                <label key={role} className="role-option">
-                  <input
-                    type="radio"
-                    name="role"
+      <Dialog
+        header={t('users.changeRoleTitle')}
+        visible={showRoleModal && !!selectedUser}
+        onHide={() => setShowRoleModal(false)}
+        footer={roleDialogFooter}
+        style={{ width: 'min(520px, 95vw)' }}
+      >
+        {selectedUser && (
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <div>{t('users.updateRoleFor')} <strong>{selectedUser.username}</strong></div>
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              {roles.map((role) => (
+                <div key={role} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                  <RadioButton
+                    inputId={`role-${role}`}
                     value={role}
                     checked={newRole === role}
-                    onChange={(e) => setNewRole(e.target.value as UserRole)}
+                    onChange={(e) => setNewRole(e.value as UserRole)}
                   />
-                  <span className="role-label">
-                    <span className={`role-badge role-${role.toLowerCase()}`}>{role}</span>
-                    <span className="role-description">
+                  <label htmlFor={`role-${role}`} style={{ display: 'grid', gap: '0.25rem' }}>
+                    <span>{role}</span>
+                    <small style={{ color: 'var(--text-color-secondary)' }}>
                       {role === 'ADMIN' && t('users.adminDesc')}
                       {role === 'OPERATOR' && t('users.operatorDesc')}
                       {role === 'READONLY' && t('users.readonlyDesc')}
-                    </span>
-                  </span>
-                </label>
+                    </small>
+                  </label>
+                </div>
               ))}
             </div>
-
-            <div className="modal-actions">
-              <button className="btn btn-primary" onClick={handleChangeRole}>
-                {t('users.updateBtn')}
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowRoleModal(false)}
-              >
-                {t('common.cancel')}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Dialog>
 
-      {showAltierModal && selectedUser && (
-        <div className="modal-overlay" onClick={() => setShowAltierModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h2>{t('users.manageAccessTitle')}</h2>
-            <p className="modal-subtitle">{t('users.userLabel')} <strong>{selectedUser.username}</strong></p>
-            
-            <div className="altier-selection">
-              <p className="altier-label">{t('users.selectWorkshops')}</p>
-              <div className="altier-list">
-                {altiers.map(altier => (
-                  <label key={altier.id} className="altier-checkbox">
-                    <input
-                      type="checkbox"
+      <Dialog
+        header={t('users.manageAccessTitle')}
+        visible={showAltierModal && !!selectedUser}
+        onHide={() => setShowAltierModal(false)}
+        footer={altierDialogFooter}
+        style={{ width: 'min(600px, 95vw)' }}
+      >
+        {selectedUser && (
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <div>{t('users.userLabel')} <strong>{selectedUser.username}</strong></div>
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <div>{t('users.selectWorkshops')}</div>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                {altiers.map((altier) => (
+                  <div key={altier.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Checkbox
+                      inputId={`altier-${altier.id}`}
                       checked={selectedAltiers.has(altier.id)}
                       onChange={() => toggleAltier(altier.id)}
                     />
-                    <span className="altier-name">{altier.libelle}</span>
-                    <span className="altier-address">{altier.adresse}</span>
-                  </label>
+                    <label htmlFor={`altier-${altier.id}`}>
+                      <strong>{altier.libelle}</strong> <span style={{ color: 'var(--text-color-secondary)' }}>{altier.adresse}</span>
+                    </label>
+                  </div>
                 ))}
+                {altiers.length === 0 && (
+                  <Message severity="info" text={t('users.noWorkshops')} />
+                )}
               </div>
-              {altiers.length === 0 && (
-                <p className="empty-state">{t('users.noWorkshops')}</p>
-              )}
             </div>
-
-            <div className="modal-actions">
-              <button className="btn btn-primary" onClick={handleSaveAltiers}>
-                {t('users.saveChangesBtn')}
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowAltierModal(false)}
-              >
-                {t('common.cancel')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="users-table-container">
-        {users.length > 0 ? (
-          <table className="users-table">
-            <thead>
-              <tr>
-                <th>{t('users.username')}</th>
-                <th>{t('users.email')}</th>
-                <th>{t('users.role')}</th>
-                <th>{t('common.status')}</th>
-                <th>{t('users.lastLogin')}</th>
-                <th>{t('users.created')}</th>
-                <th>{t('common.action')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(user => (
-                <tr key={user.id} className={`user-row ${!user.isActive ? 'inactive' : ''}`}>
-                  <td className="username">{user.username || t('users.notApplicable')}</td>
-                  <td className="email">
-                    <a href={`mailto:${user.email}`}>{user.email || t('users.notApplicable')}</a>
-                  </td>
-                  <td>
-                    <span className={`role-badge role-${user.role.toLowerCase()}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
-                      {user.isActive ? t('users.active') : t('users.inactive')}
-                    </span>
-                  </td>
-                  <td className="timestamp">
-                    {formatDate(user.lastLoginDate, t('users.never'))}
-                  </td>
-                  <td className="timestamp">
-                    {formatDate(user.createdAt, t('users.notApplicable'))}
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        className="btn btn-sm btn-role"
-                        onClick={() => openRoleModal(user)}
-                        title={t('users.changeRoleTitle')}
-                      >
-                        <UserIcon size={16} />
-                      </button>
-                      <button
-                        className="btn btn-sm btn-location"
-                        onClick={() => openAltierModal(user)}
-                        title={t('users.manageAccessTitle')}
-                      >
-                        <MapPin size={16} />
-                      </button>
-                      {user.isActive ? (
-                        <button
-                          className="btn btn-sm btn-deactivate"
-                          onClick={() => handleDeactivateUser(user.id)}
-                          title={t('users.deactivateBtn')}
-                        >
-                          {t('users.deactivateBtn')}
-                        </button>
-                      ) : (
-                        <button
-                          className="btn btn-sm btn-activate"
-                          onClick={() => handleActivateUser(user.id)}
-                          title={t('users.activateBtn')}
-                        >
-                          {t('users.active')}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div className="empty-state">
-            <p>{t('users.noUsersFound')}</p>
-            {searchTerm && (
-              <p className="empty-state-hint">{t('users.adjustSearchHint')}</p>
-            )}
           </div>
         )}
-      </div>
-
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      </Dialog>
     </div>
   );
 }

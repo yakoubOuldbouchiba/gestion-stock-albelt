@@ -6,3 +6,5 @@ export { AdminRoute } from './AdminRoute';
 export { RollMovementForm } from './RollMovementForm';
 export { LanguageSwitcher } from './LanguageSwitcher';
 export { Pagination } from './Pagination';
+export { LazyLoadingFallback } from './LazyLoadingFallback';
+export { PrimeReactDropdown } from './PrimeReactDropdown';

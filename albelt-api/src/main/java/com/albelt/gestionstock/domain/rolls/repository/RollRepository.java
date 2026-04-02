@@ -117,7 +117,8 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
            "LOWER(r.qrCode) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(r.supplier.name) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(r.altier.libelle) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(r.materialType) LIKE CONCAT('%', :search, '%'))")
+           "LOWER(r.materialType) LIKE CONCAT('%', :search, '%') OR " +
+           "LOWER(r.reference) LIKE CONCAT('%', :search, '%'))")
     Page<Roll> findFiltered(
             @Param("altierIds") List<UUID> altierIds,
             @Param("status") RollStatus status,
@@ -153,7 +154,29 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
        /**
         * Group by color, nbPlis, thicknessMm, materialType, altierId, status
         */
-       @Query("SELECT r.color.id, r.nbPlis, r.thicknessMm, r.materialType, r.altier.id, r.status, COUNT(r), SUM(r.areaM2) FROM Roll r GROUP BY r.color.id, r.nbPlis, r.thicknessMm, r.materialType, r.altier.id, r.status")
+    @Query("""
+       SELECT 
+              r.color.id, 
+              c.name, 
+              c.hexCode, 
+              r.nbPlis, 
+              r.thicknessMm, 
+              r.materialType, 
+              r.altier.id, 
+              a.libelle,
+              r.status, 
+              COUNT(r), 
+              SUM(r.areaM2),
+              SUM(r.totalWasteAreaM2)       
+       FROM Roll r
+       LEFT JOIN r.color c
+       LEFT JOIN r.supplier s
+       LEFT JOIN r.altier a
+       GROUP BY 
+              r.color.id, c.name, c.hexCode, 
+              r.nbPlis, r.thicknessMm, r.materialType,  
+              r.altier.id, r.status , a.libelle
+       """)
        List<Object[]> groupByAllFields();
 }
 

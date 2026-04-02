@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
 import type { InventoryMetrics, WasteMetrics, Roll } from '../types/index';
 import { RollService } from '@services/rollService';
 import { useI18n } from '@hooks/useI18n';
-import '../styles/Dashboard.css';
 import { formatDate } from '../utils/date';
+import { Button } from 'primereact/button';
+import { Card } from 'primereact/card';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Tag } from 'primereact/tag';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
 
 export function Dashboard() {
   const { t } = useI18n();
@@ -22,27 +27,25 @@ export function Dashboard() {
     setIsLoading(true);
     setError(null);
     try {
-      // Load all rolls to calculate metrics
       const response = await RollService.getAll();
-      
+
       if (response.success && response.data) {
         const rolls = Array.isArray(response.data)
           ? response.data
           : response.data.items ?? (response.data as any).content ?? [];
         setRecentRolls(rolls.slice(0, 5));
 
-        // Calculate inventory metrics
         const totalRolls = rolls.length;
         const totalArea = rolls.reduce((sum, roll) => sum + roll.areaM2, 0);
-        
+
         const byMaterial = [
           { material: 'PU' as const, count: 0, area: 0 },
           { material: 'PVC' as const, count: 0, area: 0 },
           { material: 'CAOUTCHOUC' as const, count: 0, area: 0 },
         ];
 
-        rolls.forEach(roll => {
-          const material = byMaterial.find(m => m.material === roll.materialType);
+        rolls.forEach((roll) => {
+          const material = byMaterial.find((m) => m.material === roll.materialType);
           if (material) {
             material.count++;
             material.area += roll.areaM2;
@@ -55,7 +58,6 @@ export function Dashboard() {
           byMaterial,
         });
 
-        // Set waste metrics (will update when waste service is available)
         setWasteMetrics({
           totalWaste: 0,
           totalArea: 0,
@@ -75,116 +77,99 @@ export function Dashboard() {
     }
   };
 
+  const statusSeverity = (status?: string) => {
+    switch (status) {
+      case 'AVAILABLE':
+        return 'success';
+      case 'USED_IN_ORDER':
+        return 'warning';
+      case 'SCRAP':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
+  };
+
   if (isLoading) {
-    return <div className="dashboard-loading">{t('common.loading_data')}</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
   }
 
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <h1>{t('dashboard.title')}</h1>
-        <button onClick={loadDashboardData} className="refresh-button">
-          <RefreshCw size={18} /> {t('common.refresh')}
-        </button>
+    <div style={{ display: 'grid', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ margin: 0 }}>{t('dashboard.title')}</h1>
+        <Button icon="pi pi-refresh" label={t('common.refresh')} onClick={loadDashboardData} />
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && <Message severity="error" text={error} />}
 
-      <div className="dashboard-grid">
-        {/* Inventory Metrics Section */}
-        <section className="metrics-section">
-          <h2>{t('dashboard.overview')}</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <Card title={t('dashboard.overview')}>
           {inventoryMetrics && (
-            <div className="metrics-cards">
-              <div className="metric-card">
-                <div className="metric-value">{inventoryMetrics.totalRolls}</div>
-                <div className="metric-label">{t('dashboard.totalRolls')}</div>
-              </div>
-              <div className="metric-card">
-                <div className="metric-value">{inventoryMetrics.totalArea.toFixed(2)}</div>
-                <div className="metric-label">{t('dashboard.totalArea')}</div>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+                <Card title={t('dashboard.totalRolls')}>
+                  <div style={{ fontSize: '1.5rem' }}>{inventoryMetrics.totalRolls}</div>
+                </Card>
+                <Card title={t('dashboard.totalArea')}>
+                  <div style={{ fontSize: '1.5rem' }}>{inventoryMetrics.totalArea.toFixed(2)}</div>
+                </Card>
               </div>
 
-              <div className="material-breakdown">
-                <h3>{t('inventory.material')}</h3>
-                <div className="material-items">
-                  {inventoryMetrics.byMaterial.map(material => (
-                    <div key={material.material} className="material-item">
-                      <span className="material-name">{material.material}</span>
-                      <span className="material-count">{material.count} {t('common.list')}</span>
-                      <span className="material-area">{material.area.toFixed(2)} m²</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <DataTable value={inventoryMetrics.byMaterial} size="small" emptyMessage={t('messages.noDataAvailable')}>
+                <Column field="material" header={t('inventory.material')} />
+                <Column field="count" header={t('common.list')} />
+                <Column header={t('rolls.area')} body={(row) => row.area.toFixed(2)} />
+              </DataTable>
             </div>
           )}
-        </section>
+        </Card>
 
-        {/* Waste Metrics Section */}
-        <section className="metrics-section">
-          <h2>{t('navigation.waste')}</h2>
+        <Card title={t('navigation.waste')}>
           {wasteMetrics && (
-            <div className="metrics-cards">
-              <div className="metric-card">
-                <div className="metric-value">{wasteMetrics.totalWaste}</div>
-                <div className="metric-label">{t('navigation.waste')}</div>
-              </div>
-              <div className="metric-card">
-                <div className="metric-value">{wasteMetrics.reuseEfficiency.toFixed(1)}%</div>
-                <div className="metric-label">{t('inventory.totalMaterial')}</div>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+                <Card title={t('navigation.waste')}>
+                  <div style={{ fontSize: '1.5rem' }}>{wasteMetrics.totalWaste}</div>
+                </Card>
+                <Card title={t('waste.reuseEfficiency')}>
+                  <div style={{ fontSize: '1.5rem' }}>{wasteMetrics.reuseEfficiency.toFixed(1)}%</div>
+                </Card>
               </div>
 
-              <div className="waste-status">
-                <h3>{t('users.status')}</h3>
-                <div className="status-items">
-                  {wasteMetrics.byStatus.map(status => (
-                    <div key={status.status} className="status-item">
-                      <span className="status-name">{status.status}</span>
-                      <span className="status-count">{status.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <DataTable value={wasteMetrics.byStatus} size="small" emptyMessage={t('messages.noDataAvailable')}>
+                <Column field="status" header={t('users.status')} />
+                <Column field="count" header={t('common.list')} />
+              </DataTable>
             </div>
           )}
-        </section>
+        </Card>
       </div>
 
-      {/* Recent Rolls Section */}
-      <section className="recent-section">
-        <h2>{t('dashboard.recentRolls')}</h2>
+      <Card title={t('dashboard.recentRolls')}>
         {recentRolls.length > 0 ? (
-          <div className="rolls-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t('inventory.material')}</th>
-                  <th>{t('rolls.width')}</th>
-                  <th>{t('rolls.length')}</th>
-                  <th>{t('rolls.area')}</th>
-                  <th>{t('users.status')}</th>
-                  <th>{t('movements.date')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentRolls.map(roll => (
-                  <tr key={roll.id}>
-                    <td><span className="badge">{roll.materialType}</span></td>
-                    <td>{roll.widthMm}</td>
-                    <td>{roll.lengthM.toFixed(2)}</td>
-                    <td>{roll.areaM2.toFixed(2)}</td>
-                    <td><span className={`status-badge status-${roll.status.toLowerCase()}`}>{roll.status}</span></td>
-                    <td>{formatDate(roll.receivedDate)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable value={recentRolls} dataKey="id" size="small">
+            <Column
+              header={t('inventory.material')}
+              body={(roll: Roll) => <Tag value={roll.materialType} />}
+            />
+            <Column field="widthMm" header={t('rolls.width')} />
+            <Column header={t('rolls.length')} body={(roll: Roll) => roll.lengthM.toFixed(2)} />
+            <Column header={t('rolls.area')} body={(roll: Roll) => roll.areaM2.toFixed(2)} />
+            <Column
+              header={t('users.status')}
+              body={(roll: Roll) => <Tag value={roll.status} severity={statusSeverity(roll.status)} />}
+            />
+            <Column header={t('movements.date')} body={(roll: Roll) => formatDate(roll.receivedDate)} />
+          </DataTable>
         ) : (
-          <p className="empty-state">{t('messages.noDataAvailable')}</p>
+          <Message severity="info" text={t('messages.noDataAvailable')} />
         )}
-      </section>
+      </Card>
     </div>
   );
 }

@@ -39,7 +39,7 @@ public class RollController {
      * GET /api/rolls/grouped
      */
     @GetMapping("/grouped")
-    public ResponseEntity<ApiResponse<List<Object[]>>> getGroupedByAllFields() {
+    public ResponseEntity<ApiResponse<List<com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse>>> getGroupedByAllFields() {
         var grouped = rollService.getGroupedByAllFields();
         return ResponseEntity.ok(ApiResponse.success(grouped));
     }

@@ -1,11 +1,25 @@
 import { useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
 import { useI18n } from '@hooks/useI18n';
 import { formatDate } from '../utils/date';
 import type { Supplier, SupplierRequest } from '../types/index';
 import { SupplierService } from '@services/supplierService';
-import { Pagination } from '@components/Pagination';
-import '../styles/SuppliersPage.css';
+import { Button } from 'primereact/button';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
+
+const emptyForm: SupplierRequest = {
+  name: '',
+  address: '',
+  city: '',
+  country: '',
+  contactPerson: '',
+  email: '',
+  phone: '',
+};
 
 export function SuppliersPage() {
   const { t } = useI18n();
@@ -16,18 +30,9 @@ export function SuppliersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [formData, setFormData] = useState<SupplierRequest>(emptyForm);
   const pageSize = 20;
-  const [formData, setFormData] = useState<SupplierRequest>({
-    name: '',
-    address: '',
-    city: '',
-    country: '',
-    contactPerson: '',
-    email: '',
-    phone: '',
-  });
 
   useEffect(() => {
     loadSuppliers(page, searchTerm);
@@ -44,49 +49,58 @@ export function SuppliersPage() {
       });
       if (response.success && response.data) {
         setSuppliers(response.data.items || []);
-        setTotalPages(response.data.totalPages || 0);
         setTotalElements(response.data.totalElements || 0);
+      } else {
+        setSuppliers([]);
       }
     } catch (err) {
       setError(t('messages.failedToLoad'));
+      setSuppliers([]);
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const resetForm = () => {
+    setFormData(emptyForm);
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError(null);
-
     try {
-      if (editingId) {
-        const response = await SupplierService.update(editingId, formData);
-        if (response.success) {
-          setEditingId(null);
-          await loadSuppliers(page, searchTerm);
-        }
+      const response = editingId
+        ? await SupplierService.update(editingId, formData)
+        : await SupplierService.create(formData);
+
+      if (response.success) {
+        const nextPage = editingId ? page : 0;
+        setPage(nextPage);
+        await loadSuppliers(nextPage, searchTerm);
+        setShowForm(false);
+        setEditingId(null);
+        resetForm();
       } else {
-        const response = await SupplierService.create(formData);
-        if (response.success) {
-          setPage(0);
-          await loadSuppliers(0, searchTerm);
-        }
+        setError(response.message || t('messages.operationFailed'));
       }
-      resetForm();
-      setShowForm(false);
     } catch (err) {
       setError(t('messages.operationFailed'));
       console.error(err);
     }
+  };
+
+  const handleCancel = () => {
+    setShowForm(false);
+    setEditingId(null);
+    resetForm();
   };
 
   const handleEdit = (supplier: Supplier) => {
@@ -109,9 +123,12 @@ export function SuppliersPage() {
     }
 
     try {
+      setError(null);
       const response = await SupplierService.delete(id);
       if (response.success) {
         await loadSuppliers(page, searchTerm);
+      } else {
+        setError(response.message || t('messages.failedToDelete'));
       }
     } catch (err) {
       setError(t('messages.failedToDelete'));
@@ -119,245 +136,169 @@ export function SuppliersPage() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      address: '',
-      city: '',
-      country: '',
-      contactPerson: '',
-      email: '',
-      phone: '',
-    });
-    setEditingId(null);
-  };
-
-  const handleCancel = () => {
-    resetForm();
-    setShowForm(false);
-  };
+  const formFooter = (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+      <Button type="button" label={t('common.cancel')} severity="secondary" onClick={handleCancel} />
+      <Button
+        type="button"
+        label={editingId ? t('suppliers.updateSupplier') : t('suppliers.createSupplier')}
+        onClick={handleSubmit}
+      />
+    </div>
+  );
 
   if (isLoading) {
-    return <div className="page-loading">{t('messages.loading')}</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
   }
 
   return (
-    <div className="suppliers-page">
-      <div className="page-header">
-        <h1>{t('suppliers.management')}</h1>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowForm(true)}
-        >
-          + {t('suppliers.addNew')}
-        </button>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+        <div>
+          <h1 style={{ margin: 0 }}>{t('suppliers.management')}</h1>
+          <div style={{ color: 'var(--text-color-secondary)' }}>
+            {totalElements} {totalElements !== 1 ? t('suppliers.plural') : t('suppliers.singular')}
+          </div>
+        </div>
+        <Button icon="pi pi-plus" label={t('suppliers.addNew')} onClick={() => setShowForm(true)} />
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && <Message severity="error" text={error} />}
 
-      <div className="suppliers-controls">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder={t('suppliers.searchPlaceholder')}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', margin: '1rem 0' }}>
+        <span className="p-input-icon-left" style={{ width: '100%', maxWidth: '420px' }}>
+          <i className="pi pi-search" />
+          <InputText
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setPage(0);
             }}
-            className="search-input"
+            placeholder={t('suppliers.searchPlaceholder')}
+            style={{ width: '100%' }}
           />
-          <Search size={18} className="search-icon" />
-        </div>
-        <div className="results-count">
-            {totalElements} {totalElements !== 1 ? t('suppliers.plural') : t('suppliers.singular')}
-        </div>
+        </span>
       </div>
 
-      {showForm && (
-        <div className="modal-overlay" onClick={handleCancel}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>{editingId ? t('suppliers.editTitle') : t('suppliers.addTitle')}</h2>
-            <form onSubmit={handleSubmit} className="supplier-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="name">{t('suppliers.companyName')} *</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g., Supplier Inc."
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="contactPerson">{t('suppliers.contactPerson')} *</label>
-                  <input
-                    type="text"
-                    id="contactPerson"
-                    name="contactPerson"
-                    value={formData.contactPerson}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g., John Doe"
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="email">{t('suppliers.email')} *</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g., contact@supplier.com"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="phone">{t('suppliers.phone')} *</label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g., +1234567890"
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="address">{t('suppliers.address')} *</label>
-                  <input
-                    type="text"
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g., 123 Business Street"
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="city">{t('suppliers.city')} *</label>
-                  <input
-                    type="text"
-                    id="city"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g., New York"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="country">{t('suppliers.country')} *</label>
-                  <input
-                    type="text"
-                    id="country"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g., USA"
-                  />
-                </div>
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn btn-primary">
-                  {editingId ? t('suppliers.updateSupplier') : t('suppliers.createSupplier')}
-                </button>
-                <button type="button" className="btn btn-secondary" onClick={handleCancel}>
-                  {t('common.cancel')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <div className="suppliers-grid">
-        {suppliers.length > 0 ? (
-          suppliers.map(supplier => (
-            <div key={supplier.id} className="supplier-card">
-              <div className="supplier-header">
-                <h3>{supplier.name}</h3>
-                <div className="card-actions">
-                  <button
-                    className="btn btn-sm btn-edit"
-                    onClick={() => handleEdit(supplier)}
-                    title="Edit"
-                  >
-                    ✎
-                  </button>
-                  <button
-                    className="btn btn-sm btn-delete"
-                    onClick={() => handleDelete(supplier.id)}
-                    title="Delete"
-                  >
-                    🗑
-                  </button>
-                </div>
-              </div>
-
-              <div className="supplier-details">
-                <div className="detail-row">
-                  <span className="detail-label">{t('suppliers.contactLabel')}:</span>
-                  <span className="detail-value">{supplier.contactPerson || 'N/A'}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">{t('suppliers.emailLabel')}:</span>
-                  <a href={`mailto:${supplier.email || ''}`} className="detail-value email-link">
-                    {supplier.email || 'N/A'}
-                  </a>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">{t('suppliers.phoneLabel')}:</span>
-                  <a href={`tel:${supplier.phone || ''}`} className="detail-value phone-link">
-                    {supplier.phone || 'N/A'}
-                  </a>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">{t('suppliers.addressLabel')}:</span>
-                  <span className="detail-value">{supplier.address || 'N/A'}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">{t('suppliers.locationLabel')}:</span>
-                  <span className="detail-value">
-                    {supplier.city || 'N/A'}, {supplier.country || 'N/A'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="supplier-timestamps">
-                <small>{t('common.created')}: {formatDate(supplier.createdAt, 'N/A')}</small>
-                <small>{t('common.updated')}: {formatDate(supplier.updatedAt, 'N/A')}</small>
-              </div>
+      <DataTable
+        value={suppliers}
+        dataKey="id"
+        lazy
+        paginator
+        first={page * pageSize}
+        rows={pageSize}
+        totalRecords={totalElements}
+        onPage={(e) => setPage(e.page ?? 0)}
+        emptyMessage={t('messages.noSuppliersFound')}
+        size="small"
+      >
+        <Column field="name" header={t('suppliers.companyName')} />
+        <Column field="contactPerson" header={t('suppliers.contactPerson')} />
+        <Column field="email" header={t('suppliers.email')} />
+        <Column field="phone" header={t('suppliers.phone')} />
+        <Column field="city" header={t('suppliers.city')} />
+        <Column field="country" header={t('suppliers.country')} />
+        <Column header={t('suppliers.created')} body={(row: Supplier) => formatDate(row.createdAt)} />
+        <Column
+          header={t('common.action')}
+          body={(row: Supplier) => (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Button icon="pi pi-pencil" text onClick={() => handleEdit(row)} aria-label={t('common.edit')} />
+              <Button icon="pi pi-trash" text severity="danger" onClick={() => handleDelete(row.id)} aria-label={t('common.delete')} />
             </div>
-          ))
-        ) : (
-          <div className="empty-state">
-            <p>{t('messages.noSuppliersFound')}</p>
-            {searchTerm && (
-              <p className="empty-state-hint">{t('suppliers.adjustSearch')}</p>
-            )}
-          </div>
-        )}
-      </div>
+          )}
+        />
+      </DataTable>
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <Dialog
+        header={editingId ? t('suppliers.editTitle') : t('suppliers.addTitle')}
+        visible={showForm}
+        onHide={handleCancel}
+        footer={formFooter}
+        style={{ width: 'min(700px, 95vw)' }}
+      >
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} style={{ display: 'grid', gap: '1rem' }}>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <label htmlFor="name">{t('suppliers.companyName')} *</label>
+            <InputText
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <label htmlFor="contactPerson">{t('suppliers.contactPerson')} *</label>
+            <InputText
+              id="contactPerson"
+              name="contactPerson"
+              value={formData.contactPerson}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <label htmlFor="email">{t('suppliers.email')} *</label>
+              <InputText
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <label htmlFor="phone">{t('suppliers.phone')} *</label>
+              <InputText
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <label htmlFor="address">{t('suppliers.address')} *</label>
+            <InputText
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <label htmlFor="city">{t('suppliers.city')} *</label>
+              <InputText
+                id="city"
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <label htmlFor="country">{t('suppliers.country')} *</label>
+              <InputText
+                id="country"
+                name="country"
+                value={formData.country}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+          </div>
+        </form>
+      </Dialog>
     </div>
   );
 }

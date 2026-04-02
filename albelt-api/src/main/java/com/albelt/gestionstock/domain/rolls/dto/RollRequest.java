@@ -59,6 +59,9 @@ public class RollRequest {
     @NotNull(message = "Status is required")
     private RollStatus status;
 
+    // External/Internal Reference
+    private String reference;
+
     // Location (Altier) Reference
     private UUID altierId;
 

@@ -1,0 +1,124 @@
+/* PrimeReact Dropdown Custom Styling */
+
+.primereact-dropdown-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.primereact-dropdown-wrapper .dropdown-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.primereact-dropdown-wrapper .dropdown-label.required::after {
+  content: ' *';
+  color: #ef4444;
+  font-weight: bold;
+}
+
+.primereact-dropdown-wrapper .p-dropdown {
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  background-color: #fff;
+}
+
+.primereact-dropdown-wrapper .p-dropdown:hover:not(.p-disabled) {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.primereact-dropdown-wrapper .p-dropdown:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.primereact-dropdown-wrapper .p-dropdown.p-invalid {
+  border-color: #ef4444;
+}
+
+.primereact-dropdown-wrapper .p-dropdown.p-invalid:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.primereact-dropdown-wrapper .p-dropdown.p-disabled {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.primereact-dropdown-wrapper .p-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Dropdown Panel Styling */
+.primereact-dropdown-panel {
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  max-height: 400px;
+}
+
+.primereact-dropdown-panel .p-dropdown-filter {
+  margin-bottom: 0.5rem;
+}
+
+.primereact-dropdown-panel .p-dropdown-filter .p-inputtext {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.primereact-dropdown-panel .p-dropdown-items {
+  padding: 0.5rem 0;
+}
+
+.primereact-dropdown-panel .p-dropdown-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.primereact-dropdown-panel .p-dropdown-item:hover {
+  background-color: #eff6ff;
+}
+
+.primereact-dropdown-panel .p-dropdown-item.p-highlight {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.primereact-dropdown-panel .p-dropdown-empty-message {
+  padding: 1rem;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .primereact-dropdown-panel {
+    max-height: 300px;
+  }
+
+  .primereact-dropdown-wrapper .dropdown-label {
+    font-size: 0.8125rem;
+  }
+
+  .primereact-dropdown-wrapper .p-dropdown {
+    font-size: 0.8125rem;
+  }
+}

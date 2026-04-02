@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react';
-import { Search, Palette } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@hooks/useI18n';
 import { ColorService } from '@services/colorService';
 import type { Color } from '../types/index';
 import { formatDate } from '../utils/date';
-import '../styles/ColorsPage.css';
+import { Button } from 'primereact/button';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
+import { Checkbox } from 'primereact/checkbox';
+import { Tag } from 'primereact/tag';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
 
 interface ColorFormData {
   name: string;
@@ -56,8 +63,8 @@ export function ColorsPage() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setError(null);
 
     try {
@@ -117,145 +124,128 @@ export function ColorsPage() {
     setShowForm(false);
   };
 
-  const filteredColors = colors.filter((color) =>
-    (color.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (color.hexCode || '').toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredColors = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return colors;
+    return colors.filter((color) =>
+      (color.name || '').toLowerCase().includes(query) ||
+      (color.hexCode || '').toLowerCase().includes(query)
+    );
+  }, [colors, searchTerm]);
+
+  const formFooter = (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+      <Button type="button" label={t('common.cancel') || 'Cancel'} severity="secondary" onClick={handleCancel} />
+      <Button type="button" label={t('common.save') || 'Save'} onClick={() => handleSubmit()} />
+    </div>
   );
 
   if (isLoading) {
-    return <div className="page-loading">{t('messages.loading')}</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
   }
 
   return (
-    <div className="colors-page">
-      <div className="page-header">
-        <div className="page-title">
-          <Palette size={28} />
-          <h1>{t('navigation.colors') || 'Colors'}</h1>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+        <div>
+          <h1 style={{ margin: 0 }}>{t('navigation.colors') || 'Colors'}</h1>
+          <div style={{ color: 'var(--text-color-secondary)' }}>{filteredColors.length} {t('common.list') || 'items'}</div>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-          + {t('common.add') || 'Add Color'}
-        </button>
+        <Button icon="pi pi-plus" label={t('common.add') || 'Add Color'} onClick={() => setShowForm(true)} />
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && <Message severity="error" text={error} />}
 
-      <div className="colors-controls">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder={t('common.search') || 'Search'}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', margin: '1rem 0' }}>
+        <span className="p-input-icon-left" style={{ width: '100%', maxWidth: '420px' }}>
+          <i className="pi pi-search" />
+          <InputText
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
+            placeholder={t('common.search') || 'Search'}
+            style={{ width: '100%' }}
           />
-          <Search size={18} className="search-icon" />
-        </div>
-        <div className="results-count">
-          {filteredColors.length} {t('common.list') || 'items'}
-        </div>
+        </span>
       </div>
 
-      <div className="colors-table">
-        <div className="colors-header">
-          <div>{t('common.name') || 'Name'}</div>
-          <div>{t('common.color') || 'Color'}</div>
-          <div>{t('common.status') || 'Status'}</div>
-          <div>{t('common.updated') || 'Updated'}</div>
-          <div>{t('common.actions') || 'Actions'}</div>
-        </div>
-        {filteredColors.length === 0 ? (
-          <div className="empty-state">
-            <p>{t('messages.noData') || 'No colors found'}</p>
-          </div>
-        ) : (
-          filteredColors.map((color) => (
-            <div className="colors-row" key={color.id}>
-              <div className="color-name">{color.name}</div>
-              <div className="color-chip">
-                <span className="chip" style={{ backgroundColor: color.hexCode }} />
-                <span>{color.hexCode}</span>
-              </div>
-              <div>
-                <span className={`status-pill ${color.isActive ? 'active' : 'inactive'}`}>
-                  {color.isActive ? (t('common.active') || 'Active') : (t('common.inactive') || 'Inactive')}
-                </span>
-              </div>
-              <div>{formatDate(color.updatedAt || color.createdAt)}</div>
-              <div className="row-actions">
-                <button className="btn btn-sm btn-edit" onClick={() => handleEdit(color)}>
-                  {t('common.edit') || 'Edit'}
-                </button>
-                <button className="btn btn-sm btn-delete" onClick={() => handleDelete(color.id)}>
-                  {t('common.delete') || 'Delete'}
-                </button>
-              </div>
+      <DataTable value={filteredColors} dataKey="id" paginator rows={10} rowsPerPageOptions={[10, 25, 50]} emptyMessage={t('messages.noData')} size="small">
+        <Column field="name" header={t('common.name') || 'Name'} />
+        <Column
+          header={t('common.color') || 'Color'}
+          body={(row: Color) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ width: '18px', height: '18px', borderRadius: '4px', backgroundColor: row.hexCode, border: '1px solid var(--surface-border)' }} />
+              <span>{row.hexCode}</span>
             </div>
-          ))
-        )}
-      </div>
+          )}
+        />
+        <Column
+          header={t('common.status') || 'Status'}
+          body={(row: Color) => (
+            <Tag value={row.isActive ? (t('common.active') || 'Active') : (t('common.inactive') || 'Inactive')} severity={row.isActive ? 'success' : 'secondary'} />
+          )}
+        />
+        <Column header={t('common.updated') || 'Updated'} body={(row: Color) => formatDate(row.updatedAt || row.createdAt)} />
+        <Column
+          header={t('common.actions') || 'Actions'}
+          body={(row: Color) => (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Button icon="pi pi-pencil" text onClick={() => handleEdit(row)} aria-label={t('common.edit') || 'Edit'} />
+              <Button icon="pi pi-trash" text severity="danger" onClick={() => handleDelete(row.id)} aria-label={t('common.delete') || 'Delete'} />
+            </div>
+          )}
+        />
+      </DataTable>
 
-      {showForm && (
-        <div className="modal-overlay" onClick={handleCancel}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>{editingId ? (t('common.edit') || 'Edit Color') : (t('common.add') || 'Add Color')}</h2>
-            <form onSubmit={handleSubmit} className="color-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="name">{t('common.name') || 'Name'} *</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g., PU"
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="hexCode">{t('common.color') || 'Color'} *</label>
-                  <input
-                    type="text"
-                    id="hexCode"
-                    name="hexCode"
-                    value={formData.hexCode}
-                    onChange={handleInputChange}
-                    required
-                    pattern="^#[0-9A-Fa-f]{6}$"
-                    placeholder="#RRGGBB"
-                  />
-                </div>
-              </div>
-
-              <div className="form-row single">
-                <label className="toggle">
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    checked={formData.isActive}
-                    onChange={handleInputChange}
-                  />
-                  <span>{t('common.active') || 'Active'}</span>
-                </label>
-                <div className="preview">
-                  <span className="chip" style={{ backgroundColor: formData.hexCode }} />
-                  <span>{formData.hexCode}</span>
-                </div>
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn btn-primary">
-                  {t('common.save') || 'Save'}
-                </button>
-                <button type="button" className="btn btn-secondary" onClick={handleCancel}>
-                  {t('common.cancel') || 'Cancel'}
-                </button>
-              </div>
-            </form>
+      <Dialog
+        header={editingId ? (t('common.edit') || 'Edit Color') : (t('common.add') || 'Add Color')}
+        visible={showForm}
+        onHide={handleCancel}
+        footer={formFooter}
+        style={{ width: 'min(600px, 95vw)' }}
+      >
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <label htmlFor="name">{t('common.name') || 'Name'} *</label>
+            <InputText
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              required
+            />
           </div>
-        </div>
-      )}
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <label htmlFor="hexCode">{t('common.color') || 'Color'} *</label>
+            <InputText
+              id="hexCode"
+              name="hexCode"
+              value={formData.hexCode}
+              onChange={handleInputChange}
+              required
+              pattern="^#[0-9A-Fa-f]{6}$"
+              placeholder="#RRGGBB"
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Checkbox
+              inputId="isActive"
+              name="isActive"
+              checked={formData.isActive}
+              onChange={(e) => setFormData((prev) => ({ ...prev, isActive: !!e.checked }))}
+            />
+            <label htmlFor="isActive">{t('common.active') || 'Active'}</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
+              <span style={{ width: '18px', height: '18px', borderRadius: '4px', backgroundColor: formData.hexCode, border: '1px solid var(--surface-border)' }} />
+              <span>{formData.hexCode}</span>
+            </div>
+          </div>
+        </form>
+      </Dialog>
     </div>
   );
 }

@@ -3,7 +3,12 @@ import { Roll, Altier } from '../types/index';
 import rollMovementService, { RollMovement } from '../services/rollMovementService';
 import { RollService } from '../services/rollService';
 import { AltierService } from '../services/altierService';
-import '../styles/RollMovementForm.css';
+import { Button } from 'primereact/button';
+import { Dialog } from 'primereact/dialog';
+import { Dropdown } from 'primereact/dropdown';
+import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { Message } from 'primereact/message';
 
 interface RollMovementFormProps {
   mode: 'create' | 'edit';
@@ -76,7 +81,7 @@ export function RollMovementForm({
       try {
         const response = await AltierService.getAll();
         if (response.success && response.data) {
-          setAltiers(response.data);
+          setAltiers(response.data.items || []);
         }
       } catch (err) {
         console.error('Failed to load altiers:', err);
@@ -98,9 +103,10 @@ export function RollMovementForm({
       setLoadingRolls(true);
       const response = await RollService.getAll();
       if (response.success && response.data) {
+        const items = response.data.items || [];
         // Filter rolls that are at the selected fromAltier and available
-        const filteredRolls = response.data.filter(
-          (roll) =>
+        const filteredRolls = items.filter(
+          (roll: Roll) =>
             roll.altierId === formData.fromAltierID &&
             (roll.status === 'AVAILABLE' || roll.status === 'OPENED')
         );
@@ -131,7 +137,6 @@ export function RollMovementForm({
       ...prev,
       rollId
     }));
-    setStep('details');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -214,132 +219,120 @@ export function RollMovementForm({
 
   const userAvailableAltiers = altiers.filter((a) => userAltierIds.includes(a.id));
   const otherAltiers = altiers.filter((a) => a.id !== formData.fromAltierID);
-
   const selectedRoll = availableRolls.find((r) => r.id === formData.rollId);
 
+  const rollOptions = availableRolls.map((roll) => ({
+    label: `Roll ${roll.id.substring(0, 8)}... • ${roll.materialType} • ${roll.widthMm}mm × ${(roll.lengthRemainingM || roll.lengthM).toFixed(2)}m`,
+    value: roll.id,
+  }));
+
+  const altierOptions = userAvailableAltiers.map((altier) => ({
+    label: `${altier.libelle} (${altier.adresse})`,
+    value: altier.id,
+  }));
+
+  const destinationOptions = otherAltiers.map((altier) => ({
+    label: `${altier.libelle} (${altier.adresse})`,
+    value: altier.id,
+  }));
+
   return (
-    <div className="roll-movement-form-overlay">
-      <div className="roll-movement-form-container">
-        <h2>{mode === 'create' ? 'Create New Movement' : 'Edit Movement'}</h2>
+    <Dialog
+      visible
+      header={mode === 'create' ? 'Create Movement' : 'Edit Movement'}
+      onHide={onCancel}
+      style={{ width: 'min(800px, 95vw)' }}
+    >
+      {error && <Message severity="error" text={error} />}
 
-        {error && <div className="form-error-message">{error}</div>}
+      {mode === 'create' && step === 'roll' && (
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          <div>
+            <label htmlFor="fromAltierID">From Altier</label>
+            <Dropdown
+              id="fromAltierID"
+              value={formData.fromAltierID}
+              options={altierOptions}
+              onChange={(e) => setFormData((prev) => ({ ...prev, fromAltierID: e.value }))}
+              placeholder="-- Select Source --"
+              filter
+              required
+            />
+          </div>
 
-        {/* Step 1: Select Roll */}
-        {mode === 'create' && step === 'roll' && (
-          <div className="form-step">
-            <h3>Step 1: Select Roll</h3>
-            
-            <div className="form-group">
-              <label htmlFor="fromAltierID">From Altier</label>
-              <select
-                id="fromAltierID"
-                name="fromAltierID"
-                value={formData.fromAltierID}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">-- Select Source --</option>
-                {userAvailableAltiers.map((altier) => (
-                  <option key={altier.id} value={altier.id}>
-                    {altier.libelle} ({altier.adresse})
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label htmlFor="rollId">Roll</label>
+            <Dropdown
+              id="rollId"
+              value={formData.rollId}
+              options={rollOptions}
+              onChange={(e) => handleRollSelect(e.value)}
+              placeholder={loadingRolls ? 'Loading rolls...' : '-- Select Roll --'}
+              filter
+              disabled={loadingRolls}
+              required
+            />
+            {!loadingRolls && availableRolls.length === 0 && (
+              <Message severity="info" text={`No available rolls at ${userAvailableAltiers.find(a => a.id === formData.fromAltierID)?.libelle || ''}`} />
+            )}
+          </div>
 
-            {loadingRolls ? (
-              <div className="loading">Loading rolls...</div>
-            ) : availableRolls.length === 0 ? (
-              <div className="empty-state">
-                <p>No available rolls at {userAvailableAltiers.find(a => a.id === formData.fromAltierID)?.libelle}</p>
-              </div>
-            ) : (
-              <div className="rolls-grid">
-                {availableRolls.map((roll) => (
-                  <button
-                    key={roll.id}
-                    type="button"
-                    className={`roll-card ${formData.rollId === roll.id ? 'selected' : ''}`}
-                    onClick={() => handleRollSelect(roll.id)}
-                  >
-                    <div className="roll-info">
-                      <div className="roll-id">Roll {roll.id.substring(0, 8)}...</div>
-                      <div className="roll-details">
-                        <span className="material">{roll.materialType}</span>
-                        <span className="size">{roll.widthMm}mm × {(roll.lengthRemainingM || roll.lengthM).toFixed(2)}m</span>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <Button
+              label="Next"
+              onClick={() => setStep('details')}
+              disabled={!formData.rollId}
+            />
+            <Button label="Cancel" severity="secondary" onClick={onCancel} />
+          </div>
+        </div>
+      )}
+
+      {(step === 'details' || mode === 'edit') && (
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {mode === 'create' && (
+              <div>
+                <label>Selected Roll</label>
+                <div>
+                  {selectedRoll ? (
+                    <div>
+                      <strong>Roll {selectedRoll.id.substring(0, 8)}...</strong>
+                      <div>
+                        Material: {selectedRoll.materialType} | Size: {selectedRoll.widthMm}mm × {(selectedRoll.lengthRemainingM || selectedRoll.lengthM).toFixed(2)}m | Area: {((selectedRoll.areaM2 || 0) - (selectedRoll.totalWasteAreaM2 || 0)).toFixed(2)}m²
                       </div>
-                      <div className="roll-area">Area: {(roll.areaM2 || 0).toFixed(2)}m²</div>
-                      <div className="roll-status">{roll.status}</div>
                     </div>
-                  </button>
-                ))}
+                  ) : (
+                    'No roll selected'
+                  )}
+                </div>
               </div>
             )}
 
-            <div className="form-actions">
-              <button type="button" className="btn-cancel" onClick={onCancel}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Details (Create/Edit) */}
-        {(step === 'details' || mode === 'edit') && (
-          <form onSubmit={handleSubmit} className="form-step">
-            <h3>{mode === 'create' ? 'Step 2: Details' : 'Edit Movement'}</h3>
-            <div className="form-grid">
-              {mode === 'create' && (
-                <div className="form-group full-width">
-                  <label>Selected Roll</label>
-                  <div className="selected-roll-info">
-                    {selectedRoll ? (
-                      <>
-                        <strong>Roll {selectedRoll.id.substring(0, 8)}...</strong>
-                        <div>
-                          Material: {selectedRoll.materialType} | Size:{' '}
-                          {selectedRoll.widthMm}mm × {(selectedRoll.lengthRemainingM || selectedRoll.lengthM).toFixed(2)}m | Area:{' '}
-                          {((selectedRoll.areaM2 || 0) - (selectedRoll.totalWasteAreaM2 || 0)).toFixed(2)}m²
-                        </div>
-                      </>
-                    ) : (
-                      'No roll selected'
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label htmlFor="fromAltierID">From Altier</label>
-                <input
-                  type="text"
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div>
+                <label htmlFor="fromAltierDisplay">From Altier</label>
+                <InputText
                   id="fromAltierDisplay"
                   value={altiers.find((a) => a.id === formData.fromAltierID)?.libelle || ''}
                   disabled
                 />
               </div>
-
-              <div className="form-group">
+              <div>
                 <label htmlFor="toAltierID">To Altier *</label>
-                <select
+                <Dropdown
                   id="toAltierID"
-                  name="toAltierID"
                   value={formData.toAltierID}
-                  onChange={handleInputChange}
+                  options={destinationOptions}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, toAltierID: e.value }))}
+                  placeholder="-- Select Destination --"
+                  filter
                   required
-                >
-                  <option value="">-- Select Destination --</option>
-                  {otherAltiers.map((altier) => (
-                    <option key={altier.id} value={altier.id}>
-                      {altier.libelle} ({altier.adresse})
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
-
-              <div className="form-group">
+              <div>
                 <label htmlFor="dateSortie">Date Sortie (Exit Date) *</label>
-                <input
+                <InputText
                   type="datetime-local"
                   id="dateSortie"
                   name="dateSortie"
@@ -348,11 +341,10 @@ export function RollMovementForm({
                   required
                 />
               </div>
-
               {mode === 'edit' && (
-                <div className="form-group">
+                <div>
                   <label htmlFor="dateEntree">Date Entree (Entry Date)</label>
-                  <input
+                  <InputText
                     type="datetime-local"
                     id="dateEntree"
                     name="dateEntree"
@@ -361,52 +353,45 @@ export function RollMovementForm({
                   />
                 </div>
               )}
-
-              <div className="form-group full-width">
-                <label htmlFor="reason">Movement Type / Reason</label>
-                <input
-                  type="text"
-                  id="reason"
-                  name="reason"
-                  value={formData.reason}
-                  onChange={handleInputChange}
-                  placeholder="e.g., INTERNAL_TRANSFER, DELIVERY..."
-                />
-              </div>
-
-              <div className="form-group full-width">
-                <label htmlFor="notes">Notes</label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleInputChange}
-                  rows={3}
-                  placeholder="Additional notes about this movement..."
-                />
-              </div>
             </div>
 
-            <div className="form-actions">
+            <div>
+              <label htmlFor="reason">Movement Type / Reason</label>
+              <InputText
+                id="reason"
+                name="reason"
+                value={formData.reason}
+                onChange={handleInputChange}
+                placeholder="e.g., INTERNAL_TRANSFER, DELIVERY..."
+              />
+            </div>
+
+            <div>
+              <label htmlFor="notes">Notes</label>
+              <InputTextarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleInputChange}
+                rows={3}
+                placeholder="Additional notes about this movement..."
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               {mode === 'create' && step === 'details' && (
-                <button type="button" className="btn-secondary" onClick={() => setStep('roll')}>
-                  Back
-                </button>
+                <Button type="button" label="Back" severity="secondary" onClick={() => setStep('roll')} />
               )}
-              <button
+              <Button
                 type="submit"
-                className="btn-primary"
+                label={loading ? 'Saving...' : mode === 'create' ? 'Create Movement' : 'Update Movement'}
                 disabled={loading}
-              >
-                {loading ? 'Saving...' : mode === 'create' ? 'Create Movement' : 'Update Movement'}
-              </button>
-              <button type="button" className="btn-cancel" onClick={onCancel}>
-                Cancel
-              </button>
+              />
+              <Button type="button" label="Cancel" severity="secondary" onClick={onCancel} />
             </div>
-          </form>
-        )}
-      </div>
-    </div>
+          </div>
+        </form>
+      )}
+    </Dialog>
   );
 }

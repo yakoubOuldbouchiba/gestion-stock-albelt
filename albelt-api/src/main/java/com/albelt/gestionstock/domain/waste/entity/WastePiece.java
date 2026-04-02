@@ -5,6 +5,7 @@ import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -84,7 +85,8 @@ public class WastePiece {
     private WasteStatus status;
 
     @Column(name = "waste_type", length = 50)
-    private String wasteType; // CHUTE_EXPLOITABLE, DECHET
+    @Enumerated(EnumType.STRING)
+    private WasteType wasteType; // CHUTE_EXPLOITABLE, DECHET
 
     // Location & Tracking (same as rolls)
     @ManyToOne(fetch = FetchType.EAGER)
@@ -128,6 +130,10 @@ public class WastePiece {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    // External/Internal Reference
+    @Column(name = "reference", length = 100)
+    private String reference;
 
     /**
      * Check if waste piece is large enough for reuse (> 3m²)

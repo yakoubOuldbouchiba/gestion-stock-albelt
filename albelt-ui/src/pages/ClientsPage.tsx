@@ -1,24 +1,36 @@
 import { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, Search, Phone, Mail, MapPin, Users, X } from 'lucide-react';
 import { useI18n } from '@hooks/useI18n';
 import type {
   Client,
   ClientRequest,
+  ClientPhoneRequest,
+  ClientEmailRequest,
+  ClientAddressRequest,
+  ClientRepresentativeRequest,
 } from '../types/index';
 import { ClientService } from '@services/clientService';
-import { Pagination } from '@components/Pagination';
-import '../styles/ClientsPage.css';
+import { Button } from 'primereact/button';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { Dropdown } from 'primereact/dropdown';
+import { Checkbox } from 'primereact/checkbox';
+import { Tag } from 'primereact/tag';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
 
 export function ClientsPage() {
   const { t } = useI18n();
   const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedClientId, setExpandedClientId] = useState<string | null>(null);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const pageSize = 20;
 
@@ -68,6 +80,7 @@ export function ClientsPage() {
 
   const loadClients = async (pageIndex: number, search: string) => {
     setError(null);
+    setLoading(true);
     try {
       const response = await ClientService.getAll({
         page: pageIndex,
@@ -76,12 +89,13 @@ export function ClientsPage() {
       });
       if (response.success && response.data) {
         setClients(response.data.items || []);
-        setTotalPages(response.data.totalPages || 0);
         setTotalElements(response.data.totalElements || 0);
       }
     } catch (err) {
       setError(t('clients.failedToLoadClients'));
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,7 +113,7 @@ export function ClientsPage() {
         setPage(0);
         await loadClients(0, searchTerm);
         resetForms();
-        setShowAddForm(false);
+        setShowForm(false);
       }
     } catch (err) {
       setError(t('clients.failedToCreateClient'));
@@ -121,6 +135,7 @@ export function ClientsPage() {
         await loadClients(page, searchTerm);
         setEditingClientId(null);
         resetForms();
+        setShowForm(false);
       }
     } catch (err) {
       setError(t('clients.failedToUpdateClient'));
@@ -276,8 +291,7 @@ export function ClientsPage() {
       })),
     });
     setEditingClientId(client.id);
-    setExpandedClientId(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowForm(true);
   };
 
   const resetForms = () => {
@@ -304,535 +318,370 @@ export function ClientsPage() {
     setEditingClientId(null);
   };
 
-  const filteredClients = clients.filter(c => c.isActive);
+  const statusOptions = [
+    { label: t('clients.active'), value: true },
+    { label: t('clients.inactive'), value: false },
+  ];
+
+  const phoneTypeOptions = [
+    { label: t('clients.phoneTypeMobile'), value: 'MOBILE' },
+    { label: t('clients.phoneTypeWork'), value: 'LANDLINE' },
+    { label: t('clients.phoneTypeOther'), value: 'OTHER' },
+  ];
+
+  const emailTypeOptions = [
+    { label: t('clients.emailTypeWork'), value: 'BUSINESS' },
+    { label: t('clients.emailTypePersonal'), value: 'PERSONAL' },
+    { label: t('clients.emailTypeOther'), value: 'OTHER' },
+  ];
+
+  const addressTypeOptions = [
+    { label: t('clients.addressTypeOffice'), value: 'BUSINESS' },
+    { label: t('clients.addressTypeWarehouse'), value: 'BILLING' },
+    { label: t('clients.addressTypeHeadquarters'), value: 'SHIPPING' },
+    { label: t('clients.addressTypeOther'), value: 'OTHER' },
+  ];
+
+  const formFooter = (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+      <Button
+        type="button"
+        label={t('common.cancel')}
+        severity="secondary"
+        onClick={() => {
+          resetForms();
+          setShowForm(false);
+        }}
+      />
+      <Button
+        type="button"
+        label={editingClientId ? t('clients.editClient') : t('clients.addClient')}
+        onClick={() => {
+          if (editingClientId) {
+            handleUpdateClient(editingClientId);
+          } else {
+            handleAddClient();
+          }
+        }}
+      />
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
+  }
 
   return (
-    <div className="clients-page">
-      <div className="page-header">
-        <div className="header-section">
-          <h1>{t('clients.title')}</h1>
-          <p className="subtitle">{t('clients.subtitle')}</p>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+        <div>
+          <h1 style={{ margin: 0 }}>{t('clients.title')}</h1>
+          <div style={{ color: 'var(--text-color-secondary)' }}>{t('clients.subtitle')}</div>
         </div>
+        <Button icon="pi pi-plus" label={t('clients.addClient')} onClick={() => setShowForm(true)} />
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <Message severity="error" text={error} />}
 
-      <div className="search-section">
-        <Search className="search-icon" size={20} />
-        <input
-          type="text"
-          placeholder={t('clients.searchClients')}
-          value={searchTerm}
-          onChange={handleSearch}
-          className="search-input"
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', margin: '1rem 0' }}>
+        <span className="p-input-icon-left" style={{ width: '100%', maxWidth: '420px' }}>
+          <i className="pi pi-search" />
+          <InputText
+            value={searchTerm}
+            onChange={handleSearch}
+            placeholder={t('clients.searchClients')}
+            style={{ width: '100%' }}
+          />
+        </span>
+      </div>
+
+      <DataTable
+        value={clients}
+        dataKey="id"
+        lazy
+        paginator
+        first={page * pageSize}
+        rows={pageSize}
+        totalRecords={totalElements}
+        onPage={(e) => setPage(e.page ?? 0)}
+        emptyMessage={t('clients.noClients')}
+        size="small"
+      >
+        <Column field="name" header={t('clients.clientName')} />
+        <Column field="description" header={t('clients.description')} body={(row: Client) => row.description || t('common.dash')} />
+        <Column
+          header={t('clients.phoneNumber')}
+          body={(row: Client) => row.phones?.find((p) => p.isMain)?.phoneNumber || t('common.dash')}
         />
-      </div>
+        <Column
+          header={t('clients.emailAddress')}
+          body={(row: Client) => row.emails?.find((e) => e.isMain)?.emailAddress || t('common.dash')}
+        />
+        <Column
+          header={t('clients.status')}
+          body={(row: Client) => (
+            <Tag value={row.isActive ? t('clients.active') : t('clients.inactive')} severity={row.isActive ? 'success' : 'secondary'} />
+          )}
+        />
+        <Column
+          header={t('common.action')}
+          body={(row: Client) => (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Button icon="pi pi-eye" text onClick={() => setDetailClient(row)} aria-label={t('common.view')} />
+              <Button icon="pi pi-pencil" text onClick={() => handleEditClient(row)} aria-label={t('clients.editClient')} />
+              <Button icon="pi pi-trash" text severity="danger" onClick={() => handleDeleteClient(row.id)} aria-label={t('clients.deleteClient')} />
+            </div>
+          )}
+        />
+      </DataTable>
 
-      {/* Add/Edit Client Form */}
-      {(showAddForm || editingClientId) && (
-        <div className="form-container">
-          <div className="form-header">
-            <h2>{editingClientId ? t('clients.editClient') : t('clients.addClient')}</h2>
-            <button
-              className="btn-close"
-              onClick={() => {
-                resetForms();
-                setShowAddForm(false);
-              }}
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <form className="client-form">
-            {/* Basic Info */}
-            <div className="form-section">
-              <h3>{t('clients.clientDetails')}</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>{t('clients.clientName')} *</label>
-                  <input
-                    type="text"
-                    value={clientForm.name}
-                    onChange={e => setClientForm({ ...clientForm, name: e.target.value })}
-                    placeholder={t('clients.clientName')}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>{t('clients.status')}</label>
-                  <select
-                    value={clientForm.isActive ? 'true' : 'false'}
-                    onChange={e => setClientForm({ ...clientForm, isActive: e.target.value === 'true' })}
-                  >
-                    <option value="true">{t('clients.active')}</option>
-                    <option value="false">{t('clients.inactive')}</option>
-                  </select>
-                </div>
+      <Dialog
+        header={editingClientId ? t('clients.editClient') : t('clients.addClient')}
+        visible={showForm}
+        onHide={() => {
+          resetForms();
+          setShowForm(false);
+        }}
+        footer={formFooter}
+        style={{ width: 'min(900px, 95vw)' }}
+      >
+        <form style={{ display: 'grid', gap: '1.5rem' }}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <h3 style={{ margin: 0 }}>{t('clients.clientDetails')}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.clientName')} *</label>
+                <InputText
+                  value={clientForm.name}
+                  onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                  required
+                />
               </div>
-              <div className="form-group">
-                <label>{t('clients.description')}</label>
-                <textarea
-                  value={clientForm.description || ''}
-                  onChange={e => setClientForm({ ...clientForm, description: e.target.value })}
-                  placeholder={t('clients.descriptionPlaceholder')}
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.status')}</label>
+                <Dropdown
+                  value={clientForm.isActive}
+                  options={statusOptions}
+                  onChange={(e) => setClientForm({ ...clientForm, isActive: !!e.value })}
                 />
               </div>
             </div>
-
-            {/* Phones Section */}
-            <div className="form-section">
-              <h3><Phone size={18} /> {t('clients.phones')}</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>{t('clients.phoneNumber')}</label>
-                  <input
-                    type="tel"
-                    value={tempPhone.phoneNumber}
-                    onChange={e => setTempPhone({ ...tempPhone, phoneNumber: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>{t('clients.phoneType')}</label>
-                  <select
-                    value={tempPhone.phoneType}
-                    onChange={e => setTempPhone({ ...tempPhone, phoneType: e.target.value })}
-                  >
-                    <option value="MOBILE">{t('clients.phoneTypeMobile')}</option>
-                    <option value="LANDLINE">{t('clients.phoneTypeWork')}</option>
-                    <option value="OTHER">{t('clients.phoneTypeOther')}</option>
-                  </select>
-                </div>
-                <div className="form-group checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={tempPhone.isMain}
-                      onChange={e => setTempPhone({ ...tempPhone, isMain: e.target.checked })}
-                    />
-                    {t('clients.isMainPhone')}
-                  </label>
-                </div>
-                <button type="button" onClick={handleAddPhone} className="btn-add">
-                  <Plus size={18} /> {t('common.add')}
-                </button>
-              </div>
-
-              {clientForm.phones && clientForm.phones.length > 0 && (
-                <div className="items-list">
-                  {clientForm.phones.map((phone, idx) => (
-                    <div key={idx} className="item">
-                      <div className="item-content">
-                        <strong>{phone.phoneNumber}</strong>
-                        {phone.isMain && <span className="badge">{t('clients.isMainPhone')}</span>}
-                        <span className="type-badge">{phone.phoneType}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePhone(idx)}
-                        className="btn-remove"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <label>{t('clients.description')}</label>
+              <InputTextarea
+                value={clientForm.description || ''}
+                onChange={(e) => setClientForm({ ...clientForm, description: e.target.value })}
+                rows={3}
+              />
             </div>
+          </div>
 
-            {/* Emails Section */}
-            <div className="form-section">
-              <h3><Mail size={18} /> {t('clients.emails')}</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>{t('clients.emailAddress')}</label>
-                  <input
-                    type="email"
-                    value={tempEmail.emailAddress}
-                    onChange={e => setTempEmail({ ...tempEmail, emailAddress: e.target.value })}
-                    placeholder={t('clients.emailAddress')}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>{t('clients.emailType')}</label>
-                  <select
-                    value={tempEmail.emailType}
-                    onChange={e => setTempEmail({ ...tempEmail, emailType: e.target.value })}
-                  >
-                    <option value="BUSINESS">{t('clients.emailTypeWork')}</option>
-                    <option value="PERSONAL">{t('clients.emailTypePersonal')}</option>
-                    <option value="OTHER">{t('clients.emailTypeOther')}</option>
-                  </select>
-                </div>
-                <div className="form-group checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={tempEmail.isMain}
-                      onChange={e => setTempEmail({ ...tempEmail, isMain: e.target.checked })}
-                    />
-                    {t('clients.isMainEmail')}
-                  </label>
-                </div>
-                <button type="button" onClick={handleAddEmail} className="btn-add">
-                  <Plus size={18} /> {t('common.add')}
-                </button>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <h3 style={{ margin: 0 }}>{t('clients.phones')}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.phoneNumber')}</label>
+                <InputText value={tempPhone.phoneNumber} onChange={(e) => setTempPhone({ ...tempPhone, phoneNumber: e.target.value })} />
               </div>
-
-              {clientForm.emails && clientForm.emails.length > 0 && (
-                <div className="items-list">
-                  {clientForm.emails.map((email, idx) => (
-                    <div key={idx} className="item">
-                      <div className="item-content">
-                        <strong>{email.emailAddress}</strong>
-                        {email.isMain && <span className="badge">{t('clients.isMainEmail')}</span>}
-                        <span className="type-badge">{email.emailType}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveEmail(idx)}
-                        className="btn-remove"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.phoneType')}</label>
+                <Dropdown value={tempPhone.phoneType} options={phoneTypeOptions} onChange={(e) => setTempPhone({ ...tempPhone, phoneType: e.value })} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Checkbox checked={!!tempPhone.isMain} onChange={(e) => setTempPhone({ ...tempPhone, isMain: !!e.checked })} />
+                <label>{t('clients.isMainPhone')}</label>
+              </div>
+              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddPhone} />
             </div>
+            {clientForm.phones && clientForm.phones.length > 0 && (
+              <DataTable value={clientForm.phones} size="small">
+                <Column field="phoneNumber" header={t('clients.phoneNumber')} />
+                <Column header={t('clients.phoneType')} body={(row: ClientPhoneRequest) => <Tag value={row.phoneType} />} />
+                <Column header={t('clients.isMainPhone')} body={(row: ClientPhoneRequest) => (row.isMain ? <Tag value={t('clients.isMainPhone')} severity="success" /> : t('common.dash'))} />
+                <Column body={(_, { rowIndex }) => (
+                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemovePhone(rowIndex)} />
+                )} />
+              </DataTable>
+            )}
+          </div>
 
-            {/* Addresses Section */}
-            <div className="form-section">
-              <h3><MapPin size={18} /> {t('clients.addresses')}</h3>
-              <div className="form-group">
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <h3 style={{ margin: 0 }}>{t('clients.emails')}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.emailAddress')}</label>
+                <InputText value={tempEmail.emailAddress} onChange={(e) => setTempEmail({ ...tempEmail, emailAddress: e.target.value })} />
+              </div>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.emailType')}</label>
+                <Dropdown value={tempEmail.emailType} options={emailTypeOptions} onChange={(e) => setTempEmail({ ...tempEmail, emailType: e.value })} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Checkbox checked={!!tempEmail.isMain} onChange={(e) => setTempEmail({ ...tempEmail, isMain: !!e.checked })} />
+                <label>{t('clients.isMainEmail')}</label>
+              </div>
+              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddEmail} />
+            </div>
+            {clientForm.emails && clientForm.emails.length > 0 && (
+              <DataTable value={clientForm.emails} size="small">
+                <Column field="emailAddress" header={t('clients.emailAddress')} />
+                <Column header={t('clients.emailType')} body={(row: ClientEmailRequest) => <Tag value={row.emailType} />} />
+                <Column header={t('clients.isMainEmail')} body={(row: ClientEmailRequest) => (row.isMain ? <Tag value={t('clients.isMainEmail')} severity="success" /> : t('common.dash'))} />
+                <Column body={(_, { rowIndex }) => (
+                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemoveEmail(rowIndex)} />
+                )} />
+              </DataTable>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <h3 style={{ margin: 0 }}>{t('clients.addresses')}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
                 <label>{t('clients.streetAddress')}</label>
-                <input
-                  type="text"
-                  value={tempAddress.streetAddress}
-                  onChange={e => setTempAddress({ ...tempAddress, streetAddress: e.target.value })}
-                  placeholder={t('clients.streetAddressPlaceholder')}
-                />
+                <InputText value={tempAddress.streetAddress} onChange={(e) => setTempAddress({ ...tempAddress, streetAddress: e.target.value })} />
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>{t('clients.city')}</label>
-                  <input
-                    type="text"
-                    value={tempAddress.city}
-                    onChange={e => setTempAddress({ ...tempAddress, city: e.target.value })}
-                    placeholder={t('clients.city')}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>{t('clients.postalCode')}</label>
-                  <input
-                    type="text"
-                    value={tempAddress.postalCode}
-                    onChange={e => setTempAddress({ ...tempAddress, postalCode: e.target.value })}
-                    placeholder={t('clients.postalCode')}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>{t('clients.country')}</label>
-                  <input
-                    type="text"
-                    value={tempAddress.country}
-                    onChange={e => setTempAddress({ ...tempAddress, country: e.target.value })}
-                    placeholder={t('clients.country')}
-                  />
-                </div>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.city')}</label>
+                <InputText value={tempAddress.city} onChange={(e) => setTempAddress({ ...tempAddress, city: e.target.value })} />
               </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>{t('clients.addressType')}</label>
-                  <select
-                    value={tempAddress.addressType}
-                    onChange={e => setTempAddress({ ...tempAddress, addressType: e.target.value })}
-                  >
-                    <option value="BUSINESS">{t('clients.addressTypeOffice')}</option>
-                    <option value="BILLING">{t('clients.addressTypeWarehouse')}</option>
-                    <option value="SHIPPING">{t('clients.addressTypeHeadquarters')}</option>
-                    <option value="OTHER">{t('clients.addressTypeOther')}</option>
-                  </select>
-                </div>
-                <div className="form-group checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={tempAddress.isMain}
-                      onChange={e => setTempAddress({ ...tempAddress, isMain: e.target.checked })}
-                    />
-                    {t('clients.isMainAddress')}
-                  </label>
-                </div>
-                <button type="button" onClick={handleAddAddress} className="btn-add">
-                  <Plus size={18} /> {t('common.add')}
-                </button>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.postalCode')}</label>
+                <InputText value={tempAddress.postalCode} onChange={(e) => setTempAddress({ ...tempAddress, postalCode: e.target.value })} />
               </div>
-
-              {clientForm.addresses && clientForm.addresses.length > 0 && (
-                <div className="items-list">
-                  {clientForm.addresses.map((addr, idx) => (
-                    <div key={idx} className="item">
-                      <div className="item-content">
-                        <strong>{addr.streetAddress}</strong>
-                        {addr.city && <span>, {addr.city}</span>}
-                        {addr.isMain && <span className="badge">{t('clients.isMainAddress')}</span>}
-                        <span className="type-badge">{addr.addressType}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAddress(idx)}
-                        className="btn-remove"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.country')}</label>
+                <InputText value={tempAddress.country} onChange={(e) => setTempAddress({ ...tempAddress, country: e.target.value })} />
+              </div>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.addressType')}</label>
+                <Dropdown value={tempAddress.addressType} options={addressTypeOptions} onChange={(e) => setTempAddress({ ...tempAddress, addressType: e.value })} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Checkbox checked={!!tempAddress.isMain} onChange={(e) => setTempAddress({ ...tempAddress, isMain: !!e.checked })} />
+                <label>{t('clients.isMainAddress')}</label>
+              </div>
+              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddAddress} />
             </div>
-
-            {/* Representatives Section */}
-            <div className="form-section">
-              <h3><Users size={18} /> {t('clients.representatives')}</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>{t('clients.representativeName')}</label>
-                  <input
-                    type="text"
-                    value={tempRep.name}
-                    onChange={e => setTempRep({ ...tempRep, name: e.target.value })}
-                    placeholder={t('clients.representativeName')}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>{t('clients.position')}</label>
-                  <input
-                    type="text"
-                    value={tempRep.position}
-                    onChange={e => setTempRep({ ...tempRep, position: e.target.value })}
-                    placeholder={t('clients.position')}
-                  />
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>{t('clients.representativePhone')}</label>
-                  <input
-                    type="tel"
-                    value={tempRep.phone}
-                    onChange={e => setTempRep({ ...tempRep, phone: e.target.value })}
-                    placeholder={t('clients.representativePhone')}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>{t('clients.representativeEmail')}</label>
-                  <input
-                    type="email"
-                    value={tempRep.email}
-                    onChange={e => setTempRep({ ...tempRep, email: e.target.value })}
-                    placeholder={t('clients.representativeEmail')}
-                  />
-                </div>
-                <div className="form-group checkbox">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={tempRep.isPrimary}
-                      onChange={e => setTempRep({ ...tempRep, isPrimary: e.target.checked })}
-                    />
-                    {t('clients.isPrimaryContact')}
-                  </label>
-                </div>
-                <button type="button" onClick={handleAddRep} className="btn-add">
-                  <Plus size={18} /> {t('common.add')}
-                </button>
-              </div>
-
-              {clientForm.representatives && clientForm.representatives.length > 0 && (
-                <div className="items-list">
-                  {clientForm.representatives.map((rep, idx) => (
-                    <div key={idx} className="item">
-                      <div className="item-content">
-                        <strong>{rep.name}</strong>
-                        {rep.position && <span> - {rep.position}</span>}
-                        {rep.isPrimary && <span className="badge">{t('clients.isPrimaryContact')}</span>}
-                        {rep.phone && <span> | {rep.phone}</span>}
-                        {rep.email && <span> | {rep.email}</span>}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveRep(idx)}
-                        className="btn-remove"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="form-actions">
-              <button
-                type="button"
-                onClick={() => {
-                  if (editingClientId) {
-                    handleUpdateClient(editingClientId);
-                  } else {
-                    handleAddClient();
-                  }
-                }}
-                className="btn-primary"
-              >
-                {editingClientId ? t('clients.editClient') : t('clients.addClient')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  resetForms();
-                  setShowAddForm(false);
-                }}
-                className="btn-secondary"
-              >
-                {t('common.cancel')}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Clients List */}
-      <div className="clients-list">
-        <div className="list-header">
-          <h2>{t('clients.title')} ({filteredClients.length})</h2>
-          <button onClick={() => setShowAddForm(true)} className="btn-primary">
-            <Plus size={20} /> {t('clients.addClient')}
-          </button>
-        </div>
-
-        {filteredClients.length === 0 ? (
-          <div className="empty-state">
-            <p>{t('clients.noClients')}</p>
+            {clientForm.addresses && clientForm.addresses.length > 0 && (
+              <DataTable value={clientForm.addresses} size="small">
+                <Column field="streetAddress" header={t('clients.streetAddress')} />
+                <Column field="city" header={t('clients.city')} />
+                <Column field="postalCode" header={t('clients.postalCode')} />
+                <Column field="country" header={t('clients.country')} />
+                <Column header={t('clients.addressType')} body={(row: ClientAddressRequest) => <Tag value={row.addressType} />} />
+                <Column header={t('clients.isMainAddress')} body={(row: ClientAddressRequest) => (row.isMain ? <Tag value={t('clients.isMainAddress')} severity="success" /> : t('common.dash'))} />
+                <Column body={(_, { rowIndex }) => (
+                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemoveAddress(rowIndex)} />
+                )} />
+              </DataTable>
+            )}
           </div>
-        ) : (
-          filteredClients.map(client => (
-            <div key={client.id} className="client-card">
-              <div className="client-header">
-                <div className="client-info">
-                  <h3>{client.name}</h3>
-                  {client.description && <p className="description">{client.description}</p>}
-                  <div className="contact-summary">
-                    {client.phones.filter(p => p.isMain).length > 0 && (
-                      <span className="summary-item">📞 {client.phones.find(p => p.isMain)?.phoneNumber}</span>
-                    )}
-                    {client.emails.filter(e => e.isMain).length > 0 && (
-                      <span className="summary-item">📧 {client.emails.find(e => e.isMain)?.emailAddress}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="client-actions">
-                  <button
-                    onClick={() => handleEditClient(client)}
-                    className="btn-edit"
-                    title={t('clients.editClient')}
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClient(client.id)}
-                    className="btn-delete"
-                    title={t('clients.deleteClient')}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                  <button
-                    onClick={() => setExpandedClientId(expandedClientId === client.id ? null : client.id)}
-                    className="btn-toggle"
-                  >
-                    {expandedClientId === client.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                  </button>
-                </div>
+
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <h3 style={{ margin: 0 }}>{t('clients.representatives')}</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.representativeName')}</label>
+                <InputText value={tempRep.name} onChange={(e) => setTempRep({ ...tempRep, name: e.target.value })} />
               </div>
-
-              {expandedClientId === client.id && (
-                <div className="client-details">
-                  {client.phones.length > 0 && (
-                    <div className="details-section">
-                      <h4><Phone size={16} /> {t('clients.phones')} ({client.phones.length})</h4>
-                      <ul>
-                        {client.phones.map(phone => (
-                          <li key={phone.id}>
-                            <strong>{phone.phoneNumber}</strong>
-                            {phone.isMain && <span className="badge">{t('clients.isMainPhone')}</span>}
-                            <span className="type-badge">{phone.phoneType}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {client.emails.length > 0 && (
-                    <div className="details-section">
-                      <h4><Mail size={16} /> {t('clients.emails')} ({client.emails.length})</h4>
-                      <ul>
-                        {client.emails.map(email => (
-                          <li key={email.id}>
-                            <strong>{email.emailAddress}</strong>
-                            {email.isMain && <span className="badge">{t('clients.isMainEmail')}</span>}
-                            <span className="type-badge">{email.emailType}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {client.addresses.length > 0 && (
-                    <div className="details-section">
-                      <h4><MapPin size={16} /> {t('clients.addresses')} ({client.addresses.length})</h4>
-                      <ul>
-                        {client.addresses.map(address => (
-                          <li key={address.id}>
-                            <strong>{address.streetAddress}</strong>
-                            {address.city && <span>, {address.city}</span>}
-                            {address.postalCode && <span> {address.postalCode}</span>}
-                            {address.isMain && <span className="badge">{t('clients.isMainAddress')}</span>}
-                            <span className="type-badge">{address.addressType}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {client.representatives.length > 0 && (
-                    <div className="details-section">
-                      <h4><Users size={16} /> {t('clients.representatives')} ({client.representatives.length})</h4>
-                      <ul>
-                        {client.representatives.map(rep => (
-                          <li key={rep.id}>
-                            <div>
-                              <strong>{rep.name}</strong>
-                              {rep.position && <span> - {rep.position}</span>}
-                              {rep.isPrimary && <span className="badge">{t('clients.isPrimaryContact')}</span>}
-                            </div>
-                            <div className="rep-contact">
-                              {rep.phone && <span>📞 {rep.phone}</span>}
-                              {rep.email && <span>📧 {rep.email}</span>}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.position')}</label>
+                <InputText value={tempRep.position} onChange={(e) => setTempRep({ ...tempRep, position: e.target.value })} />
+              </div>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.representativePhone')}</label>
+                <InputText value={tempRep.phone} onChange={(e) => setTempRep({ ...tempRep, phone: e.target.value })} />
+              </div>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                <label>{t('clients.representativeEmail')}</label>
+                <InputText value={tempRep.email} onChange={(e) => setTempRep({ ...tempRep, email: e.target.value })} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Checkbox checked={!!tempRep.isPrimary} onChange={(e) => setTempRep({ ...tempRep, isPrimary: !!e.checked })} />
+                <label>{t('clients.isPrimaryContact')}</label>
+              </div>
+              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddRep} />
             </div>
-          ))
-        )}
-      </div>
+            {clientForm.representatives && clientForm.representatives.length > 0 && (
+              <DataTable value={clientForm.representatives} size="small">
+                <Column field="name" header={t('clients.representativeName')} />
+                <Column field="position" header={t('clients.position')} />
+                <Column field="phone" header={t('clients.representativePhone')} />
+                <Column field="email" header={t('clients.representativeEmail')} />
+                <Column header={t('clients.isPrimaryContact')} body={(row: ClientRepresentativeRequest) => (row.isPrimary ? <Tag value={t('clients.isPrimaryContact')} severity="success" /> : t('common.dash'))} />
+                <Column body={(_, { rowIndex }) => (
+                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemoveRep(rowIndex)} />
+                )} />
+              </DataTable>
+            )}
+          </div>
+        </form>
+      </Dialog>
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <Dialog
+        header={detailClient?.name || ''}
+        visible={!!detailClient}
+        onHide={() => setDetailClient(null)}
+        style={{ width: 'min(800px, 95vw)' }}
+      >
+        {detailClient && (
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {detailClient.description && <div>{detailClient.description}</div>}
+            {detailClient.phones?.length > 0 && (
+              <div>
+                <h4 style={{ marginBottom: '0.5rem' }}>{t('clients.phones')}</h4>
+                <DataTable value={detailClient.phones} size="small">
+                  <Column field="phoneNumber" header={t('clients.phoneNumber')} />
+                  <Column header={t('clients.phoneType')} body={(row) => <Tag value={row.phoneType} />} />
+                  <Column header={t('clients.isMainPhone')} body={(row) => (row.isMain ? <Tag value={t('clients.isMainPhone')} severity="success" /> : t('common.dash'))} />
+                </DataTable>
+              </div>
+            )}
+            {detailClient.emails?.length > 0 && (
+              <div>
+                <h4 style={{ marginBottom: '0.5rem' }}>{t('clients.emails')}</h4>
+                <DataTable value={detailClient.emails} size="small">
+                  <Column field="emailAddress" header={t('clients.emailAddress')} />
+                  <Column header={t('clients.emailType')} body={(row) => <Tag value={row.emailType} />} />
+                  <Column header={t('clients.isMainEmail')} body={(row) => (row.isMain ? <Tag value={t('clients.isMainEmail')} severity="success" /> : t('common.dash'))} />
+                </DataTable>
+              </div>
+            )}
+            {detailClient.addresses?.length > 0 && (
+              <div>
+                <h4 style={{ marginBottom: '0.5rem' }}>{t('clients.addresses')}</h4>
+                <DataTable value={detailClient.addresses} size="small">
+                  <Column field="streetAddress" header={t('clients.streetAddress')} />
+                  <Column field="city" header={t('clients.city')} />
+                  <Column field="postalCode" header={t('clients.postalCode')} />
+                  <Column field="country" header={t('clients.country')} />
+                  <Column header={t('clients.addressType')} body={(row) => <Tag value={row.addressType} />} />
+                  <Column header={t('clients.isMainAddress')} body={(row) => (row.isMain ? <Tag value={t('clients.isMainAddress')} severity="success" /> : t('common.dash'))} />
+                </DataTable>
+              </div>
+            )}
+            {detailClient.representatives?.length > 0 && (
+              <div>
+                <h4 style={{ marginBottom: '0.5rem' }}>{t('clients.representatives')}</h4>
+                <DataTable value={detailClient.representatives} size="small">
+                  <Column field="name" header={t('clients.representativeName')} />
+                  <Column field="position" header={t('clients.position')} />
+                  <Column field="phone" header={t('clients.representativePhone')} />
+                  <Column field="email" header={t('clients.representativeEmail')} />
+                  <Column header={t('clients.isPrimaryContact')} body={(row) => (row.isPrimary ? <Tag value={t('clients.isPrimaryContact')} severity="success" /> : t('common.dash'))} />
+                </DataTable>
+              </div>
+            )}
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 }
+
+export default ClientsPage;

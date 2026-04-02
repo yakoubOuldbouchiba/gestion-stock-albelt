@@ -7,7 +7,15 @@ import rollMovementService from '../services/rollMovementService';
 import transferBonService from '../services/transferBonService';
 import { useI18n } from '@hooks/useI18n';
 import { formatDateTime } from '../utils/date';
-import '../styles/TransferBonsPage.css';
+import { Button } from 'primereact/button';
+import { Calendar } from 'primereact/calendar';
+import { Card } from 'primereact/card';
+import { Column } from 'primereact/column';
+import { DataTable } from 'primereact/datatable';
+import { Dropdown } from 'primereact/dropdown';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
+import { Tag } from 'primereact/tag';
 
 export function TransferBonsPage() {
   const { t } = useI18n();
@@ -25,6 +33,17 @@ export function TransferBonsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const getCurrentDateTimeLocal = () => new Date().toISOString().slice(0, 16);
+  const formatDateTimeLocalValue = (date: Date | null) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const parseDateTimeLocalValue = (value: string) => (value ? new Date(value) : null);
 
   const [formData, setFormData] = useState({
     fromAltierID: '',
@@ -52,6 +71,11 @@ export function TransferBonsPage() {
   const otherAltiers = useMemo(
     () => toArray<Altier>(altiers).filter((a) => a.id !== formData.fromAltierID),
     [altiers, formData.fromAltierID]
+  );
+
+  const selectedRolls = useMemo(
+    () => availableRolls.filter((roll) => selectedRollIds.includes(roll.id)),
+    [availableRolls, selectedRollIds]
   );
 
   useEffect(() => {
@@ -174,18 +198,11 @@ export function TransferBonsPage() {
     return formatDateTime(dateValue);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+  const updateFormField = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [field]: value
     }));
-  };
-
-  const toggleRoll = (rollId: string) => {
-    setSelectedRollIds((prev) =>
-      prev.includes(rollId) ? prev.filter((id) => id !== rollId) : [...prev, rollId]
-    );
   };
 
   const formatDateTimeToISO = (dateStr: string) => {
@@ -434,282 +451,313 @@ export function TransferBonsPage() {
 
   if (!user) {
     return (
-      <div className="transfer-bons-page">
-        <div className="loading">{t('common.loading')}</div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}>
+        <ProgressSpinner />
       </div>
     );
   }
 
+  const bonMovements = Array.isArray((bonDetails as any)?.movements)
+    ? ((bonDetails as any).movements as RollMovement[])
+    : [];
+
   return (
-    <div className="transfer-bons-page">
-      <div className="page-header">
-        <div>
-          <h1>{t('transferBons.title')}</h1>
-          <p>{t('transferBons.description')}</p>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div>
+        <h1>{t('transferBons.title')}</h1>
+        <p>{t('transferBons.description')}</p>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <Message severity="error" text={error} />}
 
-      <div className="grid">
-        <div className="panel">
-          <h2>{t('transferBons.createBon')}</h2>
-
-          <form onSubmit={handleCreateBon} className="bon-form">
-            <div className="form-row">
-              <div className="form-group">
+      <div
+        style={{
+          display: 'grid',
+          gap: '1rem',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))'
+        }}
+      >
+        <Card title={t('transferBons.createBon')}>
+          <form className="p-fluid" onSubmit={handleCreateBon}>
+            <div
+              style={{
+                display: 'grid',
+                gap: '1rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
+              }}
+            >
+              <div>
                 <label htmlFor="fromAltierID">{t('transferBons.fromAltier')} *</label>
-                <select
+                <Dropdown
                   id="fromAltierID"
-                  name="fromAltierID"
-                  value={formData.fromAltierID}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">-- {t('transferBons.selectSource')} --</option>
-                  {userAvailableAltiers.map((altier) => (
-                    <option key={altier.id} value={altier.id}>
-                      {altier.libelle} ({altier.adresse})
-                    </option>
-                  ))}
-                </select>
+                  value={formData.fromAltierID || null}
+                  options={userAvailableAltiers}
+                  optionLabel="libelle"
+                  optionValue="id"
+                  placeholder={t('transferBons.selectSource')}
+                  onChange={(e) => updateFormField('fromAltierID', e.value || '')}
+                />
               </div>
-
-              <div className="form-group">
+              <div>
                 <label htmlFor="toAltierID">{t('transferBons.toAltier')} *</label>
-                <select
+                <Dropdown
                   id="toAltierID"
-                  name="toAltierID"
-                  value={formData.toAltierID}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">-- {t('transferBons.selectDestination')} --</option>
-                  {otherAltiers.map((altier) => (
-                    <option key={altier.id} value={altier.id}>
-                      {altier.libelle} ({altier.adresse})
-                    </option>
-                  ))}
-                </select>
+                  value={formData.toAltierID || null}
+                  options={otherAltiers}
+                  optionLabel="libelle"
+                  optionValue="id"
+                  placeholder={t('transferBons.selectDestination')}
+                  onChange={(e) => updateFormField('toAltierID', e.value || '')}
+                />
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
+            <div
+              style={{
+                display: 'grid',
+                gap: '1rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                marginTop: '1rem'
+              }}
+            >
+              <div>
                 <label htmlFor="dateSortie">{t('transferBons.dateSortie')} *</label>
-                <input
-                  type="datetime-local"
+                <Calendar
                   id="dateSortie"
-                  name="dateSortie"
-                  value={formData.dateSortie}
-                  onChange={handleInputChange}
-                  required
+                  value={parseDateTimeLocalValue(formData.dateSortie)}
+                  onChange={(e) => updateFormField('dateSortie', formatDateTimeLocalValue(e.value as Date | null))}
+                  showIcon
+                  showTime
+                  hourFormat="24"
                 />
               </div>
-
-              <div className="form-group">
+              <div>
                 <label htmlFor="dateEntree">{t('transferBons.dateEntree')}</label>
-                <input
-                  type="datetime-local"
+                <Calendar
                   id="dateEntree"
-                  name="dateEntree"
-                  value={formData.dateEntree}
-                  onChange={handleInputChange}
+                  value={parseDateTimeLocalValue(formData.dateEntree)}
+                  onChange={(e) => updateFormField('dateEntree', formatDateTimeLocalValue(e.value as Date | null))}
+                  showIcon
+                  showTime
+                  hourFormat="24"
                 />
               </div>
             </div>
 
-            <div className="rolls-picker">
-              <div className="rolls-picker-header">
-                <h3>{t('transferBons.selectRollsLabel')} *</h3>
-                <div className="rolls-count">{t('transferBons.selected')}: {selectedRollIds.length}</div>
+            <div style={{ marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 style={{ margin: 0 }}>{t('transferBons.selectRollsLabel')} *</h3>
+                <Tag value={`${t('transferBons.selected')}: ${selectedRollIds.length}`} />
               </div>
 
-              {availableRolls.length === 0 ? (
-                <div className="empty-state">
-                  <p>{t('transferBons.noAvailableRolls')}</p>
-                </div>
-              ) : (
-                <div className="rolls-list">
-                  {availableRolls.map((roll) => (
-                    <label key={roll.id} className="roll-item">
-                      <input
-                        type="checkbox"
-                        checked={selectedRollIds.includes(roll.id)}
-                        onChange={() => toggleRoll(roll.id)}
+              <div style={{ marginTop: '0.75rem' }}>
+                <DataTable
+                  value={availableRolls}
+                  dataKey="id"
+                  selection={selectedRolls}
+                  onSelectionChange={(e) =>
+                    setSelectedRollIds((e.value as Roll[]).map((roll) => roll.id))
+                  }
+                  emptyMessage={t('transferBons.noAvailableRolls')}
+                  size="small"
+                >
+                  <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
+                  <Column field="id" header={t('transferBons.roll')} />
+                  <Column header={t('rolls.material')} body={(roll: Roll) => roll.materialType} />
+                  <Column
+                    header={t('purchaseBons.dimensions')}
+                    body={(roll: Roll) =>
+                      `${roll.widthMm}mm x ${(roll.lengthRemainingM || roll.lengthM).toFixed(2)}m`
+                    }
+                  />
+                  <Column
+                    header={t('rolls.status')}
+                    body={(roll: Roll) => (
+                      <Tag
+                        value={roll.status}
+                        severity={roll.status === 'AVAILABLE' ? 'success' : roll.status === 'OPENED' ? 'warning' : 'info'}
                       />
-                      <div className="roll-item-content">
-                        <div className="roll-line">
-                          <strong>{roll.id}</strong>
-                        </div>
-                        <div className="roll-line meta">
-                          {roll.materialType} • {roll.widthMm}mm × {(roll.lengthRemainingM || roll.lengthM).toFixed(2)}m • {roll.status}
-                        </div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
+                    )}
+                  />
+                </DataTable>
+              </div>
             </div>
 
-            <div className="form-actions">
-              <button type="submit" className="btn-primary" disabled={loading}>
-                {loading ? t('transferBons.creating') : t('transferBons.createBonButton')}
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <Button
+                type="submit"
+                label={t('transferBons.createBonButton')}
+                icon="pi pi-check"
+                loading={loading}
+              />
             </div>
           </form>
-        </div>
+        </Card>
 
-        <div className="panel">
-          <h2>{t('transferBons.existingBons')}</h2>
-
-          {loading && <div className="loading">{t('common.loading')}</div>}
-
-          {bons.length === 0 ? (
-            <div className="empty-state">
-              <p>{t('transferBons.noBonsYet')}</p>
-            </div>
-          ) : (
-            <table className="bons-table">
-              <thead>
-                <tr>
-                  <th>{t('transferBons.from')}</th>
-                  <th>{t('transferBons.to')}</th>
-                  <th>{t('transferBons.exit')}</th>
-                  <th>{t('transferBons.entry')}</th>
-                  <th>{t('transferBons.status')}</th>
-                  <th>{t('transferBons.rolls')}</th>
-                  <th>{t('transferBons.action')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bons.map((bon) => (
-                  <tr key={bon.id} className={selectedBonId === bon.id ? 'selected' : ''}>
-                    <td>{bon.fromAltier?.libelle || '-'}</td>
-                    <td>{bon.toAltier?.libelle || '-'}</td>
-                    <td>{formatDate(bon.dateSortie)}</td>
-                    <td>{formatDate(bon.dateEntree)}</td>
-                    <td>
-                      <span className={`badge ${bon.dateEntree ? 'received' : 'pending'}`}>
-                        {bon.dateEntree ? t('transferBons.delivered') : t('transferBons.pending')}
-                      </span>
-                    </td>
-                    <td>{bon.movementCount ?? '-'}</td>
-                    <td>
-                      <div className="row-actions">
-                        <button
-                          type="button"
-                          className="btn-secondary"
-                          onClick={() => handleSelectBon(bon.id)}
-                          disabled={viewLoadingBonId === bon.id || deleteLoadingBonId === bon.id}
-                        >
-                          {viewLoadingBonId === bon.id ? t('transferBons.loading') : t('transferBons.view')}
-                        </button>
-
-                        {!bon.dateEntree && (
-                          <button
-                            type="button"
-                            className="btn-danger"
-                            onClick={() => handleDeleteBon(bon.id)}
-                            disabled={deleteLoadingBonId === bon.id || viewLoadingBonId === bon.id}
-                          >
-                            {deleteLoadingBonId === bon.id ? 'Deleting...' : 'Delete'}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+        <Card title={t('transferBons.existingBons')}>
+          <DataTable
+            value={bons}
+            dataKey="id"
+            loading={loading}
+            emptyMessage={t('transferBons.noBonsYet')}
+            size="small"
+          >
+            <Column header={t('transferBons.from')} body={(bon: TransferBon) => bon.fromAltier?.libelle || t('transferBons.dash')} />
+            <Column header={t('transferBons.to')} body={(bon: TransferBon) => bon.toAltier?.libelle || t('transferBons.dash')} />
+            <Column header={t('transferBons.exit')} body={(bon: TransferBon) => formatDate(bon.dateSortie)} />
+            <Column header={t('transferBons.entry')} body={(bon: TransferBon) => formatDate(bon.dateEntree)} />
+            <Column
+              header={t('transferBons.status')}
+              body={(bon: TransferBon) => (
+                <Tag
+                  value={bon.dateEntree ? t('transferBons.delivered') : t('transferBons.pending')}
+                  severity={bon.dateEntree ? 'success' : 'warning'}
+                />
+              )}
+            />
+            <Column header={t('transferBons.rolls')} body={(bon: TransferBon) => bon.movementCount ?? t('transferBons.dash')} />
+            <Column
+              header={t('transferBons.action')}
+              body={(bon: TransferBon) => (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <Button
+                    label={t('transferBons.view')}
+                    size="small"
+                    onClick={() => handleSelectBon(bon.id)}
+                    loading={viewLoadingBonId === bon.id}
+                    disabled={deleteLoadingBonId === bon.id}
+                  />
+                  {!bon.dateEntree && (
+                    <Button
+                      label={t('common.delete')}
+                      severity="danger"
+                      size="small"
+                      onClick={() => handleDeleteBon(bon.id)}
+                      loading={deleteLoadingBonId === bon.id}
+                      disabled={viewLoadingBonId === bon.id}
+                    />
+                  )}
+                </div>
+              )}
+            />
+          </DataTable>
 
           {viewLoadingBonId && (
-            <div className="loading">Loading bon details...</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+              <ProgressSpinner />
+            </div>
           )}
 
           {bonDetails && (
-            <div className="bon-details">
-              <h3>Bon Details</h3>
+            <Card title={t('transferBons.detailsTitle')} style={{ marginTop: '1rem' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '0.5rem',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
+                }}
+              >
+                <div>
+                  <strong>{t('transferBons.from')}:</strong> {bonDetails.fromAltier?.libelle || t('transferBons.dash')}
+                </div>
+                <div>
+                  <strong>{t('transferBons.to')}:</strong> {bonDetails.toAltier?.libelle || t('transferBons.dash')}
+                </div>
+                <div>
+                  <strong>{t('transferBons.exit')}:</strong> {formatDate(bonDetails.dateSortie)}
+                </div>
+                <div>
+                  <strong>{t('transferBons.entry')}:</strong> {formatDate(bonDetails.dateEntree)}
+                </div>
+              </div>
 
               {!bonDetails.dateEntree && (
-                <form onSubmit={handleConfirmReceipt} className="confirm-form">
-                  <div className="form-group">
-                    <label htmlFor="confirmDateEntree">Confirm Date Entree *</label>
-                    <input
-                      type="datetime-local"
-                      id="confirmDateEntree"
-                      value={confirmData.dateEntree}
-                      onChange={(e) => setConfirmData({ dateEntree: e.target.value })}
-                      required
+                <form className="p-fluid" onSubmit={handleConfirmReceipt} style={{ marginTop: '1rem' }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gap: '1rem',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
+                    }}
+                  >
+                    <div>
+                      <label htmlFor="confirmDateEntree">{t('transferBons.confirmDateEntree')} *</label>
+                      <Calendar
+                        id="confirmDateEntree"
+                        value={parseDateTimeLocalValue(confirmData.dateEntree)}
+                        onChange={(e) =>
+                          setConfirmData({ dateEntree: formatDateTimeLocalValue(e.value as Date | null) })
+                        }
+                        showIcon
+                        showTime
+                        hourFormat="24"
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                    <Button
+                      type="submit"
+                      label={t('transferBons.confirmReceipt')}
+                      icon="pi pi-check"
+                      loading={loading}
                     />
                   </div>
-                  <button type="submit" className="btn-primary" disabled={loading}>
-                    Confirm Receipt
-                  </button>
                 </form>
               )}
 
-              <div className="movements-block">
-                <h4>Movements</h4>
-                {Array.isArray((bonDetails as any).movements) && (bonDetails as any).movements.length > 0 ? (
-                  <table className="movements-table">
-                    <thead>
-                      <tr>
-                        <th>Roll</th>
-                        <th>Exit</th>
-                        <th>Entry</th>
-                        <th>Status</th>
-                        {!bonDetails.dateEntree && <th>Action</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(bonDetails as any).movements.map((m: RollMovement) => (
-                        <tr key={m.id}>
-                          <td>
-                            <div>
-                              <strong>{m.rollId}</strong>
-                            </div>
-                            {rollDetailsById[m.rollId] && (
-                              <small>
-                                {rollDetailsById[m.rollId].materialType} • {rollDetailsById[m.rollId].widthMm}mm × {(rollDetailsById[m.rollId].lengthRemainingM || rollDetailsById[m.rollId].lengthM).toFixed(2)}m • {rollDetailsById[m.rollId].status}
-                              </small>
-                            )}
-                          </td>
-                          <td>{formatDate(m.dateSortie)}</td>
-                          <td>{formatDate(m.dateEntree)}</td>
-                          <td>
-                            <span className={`badge ${m.dateEntree ? 'received' : 'pending'}`}>
-                              {m.dateEntree ? 'Delivered' : 'Pending'}
-                            </span>
-                          </td>
-                          {!bonDetails.dateEntree && (
-                            <td>
-                              {!m.dateEntree && (
-                                <button
-                                  type="button"
-                                  className="btn-danger"
-                                  onClick={() => handleRemoveMovement(bonDetails.id, m.id)}
-                                  disabled={removeMovementLoadingId === m.id || loading}
-                                >
-                                  {removeMovementLoadingId === m.id ? 'Removing...' : 'Remove'}
-                                </button>
-                              )}
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div className="empty-state">
-                    <p>No movements linked to this bon.</p>
-                  </div>
-                )}
+              <div style={{ marginTop: '1rem' }}>
+                <h4 style={{ marginBottom: '0.5rem' }}>{t('transferBons.movementsTitle')}</h4>
+                <DataTable
+                  value={bonMovements}
+                  dataKey="id"
+                  emptyMessage={t('transferBons.noMovements')}
+                  size="small"
+                >
+                  <Column
+                    header={t('transferBons.roll')}
+                    body={(movement: RollMovement) => (
+                      <div>
+                        <div><strong>{movement.rollId}</strong></div>
+                        {rollDetailsById[movement.rollId] && (
+                          <small>
+                            {rollDetailsById[movement.rollId].materialType} • {rollDetailsById[movement.rollId].widthMm}mm × {(rollDetailsById[movement.rollId].lengthRemainingM || rollDetailsById[movement.rollId].lengthM).toFixed(2)}m • {rollDetailsById[movement.rollId].status}
+                          </small>
+                        )}
+                      </div>
+                    )}
+                  />
+                  <Column header={t('transferBons.exit')} body={(movement: RollMovement) => formatDate(movement.dateSortie)} />
+                  <Column header={t('transferBons.entry')} body={(movement: RollMovement) => formatDate(movement.dateEntree)} />
+                  <Column
+                    header={t('transferBons.status')}
+                    body={(movement: RollMovement) => (
+                      <Tag
+                        value={movement.dateEntree ? t('transferBons.delivered') : t('transferBons.pending')}
+                        severity={movement.dateEntree ? 'success' : 'warning'}
+                      />
+                    )}
+                  />
+                  {!bonDetails.dateEntree && (
+                    <Column
+                      header={t('transferBons.action')}
+                      body={(movement: RollMovement) => (
+                        <Button
+                          type="button"
+                          icon="pi pi-trash"
+                          severity="danger"
+                          text
+                          onClick={() => handleRemoveMovement(bonDetails.id, movement.id)}
+                          loading={removeMovementLoadingId === movement.id}
+                          disabled={loading}
+                        />
+                      )}
+                    />
+                  )}
+                </DataTable>
               </div>
-            </div>
+            </Card>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );

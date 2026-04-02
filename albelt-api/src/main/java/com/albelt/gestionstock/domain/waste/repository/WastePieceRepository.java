@@ -3,6 +3,7 @@ package com.albelt.gestionstock.domain.waste.repository;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -51,7 +52,8 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
            "AND wp.createdAt <= :toDate " +
            "AND (:search = '' OR " +
            "LOWER(wp.qrCode) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(wp.materialType) LIKE CONCAT('%', :search, '%')) ")
+           "LOWER(wp.materialType) LIKE CONCAT('%', :search, '%') OR " +
+           "LOWER(wp.reference) LIKE CONCAT('%', :search, '%')) ")
     Page<WastePiece> findFiltered(
             @Param("materialType") MaterialType materialType,
             @Param("status") WasteStatus status,
@@ -113,6 +115,29 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
        /**
         * Group by color, nbPlis, thicknessMm, materialType, altierId, status
         */
-       @Query("SELECT wp.color.id, wp.nbPlis, wp.thicknessMm, wp.materialType, wp.altier.id, wp.status, COUNT(wp), SUM(wp.areaM2) FROM WastePiece wp GROUP BY wp.color.id, wp.nbPlis, wp.thicknessMm, wp.materialType, wp.altier.id, wp.status")
-       List<Object[]> groupByAllFields();
+       @Query("SELECT wp.color.id," +
+               "    wp.color.name, " +
+               "    wp.color.hexCode," +
+               "    wp.nbPlis," +
+               "    wp.thicknessMm," +
+               "    wp.materialType, " +
+               "    wp.altier.id," +
+               "    wp.altier.libelle," +
+               "    wp.status, " +
+               "    COUNT(wp)," +
+               "    SUM(wp.areaM2), " +
+               "    SUM(wp.totalWasteAreaM2) " +
+               "FROM WastePiece wp " +
+               "Where wp.wasteType = :type " +
+               "GROUP BY wp.color.id," +
+               "         wp.color.name," +
+               "         wp.color.hexCode, " +
+               "         wp.status," +
+               "         wp.nbPlis, " +
+               "         wp.thicknessMm," +
+               "         wp.materialType," +
+               "         wp.altier.id," +
+               "         wp.altier.libelle "
+       )
+       List<Object[]> groupByAllFields(@Param("type") WasteType type);
 }

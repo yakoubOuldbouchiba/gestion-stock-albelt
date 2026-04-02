@@ -1,9 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Altier, AltierRequest } from '../types/index';
 import { AltierService } from '@services/altierService';
 import { useI18n } from '@hooks/useI18n';
 import { formatDate } from '../utils/date';
-import '../styles/AltierPage.css';
+import { Button } from 'primereact/button';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
 
 export function AltierPage() {
   const { t } = useI18n();
@@ -51,8 +57,8 @@ export function AltierPage() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setError(null);
 
     try {
@@ -115,143 +121,123 @@ export function AltierPage() {
   };
 
   const safeAltiers = toArray<Altier>(altiers);
-  const filteredAltiers = safeAltiers.filter(altier =>
-    altier.libelle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    altier.adresse.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAltiers = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return safeAltiers;
+    return safeAltiers.filter((altier) =>
+      altier.libelle.toLowerCase().includes(query) ||
+      altier.adresse.toLowerCase().includes(query)
+    );
+  }, [safeAltiers, searchTerm]);
+
+  const formFooter = (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+      <Button
+        type="button"
+        label={t('altier.cancel')}
+        severity="secondary"
+        onClick={handleCancel}
+      />
+      <Button
+        type="button"
+        label={editingId ? t('altier.update') : t('altier.create')}
+        onClick={() => handleSubmit()}
+      />
+    </div>
   );
 
   if (isLoading) {
     return (
-      <div className="altier-page">
-        <div className="loading">{t('altier.loadingData')}</div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
       </div>
     );
   }
 
   return (
-    <div className="altier-page">
-      <div className="altier-container">
-        <div className="altier-header">
-          <h1>{t('altier.title')}</h1>
-          <button 
-            className="btn btn-primary" 
-            onClick={() => setShowForm(true)}
-          >
-            + {t('altier.addNew')}
-          </button>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+        <div>
+          <h1 style={{ margin: 0 }}>{t('altier.title')}</h1>
+          <div style={{ color: 'var(--text-color-secondary)' }}>{t('altier.totalWorkshops')}: {altiers.length}</div>
         </div>
+        <Button icon="pi pi-plus" label={t('altier.addNew')} onClick={() => setShowForm(true)} />
+      </div>
 
-        {error && <div className="error-message">{error}</div>}
+      {error && <Message severity="error" text={error} />}
 
-        {showForm && (
-          <div className="altier-form-card">
-            <div className="form-header">
-              <h2>{editingId ? t('altier.editTitle') : t('altier.createTitle')}</h2>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="libelle">{t('altier.workshopName')} *</label>
-                <input
-                  type="text"
-                  id="libelle"
-                  name="libelle"
-                  value={formData.libelle}
-                  onChange={handleInputChange}
-                  placeholder={t('altier.namePlaceholder')}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="adresse">{t('altier.address')} *</label>
-                <input
-                  type="text"
-                  id="adresse"
-                  name="adresse"
-                  value={formData.adresse}
-                  onChange={handleInputChange}
-                  placeholder={t('altier.addressPlaceholder')}
-                  required
-                />
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn btn-success">
-                  {editingId ? t('altier.update') : t('altier.create')}
-                </button>
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
-                  onClick={handleCancel}
-                >
-                  {t('altier.cancel')}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        <div className="search-section">
-          <input
-            type="text"
-            placeholder={t('altier.searchPlaceholder')}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', margin: '1rem 0' }}>
+        <span className="p-input-icon-left" style={{ width: '100%', maxWidth: '420px' }}>
+          <i className="pi pi-search" />
+          <InputText
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
+            placeholder={t('altier.searchPlaceholder')}
+            style={{ width: '100%' }}
           />
-        </div>
-
-        <div className="altier-table">
-          {filteredAltiers.length === 0 ? (
-            <div className="empty-state">
-              <p>{t('altier.notFound')} {!searchTerm && t('altier.noWorkshops')}</p>
-            </div>
-          ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t('altier.tableName')}</th>
-                  <th>{t('altier.tableAddress')}</th>
-                  <th>{t('altier.tableCreated')}</th>
-                  <th>{t('altier.tableActions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAltiers.map(altier => (
-                  <tr key={altier.id}>
-                    <td className="libelle-cell">{altier.libelle}</td>
-                    <td className="adresse-cell">{altier.adresse}</td>
-                    <td className="date-cell">
-                      {formatDate(altier.createdAt)}
-                    </td>
-                    <td className="actions-cell">
-                      <button
-                        className="btn btn-sm btn-info"
-                        onClick={() => handleEdit(altier)}
-                      >
-                        {t('altier.edit')}
-                      </button>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDelete(altier.id)}
-                      >
-                        {t('altier.delete')}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        <div className="altier-stats">
-          <div className="stat-card">
-            <p className="stat-label">{t('altier.totalWorkshops')}</p>
-            <p className="stat-value">{altiers.length}</p>
-          </div>
-        </div>
+        </span>
       </div>
+
+      <DataTable
+        value={filteredAltiers}
+        dataKey="id"
+        paginator
+        rows={10}
+        rowsPerPageOptions={[10, 25, 50]}
+        emptyMessage={t('altier.notFound')}
+        size="small"
+      >
+        <Column field="libelle" header={t('altier.tableName')} />
+        <Column field="adresse" header={t('altier.tableAddress')} />
+        <Column
+          header={t('altier.tableCreated')}
+          body={(row: Altier) => formatDate(row.createdAt)}
+        />
+        <Column
+          header={t('altier.tableActions')}
+          body={(row: Altier) => (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Button icon="pi pi-pencil" text onClick={() => handleEdit(row)} aria-label={t('altier.edit')} />
+              <Button icon="pi pi-trash" text severity="danger" onClick={() => handleDelete(row.id)} aria-label={t('altier.delete')} />
+            </div>
+          )}
+        />
+      </DataTable>
+
+      <Dialog
+        header={editingId ? t('altier.editTitle') : t('altier.createTitle')}
+        visible={showForm}
+        onHide={handleCancel}
+        footer={formFooter}
+        style={{ width: 'min(600px, 95vw)' }}
+      >
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <label htmlFor="libelle">{t('altier.workshopName')} *</label>
+            <InputText
+              id="libelle"
+              name="libelle"
+              value={formData.libelle}
+              onChange={handleInputChange}
+              placeholder={t('altier.namePlaceholder')}
+              required
+            />
+          </div>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <label htmlFor="adresse">{t('altier.address')} *</label>
+            <InputText
+              id="adresse"
+              name="adresse"
+              value={formData.adresse}
+              onChange={handleInputChange}
+              placeholder={t('altier.addressPlaceholder')}
+              required
+            />
+          </div>
+        </form>
+      </Dialog>
     </div>
   );
 }
+
+export default AltierPage;

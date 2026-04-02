@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react';
-import { FileText, BarChart2, AlertCircle, Zap, TrendingUp, Recycle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@hooks/useI18n';
 import type { CuttingOperation, MaterialType } from '../types/index';
 import { AnalyticsService } from '@services/analyticsService';
 import { RollService } from '@services/rollService';
-import '../styles/ReportsPage.css';
+import { Button } from 'primereact/button';
+import { Card } from 'primereact/card';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { TabView, TabPanel } from 'primereact/tabview';
+import { Tag } from 'primereact/tag';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
+import { InputText } from 'primereact/inputtext';
 
 interface OperatorMetric {
   operatorId: string;
@@ -23,15 +30,12 @@ export function ReportsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Overview Stats
   const [totalOperations, setTotalOperations] = useState(0);
   const [highEfficiencyOps, setHighEfficiencyOps] = useState<CuttingOperation[]>([]);
   const [wasteOps, setWasteOps] = useState<CuttingOperation[]>([]);
 
-  // Operator Performance
   const [operatorMetrics, setOperatorMetrics] = useState<OperatorMetric[]>([]);
 
-  // Waste Analytics
   const [wasteStats, setWasteStats] = useState({
     available: 0,
     used: 0,
@@ -45,22 +49,17 @@ export function ReportsPage() {
     CAOUTCHOUC: 0,
   });
 
-  // Material Inventory
   const [materialStats, setMaterialStats] = useState<MaterialStats[]>([
     { material: 'PU', count: 0, area: 0 },
     { material: 'PVC', count: 0, area: 0 },
     { material: 'CAOUTCHOUC', count: 0, area: 0 },
   ]);
 
-  // Date Range Filter
   const [startDate, setStartDate] = useState(
     new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [dateRangeOps, setDateRangeOps] = useState<CuttingOperation[]>([]);
-
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'efficiency' | 'waste' | 'inventory'>('overview');
 
   useEffect(() => {
     loadAnalytics();
@@ -70,7 +69,6 @@ export function ReportsPage() {
     setIsLoading(true);
     setError(null);
     try {
-      // Load overview metrics
       const [totalCountRes, highEffRes, wasteRes, operatorRes] = await Promise.all([
         AnalyticsService.getTotalOperationsCount(),
         AnalyticsService.getHighEfficiencyOperations(0, 100),
@@ -83,7 +81,6 @@ export function ReportsPage() {
       if (wasteRes.success && wasteRes.data) setWasteOps(wasteRes.data);
       if (operatorRes.success && operatorRes.data) setOperatorMetrics(operatorRes.data);
 
-      // Load waste statistics
       const [availableRes, usedRes, scrapRes, wasteAreaRes] = await Promise.all([
         AnalyticsService.getWasteCountByStatus('AVAILABLE'),
         AnalyticsService.getWasteCountByStatus('USED_IN_ORDER'),
@@ -92,13 +89,13 @@ export function ReportsPage() {
       ]);
 
       if (availableRes.success) {
-        setWasteStats(prev => ({ ...prev, available: availableRes.data || 0 }));
+        setWasteStats((prev) => ({ ...prev, available: availableRes.data || 0 }));
       }
       if (usedRes.success) {
-        setWasteStats(prev => ({ ...prev, used: usedRes.data || 0 }));
+        setWasteStats((prev) => ({ ...prev, used: usedRes.data || 0 }));
       }
       if (scrapRes.success) {
-        setWasteStats(prev => {
+        setWasteStats((prev) => {
           const scrapCount = scrapRes.data || 0;
           const total = (availableRes.data || 0) + (usedRes.data || 0) + scrapCount;
           return { ...prev, scrap: scrapCount, total };
@@ -107,10 +104,9 @@ export function ReportsPage() {
       if (wasteAreaRes.success && wasteAreaRes.data) {
         setWasteAreaByMaterial(wasteAreaRes.data);
         const totalArea = Object.values(wasteAreaRes.data).reduce((sum, area) => sum + area, 0);
-        setWasteStats(prev => ({ ...prev, totalWasteArea: totalArea }));
+        setWasteStats((prev) => ({ ...prev, totalWasteArea: totalArea }));
       }
 
-      // Load material inventory stats
       const allRolls = await RollService.getAll();
       if (allRolls.success && allRolls.data) {
         const stats = {
@@ -119,7 +115,7 @@ export function ReportsPage() {
           CAOUTCHOUC: { count: 0, area: 0 },
         };
 
-        allRolls.data.forEach(roll => {
+        allRolls.data.forEach((roll) => {
           if (!(roll.materialType in stats)) return;
           stats[roll.materialType as MaterialType].count++;
           stats[roll.materialType as MaterialType].area += roll.areaM2;
@@ -133,13 +129,12 @@ export function ReportsPage() {
         );
       }
 
-      // Load date range operations
       const dateRes = await AnalyticsService.getOperationsByDateRange(startDate, endDate);
       if (dateRes.success && dateRes.data) {
         setDateRangeOps(dateRes.data);
       }
     } catch (err) {
-      setError('Failed to load analytics data');
+      setError(t('messages.failedToLoad'));
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -158,7 +153,7 @@ export function ReportsPage() {
   };
 
   const exportToCSV = (data: any[], filename: string) => {
-    const csv = [Object.keys(data[0] || {}).join(','), ...data.map(row => Object.values(row).join(','))].join('\n');
+    const csv = [Object.keys(data[0] || {}).join(','), ...data.map((row) => Object.values(row).join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -176,334 +171,235 @@ export function ReportsPage() {
     return totalOperations > 0 ? Math.round((wasteOps.length / totalOperations) * 100) : 0;
   };
 
+  const opsByOperator = useMemo(() => {
+    const map = new Map<string, number>();
+    highEfficiencyOps.forEach((op) => {
+      if (!op.operatorId) return;
+      map.set(op.operatorId, (map.get(op.operatorId) || 0) + 1);
+    });
+    return map;
+  }, [highEfficiencyOps]);
+
+  const performanceBody = (metric: OperatorMetric) => {
+    if (metric.avgUtilization >= 75) {
+      return <Tag value={t('reports.high')} severity="success" />;
+    }
+    if (metric.avgUtilization >= 50) {
+      return <Tag value={t('reports.medium')} severity="info" />;
+    }
+    return <Tag value={t('reports.low')} severity="warning" />;
+  };
+
   if (isLoading) {
-    return <div className="page-loading">{t('messages.loading')}</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
   }
 
   return (
-    <div className="reports-page">
-      <div className="page-header">
-        <h1>{t('reports.analyticsTitle')}</h1>
-        <div className="header-actions">
-          <button className="btn btn-primary" onClick={loadAnalytics}>
-            ↻ {t('common.refresh')}
-          </button>
-          <button className="btn btn-secondary" onClick={() => exportToCSV([{ data: 'exported' }], 'report.csv')}>
-            ⬇ {t('common.export')}
-          </button>
+    <div style={{ display: 'grid', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ margin: 0 }}>{t('reports.analyticsTitle')}</h1>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Button icon="pi pi-refresh" label={t('common.refresh')} onClick={loadAnalytics} />
+          <Button
+            icon="pi pi-download"
+            label={t('common.export')}
+            severity="secondary"
+            onClick={() => exportToCSV([{ data: 'exported' }], 'report.csv')}
+          />
         </div>
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
+      {error && <Message severity="error" text={error} />}
 
-      {/* Tab Navigation */}
-      <div className="tab-navigation">
-        <button
-          className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-        >
-          {t('reports.overview')}
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'efficiency' ? 'active' : ''}`}
-          onClick={() => setActiveTab('efficiency')}
-        >
-          {t('reports.efficiencyAnalysis')}
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'waste' ? 'active' : ''}`}
-          onClick={() => setActiveTab('waste')}
-        >
-          {t('reports.wasteManagement')}
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'inventory' ? 'active' : ''}`}
-          onClick={() => setActiveTab('inventory')}
-        >
-          {t('reports.inventoryStatus')}
-        </button>
-      </div>
-
-      {/* OVERVIEW TAB */}
-      {activeTab === 'overview' && (
-        <div className="tab-content overview-tab">
-          {/* Key Metrics */}
-          <div className="metrics-grid">
-            <div className="metric-card metric-primary">
-              <FileText size={24} className="metric-icon" />
-              <div className="metric-content">
-                <div className="metric-label">{t('reports.totalOperations')}</div>
-                <div className="metric-value">{totalOperations}</div>
-              </div>
+      <TabView>
+        <TabPanel header={t('reports.overview')}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <Card title={t('reports.totalOperations')}>
+                <div style={{ fontSize: '1.5rem' }}>{totalOperations}</div>
+              </Card>
+              <Card title={t('reports.highEfficiency')}>
+                <div style={{ fontSize: '1.5rem' }}>{highEfficiencyOps.length}</div>
+                <small>{getEfficiencyPercentage()}% {t('reports.ofTotal')}</small>
+              </Card>
+              <Card title={t('reports.significantWaste')}>
+                <div style={{ fontSize: '1.5rem' }}>{wasteOps.length}</div>
+                <small>{getWastePercentage()}% {t('reports.ofTotal')}</small>
+              </Card>
+              <Card title={t('reports.wasteReused')}>
+                <div style={{ fontSize: '1.5rem' }}>{wasteStats.used}</div>
+                <small>{wasteStats.total ? Math.round((wasteStats.used / wasteStats.total) * 100) : 0}%</small>
+              </Card>
             </div>
 
-            <div className="metric-card metric-success">
-              <Zap size={24} className="metric-icon" />
-              <div className="metric-content">
-                <div className="metric-label">{t('reports.highEfficiency')}</div>
-                <div className="metric-value">{highEfficiencyOps.length}</div>
-                <div className="metric-subtext">{getEfficiencyPercentage()}% {t('reports.ofTotal')}</div>
-              </div>
-            </div>
+            <Card title={t('reports.wasteSummary')}>
+              <DataTable
+                value={[
+                  { label: t('reports.availableForReuse'), value: wasteStats.available },
+                  { label: t('reports.scrapDiscarded'), value: wasteStats.scrap },
+                  { label: t('reports.totalWasteArea'), value: `${wasteStats.totalWasteArea.toFixed(2)} m²` },
+                ]}
+                size="small"
+              >
+                <Column field="label" header={t('common.name')} />
+                <Column field="value" header={t('common.value')} />
+              </DataTable>
+            </Card>
 
-            <div className="metric-card metric-warning">
-              <TrendingUp size={24} className="metric-icon" />
-              <div className="metric-content">
-                <div className="metric-label">{t('reports.significantWaste')}</div>
-                <div className="metric-value">{wasteOps.length}</div>
-                <div className="metric-subtext">{getWastePercentage()}% {t('reports.ofTotal')}</div>
-              </div>
-            </div>
-
-            <div className="metric-card metric-info">
-              <Recycle size={24} className="metric-icon" />
-              <div className="metric-content">
-                <div className="metric-label">{t('reports.wasteReused')}</div>
-                <div className="metric-value">{wasteStats.used}</div>
-                <div className="metric-subtext">{wasteStats.total ? Math.round((wasteStats.used / wasteStats.total) * 100) : 0}%</div>
-              </div>
-            </div>
+            <Card title={t('reports.materialDistribution')}>
+              <DataTable value={materialStats} size="small" emptyMessage={t('messages.noDataAvailable')}>
+                <Column field="material" header={t('reports.material')} />
+                <Column field="count" header={t('reports.quantityPieces')} />
+                <Column header={t('reports.totalAreaM2')} body={(row: MaterialStats) => row.area.toFixed(2)} />
+              </DataTable>
+            </Card>
           </div>
+        </TabPanel>
 
-          {/* Quick Stats */}
-          <div className="quick-stats">
-            <div className="stat-section">
-              <h3>{t('reports.wasteSummary')}</h3>
-              <div className="stat-rows">
-                <div className="stat-row">
-                  <span className="stat-name">{t('reports.availableForReuse')}:</span>
-                  <span className="stat-value">{wasteStats.available} {t('reports.pieces')}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-name">{t('reports.totalWasteArea')}:</span>
-                  <span className="stat-value">{wasteStats.totalWasteArea?.toFixed(2) || '0.00'} m²</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-name">{t('reports.scrapDiscarded')}:</span>
-                  <span className="stat-value">{wasteStats.scrap} {t('reports.pieces')}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="stat-section">
-              <h3>{t('reports.materialDistribution')}</h3>
-              <div className="material-bars">
-                {materialStats.map(m => (
-                  <div key={m.material} className="material-bar">
-                    <div className="bar-label">{m.material}</div>
-                    <div className="bar-container">
-                      <div className="bar-fill" style={{ width: `${Math.min((m.count / Math.max(...materialStats.map(x => x.count), 1)) * 100, 100)}%` }}></div>
-                    </div>
-                    <div className="bar-value">{m.count} pieces</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* EFFICIENCY ANALYSIS TAB */}
-      {activeTab === 'efficiency' && (
-        <div className="tab-content efficiency-tab">
-          {/* Operator Performance */}
-          <div className="section-card">
-            <h2>{t('reports.operatorPerformance')}</h2>
-            {operatorMetrics.length > 0 ? (
-              <div className="performance-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{t('reports.operator')}</th>
-                      <th>{t('reports.avgUtilization')}</th>
-                      <th>{t('reports.performanceLevel')}</th>
-                      <th>{t('reports.operations')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {operatorMetrics.map((metric, idx) => (
-                      <tr key={idx}>
-                        <td className="operator-name">{metric.operatorName}</td>
-                        <td>
-                          <div className="utilization-bar">
-                            <div
-                              className="bar-fill"
-                              style={{ width: `${metric.avgUtilization}%` }}
-                            ></div>
-                            <span className="bar-label">{metric.avgUtilization.toFixed(1)}%</span>
-                          </div>
-                        </td>
-                        <td>
-                          {metric.avgUtilization >= 75 ? (
-                            <span className="badge badge-success"><Zap size={14} className="badge-icon" /> {t('reports.high')}</span>
-                          ) : metric.avgUtilization >= 50 ? (
-                            <span className="badge badge-info"><BarChart2 size={14} className="badge-icon" /> {t('reports.medium')}</span>
-                          ) : (
-                            <span className="badge badge-warning"><AlertCircle size={14} className="badge-icon" /> {t('reports.low')}</span>
-                          )}
-                        </td>
-                        <td>
-                          <strong>{highEfficiencyOps.filter(op => op.operatorId === metric.operatorId).length}</strong>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="empty-state">{t('reports.noOperatorData')}</p>
-            )}
-          </div>
-
-          {/* High Efficiency Operations */}
-          <div className="section-card">
-            <h2>{t('reports.highEfficiencyOps')}</h2>
-            {highEfficiencyOps.length > 0 ? (
-              <div className="operations-summary">
-                <p className="summary-text">
-                  {highEfficiencyOps.length} {t('reports.operationsAchievedEfficiency')}
-                </p>
-                <button className="btn btn-secondary" onClick={() => exportToCSV(highEfficiencyOps, 'high-efficiency-ops.csv')}>
-                  {t('reports.exportDetails')}
-                </button>
-              </div>
-            ) : (
-              <p className="empty-state">{t('reports.noHighEfficiencyOps')}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* WASTE MANAGEMENT TAB */}
-      {activeTab === 'waste' && (
-        <div className="tab-content waste-tab">
-          {/* Waste Area by Material */}
-          <div className="section-card">
-            <h2>{t('reports.wasteAreaByMaterial')}</h2>
-            <div className="waste-materials">
-              {Object.entries(wasteAreaByMaterial).map(([material, area]) => (
-                <div key={material} className="waste-material-card">
-                  <div className="material-name">{material}</div>
-                  <div className="material-area">{area.toFixed(2)}</div>
-                  <div className="material-unit">m²</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Waste Status Summary */}
-          <div className="section-card">
-            <h2>{t('reports.wasteStatusDistribution')}</h2>
-            <div className="waste-status-grid">
-              <div className="waste-status-card available">
-                <div className="status-label">{t('reports.availableForReuse')}</div>
-                <div className="status-count">{wasteStats.available}</div>
-              </div>
-              <div className="waste-status-card used">
-                <div className="status-label">{t('reports.successfullyReused')}</div>
-                <div className="status-count">{wasteStats.used}</div>
-              </div>
-              <div className="waste-status-card scrap">
-                <div className="status-label">{t('reports.scrapDiscarded')}</div>
-                <div className="status-count">{wasteStats.scrap}</div>
-                <div className="status-label">{t('reports.scrapped')}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Significant Waste Operations */}
-          <div className="section-card">
-            <h2>{t('reports.significantWasteOps')}</h2>
-            {wasteOps.length > 0 ? (
-              <div className="operations-summary">
-                <p className="summary-text">
-                  {wasteOps.length} {t('reports.operationsSignificantWaste')}
-                </p>
-                <button className="btn btn-secondary" onClick={() => exportToCSV(wasteOps, 'significant-waste-ops.csv')}>
-                  {t('reports.exportDetails')}
-                </button>
-              </div>
-            ) : (
-              <p className="empty-state">{t('reports.noWasteOpsFound')}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* INVENTORY STATUS TAB */}
-      {activeTab === 'inventory' && (
-        <div className="tab-content inventory-tab">
-          {/* Material Inventory */}
-          <div className="section-card">
-            <h2>{t('reports.inventoryByMaterial')}</h2>
-            <div className="inventory-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>{t('reports.material')}</th>
-                    <th>{t('reports.quantityPieces')}</th>
-                    <th>{t('reports.totalAreaM2')}</th>
-                    <th>{t('reports.avgAreaPiece')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {materialStats.map(m => (
-                    <tr key={m.material}>
-                      <td>
-                        <span className={`material-badge ${m.material.toLowerCase()}`}>{m.material}</span>
-                      </td>
-                      <td className="quantity">{m.count}</td>
-                      <td className="area">{m.area.toFixed(2)}</td>
-                      <td className="avg-area">{m.count > 0 ? (m.area / m.count).toFixed(2) : '0.00'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Date Range Query */}
-          <div className="section-card">
-            <h2>{t('reports.operationsByDateRange')}</h2>
-            <div className="date-filter">
-              <div className="filter-group">
-                <label htmlFor="start-date">{t('reports.from')}:</label>
-                <input
-                  type="date"
-                  id="start-date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-              <div className="filter-group">
-                <label htmlFor="end-date">{t('reports.to')}:</label>
-                <input
-                  type="date"
-                  id="end-date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-              <button className="btn btn-primary" onClick={handleDateRangeChange}>
-                {t('reports.query')}
-              </button>
-            </div>
-            <div className="date-results">
-              <p className="result-count">
-                {t('reports.found')} <strong>{dateRangeOps.length}</strong> {t('reports.operationsDateRange')}
-              </p>
-              {dateRangeOps.length > 0 && (
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => exportToCSV(dateRangeOps, 'date-range-operations.csv')}
-                >
-                  {t('reports.exportResults')}
-                </button>
+        <TabPanel header={t('reports.efficiencyAnalysis')}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <Card title={t('reports.operatorPerformance')}>
+              {operatorMetrics.length > 0 ? (
+                <DataTable value={operatorMetrics} size="small" emptyMessage={t('messages.noDataAvailable')}>
+                  <Column field="operatorName" header={t('reports.operator')} />
+                  <Column header={t('reports.avgUtilization')} body={(row: OperatorMetric) => `${row.avgUtilization.toFixed(1)}%`} />
+                  <Column header={t('reports.performanceLevel')} body={performanceBody} />
+                  <Column
+                    header={t('reports.operations')}
+                    body={(row: OperatorMetric) => opsByOperator.get(row.operatorId) || 0}
+                  />
+                </DataTable>
+              ) : (
+                <Message severity="info" text={t('reports.noOperatorData')} />
               )}
-            </div>
+            </Card>
+
+            <Card title={t('reports.highEfficiencyOps')}>
+              {highEfficiencyOps.length > 0 ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>
+                    {highEfficiencyOps.length} {t('reports.operationsAchievedEfficiency')}
+                  </span>
+                  <Button
+                    icon="pi pi-download"
+                    label={t('reports.exportDetails')}
+                    severity="secondary"
+                    onClick={() => exportToCSV(highEfficiencyOps, 'high-efficiency-ops.csv')}
+                  />
+                </div>
+              ) : (
+                <Message severity="info" text={t('reports.noHighEfficiencyOps')} />
+              )}
+            </Card>
           </div>
-        </div>
-      )}
+        </TabPanel>
+
+        <TabPanel header={t('reports.wasteManagement')}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <Card title={t('reports.wasteAreaByMaterial')}>
+              <DataTable
+                value={Object.entries(wasteAreaByMaterial).map(([material, area]) => ({ material, area }))}
+                size="small"
+              >
+                <Column field="material" header={t('reports.material')} />
+                <Column header={t('reports.totalWasteArea')} body={(row) => row.area.toFixed(2)} />
+              </DataTable>
+            </Card>
+
+            <Card title={t('reports.wasteStatusDistribution')}>
+              <DataTable
+                value={[
+                  { status: t('reports.availableForReuse'), count: wasteStats.available },
+                  { status: t('reports.successfullyReused'), count: wasteStats.used },
+                  { status: t('reports.scrapDiscarded'), count: wasteStats.scrap },
+                ]}
+                size="small"
+              >
+                <Column field="status" header={t('common.status')} />
+                <Column field="count" header={t('common.list')} />
+              </DataTable>
+            </Card>
+
+            <Card title={t('reports.significantWasteOps')}>
+              {wasteOps.length > 0 ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>
+                    {wasteOps.length} {t('reports.operationsSignificantWaste')}
+                  </span>
+                  <Button
+                    icon="pi pi-download"
+                    label={t('reports.exportDetails')}
+                    severity="secondary"
+                    onClick={() => exportToCSV(wasteOps, 'significant-waste-ops.csv')}
+                  />
+                </div>
+              ) : (
+                <Message severity="info" text={t('reports.noWasteOpsFound')} />
+              )}
+            </Card>
+          </div>
+        </TabPanel>
+
+        <TabPanel header={t('reports.inventoryStatus')}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <Card title={t('reports.inventoryByMaterial')}>
+              <DataTable value={materialStats} size="small">
+                <Column header={t('reports.material')} body={(row: MaterialStats) => <Tag value={row.material} />} />
+                <Column field="count" header={t('reports.quantityPieces')} />
+                <Column header={t('reports.totalAreaM2')} body={(row: MaterialStats) => row.area.toFixed(2)} />
+                <Column
+                  header={t('reports.avgAreaPiece')}
+                  body={(row: MaterialStats) => (row.count > 0 ? (row.area / row.count).toFixed(2) : '0.00')}
+                />
+              </DataTable>
+            </Card>
+
+            <Card title={t('reports.operationsByDateRange')}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+                <div style={{ display: 'grid', gap: '0.25rem' }}>
+                  <label htmlFor="start-date">{t('reports.from')}</label>
+                  <InputText
+                    id="start-date"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div style={{ display: 'grid', gap: '0.25rem' }}>
+                  <label htmlFor="end-date">{t('reports.to')}</label>
+                  <InputText
+                    id="end-date"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+                <Button label={t('reports.query')} onClick={handleDateRangeChange} />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                <span>
+                  {t('reports.found')} <strong>{dateRangeOps.length}</strong> {t('reports.operationsDateRange')}
+                </span>
+                {dateRangeOps.length > 0 && (
+                  <Button
+                    icon="pi pi-download"
+                    label={t('reports.exportResults')}
+                    severity="secondary"
+                    onClick={() => exportToCSV(dateRangeOps, 'date-range-operations.csv')}
+                  />
+                )}
+              </div>
+            </Card>
+          </div>
+        </TabPanel>
+      </TabView>
     </div>
   );
 }
+
+export default ReportsPage;

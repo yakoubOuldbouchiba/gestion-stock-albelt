@@ -2,12 +2,14 @@ package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
 import com.albelt.gestionstock.api.response.PagedResponse;
+import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceResponse;
 import com.albelt.gestionstock.domain.waste.service.WastePieceService;
 import com.albelt.gestionstock.domain.waste.mapper.WastePieceMapper;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -35,8 +37,8 @@ public class WastePieceController {
      * GET /api/waste-pieces/grouped
      */
     @GetMapping("/grouped")
-    public ResponseEntity<ApiResponse<List<Object[]>>> getGroupedByAllFields() {
-        var grouped = wastePieceService.getGroupedByAllFields();
+    public ResponseEntity<ApiResponse<List<WastePieceGroupedStatsResponse>>> getGroupedByAllFields(@RequestParam(required = false) WasteType type) {
+        var grouped = wastePieceService.getGroupedByAllFields(type);
         return ResponseEntity.ok(ApiResponse.success(grouped));
     }
 

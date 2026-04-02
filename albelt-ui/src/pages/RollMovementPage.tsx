@@ -7,7 +7,15 @@ import { Altier } from '../types/index';
 import { useAuthStore } from '@hooks/useAuth';
 import { useI18n } from '@hooks/useI18n';
 import { formatDateTime } from '../utils/date';
-import '../styles/RollMovementPage.css';
+import { Button } from 'primereact/button';
+import { InputText } from 'primereact/inputtext';
+import { Dropdown } from 'primereact/dropdown';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { Dialog } from 'primereact/dialog';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
 
 export function RollMovementPage() {
   const { rollId } = useParams<{ rollId: string }>();
@@ -65,13 +73,13 @@ export function RollMovementPage() {
         // Fetch movement history
         const movResponse = await rollMovementService.getRollMovementHistory(rollId);
         if (movResponse.success && movResponse.data) {
-          setMovements(movResponse.data);
+          setMovements(movResponse.data.items);
         }
         
         // Fetch altiers for dropdown
         const altResponse = await AltierService.getAll();
         if (altResponse.success && altResponse.data) {
-          setAltiers(altResponse.data);
+          setAltiers(altResponse.data.items);
         }
         
         setError(null);
@@ -144,7 +152,7 @@ export function RollMovementPage() {
         // Refresh movement history
         const histResponse = await rollMovementService.getRollMovementHistory(rollId);
         if (histResponse.success && histResponse.data) {
-          setMovements(histResponse.data);
+          setMovements(histResponse.data.items);
         }
         
         // Reset form with new altier as the from location
@@ -193,7 +201,7 @@ export function RollMovementPage() {
         // Refresh movement history
         const histResponse = await rollMovementService.getRollMovementHistory(rollId || '');
         if (histResponse.success && histResponse.data) {
-          setMovements(histResponse.data);
+          setMovements(histResponse.data.items);
         }
         
         setConfirmData({ dateEntree: getCurrentDateTimeLocal() });
@@ -222,71 +230,94 @@ export function RollMovementPage() {
     return formatDateTime(dateValue);
   };
 
+  const altierOptions = altiers.map((altier) => ({
+    label: `${altier.libelle} (${altier.adresse})`,
+    value: altier.id,
+  }));
+
+  const movementsFromBody = (movement: RollMovement) => (
+    <div>
+      {movement.fromAltier ? (
+        <>
+          <strong>{movement.fromAltier.libelle}</strong>
+          <div>{movement.fromAltier.adresse}</div>
+        </>
+      ) : (
+        <em>{t('rollMovement.supplier')}</em>
+      )}
+    </div>
+  );
+
+  const movementsToBody = (movement: RollMovement) => (
+    <div>
+      <strong>{movement.toAltier.libelle}</strong>
+      <div>{movement.toAltier.adresse}</div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
+  }
+
   return (
-    <div className="roll-movement-page">
-      <div className="page-header">
-        <h1>{t('rollMovement.title')}</h1>
-        <p>{t('rollMovement.description', { rollId: rollId?.substring(0, 8) })}</p>
-      </div>
-
-      {error && <div className="error-message">{error}</div>}
-
-      <div className="controls">
-        <button 
-          className="record-movement-btn"
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <div>
+          <h1>{t('rollMovement.title')}</h1>
+          <p>{t('rollMovement.description', { rollId: rollId?.substring(0, 8) })}</p>
+        </div>
+        <Button
+          label={showForm ? t('common.cancel') : t('rollMovement.recordBtn')}
+          icon={showForm ? 'pi pi-times' : 'pi pi-plus'}
           onClick={() => setShowForm(!showForm)}
-        >
-          {showForm ? t('common.cancel') : t('rollMovement.recordBtn')}
-        </button>
+        />
       </div>
 
-      {showForm && (
-        <div className="movement-form-container">
-          <form onSubmit={handleSubmit} className="movement-form">
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="fromAltierID">{t('rollMovement.fromAltier')} <span className="required">*</span></label>
-                <select 
+      {error && <Message severity="error" text={error} />}
+
+      <Dialog
+        header={t('rollMovement.recordBtn')}
+        visible={showForm}
+        onHide={() => setShowForm(false)}
+        style={{ width: 'min(800px, 95vw)' }}
+      >
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div>
+                <label htmlFor="fromAltierID">{t('rollMovement.fromAltier')} *</label>
+                <Dropdown
                   id="fromAltierID"
-                  name="fromAltierID"
                   value={formData.fromAltierID}
-                  onChange={handleInputChange}
-                  required
+                  options={altierOptions}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, fromAltierID: e.value }))}
+                  placeholder={t('rollMovement.selectSource')}
                   disabled
-                  title={t('rollMovement.fromAltierHint')}
-                >
-                  <option value="">{t('rollMovement.selectSource')}</option>
-                  {altiers.map(altier => (
-                    <option key={altier.id} value={altier.id}>
-                      {altier.libelle} ({altier.adresse})
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
-              <div className="form-group">
+              <div>
                 <label htmlFor="toAltierID">{t('rollMovement.toAltier')} *</label>
-                <select 
+                <Dropdown
                   id="toAltierID"
-                  name="toAltierID"
                   value={formData.toAltierID}
-                  onChange={handleInputChange}
+                  options={altierOptions.filter((option) => option.value !== formData.fromAltierID)}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, toAltierID: e.value }))}
+                  placeholder={t('rollMovement.selectDestination')}
+                  filter
                   required
-                >
-                  <option value="">{t('rollMovement.selectDestination')}</option>
-                  {altiers
-                    .filter(altier => altier.id !== formData.fromAltierID)  // Exclude current altier
-                    .map(altier => (
-                      <option key={altier.id} value={altier.id}>
-                        {altier.libelle} ({altier.adresse})
-                      </option>
-                    ))}
-                </select>
+                />
               </div>
+            </div>
 
-              <div className="form-group">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+              <div>
                 <label htmlFor="dateSortie">{t('rollMovement.dateSortie')} *</label>
-                <input 
+                <InputText
                   type="datetime-local"
                   id="dateSortie"
                   name="dateSortie"
@@ -295,153 +326,115 @@ export function RollMovementPage() {
                   required
                 />
               </div>
-
-              <div className="form-group">
-                <label htmlFor="dateEntree">{t('rollMovement.dateEntree')} <span className="hint">{t('rollMovement.dateEntreeHint')}</span></label>
-                <input 
+              <div>
+                <label htmlFor="dateEntree">{t('rollMovement.dateEntree')}</label>
+                <InputText
                   type="datetime-local"
                   id="dateEntree"
                   name="dateEntree"
                   value={formData.dateEntree.slice(0, 16)}
                   onChange={handleInputChange}
                   disabled
-                  title={t('rollMovement.dateEntreeDisabledHint')}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="reason">{t('rollMovement.reason')}</label>
-                <input 
-                  type="text"
-                  id="reason"
-                  name="reason"
-                  placeholder={t('rollMovement.reasonPlaceholder')}
-                  value={formData.reason}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="form-group">
-
-                <label htmlFor="notes">{t('rollMovement.notes')}</label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  placeholder={t('rollMovement.notesPlaceholder')}
-                  value={formData.notes}
-                  onChange={handleInputChange}
-                  rows={3}
                 />
               </div>
             </div>
 
-            <div className="form-actions">
-              <button type="submit" className="btn-submit">{t('rollMovement.recordBtn')}</button>
-              <button type="button" className="btn-cancel" onClick={() => setShowForm(false)}>
-                {t('common.cancel')}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {showConfirmForm && selectedMovementId && (
-        <div className="movement-form-container confirm-form">
-          <form onSubmit={handleConfirmReceipt} className="movement-form">
-            <h3>{t('rollMovement.confirmReceiptTitle')}</h3>
-            <p>{t('rollMovement.confirmReceiptDesc')}</p>
-            
-            <div className="form-group">
-              <label htmlFor="confirmDateEntree">{t('rollMovement.dateEntree')} <span className="required">*</span></label>
-              <input 
-                type="datetime-local"
-                id="confirmDateEntree"
-                name="dateEntree"
-                value={confirmData.dateEntree.slice(0, 16)}
-                onChange={handleConfirmInputChange}
-                required
+            <div>
+              <label htmlFor="reason">{t('rollMovement.reason')}</label>
+              <InputText
+                id="reason"
+                name="reason"
+                value={formData.reason}
+                onChange={handleInputChange}
+                placeholder={t('rollMovement.reasonPlaceholder')}
               />
             </div>
 
-            <div className="form-actions">
-              <button type="submit" className="btn-submit">{t('rollMovement.confirmReceiptBtn')}</button>
-              <button type="button" className="btn-cancel" onClick={() => {
+            <div>
+              <label htmlFor="notes">{t('rollMovement.notes')}</label>
+              <InputTextarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleInputChange}
+                rows={3}
+                placeholder={t('rollMovement.notesPlaceholder')}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <Button type="submit" label={t('rollMovement.recordBtn')} />
+              <Button type="button" label={t('common.cancel')} severity="secondary" onClick={() => setShowForm(false)} />
+            </div>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog
+        header={t('rollMovement.confirmReceiptTitle')}
+        visible={showConfirmForm && !!selectedMovementId}
+        onHide={() => {
+          setShowConfirmForm(false);
+          setSelectedMovementId(null);
+        }}
+      >
+        <form onSubmit={handleConfirmReceipt}>
+          <p>{t('rollMovement.confirmReceiptDesc')}</p>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <label htmlFor="confirmDateEntree">{t('rollMovement.dateEntree')} *</label>
+            <InputText
+              type="datetime-local"
+              id="confirmDateEntree"
+              name="dateEntree"
+              value={confirmData.dateEntree.slice(0, 16)}
+              onChange={handleConfirmInputChange}
+              required
+            />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+            <Button type="submit" label={t('rollMovement.confirmReceiptBtn')} />
+            <Button
+              type="button"
+              label={t('common.cancel')}
+              severity="secondary"
+              onClick={() => {
                 setShowConfirmForm(false);
                 setSelectedMovementId(null);
-              }}>
-                {t('common.cancel')}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+              }}
+            />
+          </div>
+        </form>
+      </Dialog>
 
-      {loading ? (
-        <div className="loading">{t('rollMovement.loading')}</div>
-      ) : movements.length === 0 ? (
-        <div className="empty-state">
-          <p>{t('rollMovement.noMovements')}</p>
-        </div>
+      {movements.length === 0 ? (
+        <Message severity="info" text={t('rollMovement.noMovements')} />
       ) : (
-        <div className="movements-list">
-          <table className="movements-table">
-            <thead>
-              <tr>
-                <th>{t('rollMovement.from')}</th>
-                <th>{t('rollMovement.to')}</th>
-                <th>{t('rollMovement.exitDate')}</th>
-                <th>{t('rollMovement.entryDate')}</th>
-                <th>{t('rollMovement.duration')}</th>
-                <th>{t('rollMovement.reason')}</th>
-                <th>{t('rollMovement.operator')}</th>
-                <th>{t('rollMovement.notes')}</th>
-                <th>{t('common.action')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {movements.map(movement => (
-                <tr key={movement.id} className="movement-row">
-                  <td>
-                    {movement.fromAltier ? (
-                      <>
-                        <strong>{movement.fromAltier.libelle}</strong>
-                        <br />
-                        <small>{movement.fromAltier.adresse}</small>
-                      </>
-                    ) : (
-                      <em>{t('rollMovement.supplier')}</em>
-                    )}
-                  </td>
-                  <td>
-                    <strong>{movement.toAltier.libelle}</strong>
-                    <br />
-                    <small>{movement.toAltier.adresse}</small>
-                  </td>
-                  <td>{formatDate(movement.dateSortie)}</td>
-                  <td>{formatDate(movement.dateEntree)}</td>
-                  <td>{movement.durationHours} {t('rollMovement.hours')}</td>
-                  <td>{movement.reason || t('common.dash')}</td>
-                  <td>{movement.operator.username}</td>
-                  <td>{movement.notes || t('common.dash')}</td>
-                  <td>
-                    {!movement.dateEntree && (
-                      <button 
-                        type="button" 
-                        className="btn-confirm"
-                        onClick={() => {
-                          setShowConfirmForm(true);
-                          setSelectedMovementId(movement.id);
-                        }}
-                      >
-                        {t('rollMovement.confirmReceiptBtn')}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable value={movements} dataKey="id" size="small">
+          <Column header={t('rollMovement.from')} body={movementsFromBody} />
+          <Column header={t('rollMovement.to')} body={movementsToBody} />
+          <Column header={t('rollMovement.exitDate')} body={(m: RollMovement) => formatDate(m.dateSortie)} />
+          <Column header={t('rollMovement.entryDate')} body={(m: RollMovement) => formatDate(m.dateEntree)} />
+          <Column header={t('rollMovement.duration')} body={(m: RollMovement) => `${m.durationHours} ${t('rollMovement.hours')}`} />
+          <Column header={t('rollMovement.reason')} body={(m: RollMovement) => m.reason || t('common.dash')} />
+          <Column header={t('rollMovement.operator')} body={(m: RollMovement) => m.operator.username} />
+          <Column header={t('rollMovement.notes')} body={(m: RollMovement) => m.notes || t('common.dash')} />
+          <Column
+            header={t('common.action')}
+            body={(m: RollMovement) => (
+              !m.dateEntree ? (
+                <Button
+                  label={t('rollMovement.confirmReceiptBtn')}
+                  icon="pi pi-check"
+                  text
+                  onClick={() => {
+                    setShowConfirmForm(true);
+                    setSelectedMovementId(m.id);
+                  }}
+                />
+              ) : null
+            )}
+          />
+        </DataTable>
       )}
     </div>
   );

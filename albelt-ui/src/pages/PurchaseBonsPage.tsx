@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@hooks/useI18n';
 import type {
   Altier,
@@ -14,7 +14,18 @@ import { AltierService } from '../services/altierService';
 import { ColorService } from '../services/colorService';
 import { PurchaseBonService } from '../services/purchaseBonService';
 import { formatDate } from '../utils/date';
-import '../styles/PurchaseBonsPage.css';
+import { Button } from 'primereact/button';
+import { Calendar } from 'primereact/calendar';
+import { Card } from 'primereact/card';
+import { Column } from 'primereact/column';
+import { DataTable } from 'primereact/datatable';
+import { Dropdown } from 'primereact/dropdown';
+import { InputNumber } from 'primereact/inputnumber';
+import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
+import { Tag } from 'primereact/tag';
 
 export function PurchaseBonsPage() {
   const { t } = useI18n();
@@ -33,9 +44,19 @@ export function PurchaseBonsPage() {
     return data?.items ?? data?.content ?? [];
   };
 
+  const formatDateInput = (date: Date | null) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const parseDateInput = (value: string) => (value ? new Date(`${value}T00:00:00`) : null);
+
   const [bonForm, setBonForm] = useState({
     reference: '',
-    bonDate: new Date().toISOString().split('T')[0],
+    bonDate: formatDateInput(new Date()),
     supplierId: '',
     notes: ''
   });
@@ -56,6 +77,10 @@ export function PurchaseBonsPage() {
   const [items, setItems] = useState<PurchaseBonItemRequest[]>([]);
 
   const materials: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
+  const materialOptions = useMemo(
+    () => materials.map((material) => ({ label: material, value: material })),
+    [materials]
+  );
 
   useEffect(() => {
     loadBaseData();
@@ -108,34 +133,27 @@ export function PurchaseBonsPage() {
     }
   };
 
-  const handleBonChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+  const updateBonField = (field: keyof typeof bonForm, value: string) => {
     setBonForm((prev) => ({
       ...prev,
-      [name]: value
+      [field]: value
     }));
   };
 
-  const handleItemChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-
+  const updateItemField = <K extends keyof PurchaseBonItemRequest>(
+    field: K,
+    value: PurchaseBonItemRequest[K]
+  ) => {
     setItemForm((prev) => {
-      const normalizedValue = (name === 'colorId' || name === 'altierId') && value === ''
-        ? undefined
-        : value;
-
       const updated: PurchaseBonItemRequest = {
         ...prev,
-        [name]: name === 'nbPlis' || name === 'widthMm' || name === 'quantity'
-          ? parseInt(value) || 0
-          : name === 'thicknessMm' || name === 'lengthM' || name === 'areaM2'
-            ? parseFloat(value) || 0
-            : normalizedValue
-      } as PurchaseBonItemRequest;
+        [field]: value
+      };
 
-      if (name === 'widthMm' || name === 'lengthM') {
-        const widthM = updated.widthMm / 1000;
-        updated.areaM2 = widthM * updated.lengthM;
+      if (field === 'widthMm' || field === 'lengthM') {
+        const widthM = (updated.widthMm || 0) / 1000;
+        const lengthM = updated.lengthM || 0;
+        updated.areaM2 = parseFloat((widthM * lengthM).toFixed(4));
       }
 
       return updated;
@@ -196,7 +214,7 @@ export function PurchaseBonsPage() {
         setSelectedBon(response.data);
         setBonForm({
           reference: '',
-          bonDate: new Date().toISOString().split('T')[0],
+          bonDate: formatDateInput(new Date()),
           supplierId: '',
           notes: ''
         });
@@ -251,315 +269,297 @@ export function PurchaseBonsPage() {
   };
 
   return (
-    <div className="purchase-bons-page">
-      <div className="page-header">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div>
         <h1>{t('purchaseBons.title')}</h1>
         <p>{t('purchaseBons.subtitle')}</p>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <Message severity="error" text={error} />}
 
-      <div className="grid">
-        <section className="panel">
-          <h2>{t('purchaseBons.createTitle')}</h2>
-          <form className="bon-form" onSubmit={handleCreateBon}>
-            <div className="form-row">
-              <div className="form-group">
+      <div
+        style={{
+          display: 'grid',
+          gap: '1rem',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))'
+        }}
+      >
+        <Card title={t('purchaseBons.createTitle')}>
+          <form className="p-fluid" onSubmit={handleCreateBon}>
+            <div
+              style={{
+                display: 'grid',
+                gap: '1rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
+              }}
+            >
+              <div>
                 <label htmlFor="reference">{t('purchaseBons.reference')}</label>
-                <input
+                <InputText
                   id="reference"
-                  name="reference"
                   value={bonForm.reference}
-                  onChange={handleBonChange}
+                  onChange={(e) => updateBonField('reference', e.target.value)}
                   placeholder="BA-2025-001"
-                  required
                 />
               </div>
-              <div className="form-group">
+              <div>
                 <label htmlFor="bonDate">{t('purchaseBons.bonDate')}</label>
-                <input
+                <Calendar
                   id="bonDate"
-                  name="bonDate"
-                  type="date"
-                  value={bonForm.bonDate}
-                  onChange={handleBonChange}
-                  required
+                  value={parseDateInput(bonForm.bonDate)}
+                  onChange={(e) => updateBonField('bonDate', formatDateInput(e.value as Date | null))}
+                  dateFormat="yy-mm-dd"
+                  showIcon
                 />
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
+            <div
+              style={{
+                display: 'grid',
+                gap: '1rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                marginTop: '1rem'
+              }}
+            >
+              <div>
                 <label htmlFor="supplierId">{t('purchaseBons.supplier')}</label>
-                <select
+                <Dropdown
                   id="supplierId"
-                  name="supplierId"
-                  value={bonForm.supplierId}
-                  onChange={handleBonChange}
-                  required
-                >
-                  <option value="">{t('purchaseBons.selectSupplier')}</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </option>
-                  ))}
-                </select>
+                  value={bonForm.supplierId || null}
+                  options={suppliers}
+                  optionLabel="name"
+                  optionValue="id"
+                  placeholder={t('purchaseBons.selectSupplier')}
+                  onChange={(e) => updateBonField('supplierId', e.value || '')}
+                />
               </div>
-              <div className="form-group">
+              <div>
                 <label htmlFor="notes">{t('purchaseBons.notes')}</label>
-                <input
+                <InputTextarea
                   id="notes"
-                  name="notes"
                   value={bonForm.notes}
-                  onChange={handleBonChange}
+                  onChange={(e) => updateBonField('notes', e.target.value)}
                   placeholder={t('purchaseBons.notesPlaceholder')}
+                  autoResize
+                  rows={1}
                 />
               </div>
             </div>
 
-            <div className="items-panel">
-              <div className="items-header">
-                <h3>{t('purchaseBons.items')}</h3>
-                <span className="items-count">{items.length} {t('purchaseBons.itemsCount')}</span>
+            <div style={{ marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 style={{ margin: 0 }}>{t('purchaseBons.items')}</h3>
+                <Tag value={`${items.length} ${t('purchaseBons.itemsCount')}`} />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
+              <div
+                style={{
+                  display: 'grid',
+                  gap: '1rem',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  marginTop: '0.75rem'
+                }}
+              >
+                <div>
                   <label>{t('purchaseBons.material')}</label>
-                  <select name="materialType" value={itemForm.materialType} onChange={handleItemChange}>
-                    {materials.map((material) => (
-                      <option key={material} value={material}>
-                        {material}
-                      </option>
-                    ))}
-                  </select>
+                  <Dropdown
+                    value={itemForm.materialType}
+                    options={materialOptions}
+                    onChange={(e) => updateItemField('materialType', e.value)}
+                  />
                 </div>
-                <div className="form-group">
+                <div>
                   <label>{t('purchaseBons.quantity')}</label>
-                  <input
-                    name="quantity"
-                    type="number"
-                    min="1"
+                  <InputNumber
                     value={itemForm.quantity}
-                    onChange={handleItemChange}
+                    onValueChange={(e) => updateItemField('quantity', e.value ?? 0)}
+                    min={1}
                   />
                 </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
+                <div>
                   <label>{t('purchaseBons.plies')}</label>
-                  <input
-                    name="nbPlis"
-                    type="number"
-                    min="1"
+                  <InputNumber
                     value={itemForm.nbPlis}
-                    onChange={handleItemChange}
+                    onValueChange={(e) => updateItemField('nbPlis', e.value ?? 0)}
+                    min={1}
                   />
                 </div>
-                <div className="form-group">
+                <div>
                   <label>{t('purchaseBons.thickness')}</label>
-                  <input
-                    name="thicknessMm"
-                    type="number"
-                    min="0"
-                    step="0.1"
+                  <InputNumber
                     value={itemForm.thicknessMm}
-                    onChange={handleItemChange}
+                    onValueChange={(e) => updateItemField('thicknessMm', e.value ?? 0)}
+                    min={0}
+                    step={0.1}
                   />
                 </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
+                <div>
                   <label>{t('purchaseBons.width')}</label>
-                  <input
-                    name="widthMm"
-                    type="number"
-                    min="0"
+                  <InputNumber
                     value={itemForm.widthMm}
-                    onChange={handleItemChange}
+                    onValueChange={(e) => updateItemField('widthMm', e.value ?? 0)}
+                    min={0}
                   />
                 </div>
-                <div className="form-group">
+                <div>
                   <label>{t('purchaseBons.length')}</label>
-                  <input
-                    name="lengthM"
-                    type="number"
-                    min="0"
-                    step="0.1"
+                  <InputNumber
                     value={itemForm.lengthM}
-                    onChange={handleItemChange}
+                    onValueChange={(e) => updateItemField('lengthM', e.value ?? 0)}
+                    min={0}
+                    step={0.1}
                   />
                 </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
+                <div>
                   <label>{t('purchaseBons.area')}</label>
-                  <input
-                    name="areaM2"
-                    type="number"
-                    min="0"
-                    step="0.1"
+                  <InputNumber
                     value={itemForm.areaM2}
-                    onChange={handleItemChange}
+                    onValueChange={(e) => updateItemField('areaM2', e.value ?? 0)}
+                    min={0}
+                    step={0.1}
                   />
                 </div>
-                <div className="form-group">
+                <div>
                   <label>{t('purchaseBons.color')}</label>
-                  <select name="colorId" value={itemForm.colorId || ''} onChange={handleItemChange}>
-                    <option value="">{t('purchaseBons.selectColor')}</option>
-                    {colors.map((color) => (
-                      <option key={color.id} value={color.id}>
-                        {color.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Dropdown
+                    value={itemForm.colorId || null}
+                    options={colors}
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder={t('purchaseBons.selectColor')}
+                    onChange={(e) => updateItemField('colorId', e.value || undefined)}
+                  />
                 </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
+                <div>
                   <label>{t('purchaseBons.altier')}</label>
-                  <select name="altierId" value={itemForm.altierId || ''} onChange={handleItemChange}>
-                    <option value="">{t('purchaseBons.selectAltier')}</option>
-                    {altiers.map((altier) => (
-                      <option key={altier.id} value={altier.id}>
-                        {altier.libelle}
-                      </option>
-                    ))}
-                  </select>
+                  <Dropdown
+                    value={itemForm.altierId || null}
+                    options={altiers}
+                    optionLabel="libelle"
+                    optionValue="id"
+                    placeholder={t('purchaseBons.selectAltier')}
+                    onChange={(e) => updateItemField('altierId', e.value || undefined)}
+                  />
                 </div>
-                <div className="form-group">
+                <div>
                   <label>{t('purchaseBons.qrCode')}</label>
-                  <input
-                    name="qrCode"
+                  <InputText
                     value={itemForm.qrCode || ''}
-                    onChange={handleItemChange}
+                    onChange={(e) => updateItemField('qrCode', e.target.value)}
                   />
                 </div>
               </div>
 
-              <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={addItem}>
-                  {t('purchaseBons.addItem')}
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button type="button" label={t('purchaseBons.addItem')} icon="pi pi-plus" onClick={addItem} />
               </div>
 
-              {items.length > 0 && (
-                <div className="items-table-wrapper">
-                  <table className="items-table">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>{t('purchaseBons.material')}</th>
-                        <th>{t('purchaseBons.dimensions')}</th>
-                        <th>{t('purchaseBons.quantity')}</th>
-                        <th>{t('purchaseBons.color')}</th>
-                        <th>{t('purchaseBons.actions')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((item, index) => (
-                        <tr key={`${item.materialType}-${index}`}>
-                          <td>{index + 1}</td>
-                          <td>{item.materialType}</td>
-                          <td>
-                            {item.widthMm} x {item.lengthM} ({item.areaM2} m2)
-                          </td>
-                          <td>{item.quantity}</td>
-                          <td>
-                            {colors.find((c) => c.id === item.colorId)?.name || '-'}
-                          </td>
-                          <td>
-                            <button type="button" className="btn-danger" onClick={() => removeItem(index)}>
-                              {t('common.delete')}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <div style={{ marginTop: '1rem' }}>
+                <DataTable value={items} emptyMessage={t('purchaseBons.noItems')} size="small">
+                  <Column header="#" body={(_, options) => options.rowIndex + 1} />
+                  <Column field="materialType" header={t('purchaseBons.material')} />
+                  <Column
+                    header={t('purchaseBons.dimensions')}
+                    body={(item: PurchaseBonItemRequest) =>
+                      `${item.widthMm} x ${item.lengthM} (${item.areaM2} m2)`
+                    }
+                  />
+                  <Column field="quantity" header={t('purchaseBons.quantity')} />
+                  <Column
+                    header={t('purchaseBons.color')}
+                    body={(item: PurchaseBonItemRequest) =>
+                      colors.find((color) => color.id === item.colorId)?.name || '-'
+                    }
+                  />
+                  <Column
+                    header={t('purchaseBons.actions')}
+                    body={(_, options) => (
+                      <Button
+                        type="button"
+                        icon="pi pi-trash"
+                        severity="danger"
+                        text
+                        onClick={() => removeItem(options.rowIndex)}
+                      />
+                    )}
+                  />
+                </DataTable>
+              </div>
             </div>
 
-            <div className="form-actions">
-              <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? t('common.saving') : t('purchaseBons.create')}
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+              <Button
+                type="submit"
+                label={saving ? t('common.saving') : t('purchaseBons.create')}
+                icon="pi pi-check"
+                loading={saving}
+              />
             </div>
           </form>
-        </section>
+        </Card>
 
-        <section className="panel">
-          <h2>{t('purchaseBons.listTitle')}</h2>
+        <Card title={t('purchaseBons.listTitle')}>
           {loading ? (
-            <div className="loading">{t('common.loading')}</div>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <ProgressSpinner />
+            </div>
           ) : (
-            <div className="bons-table-wrapper">
-              <table className="bons-table">
-                <thead>
-                  <tr>
-                    <th>{t('purchaseBons.reference')}</th>
-                    <th>{t('purchaseBons.bonDate')}</th>
-                    <th>{t('purchaseBons.supplier')}</th>
-                    <th>{t('purchaseBons.status')}</th>
-                    <th>{t('purchaseBons.items')}</th>
-                    <th>{t('purchaseBons.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bons.map((bon) => (
-                    <tr key={bon.id} className={selectedBon?.id === bon.id ? 'selected' : ''}>
-                      <td>
-                        <button type="button" className="link-button" onClick={() => loadBonDetails(bon.id)}>
-                          {bon.reference}
-                        </button>
-                      </td>
-                      <td>{formatDate(bon.bonDate)}</td>
-                      <td>{bon.supplierName || '-'}</td>
-                      <td>
-                        <span className={`badge ${bon.status === 'VALIDATED' ? 'validated' : 'draft'}`}>
-                          {bon.status === 'VALIDATED'
-                            ? t('purchaseBons.validated')
-                            : t('purchaseBons.draft')}
-                        </span>
-                      </td>
-                      <td>{bon.itemCount ?? '-'}</td>
-                      <td className="row-actions">
-                        {bon.status === 'DRAFT' && (
-                          <button
-                            type="button"
-                            className="btn-secondary"
-                            onClick={() => handleValidate(bon.id)}
-                            disabled={saving}
-                          >
-                            {t('purchaseBons.validate')}
-                          </button>
-                        )}
-                        {bon.status === 'DRAFT' && (
-                          <button
-                            type="button"
-                            className="btn-danger"
-                            onClick={() => handleDelete(bon.id)}
-                            disabled={saving}
-                          >
-                            {t('common.delete')}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <>
+              <DataTable value={bons} dataKey="id" emptyMessage={t('common.noData')} size="small">
+                <Column
+                  header={t('purchaseBons.reference')}
+                  body={(bon: PurchaseBon) => (
+                    <Button label={bon.reference} text onClick={() => loadBonDetails(bon.id)} />
+                  )}
+                />
+                <Column header={t('purchaseBons.bonDate')} body={(bon: PurchaseBon) => formatDate(bon.bonDate)} />
+                <Column header={t('purchaseBons.supplier')} body={(bon: PurchaseBon) => bon.supplierName || '-'} />
+                <Column
+                  header={t('purchaseBons.status')}
+                  body={(bon: PurchaseBon) => (
+                    <Tag
+                      value={bon.status === 'VALIDATED' ? t('purchaseBons.validated') : t('purchaseBons.draft')}
+                      severity={bon.status === 'VALIDATED' ? 'success' : 'warning'}
+                    />
+                  )}
+                />
+                <Column header={t('purchaseBons.items')} body={(bon: PurchaseBon) => bon.itemCount ?? '-'} />
+                <Column
+                  header={t('purchaseBons.actions')}
+                  body={(bon: PurchaseBon) => (
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      {bon.status === 'DRAFT' && (
+                        <Button
+                          label={t('purchaseBons.validate')}
+                          onClick={() => handleValidate(bon.id)}
+                          disabled={saving}
+                          size="small"
+                        />
+                      )}
+                      {bon.status === 'DRAFT' && (
+                        <Button
+                          label={t('common.delete')}
+                          severity="danger"
+                          onClick={() => handleDelete(bon.id)}
+                          disabled={saving}
+                          size="small"
+                        />
+                      )}
+                    </div>
+                  )}
+                />
+              </DataTable>
 
               {selectedBon && (
-                <div className="bon-details">
-                  <h3>{t('purchaseBons.details')}</h3>
-                  <div className="bon-meta">
+                <Card title={t('purchaseBons.details')} style={{ marginTop: '1rem' }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gap: '0.5rem',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
+                    }}
+                  >
                     <div>
                       <strong>{t('purchaseBons.reference')}:</strong> {selectedBon.reference}
                     </div>
@@ -574,41 +574,29 @@ export function PurchaseBonsPage() {
                     </div>
                   </div>
 
-                  {selectedBon.items && selectedBon.items.length > 0 ? (
-                    <table className="items-table">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>{t('purchaseBons.material')}</th>
-                          <th>{t('purchaseBons.dimensions')}</th>
-                          <th>{t('purchaseBons.quantity')}</th>
-                          <th>{t('purchaseBons.color')}</th>
-                          <th>{t('purchaseBons.altier')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedBon.items.map((item) => (
-                          <tr key={item.id}>
-                            <td>{item.lineNumber}</td>
-                            <td>{item.materialType}</td>
-                            <td>
-                              {item.widthMm} x {item.lengthM} ({item.areaM2} m2)
-                            </td>
-                            <td>{item.quantity}</td>
-                            <td>{item.colorName || '-'}</td>
-                            <td>{item.altierLibelle || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <div className="empty-state">{t('purchaseBons.noItems')}</div>
-                  )}
-                </div>
+                  <div style={{ marginTop: '1rem' }}>
+                    <DataTable
+                      value={selectedBon.items || []}
+                      dataKey="id"
+                      emptyMessage={t('purchaseBons.noItems')}
+                      size="small"
+                    >
+                      <Column header="#" body={(item: any) => item.lineNumber} />
+                      <Column field="materialType" header={t('purchaseBons.material')} />
+                      <Column
+                        header={t('purchaseBons.dimensions')}
+                        body={(item: any) => `${item.widthMm} x ${item.lengthM} (${item.areaM2} m2)`}
+                      />
+                      <Column field="quantity" header={t('purchaseBons.quantity')} />
+                      <Column header={t('purchaseBons.color')} body={(item: any) => item.colorName || '-'} />
+                      <Column header={t('purchaseBons.altier')} body={(item: any) => item.altierLibelle || '-'} />
+                    </DataTable>
+                  </div>
+                </Card>
               )}
-            </div>
+            </>
           )}
-        </section>
+        </Card>
       </div>
     </div>
   );

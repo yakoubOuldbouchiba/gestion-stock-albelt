@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.domain.waste.dto;
 
 import com.albelt.gestionstock.shared.enums.MaterialType;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -36,13 +37,19 @@ public class WastePieceResponse {
     private BigDecimal lengthRemainingM;
     private BigDecimal areaM2;
 
+
+
     // Status & Classification (same as Roll)
     private String status;
-    private String wasteType;
+    private WasteType wasteType;
 
     // Location (same as Roll)
     private UUID altierId;
     private String altierLibelle;
+
+    private UUID supplierId;
+    private String supplierName;
+
     private String qrCode;
     private UUID colorId;
     private String colorName;
@@ -56,6 +63,9 @@ public class WastePieceResponse {
     // Waste-specific tracking
     private UUID commandeItemId;
     private LocalDateTime classificationDate;
+
+    // External/Internal Reference
+    private String reference;
 
     // Audit
     private UUID createdBy;

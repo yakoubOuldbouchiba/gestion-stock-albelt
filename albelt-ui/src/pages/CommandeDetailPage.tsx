@@ -1,22 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Button } from 'primereact/button';
+import { Dropdown } from 'primereact/dropdown';
+import { Tag } from 'primereact/tag';
+import { Card } from 'primereact/card';
+import { Message } from 'primereact/message';
+import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
+import { InputTextarea } from 'primereact/inputtextarea';
+import { Toast } from 'primereact/toast';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { ProgressSpinner } from 'primereact/progressspinner';
 import { CommandeService } from '../services/commandeService';
 import { WastePieceService } from '../services/wastePieceService';
 import { formatDate, formatDateTime } from '../utils/date';
 import { RollService } from '../services/rollService';
-import type { Commande, CommandeItem, ItemStatus } from '../types';
-import '../styles/CommandeDetailPage.css';
+import { useI18n } from '@hooks/useI18n';
+import type { Commande, CommandeItem, ItemStatus, Roll, WasteType } from '../types';
 
 export function CommandeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useI18n();
+  const toastRef = useRef<Toast>(null);
 
   const [commande, setCommande] = useState<Commande | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [rolls, setRolls] = useState<any[]>([]);
+  const [rolls, setRolls] = useState<Roll[]>([]);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [showProcessingModal, setShowProcessingModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CommandeItem | null>(null);
@@ -27,7 +40,7 @@ export function CommandeDetailPage() {
     rollId: '',
     lengthUsedM: '',
     widthRemainingMm: '',
-    wasteType: 'DECHET' as 'DECHET' | 'CHUTE_EXPLOITABLE',
+    wasteType: 'DECHET' as WasteType,
     weightKg: '',
     notes: '',
   });
@@ -37,7 +50,7 @@ export function CommandeDetailPage() {
 
   useEffect(() => {
     if (!id) {
-      setError('Order ID not provided');
+      setError(t('commandes.loadError'));
       return;
     }
 
@@ -53,20 +66,41 @@ export function CommandeDetailPage() {
         // Fetch available rolls
         const rollsRes = await RollService.getAll();
         if (rollsRes.data) {
-          setRolls(Array.isArray(rollsRes.data) ? rollsRes.data : []);
+          const rollItems = Array.isArray(rollsRes.data)
+            ? rollsRes.data
+            : (rollsRes.data as any).items ?? (rollsRes.data as any).content ?? [];
+          setRolls(rollItems);
         }
         
         setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
-        setError('Failed to load order details');
+        setError(t('commandes.loadError'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [id]);
+  }, [id, t]);
+
+  const showError = (detail: string) => {
+    toastRef.current?.show({
+      severity: 'error',
+      summary: t('common.error'),
+      detail,
+      life: 3000,
+    });
+  };
+
+  const showSuccess = (detail: string) => {
+    toastRef.current?.show({
+      severity: 'success',
+      summary: t('common.success'),
+      detail,
+      life: 2500,
+    });
+  };
 
   const handleStatusUpdate = async () => {
     if (!commande || !id) return;
@@ -77,10 +111,12 @@ export function CommandeDetailPage() {
       if (res.data) {
         setCommande(res.data);
         setError(null);
+        showSuccess(t('commandes.updateStatus'));
       }
     } catch (err) {
       console.error('Error updating status:', err);
-      setError('Failed to update order status');
+      setError(t('commandes.errorLoadingOrders'));
+      showError(t('commandes.errorLoadingOrders'));
     } finally {
       setUpdating(false);
     }
@@ -100,41 +136,53 @@ export function CommandeDetailPage() {
       }
     } catch (err) {
       console.error('Error updating item status:', err);
-      setError('Failed to update item status');
+      setError(t('commandes.deleteItemError'));
+      showError(t('commandes.deleteItemError'));
     }
   };
 
-  const handleDeleteItem = async (itemId: string) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) return;
-
-    try {
-      await CommandeService.deleteItem(itemId);
-      if (commande) {
-        setCommande({
-          ...commande,
-          items: commande.items.filter((item) => item.id !== itemId),
-        });
-      }
-    } catch (err) {
-      console.error('Error deleting item:', err);
-      setError('Failed to delete item');
-    }
+  const handleDeleteItem = (itemId: string) => {
+    confirmDialog({
+      message: t('commandes.confirmDeleteItem'),
+      header: t('common.confirm'),
+      icon: 'pi pi-exclamation-triangle',
+      accept: async () => {
+        try {
+          await CommandeService.deleteItem(itemId);
+          if (commande) {
+            setCommande({
+              ...commande,
+              items: commande.items.filter((item) => item.id !== itemId),
+            });
+          }
+          showSuccess(t('commandes.delete'));
+        } catch (err) {
+          console.error('Error deleting item:', err);
+          setError(t('commandes.deleteItemError'));
+          showError(t('commandes.deleteItemError'));
+        }
+      },
+    });
   };
 
-  const handleDeleteOrder = async () => {
-    if (!window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      if (commande?.id) {
-        await CommandeService.delete(commande.id);
-        navigate('/commandes');
-      }
-    } catch (err) {
-      console.error('Error deleting order:', err);
-      setError('Failed to delete order');
-    }
+  const handleDeleteOrder = () => {
+    confirmDialog({
+      message: t('commandes.confirmDeleteOrder'),
+      header: t('common.confirm'),
+      icon: 'pi pi-exclamation-triangle',
+      accept: async () => {
+        try {
+          if (commande?.id) {
+            await CommandeService.delete(commande.id);
+            navigate('/commandes');
+          }
+        } catch (err) {
+          console.error('Error deleting order:', err);
+          setError(t('commandes.confirmDeleteError'));
+          showError(t('commandes.confirmDeleteError'));
+        }
+      },
+    });
   };
 
   const handleEditOrder = () => {
@@ -143,15 +191,16 @@ export function CommandeDetailPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      PENDING: '#FFC107',
-      ENCOURS: '#1976D2',
-      COMPLETED: '#4CAF50',
-      CANCELLED: '#F44336',
-      ON_HOLD: '#FF9800',
+  const getStatusSeverity = (status: string) => {
+    const severities: Record<string, 'success' | 'info' | 'warning' | 'danger' | 'secondary'> = {
+      PENDING: 'warning',
+      ENCOURS: 'info',
+      COMPLETED: 'success',
+      CANCELLED: 'danger',
+      ON_HOLD: 'secondary',
+      IN_PROGRESS: 'info',
     };
-    return colors[status] || '#999';
+    return severities[status] || 'secondary';
   };
 
   const handleOpenProcessingModal = (item: CommandeItem) => {
@@ -196,24 +245,23 @@ export function CommandeDetailPage() {
     }
   };
 
-  const handleProcessingInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setProcessingForm(prev => ({
+  const updateProcessingField = (name: keyof typeof processingForm, value: string) => {
+    setProcessingForm((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleProcessRoll = async () => {
     if (!selectedItem || !processingForm.rollId) {
-      alert('Please select a roll');
+      showError(t('commandes.selectRollError'));
       return;
     }
 
     try {
       const selectedRoll = rolls.find(r => r.id === processingForm.rollId);
       if (!selectedRoll) {
-        alert('Roll not found');
+        showError(t('commandes.rollNotFoundError'));
         return;
       }
 
@@ -256,332 +304,367 @@ export function CommandeDetailPage() {
 
         setError(null);
         // Don't close modal - let operator add more waste if needed
-        alert('Waste recorded successfully!');
+        showSuccess(t('commandes.wasteRecordedSuccess'));
       } else {
-        alert('Invalid waste dimensions');
+        showError(t('commandes.invalidDimensionsError'));
       }
     } catch (err) {
       console.error('Error processing roll:', err);
-      setError('Failed to record waste');
+      setError(t('commandes.wasteRecordError'));
+      showError(t('commandes.wasteRecordError'));
     }
   };
 
+  const toggleItemDetails = (item: CommandeItem) => {
+    if (expandedItemId === item.id) {
+      setExpandedItemId(null);
+      return;
+    }
+    setExpandedItemId(item.id);
+    loadWasteForItem(item.id);
+  };
+
+  const statusOptions = statuses.map((status) => ({ label: status, value: status }));
+  const itemStatusOptions = itemStatuses.map((status) => ({ label: status, value: status }));
+
+  const rollOptions = rolls.map((roll) => ({
+    label: `${roll.reference ?? (roll as any).referenceRouleau ?? roll.id} - ${roll.lengthRemainingM ?? roll.lengthM}m × ${roll.widthMm}mm`,
+    value: roll.id,
+  }));
+
+  const wasteTypeOptions = [
+    { label: t('commandes.wasteTypeScrap'), value: 'DECHET' },
+    { label: t('commandes.wasteTypeReusable'), value: 'CHUTE_EXPLOITABLE' },
+  ];
+
   if (loading) {
-    return <div className="commande-detail-page loading">Loading order details...</div>;
+    return (
+      <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <ProgressSpinner />
+      </div>
+    );
   }
 
   if (!commande) {
     return (
-      <div className="commande-detail-page error">
-        <h2>Order not found</h2>
-        <button className="btn btn-primary" onClick={() => navigate('/commandes')}>
-          Back to Orders
-        </button>
+      <div style={{ padding: '1.5rem' }}>
+        <Message severity="warn" text={t('commandes.notFound')} style={{ marginBottom: '1rem' }} />
+        <Button label={t('commandes.backToOrders')} onClick={() => navigate('/commandes')} />
       </div>
     );
   }
 
   return (
-    <div className="commande-detail-page">
-      <div className="page-header">
-        <div className="header-title">
-          <h1>{commande.numeroCommande}</h1>
-          <span className="status-badge" style={{ backgroundColor: getStatusColor(commande.status) }}>
-            {commande.status}
-          </span>
-        </div>
-        <div className="header-actions">
-          <button className="btn btn-info" onClick={handleEditOrder}>
-            Edit
-          </button>
-          <button className="btn btn-danger" onClick={handleDeleteOrder}>
-            Delete Order
-          </button>
-          <button className="btn btn-secondary" onClick={() => navigate('/commandes')}>
-            Back
-          </button>
-        </div>
-      </div>
+    <div style={{ padding: '1.5rem' }}>
+      <Toast ref={toastRef} />
+      <ConfirmDialog />
 
-      {error && <div className="error-message">{error}</div>}
+      <Card style={{ marginBottom: '1rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 600 }}>{commande.numeroCommande}</span>
+            <Tag value={commande.status} severity={getStatusSeverity(commande.status)} />
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <Button icon="pi pi-pencil" label={t('commandes.editOrder')} onClick={handleEditOrder} />
+            <Button
+              icon="pi pi-trash"
+              label={t('commandes.deleteOrder')}
+              severity="danger"
+              onClick={handleDeleteOrder}
+            />
+            <Button
+              icon="pi pi-arrow-left"
+              label={t('commandes.backButton')}
+              severity="secondary"
+              outlined
+              onClick={() => navigate('/commandes')}
+            />
+          </div>
+        </div>
+      </Card>
 
-      {/* Order Information */}
-      <div className="detail-section">
-        <h2>Order Information</h2>
-        <div className="info-grid">
-          <div className="info-item">
-            <strong>Order Number</strong>
-            <p>{commande.numeroCommande}</p>
+      {error && <Message severity="error" text={error} style={{ marginBottom: '1rem' }} />}
+
+      <Card title={t('commandes.orderInformation')} style={{ marginBottom: '1rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '1rem',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.orderNumber')}</div>
+            <div>{commande.numeroCommande}</div>
           </div>
-          <div className="info-item">
-            <strong>Client</strong>
-            <p>{commande.clientName}</p>
+          <div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.client')}</div>
+            <div>{commande.clientName}</div>
           </div>
-          <div className="info-item">
-            <strong>Created By</strong>
-            <p>{commande.createdByName || 'N/A'}</p>
+          <div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.createdBy')}</div>
+            <div>{commande.createdByName || t('commandes.notAvailable')}</div>
           </div>
-          <div className="info-item">
-            <strong>Created Date</strong>
-            <p>{formatDateTime(commande.createdAt)}</p>
+          <div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.createdDate')}</div>
+            <div>{formatDateTime(commande.createdAt)}</div>
           </div>
-          <div className="info-item">
-            <strong>Total Items</strong>
-            <p className="value-highlight">{commande.items?.length || 0}</p>
+          <div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.totalItems')}</div>
+            <div>{commande.items?.length || 0}</div>
           </div>
         </div>
 
         {commande.description && (
-          <div className="info-item full-width">
-            <strong>Description</strong>
-            <p>{commande.description}</p>
+          <div style={{ marginTop: '1rem' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.description')}</div>
+            <div>{commande.description}</div>
           </div>
         )}
 
         {commande.notes && (
-          <div className="info-item full-width">
-            <strong>Notes</strong>
-            <p>{commande.notes}</p>
+          <div style={{ marginTop: '0.75rem' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.notes')}</div>
+            <div>{commande.notes}</div>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Status Update Section */}
-      <div className="detail-section status-section">
-        <h2>Update Order Status</h2>
-        <div className="status-update-controls">
-          <select
+      <Card title={t('commandes.updateOrderStatus')} style={{ marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Dropdown
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="status-select"
-          >
-            {statuses.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-          <button
-            className="btn btn-primary"
+            options={statusOptions}
+            onChange={(e) => setSelectedStatus(e.value)}
+            placeholder={t('commandes.updateStatus')}
+            style={{ minWidth: '220px' }}
+          />
+          <Button
+            label={updating ? t('commandes.updating') : t('commandes.updateStatus')}
             onClick={handleStatusUpdate}
             disabled={updating || selectedStatus === commande.status}
-          >
-            {updating ? 'Updating...' : 'Update Status'}
-          </button>
+          />
         </div>
-      </div>
+      </Card>
 
-      {/* Order Items Section */}
-      <div className="detail-section items-section">
-        <h2>Order Items ({commande.items?.length || 0})</h2>
-
+      <Card title={`${t('commandes.orderItems')} (${commande.items?.length || 0})`}>
         {!commande.items || commande.items.length === 0 ? (
-          <div className="empty-state">
-            <p>No items in this order</p>
-          </div>
+          <Message severity="info" text={t('commandes.noItems')} />
         ) : (
-          <div className="items-list-table">
+          <div>
             {commande.items.map((item: CommandeItem) => (
-              <div key={item.id} className="item-card">
-                <div className="item-summary">
-                  <div className="item-badge">Line {item.lineNumber}</div>
-                  <div className="item-specs">
-                    <span className="material">{item.materialType}</span>
-                    <span className="specs">
-                      {item.nbPlis}P | {item.thicknessMm}mm | {item.longueurM}m × {item.largeurMm}mm
-                    </span>
+              <Card key={item.id} style={{ marginBottom: '1rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '1rem',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Tag value={`${t('commandes.line')} ${item.lineNumber}`} />
+                  <div style={{ flex: '1 1 240px' }}>
+                    <div style={{ fontWeight: 600 }}>{item.materialType}</div>
+                    <div style={{ fontSize: '0.9rem' }}>
+                      {item.nbPlis}P | {item.thicknessMm}mm | {item.longueurM}m x {item.largeurMm}mm
+                    </div>
                   </div>
-                  <div className="item-qty">Qty: {item.quantite}</div>
-                  <div className="item-status">
-                    <select
-                      value={item.status}
-                      onChange={(e) =>
-                        handleItemStatusUpdate(item.id, e.target.value as ItemStatus)
-                      }
-                      className={`item-status-select status-${item.status.toLowerCase()}`}
-                    >
-                      {itemStatuses.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
+                  <div style={{ minWidth: '90px' }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.qty')}</div>
+                    <div>{item.quantite}</div>
                   </div>
-                  <div className="item-movement">
-                    <span className="movement-badge">{item.typeMouvement}</span>
-                  </div>
-                  <div className="item-actions">
-                    <button
-                      className="btn btn-small btn-info"
-                      onClick={() => setExpandedItemId(expandedItemId === item.id ? null : item.id)}
-                    >
-                      {expandedItemId === item.id ? 'Hide' : 'Show'} Cutting Details
-                    </button>
-                    <button
-                      className="btn btn-small btn-danger"
+                  <Dropdown
+                    value={item.status}
+                    options={itemStatusOptions}
+                    onChange={(e) => handleItemStatusUpdate(item.id, e.value as ItemStatus)}
+                    style={{ minWidth: '180px' }}
+                  />
+                  <Tag value={item.typeMouvement} severity="info" />
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <Button
+                      label={expandedItemId === item.id ? t('commandes.hide') : t('commandes.show')}
+                      icon={expandedItemId === item.id ? 'pi pi-chevron-up' : 'pi pi-chevron-down'}
+                      outlined
+                      onClick={() => toggleItemDetails(item)}
+                    />
+                    <Button
+                      icon="pi pi-trash"
+                      label={t('commandes.delete')}
+                      severity="danger"
+                      outlined
                       onClick={() => handleDeleteItem(item.id)}
-                    >
-                      Delete
-                    </button>
+                    />
                   </div>
                 </div>
 
-                {/* Expanded Roll Processing Section */}
                 {expandedItemId === item.id && (
-                  <div className="item-processing-details">
-                    <div className="processing-section">
-                      <h4>Roll Processing & Waste Tracking</h4>
-                      <button
-                        className="btn btn-primary btn-small"
+                  <div style={{ marginTop: '1rem' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <span style={{ fontWeight: 600 }}>{t('commandes.rollProcessing')}</span>
+                      <Button
+                        label={t('commandes.processRoll')}
+                        icon="pi pi-cog"
                         onClick={() => handleOpenProcessingModal(item)}
-                      >
-                        + Process Roll (Update Dimensions)
-                      </button>
-                      
-                      {/* Waste Created for This Item */}
-                      <div className="waste-list">
-                        <h5>Waste Created:</h5>
-                        {wasteForItem.length === 0 ? (
-                          <p className="no-data">No waste recorded yet</p>
-                        ) : (
-                          <div className="waste-items">
-                            {wasteForItem.map((waste: any) => (
-                              <div key={waste.id} className="waste-item">
-                                <span className="waste-type">{waste.wasteType}</span>
-                                <span className="waste-dims">
-                                  {waste.lengthM}m × {waste.widthMm}mm ({waste.areaM2?.toFixed(2)}m²)
-                                </span>
-                                <span className="waste-weight">{waste.weightKg}kg</span>
-                                <span className="waste-date">
-                                  {formatDate(waste.createdAt)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                      />
+                    </div>
+
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>
+                        {t('commandes.wasteCreated')}
                       </div>
+                      {wasteForItem.length === 0 ? (
+                        <Message severity="info" text={t('commandes.noWasteRecorded')} />
+                      ) : (
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                          {wasteForItem.map((waste: any) => (
+                            <Card key={waste.id} style={{ padding: '0.5rem' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.75rem',
+                                  flexWrap: 'wrap',
+                                }}
+                              >
+                                <Tag
+                                  value={waste.wasteType}
+                                  severity={waste.wasteType === 'DECHET' ? 'warning' : 'success'}
+                                />
+                                <span>
+                                  {waste.lengthM}m x {waste.widthMm}mm ({waste.areaM2?.toFixed(2)}m2)
+                                </span>
+                                {waste.weightKg ? <span>{waste.weightKg}kg</span> : null}
+                                <span>{formatDate(waste.createdAt)}</span>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Processing Modal */}
-      {showProcessingModal && selectedItem && (
-        <div className="modal-overlay" onClick={handleCloseProcessingModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Process Roll - Line {selectedItem.lineNumber}</h3>
-              <button className="modal-close" onClick={handleCloseProcessingModal}>✕</button>
-            </div>
-            
-            <div className="modal-body">
-              <div className="form-section">
-                <h4>Select Roll</h4>
-                <div className="form-group">
-                  <label>Roll *</label>
-                  <select
-                    name="rollId"
-                    value={processingForm.rollId}
-                    onChange={handleProcessingInputChange}
-                    className="form-input"
-                  >
-                    <option value="">-- Select a Roll --</option>
-                    {rolls.map((roll) => (
-                      <option key={roll.id} value={roll.id}>
-                        {roll.referenceRouleau} - {roll.lengthRemainingM || roll.lengthM}m × {roll.widthMm}mm
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+      <Dialog
+        header={
+          selectedItem
+            ? `${t('commandes.processRollLine')} ${selectedItem.lineNumber}`
+            : t('commandes.processRoll')
+        }
+        visible={showProcessingModal}
+        onHide={handleCloseProcessingModal}
+        style={{ width: 'min(600px, 95vw)' }}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <Button label={t('commandes.cancel')} severity="secondary" onClick={handleCloseProcessingModal} />
+            <Button label={t('commandes.recordWaste')} onClick={handleProcessRoll} />
+          </div>
+        }
+      >
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.rollRequired')}
+            </label>
+            <Dropdown
+              value={processingForm.rollId}
+              options={rollOptions}
+              onChange={(e) => updateProcessingField('rollId', e.value as string)}
+              placeholder={t('commandes.selectRollOption')}
+              style={{ width: '100%' }}
+            />
+          </div>
 
-              <div className="form-section">
-                <h4>Update Dimensions (to calculate waste)</h4>
-                <div className="form-group">
-                  <label>Length Used (m)</label>
-                  <input
-                    type="number"
-                    name="lengthUsedM"
-                    value={processingForm.lengthUsedM}
-                    onChange={handleProcessingInputChange}
-                    placeholder="0.00"
-                    step="0.01"
-                    className="form-input"
-                  />
-                  <small>Length of material used from the roll</small>
-                </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.lengthUsed')}
+            </label>
+            <InputText
+              value={processingForm.lengthUsedM}
+              onChange={(e) => updateProcessingField('lengthUsedM', e.target.value)}
+              placeholder="0.00"
+              type="number"
+              style={{ width: '100%' }}
+            />
+            <small>{t('commandes.lengthUsedHelp')}</small>
+          </div>
 
-                <div className="form-group">
-                  <label>Remaining Width (mm)</label>
-                  <input
-                    type="number"
-                    name="widthRemainingMm"
-                    value={processingForm.widthRemainingMm}
-                    onChange={handleProcessingInputChange}
-                    placeholder="0"
-                    className="form-input"
-                  />
-                  <small>Width remaining after cut (waste width = original width - remaining width)</small>
-                </div>
-              </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.remainingWidth')}
+            </label>
+            <InputText
+              value={processingForm.widthRemainingMm}
+              onChange={(e) => updateProcessingField('widthRemainingMm', e.target.value)}
+              placeholder="0"
+              type="number"
+              style={{ width: '100%' }}
+            />
+            <small>{t('commandes.remainingWidthHelp')}</small>
+          </div>
 
-              <div className="form-section">
-                <h4>Waste Classification</h4>
-                <div className="form-group">
-                  <label>Waste Type *</label>
-                  <select
-                    name="wasteType"
-                    value={processingForm.wasteType}
-                    onChange={handleProcessingInputChange}
-                    className="form-input"
-                  >
-                    <option value="DECHET">Déchet (Scrap)</option>
-                    <option value="CHUTE_EXPLOITABLE">Chute exploitable (Reusable)</option>
-                  </select>
-                </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.wasteTypeRequired')}
+            </label>
+            <Dropdown
+              value={processingForm.wasteType}
+              options={wasteTypeOptions}
+              onChange={(e) => updateProcessingField('wasteType', e.value as string)}
+              style={{ width: '100%' }}
+            />
+          </div>
 
-                <div className="form-group">
-                  <label>Weight (kg)</label>
-                  <input
-                    type="number"
-                    name="weightKg"
-                    value={processingForm.weightKg}
-                    onChange={handleProcessingInputChange}
-                    placeholder="0.00"
-                    step="0.01"
-                    className="form-input"
-                  />
-                </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.weight')}
+            </label>
+            <InputText
+              value={processingForm.weightKg}
+              onChange={(e) => updateProcessingField('weightKg', e.target.value)}
+              placeholder="0.00"
+              type="number"
+              style={{ width: '100%' }}
+            />
+          </div>
 
-                <div className="form-group">
-                  <label>Notes</label>
-                  <textarea
-                    name="notes"
-                    value={processingForm.notes}
-                    onChange={handleProcessingInputChange}
-                    placeholder="Add notes..."
-                    className="form-input"
-                    rows={2}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={handleCloseProcessingModal}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" onClick={handleProcessRoll}>
-                Record Waste & Update Roll
-              </button>
-            </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.notes')}
+            </label>
+            <InputTextarea
+              value={processingForm.notes}
+              onChange={(e) => updateProcessingField('notes', e.target.value)}
+              placeholder={t('commandes.notesPlaceholder')}
+              rows={3}
+              style={{ width: '100%' }}
+            />
           </div>
         </div>
-      )}
+      </Dialog>
     </div>
   );
 }
+
+export default CommandeDetailPage;

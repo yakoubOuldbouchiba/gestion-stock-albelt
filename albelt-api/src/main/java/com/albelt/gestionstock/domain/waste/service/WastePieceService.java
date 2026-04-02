@@ -1,5 +1,8 @@
 package com.albelt.gestionstock.domain.waste.service;
 
+import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.altier.service.AltierService;
+import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.waste.mapper.WastePieceMapper;
@@ -41,14 +44,16 @@ public class WastePieceService {
      * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
      */
     @Transactional(readOnly = true)
-    public List<Object[]> getGroupedByAllFields() {
-        return wastePieceRepository.groupByAllFields();
+    public List<WastePieceGroupedStatsResponse> getGroupedByAllFields(WasteType type) {
+        List<Object[]> rows = wastePieceRepository.groupByAllFields(type);
+        return wastePieceMapper.toGroupedStatsResponseList(rows);
     }
 
     private final WastePieceRepository wastePieceRepository;
     private final RollRepository rollRepository;
     private final WastePieceMapper wastePieceMapper;
     private final ColorService colorService;
+    private final AltierService altierService;
 
     /**
      * Record a waste piece from a commande item processing
@@ -90,7 +95,11 @@ public class WastePieceService {
         } else if (parentWastePiece != null && parentWastePiece.getColor() != null) {
             color = parentWastePiece.getColor();
         }
-        
+
+        Altier altier = null;
+        if(request.getAltierID() != null){
+            altier = altierService.getById(request.getAltierID());
+        }
         // Create WastePiece with Roll reference
         WastePiece wastePiece = wastePieceMapper.toEntity(request, roll, color);
 
@@ -100,9 +109,10 @@ public class WastePieceService {
         
         // Set the creator
         wastePiece.setCreatedBy(createdBy);
+        wastePiece.setAltier(altier);
         
         // Auto-categorize based on waste type
-        if (WasteType.CHUTE_EXPLOITABLE.name().equalsIgnoreCase(wastePiece.getWasteType())) {
+        if (WasteType.CHUTE_EXPLOITABLE  == wastePiece.getWasteType()) {
             wastePiece.setStatus(WasteStatus.AVAILABLE);
             log.debug("Reusable waste piece marked as AVAILABLE: {}", wastePiece.getId());
         } else {

@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
 import type { WastePiece, CuttingOperation, Roll, MaterialType, WasteStatus } from '../types/index';
 import { WastePieceService } from '@services/wastePieceService';
 import { CuttingOperationService } from '@services/cuttingOperationService';
 import { RollService } from '@services/rollService';
 import { useI18n } from '@hooks/useI18n';
 import { formatDate } from '../utils/date';
-import '../styles/WastePage.css';
+import { Button } from 'primereact/button';
+import { InputText } from 'primereact/inputtext';
+import { Dropdown } from 'primereact/dropdown';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Dialog } from 'primereact/dialog';
+import { Tag } from 'primereact/tag';
+import { ProgressSpinner } from 'primereact/progressspinner';
+import { Checkbox } from 'primereact/checkbox';
+import { Message } from 'primereact/message';
 
 export function WastePage() {
   const { t } = useI18n();
@@ -19,7 +27,7 @@ export function WastePage() {
     useEffect(() => {
       if (showGrouped) {
         setGroupedLoading(true);
-        WastePieceService.getGroupedByAllFields().then(res => {
+        WastePieceService.getGroupedByAllFields('DECHET').then(res => {
           if (res.success && res.data) {
             // Only show DECHET (waste) rows
             setGroupedStats(res.data.filter(row => row[5] === 'DECHET'));
@@ -148,16 +156,16 @@ export function WastePage() {
     return matchesSearch && matchesStatus && matchesMaterial;
   });
 
-  const getStatusColor = (status: WasteStatus): string => {
+  const getStatusSeverity = (status: WasteStatus) => {
     switch (status) {
       case 'AVAILABLE':
-        return 'status-available';
+        return 'success';
       case 'USED_IN_ORDER':
-        return 'status-used';
+        return 'info';
       case 'SCRAP':
-        return 'status-scrap';
+        return 'danger';
       default:
-        return '';
+        return undefined;
     }
   };
 
@@ -174,361 +182,290 @@ export function WastePage() {
     }
   };
 
+  const statusOptions = [
+    { label: t('waste.all'), value: 'ALL' },
+    { label: t('waste.statusAvailable'), value: 'AVAILABLE' },
+    { label: t('waste.statusUsed'), value: 'USED_IN_ORDER' },
+    { label: t('waste.statusScrap'), value: 'SCRAP' },
+  ];
+
+  const materialOptions = [
+    { label: t('waste.allMaterials'), value: 'ALL' },
+    { label: 'PU', value: 'PU' },
+    { label: 'PVC', value: 'PVC' },
+    { label: 'CAOUTCHOUC', value: 'CAOUTCHOUC' },
+  ];
+
+  const groupedColumns = (
+    <>
+      <Column header={t('inventory.color') || 'Color'} body={(row: any[]) => row[0] || '-'} />
+      <Column header={t('rolls.plies') || 'Nb Plis'} body={(row: any[]) => row[1]} />
+      <Column header={t('rolls.thickness') || 'Thickness (mm)'} body={(row: any[]) => row[2]} />
+      <Column header={t('inventory.material') || 'Material'} body={(row: any[]) => row[3]} />
+      <Column header={t('sidebar.workshops') || 'Workshop'} body={(row: any[]) => row[4]} />
+      <Column header={t('inventory.status') || 'Status'} body={(row: any[]) => row[5]} />
+      <Column header={t('inventory.count') || 'Count'} body={(row: any[]) => row[6]} />
+      <Column header={t('inventory.totalArea') || 'Total Area (m²)'} body={(row: any[]) => row[7] ? Number(row[7]).toFixed(2) : '0.00'} />
+    </>
+  );
+
+  const detailFooter = (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+      {selectedWaste?.status === 'AVAILABLE' && (
+        <>
+          <Button
+            label={t('waste.markAsUsed')}
+            icon="pi pi-replay"
+            onClick={() => {
+              if (!selectedWaste) return;
+              setSelectedForReuse(selectedWaste);
+              setShowReuseModal(true);
+              setShowDetail(false);
+            }}
+          />
+          <Button
+            label={t('waste.markAsScrap')}
+            icon="pi pi-trash"
+            severity="danger"
+            onClick={() => selectedWaste && handleMarkAsScrap(selectedWaste.id)}
+          />
+        </>
+      )}
+      <Button label={t('waste.close')} severity="secondary" onClick={() => setShowDetail(false)} />
+    </div>
+  );
+
+  const reuseFooter = (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+      <Button label={t('waste.confirmReuse')} onClick={handleMarkAsUsed} />
+      <Button
+        label={t('waste.cancel')}
+        severity="secondary"
+        onClick={() => {
+          setShowReuseModal(false);
+          setSelectedForReuse(null);
+          setReuseInOperation('');
+        }}
+      />
+    </div>
+  );
+
   if (isLoading) {
-    return <div className="page-loading">{t('waste.loadingData')}</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
   }
 
   return (
-    <div className="waste-page">
-      {/* Grouped stats toggle */}
-      <div style={{ margin: '16px 0' }}>
-        <label style={{ fontWeight: 500 }}>
-          <input
-            type="checkbox"
-            checked={showGrouped}
-            onChange={e => setShowGrouped(e.target.checked)}
-            style={{ marginRight: 8 }}
-          />
-          {t('waste.showGroupedStats') || 'Show Grouped Statistics'}
-        </label>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <h1>{t('waste.title')}</h1>
+        <Button icon="pi pi-refresh" label={t('waste.refreshData')} onClick={loadData} />
       </div>
 
-      {/* Grouped statistics table */}
+      {error && <Message severity="error" text={error} />}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+        <Checkbox
+          inputId="groupedWasteStats"
+          checked={showGrouped}
+          onChange={(e) => setShowGrouped(!!e.checked)}
+        />
+        <label htmlFor="groupedWasteStats">{t('waste.showGroupedStats') || 'Show Grouped Statistics'}</label>
+      </div>
+
       {showGrouped && (
-        <div className="grouped-stats-table-container" style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: '1rem' }}>
           {groupedLoading ? (
-            <div>{t('common.loading_data') || 'Loading grouped statistics...'}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}>
+              <ProgressSpinner />
+            </div>
           ) : groupedStats.length === 0 ? (
-            <div>{t('waste.noGroupedStats') || 'No grouped statistics found.'}</div>
+            <Message severity="info" text={t('waste.noGroupedStats') || 'No grouped statistics found.'} />
           ) : (
-            <table className="grouped-stats-table">
-              <thead>
-                <tr>
-                  <th>{t('inventory.color') || 'Color'}</th>
-                  <th>{t('rolls.plies') || 'Nb Plis'}</th>
-                  <th>{t('rolls.thickness') || 'Thickness (mm)'}</th>
-                  <th>{t('inventory.material') || 'Material'}</th>
-                  <th>{t('sidebar.workshops') || 'Workshop'}</th>
-                  <th>{t('inventory.status') || 'Status'}</th>
-                  <th>{t('inventory.count') || 'Count'}</th>
-                  <th>{t('inventory.totalArea') || 'Total Area (m²)'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupedStats.map((row, idx) => (
-                  <tr key={idx}>
-                    <td>{row[0] || '-'}</td>
-                    <td>{row[1]}</td>
-                    <td>{row[2]}</td>
-                    <td>{row[3]}</td>
-                    <td>{row[4]}</td>
-                    <td>{row[5]}</td>
-                    <td>{row[6]}</td>
-                    <td>{row[7] ? Number(row[7]).toFixed(2) : '0.00'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable value={groupedStats} size="small">
+              {groupedColumns}
+            </DataTable>
           )}
         </div>
       )}
-      <div className="page-header">
-        <h1>{t('waste.title')}</h1>
-        <button className="btn btn-primary" onClick={loadData}>
-          ↻ {t('waste.refreshData')}
-        </button>
-      </div>
 
-      {error && <div className="error-banner">{error}</div>}
-
-      {/* Statistics Cards (hide when grouped) */}
       {!showGrouped && (
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-count" style={{ color: '#2ecc71' }}>
-              {stats.totalAvailable}
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+            <div style={{ padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '6px' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stats.totalAvailable}</div>
+              <div>{t('waste.availableForReuse')}</div>
+              <div>{stats.totalWasteArea.toFixed(2)} m²</div>
             </div>
-            <div className="stat-label">{t('waste.availableForReuse')}</div>
-            <div className="stat-percentage">{stats.totalWasteArea.toFixed(2)} m²</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-count" style={{ color: '#3498db' }}>
-              {stats.totalUsed}
-            </div>
-            <div className="stat-label">{t('waste.successfullyReused')}</div>
-            <div className="stat-percentage">
-              {stats.totalAvailable + stats.totalUsed > 0
-                ? ((stats.totalUsed / (stats.totalAvailable + stats.totalUsed)) * 100).toFixed(1)
-                : 0}%
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-count" style={{ color: '#e74c3c' }}>
-              {stats.totalScrap}
-            </div>
-            <div className="stat-label">{t('waste.scrapDiscarded')}</div>
-            <div className="stat-percentage">
-              {stats.totalAvailable + stats.totalScrap > 0
-                ? ((stats.totalScrap / (stats.totalAvailable + stats.totalScrap)) * 100).toFixed(1)
-                : 0}%
-            </div>
-          </div>
-          <div className="stat-card waste-efficiency">
-            <div className="stat-count">{stats.reuseEfficiency.toFixed(1)}</div>
-            <div className="stat-label">{t('waste.reuseEfficiency')}</div>
-            <div className="stat-percentage">%</div>
-          </div>
-        </div>
-      )}
-
-      {/* Waste Detail Modal */}
-      {showDetail && selectedWaste && (
-        <div className="modal-overlay" onClick={() => setShowDetail(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>{t('waste.wasteDetailsTitle')}</h2>
-            <div className="detail-view">
-              <div className="detail-row">
-                <span className="detail-label">{t('waste.detailWasteId')}:</span>
-                <span className="detail-value">{selectedWaste.id.substring(0, 8)}</span>
+            <div style={{ padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '6px' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stats.totalUsed}</div>
+              <div>{t('waste.successfullyReused')}</div>
+              <div>
+                {stats.totalAvailable + stats.totalUsed > 0
+                  ? ((stats.totalUsed / (stats.totalAvailable + stats.totalUsed)) * 100).toFixed(1)
+                  : 0}%
               </div>
-              {selectedWaste.parentWastePieceId && (
-                <div className="detail-row">
-                  <span className="detail-label">{t('waste.detailParentWaste') || 'Parent Waste Piece'}:</span>
-                  <span className="detail-value">{selectedWaste.parentWastePieceId.substring(0, 8)}</span>
+            </div>
+            <div style={{ padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '6px' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stats.totalScrap}</div>
+              <div>{t('waste.scrapDiscarded')}</div>
+              <div>
+                {stats.totalAvailable + stats.totalScrap > 0
+                  ? ((stats.totalScrap / (stats.totalAvailable + stats.totalScrap)) * 100).toFixed(1)
+                  : 0}%
+              </div>
+            </div>
+            <div style={{ padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '6px' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stats.reuseEfficiency.toFixed(1)}%</div>
+              <div>{t('waste.reuseEfficiency')}</div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+            <span className="p-input-icon-left">
+              <i className="pi pi-search" />
+              <InputText
+                placeholder={t('waste.searchPlaceholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </span>
+            <Dropdown
+              value={statusFilter}
+              options={statusOptions}
+              onChange={(e) => setStatusFilter(e.value)}
+              placeholder={t('waste.filterStatus')}
+            />
+            <Dropdown
+              value={materialFilter}
+              options={materialOptions}
+              onChange={(e) => setMaterialFilter(e.value)}
+              placeholder={t('waste.filterMaterial')}
+            />
+            <span>{filteredWastePieces.length} {t('waste.pieces')}</span>
+          </div>
+
+          <DataTable
+            value={filteredWastePieces}
+            dataKey="id"
+            size="small"
+            emptyMessage={t('waste.noPiecesFound')}
+          >
+            <Column header={t('waste.tableWasteId')} body={(waste: WastePiece) => waste.id.substring(0, 8)} />
+            <Column
+              header={t('waste.tableMaterial')}
+              body={(waste: WastePiece) => (
+                <Tag value={waste.materialType} severity="info" />
+              )}
+            />
+            <Column
+              header={t('waste.tableDimensions')}
+              body={(waste: WastePiece) => `${waste.widthMm}mm × ${waste.lengthM}m`}
+            />
+            <Column
+              header={t('waste.tableArea')}
+              body={(waste: WastePiece) => (waste.areaM2 || 0).toFixed(2)}
+            />
+            <Column
+              header={t('waste.tableStatus')}
+              body={(waste: WastePiece) => (
+                <Tag value={getStatusLabel(waste.status)} severity={getStatusSeverity(waste.status)} />
+              )}
+            />
+            <Column
+              header={t('waste.tableParent')}
+              body={(waste: WastePiece) => waste.parentWastePieceId ? waste.parentWastePieceId.substring(0, 8) : '-'}
+            />
+            <Column
+              header={t('waste.tableSize')}
+              body={(waste: WastePiece) => ((waste.areaM2 || 0) > 3.0) ? t('waste.large') : t('waste.small')}
+            />
+            <Column
+              header={t('waste.tableReuse')}
+              body={(waste: WastePiece) => ((waste.status === 'AVAILABLE' || waste.status === 'RESERVED') && ((waste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}
+            />
+            <Column header={t('waste.tableCreated')} body={(waste: WastePiece) => formatDate(waste.createdAt)} />
+            <Column
+              header={t('waste.tableActions')}
+              body={(waste: WastePiece) => (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <Button
+                    label={t('waste.view')}
+                    icon="pi pi-eye"
+                    text
+                    onClick={() => {
+                      setSelectedWaste(waste);
+                      setShowDetail(true);
+                    }}
+                  />
+                  {waste.status === 'AVAILABLE' && (
+                    <Button
+                      label={t('waste.reuse')}
+                      icon="pi pi-replay"
+                      text
+                      onClick={() => {
+                        setSelectedForReuse(waste);
+                        setShowReuseModal(true);
+                      }}
+                    />
+                  )}
                 </div>
               )}
-              <div className="detail-row">
-                <span className="detail-label">{t('waste.detailMaterial')}:</span>
-                <span className={`badge badge-${selectedWaste.materialType.toLowerCase()}`}>
-                  {selectedWaste.materialType}
-                </span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">{t('waste.detailDimensions')}:</span>
-                <span className="detail-value">
-                  {selectedWaste.widthMm}mm × {selectedWaste.lengthM}m
-                </span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">{t('waste.detailArea')}:</span>
-                <span className="detail-value">{(selectedWaste.areaM2 || 0).toFixed(2)} m²</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">{t('waste.detailStatus')}:</span>
-                <span className={`status-badge ${getStatusColor(selectedWaste.status)}`}>
-                  {getStatusLabel(selectedWaste.status)}
-                </span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">{t('waste.detailLargeWaste')}:</span>
-                <span className="detail-value">{((selectedWaste.areaM2 || 0) > 3.0) ? t('waste.yes') : t('waste.no')}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">{t('waste.detailReuseCandidate')}:</span>
-                <span className="detail-value">{((selectedWaste.status === 'AVAILABLE' || selectedWaste.status === 'RESERVED') && ((selectedWaste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">{t('waste.detailCreated')}:</span>
-                <span className="detail-value">
-                  {formatDate(selectedWaste.createdAt)}
-                </span>
-              </div>
-            </div>
-            <div className="modal-actions">
-              {selectedWaste.status === 'AVAILABLE' && (
-                <>
-                  <button
-                    className="btn btn-success"
-                    onClick={() => {
-                      setSelectedForReuse(selectedWaste);
-                      setShowReuseModal(true);
-                      setShowDetail(false);
-                    }}
-                  >
-                    ♻ {t('waste.markAsUsed')}
-                  </button>
-                  <button
-                    className="btn btn-danger"
-                    onClick={() => handleMarkAsScrap(selectedWaste.id)}
-                  >
-                    {t('waste.markAsScrap')}
-                  </button>
-                </>
-              )}
-              <button className="btn btn-secondary" onClick={() => setShowDetail(false)}>
-                {t('waste.close')}
-              </button>
-            </div>
-          </div>
+            />
+          </DataTable>
         </div>
       )}
 
-      {/* Reuse Modal */}
-      {showReuseModal && selectedForReuse && (
-        <div className="modal-overlay" onClick={() => setShowReuseModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>{t('waste.markAsReuseTitle')}</h2>
-            <p className="modal-description">
-              {t('waste.reuseModalDesc')}
-            </p>
-            <div className="form-group">
-              <label htmlFor="reuse-operation">{t('waste.cuttingOperation')} *</label>
-              <select
-                id="reuse-operation"
-                value={reuseInOperation}
-                onChange={(e) => setReuseInOperation(e.target.value)}
-              >
-                <option value="">{t('waste.selectOperation')}</option>
-                {cuttingOperations.map(op => (
-                  <option key={op.id} value={op.id}>
-                    {op.id.substring(0, 8)} - Roll:{' '}
-                    {rolls.find(r => r.id === op.rollId)?.materialType} - Operator: {op.operatorId}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="modal-actions">
-              <button className="btn btn-success" onClick={handleMarkAsUsed}>
-                {t('waste.confirmReuse')}
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => {
-                  setShowReuseModal(false);
-                  setSelectedForReuse(null);
-                  setReuseInOperation('');
-                }}
-              >
-                {t('waste.cancel')}
-              </button>
-            </div>
+      <Dialog
+        header={t('waste.wasteDetailsTitle')}
+        visible={showDetail && !!selectedWaste}
+        onHide={() => setShowDetail(false)}
+        footer={detailFooter}
+        style={{ width: 'min(700px, 95vw)' }}
+      >
+        {selectedWaste && (
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <div><strong>{t('waste.detailWasteId')}:</strong> {selectedWaste.id.substring(0, 8)}</div>
+            {selectedWaste.parentWastePieceId && (
+              <div><strong>{t('waste.detailParentWaste') || 'Parent Waste Piece'}:</strong> {selectedWaste.parentWastePieceId.substring(0, 8)}</div>
+            )}
+            <div><strong>{t('waste.detailMaterial')}:</strong> {selectedWaste.materialType}</div>
+            <div><strong>{t('waste.detailDimensions')}:</strong> {selectedWaste.widthMm}mm × {selectedWaste.lengthM}m</div>
+            <div><strong>{t('waste.detailArea')}:</strong> {(selectedWaste.areaM2 || 0).toFixed(2)} m²</div>
+            <div><strong>{t('waste.detailStatus')}:</strong> {getStatusLabel(selectedWaste.status)}</div>
+            <div><strong>{t('waste.detailLargeWaste')}:</strong> {((selectedWaste.areaM2 || 0) > 3.0) ? t('waste.yes') : t('waste.no')}</div>
+            <div><strong>{t('waste.detailReuseCandidate')}:</strong> {((selectedWaste.status === 'AVAILABLE' || selectedWaste.status === 'RESERVED') && ((selectedWaste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}</div>
+            <div><strong>{t('waste.detailCreated')}:</strong> {formatDate(selectedWaste.createdAt)}</div>
           </div>
-        </div>
-      )}
+        )}
+      </Dialog>
 
-      {/* Controls */}
-      <div className="waste-controls">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder={t('waste.searchPlaceholder')}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
+      <Dialog
+        header={t('waste.markAsReuseTitle')}
+        visible={showReuseModal && !!selectedForReuse}
+        onHide={() => setShowReuseModal(false)}
+        footer={reuseFooter}
+        style={{ width: 'min(700px, 95vw)' }}
+      >
+        <p>{t('waste.reuseModalDesc')}</p>
+        <div style={{ display: 'grid', gap: '0.5rem' }}>
+          <label htmlFor="reuse-operation">{t('waste.cuttingOperation')} *</label>
+          <Dropdown
+            id="reuse-operation"
+            value={reuseInOperation}
+            options={cuttingOperations.map(op => ({
+              label: `${op.id.substring(0, 8)} - Roll: ${rolls.find(r => r.id === op.rollId)?.materialType || '-'} - Operator: ${op.operatorId}`,
+              value: op.id,
+            }))}
+            onChange={(e) => setReuseInOperation(e.value)}
+            placeholder={t('waste.selectOperation')}
+            filter
           />
-          <Search size={18} className="search-icon" />
         </div>
-
-        <div className="filters">
-          <div className="filter-group">
-            <label htmlFor="status-filter">{t('waste.filterStatus')}:</label>
-            <select
-              id="status-filter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'ALL' | WasteStatus)}
-              className="filter-select"
-            >
-              <option value="ALL">{t('waste.all')}</option>
-              <option value="AVAILABLE">{t('waste.statusAvailable')}</option>
-              <option value="USED_IN_ORDER">{t('waste.statusUsed')}</option>
-              <option value="SCRAP">{t('waste.statusScrap')}</option>
-            </select>
-          </div>
-
-          <div className="filter-group">
-            <label htmlFor="material-filter">{t('waste.filterMaterial')}:</label>
-            <select
-              id="material-filter"
-              value={materialFilter}
-              onChange={(e) => setMaterialFilter(e.target.value as 'ALL' | MaterialType)}
-              className="filter-select"
-            >
-              <option value="ALL">{t('waste.allMaterials')}</option>
-              <option value="PU">PU</option>
-              <option value="PVC">PVC</option>
-              <option value="CAOUTCHOUC">Caoutchouc</option>
-            </select>
-          </div>
-
-          <span className="results-count">{filteredWastePieces.length} {t('waste.pieces')}</span>
-        </div>
-      </div>
-
-      {/* Waste Pieces Table (hide when grouped) */}
-      {!showGrouped && (
-        <div className="waste-table-container">
-          {filteredWastePieces.length > 0 ? (
-            <table className="waste-table">
-              <thead>
-                <tr>
-                  <th>{t('waste.tableWasteId')}</th>
-                  <th>{t('waste.tableMaterial')}</th>
-                  <th>{t('waste.tableDimensions')}</th>
-                  <th>{t('waste.tableArea')}</th>
-                  <th>{t('waste.tableStatus')}</th>
-                  <th>{t('waste.tableParent')}</th>
-                  <th>{t('waste.tableSize')}</th>
-                  <th>{t('waste.tableReuse')}</th>
-                  <th>{t('waste.tableCreated')}</th>
-                  <th>{t('waste.tableActions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredWastePieces.map(waste => (
-                  <tr key={waste.id} className={`waste-row waste-${waste.status.toLowerCase()}`}>
-                    <td className="waste-id">{waste.id.substring(0, 8)}</td>
-                    <td>
-                      <span className={`badge badge-${waste.materialType.toLowerCase()}`}>
-                        {waste.materialType}
-                      </span>
-                    </td>
-                    <td>
-                      {waste.widthMm}mm × {waste.lengthM}m
-                    </td>
-                    <td className="waste-area">{(waste.areaM2 || 0).toFixed(2)}</td>
-                    <td>
-                      <span className={`status-badge ${getStatusColor(waste.status)}`}>
-                        {getStatusLabel(waste.status)}
-                      </span>
-                    </td>
-                    <td>{waste.parentWastePieceId ? waste.parentWastePieceId.substring(0, 8) : '-'}</td>
-                    <td>{((waste.areaM2 || 0) > 3.0) ? t('waste.large') : t('waste.small')}</td>
-                    <td>{((waste.status === 'AVAILABLE' || waste.status === 'RESERVED') && ((waste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}</td>
-                    <td>{formatDate(waste.createdAt)}</td>
-                    <td className="waste-actions">
-                      <button
-                        className="btn btn-sm btn-view"
-                        onClick={() => {
-                          setSelectedWaste(waste);
-                          setShowDetail(true);
-                        }}
-                      >
-                        {t('waste.view')}
-                      </button>
-                      {waste.status === 'AVAILABLE' && (
-                        <button
-                          className="btn btn-sm btn-success"
-                          onClick={() => {
-                            setSelectedForReuse(waste);
-                            setShowReuseModal(true);
-                          }}
-                          title={t('waste.reuseTooltip')}
-                        >
-                          ♻ {t('waste.reuse')}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="empty-state">
-              <p>{t('waste.noPiecesFound')}</p>
-            </div>
-          )}
-        </div>
-      )}
+      </Dialog>
     </div>
   );
 }

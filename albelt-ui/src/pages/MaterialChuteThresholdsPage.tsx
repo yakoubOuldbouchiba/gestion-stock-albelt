@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import type { MaterialChuteThreshold, MaterialType } from '../types/index';
 import { MaterialChuteThresholdService } from '@services/materialChuteThresholdService';
 import { useI18n } from '@hooks/useI18n';
-import '../styles/MaterialChuteThresholdsPage.css';
+import { Button } from 'primereact/button';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { InputNumber } from 'primereact/inputnumber';
+import { Message } from 'primereact/message';
+import { ProgressSpinner } from 'primereact/progressspinner';
 
 const MATERIAL_TYPES: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
 
@@ -71,16 +76,6 @@ export function MaterialChuteThresholdsPage() {
     );
   };
 
-  const parseIntSafe = (value: string) => {
-    const parsed = parseInt(value, 10);
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
-
-  const parseFloatSafe = (value: string) => {
-    const parsed = parseFloat(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
-
   const validateAll = (): string | null => {
     for (const type of MATERIAL_TYPES) {
       const row = rowsByType.get(type) || createDefaultRow(type);
@@ -119,66 +114,59 @@ export function MaterialChuteThresholdsPage() {
   };
 
   if (isLoading) {
-    return <div className="page-loading">{t('materialChuteThresholds.loading')}</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
   }
 
   return (
-    <div className="material-thresholds-page">
-      <div className="page-header">
-        <h1>{t('materialChuteThresholds.title')}</h1>
-        <div className="actions">
-          <button className="btn btn-secondary" onClick={load} disabled={isSaving}>
-            ↻ {t('common.refresh')}
-          </button>
-          <button className="btn btn-primary" onClick={saveAll} disabled={isSaving}>
-            {isSaving ? t('common.saving') : t('common.save')}
-          </button>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
+        <div>
+          <h1 style={{ margin: 0 }}>{t('materialChuteThresholds.title')}</h1>
+          <div style={{ color: 'var(--text-color-secondary)' }}>{t('materialChuteThresholds.hint')}</div>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Button icon="pi pi-refresh" label={t('common.refresh')} severity="secondary" onClick={load} disabled={isSaving} />
+          <Button label={isSaving ? t('common.saving') : t('common.save')} onClick={saveAll} disabled={isSaving} />
         </div>
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
-      {message && <div className="success-banner">{message}</div>}
+      {error && <Message severity="error" text={error} />}
+      {message && <Message severity="success" text={message} />}
 
-      <div className="thresholds-card">
-        <p className="hint">
-          {t('materialChuteThresholds.hint')}
-        </p>
-
-        <div className="thresholds-table">
-          <div className="thresholds-row thresholds-header">
-            <div>{t('materialChuteThresholds.material')}</div>
-            <div>{t('materialChuteThresholds.minWidth')}</div>
-            <div>{t('materialChuteThresholds.minLength')}</div>
-          </div>
-
-          {MATERIAL_TYPES.map((type) => {
-            const row = rowsByType.get(type) || createDefaultRow(type);
-            return (
-              <div className="thresholds-row" key={type}>
-                <div className="material-cell">{type}</div>
-                <div>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={row.minWidthMm}
-                    onChange={(e) => updateRow(type, { minWidthMm: parseIntSafe(e.target.value) })}
-                  />
-                </div>
-                <div>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={row.minLengthM}
-                    onChange={(e) => updateRow(type, { minLengthM: parseFloatSafe(e.target.value) })}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <DataTable value={rows} dataKey="materialType" size="small" paginator rows={10} rowsPerPageOptions={[10, 25, 50]}>
+        <Column field="materialType" header={t('materialChuteThresholds.material')} />
+        <Column
+          header={t('materialChuteThresholds.minWidth')}
+          body={(row: EditableRow) => (
+            <InputNumber
+              value={row.minWidthMm}
+              min={0}
+              onValueChange={(e) => updateRow(row.materialType, { minWidthMm: e.value ?? 0 })}
+              inputStyle={{ width: '100%' }}
+            />
+          )}
+        />
+        <Column
+          header={t('materialChuteThresholds.minLength')}
+          body={(row: EditableRow) => (
+            <InputNumber
+              value={row.minLengthM}
+              min={0}
+              mode="decimal"
+              minFractionDigits={0}
+              maxFractionDigits={2}
+              onValueChange={(e) => updateRow(row.materialType, { minLengthM: e.value ?? 0 })}
+              inputStyle={{ width: '100%' }}
+            />
+          )}
+        />
+      </DataTable>
     </div>
   );
 }
+
+export default MaterialChuteThresholdsPage;

@@ -95,6 +95,7 @@ export interface Color {
 
 export interface Roll {
   id: string;
+  reference: string;
   receivedDate: string;
   supplierId: string;
   supplierName?: string;
@@ -139,6 +140,7 @@ export interface Roll {
 export interface RollRequest {
   supplierId: string;
   altierId?: string;
+  reference?:string;
   materialType: MaterialType;
   nbPlis: number;
   thicknessMm: number;
@@ -198,7 +200,10 @@ export interface CuttingOperationRequest {
  */
 export interface WastePiece {
   id: string;
+  reference: string;
   rollId: string;
+  supplierId?: string;
+  supplierName?: string;
   parentWastePieceId?: string | null;
   commandeItemId?: string | null;
   createdBy: string;
@@ -620,5 +625,20 @@ export interface CommandeRequest {
   description?: string;
   notes?: string;
   items?: CommandeItemRequest[];
+}
+
+export interface RollGroupedStatsResponse {
+  colorId: string | null;
+  colorName: string | null;
+  colorHexCode: string | null;
+  nbPlis: number;
+  thicknessMm: number;
+  materialType: MaterialType;
+  supplierId: string | null;
+  supplierName: string | null;
+  altierId: string | null;
+  status: RollStatus;
+  rollCount: number;
+  totalAreaM2: number;
 }
 

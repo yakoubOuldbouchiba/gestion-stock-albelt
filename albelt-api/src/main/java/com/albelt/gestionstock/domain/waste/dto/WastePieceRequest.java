@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.domain.waste.dto;
 
 import com.albelt.gestionstock.shared.enums.MaterialType;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
@@ -55,7 +56,10 @@ public class WastePieceRequest {
     // Status & Classification (same as Roll)
     private String status; // AVAILABLE, OPENED, SCRAP, etc.
 
-    private String wasteType; // CHUTE_EXPLOITABLE, DECHET
+    private WasteType wasteType; // CHUTE_EXPLOITABLE, DECHET
+
+    // External/Internal Reference
+    private String reference;
 
     // Location (same as Roll)
     private UUID altierID;

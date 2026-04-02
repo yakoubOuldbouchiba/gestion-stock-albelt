@@ -21,38 +21,38 @@ CREATE TABLE IF NOT EXISTS colors (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS rolls (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- Reception & Supplier Info
     received_date DATE NOT NULL DEFAULT CURRENT_DATE,
     supplier_id UUID NOT NULL REFERENCES suppliers(id) ON DELETE RESTRICT,
-    
+
     -- Material Specifications
     material_type VARCHAR(20) NOT NULL
         CHECK (material_type IN ('PU', 'PVC', 'CAOUTCHOUC')),
     nb_plis INTEGER NOT NULL DEFAULT 1 CHECK (nb_plis > 0),
     thickness_mm DECIMAL(8,3) NOT NULL CHECK (thickness_mm > 0),
-    
+
     -- Dimensions
     width_mm INTEGER NOT NULL CHECK (width_mm > 0),
     width_remaining_mm INTEGER,
     length_m DECIMAL(10,2) NOT NULL CHECK (length_m > 0),
     length_remaining_m DECIMAL(10,2),
     area_m2 DECIMAL(12,4) NOT NULL CHECK (area_m2 > 0),
-    
+
     -- Status & Classification
     status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE'
         CHECK (status IN ('AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED')),
-    
-    
+
+
     -- Location & Tracking
     altier_id UUID REFERENCES altier(id) ON DELETE SET NULL,
     qr_code VARCHAR(500),
-    
+
     -- Processing tracking
     total_cuts INTEGER NOT NULL DEFAULT 0,
     total_waste_area_m2 DECIMAL(12,4) NOT NULL DEFAULT 0,
     last_processing_date TIMESTAMP,
-    
+
     -- Audit
     created_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -65,48 +65,50 @@ CREATE TABLE IF NOT EXISTS rolls (
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS waste_pieces (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- Source Reference (ONLY DIFFERENCE from rolls)
     roll_id UUID NOT NULL REFERENCES rolls(id) ON DELETE RESTRICT,
     parent_waste_piece_id UUID REFERENCES waste_pieces(id) ON DELETE SET NULL,
-    
+
     -- Material Specifications (same as rolls)
     material_type VARCHAR(20) NOT NULL
         CHECK (material_type IN ('PU', 'PVC', 'CAOUTCHOUC')),
     nb_plis INTEGER NOT NULL DEFAULT 1 CHECK (nb_plis > 0),
     thickness_mm DECIMAL(8,3) NOT NULL CHECK (thickness_mm > 0),
-    
+
     -- Dimensions (same as rolls)
     width_mm INTEGER NOT NULL CHECK (width_mm > 0),
     width_remaining_mm INTEGER,
     length_m DECIMAL(10,2) NOT NULL CHECK (length_m > 0),
     length_remaining_m DECIMAL(10,2),
     area_m2 DECIMAL(12,4) NOT NULL CHECK (area_m2 > 0),
-    
+
     -- Status & Classification (same as rolls)
     status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE'
         CHECK (status IN ('AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED')),
     waste_type VARCHAR(50) NOT NULL DEFAULT 'DECHET'
         CHECK (waste_type IN ('CHUTE_EXPLOITABLE', 'DECHET')),
-    
+
     -- Location & Tracking (same as rolls)
     altier_id UUID REFERENCES altier(id) ON DELETE SET NULL,
     qr_code VARCHAR(500),
-    
+
     -- Processing tracking (same as rolls)
     total_cuts INTEGER NOT NULL DEFAULT 0,
     total_waste_area_m2 DECIMAL(12,4) NOT NULL DEFAULT 0,
     last_processing_date TIMESTAMP,
-    
+
     -- Waste-specific tracking
     commande_item_id UUID,
     classification_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
+
     -- Audit (same as rolls)
     created_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+
 
 -- ============================================================================
 -- Alter tables: remove original_quantity and add color_id
@@ -142,23 +144,23 @@ BEGIN
         FROM rolls
         WHERE id = NEW.roll_id;
     END IF;
-    
+
     IF source_piece IS NOT NULL THEN
         -- Validate width doesn't exceed parent waste piece width
         IF NEW.width_mm > source_piece.width_mm THEN
-            RAISE EXCEPTION 'Waste piece width (% mm) cannot exceed parent waste piece width (% mm)', 
+            RAISE EXCEPTION 'Waste piece width (% mm) cannot exceed parent waste piece width (% mm)',
                            NEW.width_mm, source_piece.width_mm;
         END IF;
-        
+
         -- Validate length doesn't exceed parent waste piece length
         IF NEW.length_m > source_piece.length_m THEN
-            RAISE EXCEPTION 'Waste piece length (% m) cannot exceed parent waste piece length (% m)', 
+            RAISE EXCEPTION 'Waste piece length (% m) cannot exceed parent waste piece length (% m)',
                            NEW.length_m, source_piece.length_m;
         END IF;
-        
+
         -- Validate area doesn't exceed parent waste piece area
         IF NEW.area_m2 > source_piece.area_m2 THEN
-            RAISE EXCEPTION 'Waste piece area (%.4f m²) cannot exceed parent waste piece area (%.4f m²)', 
+            RAISE EXCEPTION 'Waste piece area (%.4f m²) cannot exceed parent waste piece area (%.4f m²)',
                            NEW.area_m2, source_piece.area_m2;
         END IF;
 
@@ -171,19 +173,19 @@ BEGIN
     ELSIF source_roll IS NOT NULL THEN
         -- Validate width doesn't exceed source roll width
         IF NEW.width_mm > source_roll.width_mm THEN
-            RAISE EXCEPTION 'Waste piece width (% mm) cannot exceed source roll width (% mm)', 
+            RAISE EXCEPTION 'Waste piece width (% mm) cannot exceed source roll width (% mm)',
                            NEW.width_mm, source_roll.width_mm;
         END IF;
-        
+
         -- Validate length doesn't exceed source roll length
         IF NEW.length_m > source_roll.length_m THEN
-            RAISE EXCEPTION 'Waste piece length (% m) cannot exceed source roll length (% m)', 
+            RAISE EXCEPTION 'Waste piece length (% m) cannot exceed source roll length (% m)',
                            NEW.length_m, source_roll.length_m;
         END IF;
-        
+
         -- Validate area doesn't exceed source roll area
         IF NEW.area_m2 > source_roll.area_m2 THEN
-            RAISE EXCEPTION 'Waste piece area (%.4f m²) cannot exceed source roll area (%.4f m²)', 
+            RAISE EXCEPTION 'Waste piece area (%.4f m²) cannot exceed source roll area (%.4f m²)',
                            NEW.area_m2, source_roll.area_m2;
         END IF;
 
@@ -194,7 +196,7 @@ BEGIN
             RAISE EXCEPTION 'Waste piece color must match parent roll color';
         END IF;
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -262,14 +264,14 @@ BEGIN
         SET total_waste_area_m2 = total_waste_area_m2 + NEW.area_m2,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = NEW.roll_id;
-        
+
     ELSIF TG_OP = 'UPDATE' THEN
         -- Adjust for the difference between old and new waste piece area
         UPDATE rolls
         SET total_waste_area_m2 = total_waste_area_m2 - OLD.area_m2 + NEW.area_m2,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = NEW.roll_id;
-        
+
     ELSIF TG_OP = 'DELETE' THEN
         -- Subtract the waste piece area from the roll's total waste
         UPDATE rolls
@@ -277,7 +279,7 @@ BEGIN
             updated_at = CURRENT_TIMESTAMP
         WHERE id = OLD.roll_id;
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
