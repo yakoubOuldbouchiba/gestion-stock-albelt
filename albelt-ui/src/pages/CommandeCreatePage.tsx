@@ -15,6 +15,7 @@ import { CommandeService } from '../services/commandeService';
 import { ColorService } from '../services/colorService';
 import { ClientService } from '../services/clientService';
 import { useI18n } from '@hooks/useI18n';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 import type { Client, Color, CommandeRequest, CommandeItemRequest, MaterialType, TypeMouvement } from '../types';
 
 interface ClientOption {
@@ -42,6 +43,7 @@ export function CommandeCreatePage() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const toastRef = useRef<Toast>(null);
+  const { run, isLocked } = useAsyncLock();
 
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [colors, setColors] = useState<ColorOption[]>([]);
@@ -245,6 +247,10 @@ export function CommandeCreatePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isLocked('commande-create')) {
+      return;
+    }
+
     if (!validateForm()) {
       setError(t('commandes.requiredFieldsError'));
       toastRef.current?.show({
@@ -256,30 +262,30 @@ export function CommandeCreatePage() {
     }
 
     try {
-      setLoading(true);
+      await run(async () => {
+        const commandeRequest: CommandeRequest = {
+          numeroCommande,
+          clientId: selectedClient!,
+          description,
+          notes,
+          items,
+        };
 
-      const commandeRequest: CommandeRequest = {
-        numeroCommande,
-        clientId: selectedClient!,
-        description,
-        notes,
-        items,
-      };
+        const res = await CommandeService.create(commandeRequest);
 
-      const res = await CommandeService.create(commandeRequest);
+        if (res.data) {
+          toastRef.current?.show({
+            severity: 'success',
+            summary: t('common.success'),
+            detail: t('commandes.orderCreatedSuccessfully'),
+            life: 3000,
+          });
 
-      if (res.data) {
-        toastRef.current?.show({
-          severity: 'success',
-          summary: t('common.success'),
-          detail: t('commandes.orderCreatedSuccessfully'),
-          life: 3000,
-        });
-
-        setTimeout(() => {
-          navigate('/commandes');
-        }, 1500);
-      }
+          setTimeout(() => {
+            navigate('/commandes');
+          }, 1500);
+        }
+      }, 'commande-create');
     } catch (err: any) {
       console.error('Error creating order:', err);
       const errorMsg = err.response?.data?.message || t('commandes.createError');
@@ -289,8 +295,6 @@ export function CommandeCreatePage() {
         summary: t('common.error'),
         detail: errorMsg,
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -306,6 +310,7 @@ export function CommandeCreatePage() {
   };
 
   const summary = calculateSummary();
+  const isSubmitting = isLocked('commande-create');
 
   const materialBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
     <Dropdown
@@ -460,7 +465,7 @@ export function CommandeCreatePage() {
       text
       className="p-button-sm"
       onClick={() => handleRemoveItem(rowIndex.rowIndex)}
-      disabled={items.length === 1}
+      disabled={items.length === 1 || isSubmitting}
     />
   );
 
@@ -789,7 +794,7 @@ export function CommandeCreatePage() {
                         severity="danger"
                         text
                         onClick={() => handleRemoveItem(index)}
-                        disabled={items.length === 1}
+                        disabled={items.length === 1 || isSubmitting}
                         label={t('commandes.delete')}
                       />
                     </div>
@@ -822,6 +827,7 @@ export function CommandeCreatePage() {
               icon="pi pi-plus"
               onClick={handleAddItem}
               severity="success"
+              disabled={isSubmitting}
             />
           </div>
         </Card>
@@ -832,7 +838,8 @@ export function CommandeCreatePage() {
             type="submit"
             label={t('commandes.createOrder')}
             icon="pi pi-check"
-            loading={loading}
+            loading={isSubmitting}
+            disabled={isSubmitting}
             severity="success"
           />
           <Button
@@ -841,6 +848,7 @@ export function CommandeCreatePage() {
             icon="pi pi-times"
             onClick={handleCancel}
             severity="secondary"
+            disabled={isSubmitting}
           />
         </div>
       </form>

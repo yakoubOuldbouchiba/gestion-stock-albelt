@@ -8,6 +8,7 @@ import { Column } from 'primereact/column';
 import { InputNumber } from 'primereact/inputnumber';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 
 const MATERIAL_TYPES: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
 
@@ -26,9 +27,9 @@ export function MaterialChuteThresholdsPage() {
   const { t } = useI18n();
   const [rows, setRows] = useState<EditableRow[]>(MATERIAL_TYPES.map(createDefaultRow));
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const { run, isLocked } = useAsyncLock();
 
   const rowsByType = useMemo(() => {
     const map = new Map<MaterialType, EditableRow>();
@@ -89,6 +90,9 @@ export function MaterialChuteThresholdsPage() {
   const saveAll = async () => {
     setError(null);
     setMessage(null);
+    if (isLocked('threshold-save')) {
+      return;
+    }
 
     const validationError = validateAll();
     if (validationError) {
@@ -96,20 +100,19 @@ export function MaterialChuteThresholdsPage() {
       return;
     }
 
-    setIsSaving(true);
     try {
-      const response = await MaterialChuteThresholdService.upsertAll(rows);
-      if (!response.success) {
-        setError(response.message || t('materialChuteThresholds.failedToSave'));
-        return;
-      }
-      setMessage(t('materialChuteThresholds.savedSuccessfully'));
-      await load();
+      await run(async () => {
+        const response = await MaterialChuteThresholdService.upsertAll(rows);
+        if (!response.success) {
+          setError(response.message || t('materialChuteThresholds.failedToSave'));
+          return;
+        }
+        setMessage(t('materialChuteThresholds.savedSuccessfully'));
+        await load();
+      }, 'threshold-save');
     } catch (e) {
       console.error(e);
       setError(t('materialChuteThresholds.failedToSave'));
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -129,8 +132,8 @@ export function MaterialChuteThresholdsPage() {
           <div style={{ color: 'var(--text-color-secondary)' }}>{t('materialChuteThresholds.hint')}</div>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <Button icon="pi pi-refresh" label={t('common.refresh')} severity="secondary" onClick={load} disabled={isSaving} />
-          <Button label={isSaving ? t('common.saving') : t('common.save')} onClick={saveAll} disabled={isSaving} />
+          <Button icon="pi pi-refresh" label={t('common.refresh')} severity="secondary" onClick={load} disabled={isLocked('threshold-save')} />
+          <Button label={isLocked('threshold-save') ? t('common.saving') : t('common.save')} onClick={saveAll} disabled={isLocked('threshold-save')} loading={isLocked('threshold-save')} />
         </div>
       </div>
 
@@ -147,6 +150,7 @@ export function MaterialChuteThresholdsPage() {
               min={0}
               onValueChange={(e) => updateRow(row.materialType, { minWidthMm: e.value ?? 0 })}
               inputStyle={{ width: '100%' }}
+              disabled={isLocked('threshold-save')}
             />
           )}
         />
@@ -161,6 +165,7 @@ export function MaterialChuteThresholdsPage() {
               maxFractionDigits={2}
               onValueChange={(e) => updateRow(row.materialType, { minLengthM: e.value ?? 0 })}
               inputStyle={{ width: '100%' }}
+              disabled={isLocked('threshold-save')}
             />
           )}
         />

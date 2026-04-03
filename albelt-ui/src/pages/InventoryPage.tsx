@@ -22,6 +22,7 @@ import { Tag } from 'primereact/tag';
 import { Paginator } from 'primereact/paginator';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Message } from 'primereact/message';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 
 export function InventoryPage() {
   // Per-tab grouped statistics state
@@ -112,6 +113,7 @@ export function InventoryPage() {
   const [rollTotalElements, setRollTotalElements] = useState(0);
   const [wastePage, setWastePage] = useState(0);
   const [wasteTotalElements, setWasteTotalElements] = useState(0);
+  const { run, isLocked } = useAsyncLock();
   const pageSize = 10;
 
   const materials: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
@@ -401,16 +403,21 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked('inventory-roll')) {
+      return;
+    }
     setError(null);
 
     try {
-      const response = await RollService.receive(formData);
-      if (response.success) {
-        setRollPage(0);
-        await loadRolls(0, searchTerm, materialFilter, statusFilter, altierFilter);
-        resetForm();
-        setShowForm(false);
-      }
+      await run(async () => {
+        const response = await RollService.receive(formData);
+        if (response.success) {
+          setRollPage(0);
+          await loadRolls(0, searchTerm, materialFilter, statusFilter, altierFilter);
+          resetForm();
+          setShowForm(false);
+        }
+      }, 'inventory-roll');
     } catch (err) {
       setError(t('messages.operationFailed'));
       console.error(err);
@@ -437,6 +444,63 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
   const handleCancel = () => {
     resetForm();
     setShowForm(false);
+  };
+
+  const handleChuteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLocked('inventory-chute')) {
+      return;
+    }
+
+    let selectedRoll: Roll | undefined;
+    let selectedParent: WastePiece | undefined;
+
+    if (chuteSourceType === 'ROLL') {
+      selectedRoll = filteredChuteRolls.find(r => r.id === chuteRollId);
+      if (!selectedRoll) {
+        alert('Please select a roll');
+        return;
+      }
+    } else {
+      selectedParent = parentWastePieces.find(piece => piece.id === parentWastePieceId);
+      if (!selectedParent) {
+        alert('Please select a parent waste piece');
+        return;
+      }
+    }
+
+    const wasteData = {
+      rollId: selectedRoll?.id || selectedParent?.rollId,
+      parentWastePieceId: selectedParent?.id,
+      materialType: selectedRoll?.materialType || selectedParent?.materialType,
+      nbPlis: formData.nbPlis,
+      thicknessMm: formData.thicknessMm,
+      widthMm: formData.widthMm,
+      lengthM: formData.lengthM,
+      areaM2: formData.areaM2,
+      status: 'AVAILABLE',
+      altierID: selectedRoll?.altierId || selectedParent?.altierId,
+      colorId: selectedRoll?.colorId || selectedParent?.colorId,
+    };
+
+    try {
+      await run(async () => {
+        const response = await WastePieceService.create(wasteData);
+        if (response.success) {
+          setWastePage(0);
+          await loadWastePieces(0, searchTerm, materialFilter, altierFilter);
+          setShowChuteForm(false);
+          setChuteRollId('');
+          setParentWastePieceId('');
+          setChuteSourceType('ROLL');
+          resetForm();
+          alert('Waste piece created successfully!');
+        }
+      }, 'inventory-chute');
+    } catch (err) {
+      console.error('Error creating waste piece:', err);
+      alert('Failed to create waste piece');
+    }
   };
 
   const reusablePieces = wastePieces.filter(
@@ -1040,8 +1104,19 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <Button type="submit" label={t('inventory.addRollToInventory')} />
-              <Button type="button" label={t('common.cancel')} severity="secondary" onClick={handleCancel} />
+              <Button
+                type="submit"
+                label={t('inventory.addRollToInventory')}
+                loading={isLocked('inventory-roll')}
+                disabled={isLocked('inventory-roll')}
+              />
+              <Button
+                type="button"
+                label={t('common.cancel')}
+                severity="secondary"
+                onClick={handleCancel}
+                disabled={isLocked('inventory-roll')}
+              />
             </div>
           </div>
         </form>
@@ -1058,57 +1133,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
         }}
         style={{ width: 'min(900px, 95vw)' }}
       >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            let selectedRoll: Roll | undefined;
-            let selectedParent: WastePiece | undefined;
-
-            if (chuteSourceType === 'ROLL') {
-              selectedRoll = filteredChuteRolls.find(r => r.id === chuteRollId);
-              if (!selectedRoll) {
-                alert('Please select a roll');
-                return;
-              }
-            } else {
-              selectedParent = parentWastePieces.find(piece => piece.id === parentWastePieceId);
-              if (!selectedParent) {
-                alert('Please select a parent waste piece');
-                return;
-              }
-            }
-
-            const wasteData = {
-              rollId: selectedRoll?.id || selectedParent?.rollId,
-              parentWastePieceId: selectedParent?.id,
-              materialType: selectedRoll?.materialType || selectedParent?.materialType,
-              nbPlis: formData.nbPlis,
-              thicknessMm: formData.thicknessMm,
-              widthMm: formData.widthMm,
-              lengthM: formData.lengthM,
-              areaM2: formData.areaM2,
-              status: 'AVAILABLE',
-              altierID: selectedRoll?.altierId || selectedParent?.altierId,
-              colorId: selectedRoll?.colorId || selectedParent?.colorId,
-            };
-
-            WastePieceService.create(wasteData).then(response => {
-              if (response.success) {
-                setWastePage(0);
-                loadWastePieces(0, searchTerm, materialFilter, altierFilter);
-                setShowChuteForm(false);
-                setChuteRollId('');
-                setParentWastePieceId('');
-                setChuteSourceType('ROLL');
-                resetForm();
-                alert('Waste piece created successfully!');
-              }
-            }).catch(err => {
-              console.error('Error creating waste piece:', err);
-              alert('Failed to create waste piece');
-            });
-          }}
-        >
+        <form onSubmit={handleChuteSubmit}>
           <div style={{ display: 'grid', gap: '1rem' }}>
             <div>
               <label htmlFor="chuteSourceType">{t('inventory.sourceType')} *</label>
@@ -1289,7 +1314,12 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <Button type="submit" label={t('inventory.createChute') || 'Create Chute'} />
+              <Button
+                type="submit"
+                label={t('inventory.createChute') || 'Create Chute'}
+                loading={isLocked('inventory-chute')}
+                disabled={isLocked('inventory-chute')}
+              />
               <Button
                 type="button"
                 label={t('common.cancel')}
@@ -1300,6 +1330,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
                   setParentWastePieceId('');
                   setChuteSourceType('ROLL');
                 }}
+                disabled={isLocked('inventory-chute')}
               />
             </div>
           </div>

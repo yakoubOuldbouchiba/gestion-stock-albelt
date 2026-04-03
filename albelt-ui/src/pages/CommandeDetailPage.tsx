@@ -50,6 +50,12 @@ export function CommandeDetailPage() {
     lengthM: 0,
     areaM2: 0,
   });
+  const [creatingWaste, setCreatingWaste] = useState(false);
+  const [creatingProduction, setCreatingProduction] = useState(false);
+  const [creatingChute, setCreatingChute] = useState(false);
+  const [deletingOrder, setDeletingOrder] = useState(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [updatingItemStatusId, setUpdatingItemStatusId] = useState<string | null>(null);
   
   // Roll processing form
   const [processingForm, setProcessingForm] = useState({
@@ -176,6 +182,8 @@ export function CommandeDetailPage() {
     if (!commande) return;
 
     try {
+      if (updatingItemStatusId) return;
+      setUpdatingItemStatusId(itemId);
       const res = await CommandeService.updateItemStatus(itemId, newStatus);
       if (res.data) {
         // Refetch the order to get updated data
@@ -188,6 +196,8 @@ export function CommandeDetailPage() {
       console.error('Error updating item status:', err);
       setError(t('commandes.deleteItemError'));
       showError(t('commandes.deleteItemError'));
+    } finally {
+      setUpdatingItemStatusId(null);
     }
   };
 
@@ -198,6 +208,8 @@ export function CommandeDetailPage() {
       icon: 'pi pi-exclamation-triangle',
       accept: async () => {
         try {
+          if (deletingItemId) return;
+          setDeletingItemId(itemId);
           await CommandeService.deleteItem(itemId);
           if (commande) {
             setCommande({
@@ -210,6 +222,8 @@ export function CommandeDetailPage() {
           console.error('Error deleting item:', err);
           setError(t('commandes.deleteItemError'));
           showError(t('commandes.deleteItemError'));
+        } finally {
+          setDeletingItemId(null);
         }
       },
     });
@@ -222,6 +236,8 @@ export function CommandeDetailPage() {
       icon: 'pi pi-exclamation-triangle',
       accept: async () => {
         try {
+          if (deletingOrder) return;
+          setDeletingOrder(true);
           if (commande?.id) {
             await CommandeService.delete(commande.id);
             navigate('/commandes');
@@ -230,6 +246,8 @@ export function CommandeDetailPage() {
           console.error('Error deleting order:', err);
           setError(t('commandes.confirmDeleteError'));
           showError(t('commandes.confirmDeleteError'));
+        } finally {
+          setDeletingOrder(false);
         }
       },
     });
@@ -374,6 +392,8 @@ export function CommandeDetailPage() {
     }
 
     try {
+      if (creatingWaste) return;
+      setCreatingWaste(true);
       const selectedRoll = rolls.find(r => r.id === processingForm.rollId);
       if (!selectedRoll) {
         showError(t('commandes.rollNotFoundError'));
@@ -428,11 +448,16 @@ export function CommandeDetailPage() {
       console.error('Error processing roll:', err);
       setError(t('commandes.wasteRecordError'));
       showError(t('commandes.wasteRecordError'));
+    } finally {
+      setCreatingWaste(false);
     }
   };
 
   const handleCreateChute = async () => {
     if (!chuteTargetItem) return;
+
+    if (creatingChute) return;
+    setCreatingChute(true);
 
     const isRollSource = chuteSourceType === 'ROLL';
     const source = isRollSource
@@ -474,6 +499,8 @@ export function CommandeDetailPage() {
     } catch (err) {
       console.error('Error creating chute:', err);
       showError(t('commandes.wasteRecordError'));
+    } finally {
+      setCreatingChute(false);
     }
   };
 
@@ -648,6 +675,8 @@ export function CommandeDetailPage() {
 
     const saveProductionItem = async () => {
       try {
+        if (creatingProduction) return;
+        setCreatingProduction(true);
         await ProductionItemService.create({
           commandeItemId: productionTargetItem.id,
           rollId: isRoll ? sourceId : undefined,
@@ -664,6 +693,8 @@ export function CommandeDetailPage() {
       } catch (err) {
         console.error('Error creating production item:', err);
         showError(t('commandes.productionItemCreateError'));
+      } finally {
+        setCreatingProduction(false);
       }
     };
 
@@ -693,6 +724,14 @@ export function CommandeDetailPage() {
 
   const statusOptions = statuses.map((status) => ({ label: status, value: status }));
   const itemStatusOptions = itemStatuses.map((status) => ({ label: status, value: status }));
+  const isBusy =
+    updating ||
+    creatingWaste ||
+    creatingProduction ||
+    creatingChute ||
+    deletingOrder ||
+    deletingItemId !== null ||
+    updatingItemStatusId !== null;
 
   const rollOptionsBase = rolls.map((roll) => {
     const reference = roll.reference ?? (roll as any).referenceRouleau ?? t('commandes.notAvailable');
@@ -830,12 +869,19 @@ export function CommandeDetailPage() {
             <Tag value={commande.status} severity={getStatusSeverity(commande.status)} />
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <Button icon="pi pi-pencil" label={t('commandes.editOrder')} onClick={handleEditOrder} />
+            <Button
+              icon="pi pi-pencil"
+              label={t('commandes.editOrder')}
+              onClick={handleEditOrder}
+              disabled={isBusy}
+            />
             <Button
               icon="pi pi-trash"
               label={t('commandes.deleteOrder')}
               severity="danger"
               onClick={handleDeleteOrder}
+              disabled={isBusy}
+              loading={deletingOrder}
             />
             <Button
               icon="pi pi-arrow-left"
@@ -843,6 +889,7 @@ export function CommandeDetailPage() {
               severity="secondary"
               outlined
               onClick={() => navigate('/commandes')}
+              disabled={isBusy}
             />
           </div>
         </div>
@@ -908,6 +955,7 @@ export function CommandeDetailPage() {
             label={updating ? t('commandes.updating') : t('commandes.updateStatus')}
             onClick={handleStatusUpdate}
             disabled={updating || selectedStatus === commande.status}
+            loading={updating}
           />
         </div>
       </Card>
@@ -973,6 +1021,7 @@ export function CommandeDetailPage() {
                       options={itemStatusOptions}
                       onChange={(e) => handleItemStatusUpdate(item.id, e.value as ItemStatus)}
                       style={{ minWidth: '180px' }}
+                      disabled={isBusy}
                     />
                     <Tag value={item.typeMouvement} severity="info" />
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -981,6 +1030,7 @@ export function CommandeDetailPage() {
                         icon={expandedItemId === item.id ? 'pi pi-chevron-up' : 'pi pi-chevron-down'}
                         outlined
                         onClick={() => toggleItemDetails(item)}
+                        disabled={isBusy}
                       />
                       <Button
                         icon="pi pi-trash"
@@ -988,6 +1038,8 @@ export function CommandeDetailPage() {
                         severity="danger"
                         outlined
                         onClick={() => handleDeleteItem(item.id)}
+                        disabled={isBusy}
+                        loading={deletingItemId === item.id}
                       />
                     </div>
                   </div>
@@ -1009,18 +1061,21 @@ export function CommandeDetailPage() {
                           label={t('commandes.processRoll')}
                           icon="pi pi-cog"
                           onClick={() => handleOpenProcessingModal(item)}
+                          disabled={isBusy}
                         />
                         <Button
                           label={t('inventory.createChute')}
                           icon="pi pi-plus-circle"
                           severity="secondary"
                           onClick={() => handleOpenChuteModal(item)}
+                          disabled={isBusy}
                         />
                         <Button
                           label={t('commandes.addProductionItem')}
                           icon="pi pi-plus"
                           severity="secondary"
                           onClick={() => handleOpenProductionModal(item)}
+                          disabled={isBusy}
                         />
                       </div>
                     </div>
@@ -1129,7 +1184,7 @@ export function CommandeDetailPage() {
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
             <Button label={t('common.cancel')} severity="secondary" onClick={handleCloseChuteModal} />
-            <Button label={t('inventory.createChute')} onClick={handleCreateChute} />
+            <Button label={t('inventory.createChute')} onClick={handleCreateChute} loading={creatingChute} />
           </div>
         }
       >
@@ -1249,7 +1304,7 @@ export function CommandeDetailPage() {
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
             <Button label={t('commandes.cancel')} severity="secondary" onClick={handleCloseProcessingModal} />
-            <Button label={t('commandes.recordWaste')} onClick={handleProcessRoll} />
+            <Button label={t('commandes.recordWaste')} onClick={handleProcessRoll} loading={creatingWaste} />
           </div>
         }
       >
@@ -1349,7 +1404,11 @@ export function CommandeDetailPage() {
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
             <Button label={t('commandes.cancel')} severity="secondary" onClick={handleCloseProductionModal} />
-            <Button label={t('commandes.saveProductionItem')} onClick={handleCreateProductionItem} />
+            <Button
+              label={t('commandes.saveProductionItem')}
+              onClick={handleCreateProductionItem}
+              loading={creatingProduction}
+            />
           </div>
         }
       >

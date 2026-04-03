@@ -20,6 +20,7 @@ import { Checkbox } from 'primereact/checkbox';
 import { Tag } from 'primereact/tag';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 
 export function ClientsPage() {
   const { t } = useI18n();
@@ -32,6 +33,7 @@ export function ClientsPage() {
   const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [page, setPage] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const { run, isLocked } = useAsyncLock();
   const pageSize = 20;
 
   // Form states
@@ -101,6 +103,9 @@ export function ClientsPage() {
 
   const handleAddClient = async () => {
     setError(null);
+    if (isLocked('client-save')) {
+      return;
+    }
 
     if (!clientForm.name.trim()) {
       setError(t('clients.clientNameRequired'));
@@ -108,13 +113,15 @@ export function ClientsPage() {
     }
 
     try {
-      const response = await ClientService.create(clientForm);
-      if (response.success && response.data) {
-        setPage(0);
-        await loadClients(0, searchTerm);
-        resetForms();
-        setShowForm(false);
-      }
+      await run(async () => {
+        const response = await ClientService.create(clientForm);
+        if (response.success && response.data) {
+          setPage(0);
+          await loadClients(0, searchTerm);
+          resetForms();
+          setShowForm(false);
+        }
+      }, 'client-save');
     } catch (err) {
       setError(t('clients.failedToCreateClient'));
       console.error(err);
@@ -123,6 +130,9 @@ export function ClientsPage() {
 
   const handleUpdateClient = async (id: string) => {
     setError(null);
+    if (isLocked('client-save')) {
+      return;
+    }
 
     if (!clientForm.name.trim()) {
       setError(t('clients.clientNameRequired'));
@@ -130,13 +140,15 @@ export function ClientsPage() {
     }
 
     try {
-      const response = await ClientService.update(id, clientForm);
-      if (response.success && response.data) {
-        await loadClients(page, searchTerm);
-        setEditingClientId(null);
-        resetForms();
-        setShowForm(false);
-      }
+      await run(async () => {
+        const response = await ClientService.update(id, clientForm);
+        if (response.success && response.data) {
+          await loadClients(page, searchTerm);
+          setEditingClientId(null);
+          resetForms();
+          setShowForm(false);
+        }
+      }, 'client-save');
     } catch (err) {
       setError(t('clients.failedToUpdateClient'));
       console.error(err);
@@ -147,12 +159,16 @@ export function ClientsPage() {
     if (!window.confirm(t('clients.deletionConfirm'))) {
       return;
     }
-
+    if (isLocked()) {
+      return;
+    }
     try {
-      const response = await ClientService.deactivate(id);
-      if (response.success) {
-        await loadClients(page, searchTerm);
-      }
+      await run(async () => {
+        const response = await ClientService.deactivate(id);
+        if (response.success) {
+          await loadClients(page, searchTerm);
+        }
+      }, `client-delete-${id}`);
     } catch (err) {
       setError(t('clients.failedToDeleteClient'));
       console.error(err);
@@ -323,6 +339,9 @@ export function ClientsPage() {
     { label: t('clients.inactive'), value: false },
   ];
 
+  const isSaving = isLocked('client-save');
+  const isBusy = isLocked();
+
   const phoneTypeOptions = [
     { label: t('clients.phoneTypeMobile'), value: 'MOBILE' },
     { label: t('clients.phoneTypeWork'), value: 'LANDLINE' },
@@ -352,6 +371,7 @@ export function ClientsPage() {
           resetForms();
           setShowForm(false);
         }}
+        disabled={isSaving}
       />
       <Button
         type="button"
@@ -363,6 +383,8 @@ export function ClientsPage() {
             handleAddClient();
           }
         }}
+        loading={isSaving}
+        disabled={isSaving}
       />
     </div>
   );
@@ -382,7 +404,7 @@ export function ClientsPage() {
           <h1 style={{ margin: 0 }}>{t('clients.title')}</h1>
           <div style={{ color: 'var(--text-color-secondary)' }}>{t('clients.subtitle')}</div>
         </div>
-        <Button icon="pi pi-plus" label={t('clients.addClient')} onClick={() => setShowForm(true)} />
+        <Button icon="pi pi-plus" label={t('clients.addClient')} onClick={() => setShowForm(true)} disabled={isBusy} />
       </div>
 
       {error && <Message severity="error" text={error} />}
@@ -431,9 +453,17 @@ export function ClientsPage() {
           header={t('common.action')}
           body={(row: Client) => (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Button icon="pi pi-eye" text onClick={() => setDetailClient(row)} aria-label={t('common.view')} />
-              <Button icon="pi pi-pencil" text onClick={() => handleEditClient(row)} aria-label={t('clients.editClient')} />
-              <Button icon="pi pi-trash" text severity="danger" onClick={() => handleDeleteClient(row.id)} aria-label={t('clients.deleteClient')} />
+              <Button icon="pi pi-eye" text onClick={() => setDetailClient(row)} aria-label={t('common.view')} disabled={isBusy} />
+              <Button icon="pi pi-pencil" text onClick={() => handleEditClient(row)} aria-label={t('clients.editClient')} disabled={isBusy} />
+              <Button
+                icon="pi pi-trash"
+                text
+                severity="danger"
+                onClick={() => handleDeleteClient(row.id)}
+                aria-label={t('clients.deleteClient')}
+                loading={isLocked(`client-delete-${row.id}`)}
+                disabled={isBusy}
+              />
             </div>
           )}
         />
@@ -495,7 +525,7 @@ export function ClientsPage() {
                 <Checkbox checked={!!tempPhone.isMain} onChange={(e) => setTempPhone({ ...tempPhone, isMain: !!e.checked })} />
                 <label>{t('clients.isMainPhone')}</label>
               </div>
-              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddPhone} />
+              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddPhone} disabled={isSaving} />
             </div>
             {clientForm.phones && clientForm.phones.length > 0 && (
               <DataTable value={clientForm.phones} size="small">
@@ -503,7 +533,7 @@ export function ClientsPage() {
                 <Column header={t('clients.phoneType')} body={(row: ClientPhoneRequest) => <Tag value={row.phoneType} />} />
                 <Column header={t('clients.isMainPhone')} body={(row: ClientPhoneRequest) => (row.isMain ? <Tag value={t('clients.isMainPhone')} severity="success" /> : t('common.dash'))} />
                 <Column body={(_, { rowIndex }) => (
-                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemovePhone(rowIndex)} />
+                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemovePhone(rowIndex)} disabled={isSaving} />
                 )} />
               </DataTable>
             )}
@@ -524,7 +554,7 @@ export function ClientsPage() {
                 <Checkbox checked={!!tempEmail.isMain} onChange={(e) => setTempEmail({ ...tempEmail, isMain: !!e.checked })} />
                 <label>{t('clients.isMainEmail')}</label>
               </div>
-              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddEmail} />
+              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddEmail} disabled={isSaving} />
             </div>
             {clientForm.emails && clientForm.emails.length > 0 && (
               <DataTable value={clientForm.emails} size="small">
@@ -532,7 +562,7 @@ export function ClientsPage() {
                 <Column header={t('clients.emailType')} body={(row: ClientEmailRequest) => <Tag value={row.emailType} />} />
                 <Column header={t('clients.isMainEmail')} body={(row: ClientEmailRequest) => (row.isMain ? <Tag value={t('clients.isMainEmail')} severity="success" /> : t('common.dash'))} />
                 <Column body={(_, { rowIndex }) => (
-                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemoveEmail(rowIndex)} />
+                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemoveEmail(rowIndex)} disabled={isSaving} />
                 )} />
               </DataTable>
             )}
@@ -565,7 +595,7 @@ export function ClientsPage() {
                 <Checkbox checked={!!tempAddress.isMain} onChange={(e) => setTempAddress({ ...tempAddress, isMain: !!e.checked })} />
                 <label>{t('clients.isMainAddress')}</label>
               </div>
-              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddAddress} />
+              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddAddress} disabled={isSaving} />
             </div>
             {clientForm.addresses && clientForm.addresses.length > 0 && (
               <DataTable value={clientForm.addresses} size="small">
@@ -576,7 +606,7 @@ export function ClientsPage() {
                 <Column header={t('clients.addressType')} body={(row: ClientAddressRequest) => <Tag value={row.addressType} />} />
                 <Column header={t('clients.isMainAddress')} body={(row: ClientAddressRequest) => (row.isMain ? <Tag value={t('clients.isMainAddress')} severity="success" /> : t('common.dash'))} />
                 <Column body={(_, { rowIndex }) => (
-                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemoveAddress(rowIndex)} />
+                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemoveAddress(rowIndex)} disabled={isSaving} />
                 )} />
               </DataTable>
             )}
@@ -605,7 +635,7 @@ export function ClientsPage() {
                 <Checkbox checked={!!tempRep.isPrimary} onChange={(e) => setTempRep({ ...tempRep, isPrimary: !!e.checked })} />
                 <label>{t('clients.isPrimaryContact')}</label>
               </div>
-              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddRep} />
+              <Button icon="pi pi-plus" label={t('common.add')} onClick={handleAddRep} disabled={isSaving} />
             </div>
             {clientForm.representatives && clientForm.representatives.length > 0 && (
               <DataTable value={clientForm.representatives} size="small">
@@ -615,7 +645,7 @@ export function ClientsPage() {
                 <Column field="email" header={t('clients.representativeEmail')} />
                 <Column header={t('clients.isPrimaryContact')} body={(row: ClientRepresentativeRequest) => (row.isPrimary ? <Tag value={t('clients.isPrimaryContact')} severity="success" /> : t('common.dash'))} />
                 <Column body={(_, { rowIndex }) => (
-                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemoveRep(rowIndex)} />
+                  <Button icon="pi pi-trash" text severity="danger" onClick={() => handleRemoveRep(rowIndex)} disabled={isSaving} />
                 )} />
               </DataTable>
             )}

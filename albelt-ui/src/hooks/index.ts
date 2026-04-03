@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 export { useAuthStore as useAuth } from './useAuth';
+export { useAsyncLock } from './useAsyncLock';
 
 /**
  * Custom hook for handling async operations with loading/error states

@@ -16,6 +16,7 @@ import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { RadioButton } from 'primereact/radiobutton';
 import { Checkbox } from 'primereact/checkbox';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 
 export function UsersPage() {
   const { t } = useI18n();
@@ -31,6 +32,7 @@ export function UsersPage() {
   const [showAltierModal, setShowAltierModal] = useState(false);
   const [newRole, setNewRole] = useState<UserRole>('OPERATOR');
   const [selectedAltiers, setSelectedAltiers] = useState<Set<string>>(new Set());
+  const { run, isLocked } = useAsyncLock();
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -87,13 +89,18 @@ export function UsersPage() {
     if (!window.confirm(t('messages.confirmDelete'))) {
       return;
     }
+    if (isLocked()) {
+      return;
+    }
 
     try {
       setError(null);
-      const response = await UserService.deactivateUser(userId);
-      if (response.success) {
-        await loadUsers(page, searchTerm, roleFilter, statusFilter);
-      }
+      await run(async () => {
+        const response = await UserService.deactivateUser(userId);
+        if (response.success) {
+          await loadUsers(page, searchTerm, roleFilter, statusFilter);
+        }
+      }, `user-status-${userId}`);
     } catch (err) {
       setError(t('messages.failedToDeactivate'));
       console.error(err);
@@ -101,12 +108,17 @@ export function UsersPage() {
   };
 
   const handleActivateUser = async (userId: string) => {
+    if (isLocked()) {
+      return;
+    }
     try {
       setError(null);
-      const response = await UserService.activateUser(userId);
-      if (response.success) {
-        await loadUsers(page, searchTerm, roleFilter, statusFilter);
-      }
+      await run(async () => {
+        const response = await UserService.activateUser(userId);
+        if (response.success) {
+          await loadUsers(page, searchTerm, roleFilter, statusFilter);
+        }
+      }, `user-status-${userId}`);
     } catch (err) {
       setError(t('messages.failedToActivate'));
       console.error(err);
@@ -115,15 +127,18 @@ export function UsersPage() {
 
   const handleChangeRole = async () => {
     if (!selectedUser) return;
+    if (isLocked('user-role')) return;
 
     try {
       setError(null);
-      const response = await UserService.changeRole(selectedUser.id, newRole);
-      if (response.success) {
-        await loadUsers(page, searchTerm, roleFilter, statusFilter);
-        setShowRoleModal(false);
-        setSelectedUser(null);
-      }
+      await run(async () => {
+        const response = await UserService.changeRole(selectedUser.id, newRole);
+        if (response.success) {
+          await loadUsers(page, searchTerm, roleFilter, statusFilter);
+          setShowRoleModal(false);
+          setSelectedUser(null);
+        }
+      }, 'user-role');
     } catch (err) {
       setError(t('messages.failedToChangeRole'));
       console.error(err);
@@ -131,12 +146,18 @@ export function UsersPage() {
   };
 
   const openRoleModal = (user: UserType) => {
+    if (isLocked()) {
+      return;
+    }
     setSelectedUser(user);
     setNewRole(user.role);
     setShowRoleModal(true);
   };
 
   const openAltierModal = async (user: UserType) => {
+    if (isLocked()) {
+      return;
+    }
     setSelectedUser(user);
     try {
       const userAltiers = await userAltierService.getAltiersByUser(user.id);
@@ -151,28 +172,30 @@ export function UsersPage() {
 
   const handleSaveAltiers = async () => {
     if (!selectedUser) return;
+    if (isLocked('user-altier')) return;
 
     try {
       setError(null);
-      
-      // Get current assignments
-      const current = await userAltierService.getAltiersByUser(selectedUser.id);
-      const currentIds = new Set(current.map(ua => ua.altier.id));
+      await run(async () => {
+        // Get current assignments
+        const current = await userAltierService.getAltiersByUser(selectedUser.id);
+        const currentIds = new Set(current.map(ua => ua.altier.id));
 
-      // Find what to add and remove
-      const toAdd = Array.from(selectedAltiers).filter(id => !currentIds.has(id));
-      const toRemove = Array.from(currentIds).filter(id => !selectedAltiers.has(id));
+        // Find what to add and remove
+        const toAdd = Array.from(selectedAltiers).filter(id => !currentIds.has(id));
+        const toRemove = Array.from(currentIds).filter(id => !selectedAltiers.has(id));
 
-      // Make API calls
-      for (const altierId of toRemove) {
-        await userAltierService.unassignAltier(selectedUser.id, altierId);
-      }
-      for (const altierId of toAdd) {
-        await userAltierService.assignAltier(selectedUser.id, altierId);
-      }
+        // Make API calls
+        for (const altierId of toRemove) {
+          await userAltierService.unassignAltier(selectedUser.id, altierId);
+        }
+        for (const altierId of toAdd) {
+          await userAltierService.assignAltier(selectedUser.id, altierId);
+        }
 
-      setShowAltierModal(false);
-      setSelectedUser(null);
+        setShowAltierModal(false);
+        setSelectedUser(null);
+      }, 'user-altier');
     } catch (err) {
       setError('Failed to update altier assignments');
       console.error(err);
@@ -206,17 +229,19 @@ export function UsersPage() {
     ]
   ), [t]);
 
+  const isBusy = isLocked();
+
   const roleDialogFooter = (
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-      <Button label={t('common.cancel')} severity="secondary" onClick={() => setShowRoleModal(false)} />
-      <Button label={t('users.updateBtn')} onClick={handleChangeRole} />
+      <Button label={t('common.cancel')} severity="secondary" onClick={() => setShowRoleModal(false)} disabled={isLocked('user-role')} />
+      <Button label={t('users.updateBtn')} onClick={handleChangeRole} loading={isLocked('user-role')} disabled={isLocked('user-role')} />
     </div>
   );
 
   const altierDialogFooter = (
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-      <Button label={t('common.cancel')} severity="secondary" onClick={() => setShowAltierModal(false)} />
-      <Button label={t('users.saveChangesBtn')} onClick={handleSaveAltiers} />
+      <Button label={t('common.cancel')} severity="secondary" onClick={() => setShowAltierModal(false)} disabled={isLocked('user-altier')} />
+      <Button label={t('users.saveChangesBtn')} onClick={handleSaveAltiers} loading={isLocked('user-altier')} disabled={isLocked('user-altier')} />
     </div>
   );
 
@@ -319,12 +344,25 @@ export function UsersPage() {
           header={t('common.action')}
           body={(row: UserType) => (
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <Button icon="pi pi-user-edit" text onClick={() => openRoleModal(row)} aria-label={t('users.changeRoleTitle')} />
-              <Button icon="pi pi-map-marker" text onClick={() => openAltierModal(row)} aria-label={t('users.manageAccessTitle')} />
+              <Button icon="pi pi-user-edit" text onClick={() => openRoleModal(row)} aria-label={t('users.changeRoleTitle')} disabled={isBusy} />
+              <Button icon="pi pi-map-marker" text onClick={() => openAltierModal(row)} aria-label={t('users.manageAccessTitle')} disabled={isBusy} />
               {row.isActive ? (
-                <Button label={t('users.deactivateBtn')} severity="danger" text onClick={() => handleDeactivateUser(row.id)} />
+                <Button
+                  label={t('users.deactivateBtn')}
+                  severity="danger"
+                  text
+                  onClick={() => handleDeactivateUser(row.id)}
+                  loading={isLocked(`user-status-${row.id}`)}
+                  disabled={isBusy}
+                />
               ) : (
-                <Button label={t('users.activateBtn')} text onClick={() => handleActivateUser(row.id)} />
+                <Button
+                  label={t('users.activateBtn')}
+                  text
+                  onClick={() => handleActivateUser(row.id)}
+                  loading={isLocked(`user-status-${row.id}`)}
+                  disabled={isBusy}
+                />
               )}
             </div>
           )}
@@ -384,6 +422,7 @@ export function UsersPage() {
                       inputId={`altier-${altier.id}`}
                       checked={selectedAltiers.has(altier.id)}
                       onChange={() => toggleAltier(altier.id)}
+                      disabled={isLocked('user-altier')}
                     />
                     <label htmlFor={`altier-${altier.id}`}>
                       <strong>{altier.libelle}</strong> <span style={{ color: 'var(--text-color-secondary)' }}>{altier.adresse}</span>

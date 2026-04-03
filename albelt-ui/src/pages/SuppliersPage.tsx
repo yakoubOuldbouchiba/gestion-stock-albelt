@@ -10,6 +10,7 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 
 const emptyForm: SupplierRequest = {
   name: '',
@@ -32,6 +33,7 @@ export function SuppliersPage() {
   const [page, setPage] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [formData, setFormData] = useState<SupplierRequest>(emptyForm);
+  const { run, isLocked } = useAsyncLock();
   const pageSize = 20;
 
   useEffect(() => {
@@ -76,21 +78,26 @@ export function SuppliersPage() {
 
   const handleSubmit = async () => {
     setError(null);
+    if (isLocked('supplier-save')) {
+      return;
+    }
     try {
-      const response = editingId
-        ? await SupplierService.update(editingId, formData)
-        : await SupplierService.create(formData);
+      await run(async () => {
+        const response = editingId
+          ? await SupplierService.update(editingId, formData)
+          : await SupplierService.create(formData);
 
-      if (response.success) {
-        const nextPage = editingId ? page : 0;
-        setPage(nextPage);
-        await loadSuppliers(nextPage, searchTerm);
-        setShowForm(false);
-        setEditingId(null);
-        resetForm();
-      } else {
-        setError(response.message || t('messages.operationFailed'));
-      }
+        if (response.success) {
+          const nextPage = editingId ? page : 0;
+          setPage(nextPage);
+          await loadSuppliers(nextPage, searchTerm);
+          setShowForm(false);
+          setEditingId(null);
+          resetForm();
+        } else {
+          setError(response.message || t('messages.operationFailed'));
+        }
+      }, 'supplier-save');
     } catch (err) {
       setError(t('messages.operationFailed'));
       console.error(err);
@@ -121,28 +128,38 @@ export function SuppliersPage() {
     if (!window.confirm(t('messages.confirmDelete'))) {
       return;
     }
+    if (isLocked()) {
+      return;
+    }
 
     try {
       setError(null);
-      const response = await SupplierService.delete(id);
-      if (response.success) {
-        await loadSuppliers(page, searchTerm);
-      } else {
-        setError(response.message || t('messages.failedToDelete'));
-      }
+      await run(async () => {
+        const response = await SupplierService.delete(id);
+        if (response.success) {
+          await loadSuppliers(page, searchTerm);
+        } else {
+          setError(response.message || t('messages.failedToDelete'));
+        }
+      }, `supplier-delete-${id}`);
     } catch (err) {
       setError(t('messages.failedToDelete'));
       console.error(err);
     }
   };
 
+  const isSaving = isLocked('supplier-save');
+  const isBusy = isLocked();
+
   const formFooter = (
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-      <Button type="button" label={t('common.cancel')} severity="secondary" onClick={handleCancel} />
+      <Button type="button" label={t('common.cancel')} severity="secondary" onClick={handleCancel} disabled={isSaving} />
       <Button
         type="button"
         label={editingId ? t('suppliers.updateSupplier') : t('suppliers.createSupplier')}
         onClick={handleSubmit}
+        loading={isSaving}
+        disabled={isSaving}
       />
     </div>
   );
@@ -164,7 +181,7 @@ export function SuppliersPage() {
             {totalElements} {totalElements !== 1 ? t('suppliers.plural') : t('suppliers.singular')}
           </div>
         </div>
-        <Button icon="pi pi-plus" label={t('suppliers.addNew')} onClick={() => setShowForm(true)} />
+        <Button icon="pi pi-plus" label={t('suppliers.addNew')} onClick={() => setShowForm(true)} disabled={isBusy} />
       </div>
 
       {error && <Message severity="error" text={error} />}
@@ -207,8 +224,16 @@ export function SuppliersPage() {
           header={t('common.action')}
           body={(row: Supplier) => (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Button icon="pi pi-pencil" text onClick={() => handleEdit(row)} aria-label={t('common.edit')} />
-              <Button icon="pi pi-trash" text severity="danger" onClick={() => handleDelete(row.id)} aria-label={t('common.delete')} />
+              <Button icon="pi pi-pencil" text onClick={() => handleEdit(row)} aria-label={t('common.edit')} disabled={isBusy} />
+              <Button
+                icon="pi pi-trash"
+                text
+                severity="danger"
+                onClick={() => handleDelete(row.id)}
+                aria-label={t('common.delete')}
+                loading={isLocked(`supplier-delete-${row.id}`)}
+                disabled={isBusy}
+              />
             </div>
           )}
         />

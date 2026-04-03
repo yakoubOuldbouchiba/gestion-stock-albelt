@@ -16,6 +16,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Tag } from 'primereact/tag';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 
 export function TransferBonsPage() {
   const { t } = useI18n();
@@ -27,10 +28,8 @@ export function TransferBonsPage() {
   const [bons, setBons] = useState<TransferBon[]>([]);
 
   const [loading, setLoading] = useState(false);
-  const [viewLoadingBonId, setViewLoadingBonId] = useState<string | null>(null);
-  const [deleteLoadingBonId, setDeleteLoadingBonId] = useState<string | null>(null);
-  const [removeMovementLoadingId, setRemoveMovementLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { run, isLocked, locks } = useAsyncLock();
 
   const getCurrentDateTimeLocal = () => new Date().toISOString().slice(0, 16);
   const formatDateTimeLocalValue = (date: Date | null) => {
@@ -77,6 +76,16 @@ export function TransferBonsPage() {
     () => availableRolls.filter((roll) => selectedRollIds.includes(roll.id)),
     [availableRolls, selectedRollIds]
   );
+
+  const getLockedId = (prefix: string) => {
+    const match = Object.keys(locks).find((key) => key.startsWith(prefix) && locks[key]);
+    return match ? match.slice(prefix.length) : null;
+  };
+
+  const viewLoadingBonId = getLockedId('transfer-view-');
+  const deleteLoadingBonId = getLockedId('transfer-delete-');
+  const removeMovementLoadingId = getLockedId('transfer-remove-');
+  const isActionLocked = loading || isLocked();
 
   useEffect(() => {
     const loadBaseData = async () => {
@@ -220,6 +229,7 @@ export function TransferBonsPage() {
   const handleCreateBon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    if (isLocked()) return;
 
     if (!formData.fromAltierID) {
       setError(t('transferBons.fromRequired'));
@@ -239,94 +249,97 @@ export function TransferBonsPage() {
     }
 
     try {
-      setLoading(true);
       setError(null);
+      await run(async () => {
+        const dateSortieIso = formatDateTimeToISO(formData.dateSortie);
+        const dateEntreeIso = formData.dateEntree ? formatDateTimeToISO(formData.dateEntree) : undefined;
 
-      const dateSortieIso = formatDateTimeToISO(formData.dateSortie);
-      const dateEntreeIso = formData.dateEntree ? formatDateTimeToISO(formData.dateEntree) : undefined;
+        const bonResponse = await transferBonService.createBon({
+          fromAltierID: formData.fromAltierID,
+          toAltierID: formData.toAltierID,
+          dateSortie: dateSortieIso,
+          dateEntree: dateEntreeIso,
+          operatorId: user.id
+        });
 
-      const bonResponse = await transferBonService.createBon({
-        fromAltierID: formData.fromAltierID,
-        toAltierID: formData.toAltierID,
-        dateSortie: dateSortieIso,
-        dateEntree: dateEntreeIso,
-        operatorId: user.id
-      });
-
-      if (!bonResponse.success || !bonResponse.data) {
-        setError(bonResponse.message || t('transferBons.failedToCreate'));
-        return;
-      }
-
-      const bonId = bonResponse.data.id;
-
-      await Promise.all(
-        selectedRollIds.map((rollId) =>
-          rollMovementService.recordMovement({
-            rollId,
-            fromAltierID: formData.fromAltierID,
-            toAltierID: formData.toAltierID,
-            dateSortie: dateSortieIso,
-            dateEntree: dateEntreeIso || '',
-            transferBonId: bonId,
-            operatorId: user.id
-          })
-        )
-      );
-
-      await reloadBons();
-
-      setFormData({
-        fromAltierID: formData.fromAltierID,
-        toAltierID: '',
-        dateSortie: getCurrentDateTimeLocal(),
-        dateEntree: ''
-      });
-      setSelectedRollIds([]);
-      setSelectedBonId(bonId);
-
-      const details = await transferBonService.getBonDetails(bonId);
-      if (details.success && details.data) {
-        setBonDetails(details.data as any);
-        const movements = (details.data as any).movements as RollMovement[] | undefined;
-        if (Array.isArray(movements) && movements.length > 0) {
-          await ensureRollDetails(movements.map((m) => m.rollId));
+        if (!bonResponse.success || !bonResponse.data) {
+          setError(bonResponse.message || t('transferBons.failedToCreate'));
+          return;
         }
-      }
+
+        const bonId = bonResponse.data.id;
+
+        await Promise.all(
+          selectedRollIds.map((rollId) =>
+            rollMovementService.recordMovement({
+              rollId,
+              fromAltierID: formData.fromAltierID,
+              toAltierID: formData.toAltierID,
+              dateSortie: dateSortieIso,
+              dateEntree: dateEntreeIso || '',
+              transferBonId: bonId,
+              operatorId: user.id
+            })
+          )
+        );
+
+        await reloadBons();
+
+        setFormData({
+          fromAltierID: formData.fromAltierID,
+          toAltierID: '',
+          dateSortie: getCurrentDateTimeLocal(),
+          dateEntree: ''
+        });
+        setSelectedRollIds([]);
+        setSelectedBonId(bonId);
+
+        const details = await transferBonService.getBonDetails(bonId);
+        if (details.success && details.data) {
+          setBonDetails(details.data as any);
+          const movements = (details.data as any).movements as RollMovement[] | undefined;
+          if (Array.isArray(movements) && movements.length > 0) {
+            await ensureRollDetails(movements.map((m) => m.rollId));
+          }
+        }
+      }, 'transfer-create');
     } catch (e) {
       console.error(e);
       setError(t('transferBons.failedToCreate'));
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleSelectBon = async (bonId: string) => {
+    if (isLocked()) {
+      return;
+    }
     setSelectedBonId(bonId);
     setBonDetails(null);
     setError(null);
-    setViewLoadingBonId(bonId);
 
     try {
-      const response = await transferBonService.getBonDetails(bonId);
-      if (response.success && response.data) {
-        setBonDetails(response.data as any);
-        const movements = (response.data as any).movements as RollMovement[] | undefined;
-        if (Array.isArray(movements) && movements.length > 0) {
-          await ensureRollDetails(movements.map((m) => m.rollId));
+      await run(async () => {
+        const response = await transferBonService.getBonDetails(bonId);
+        if (response.success && response.data) {
+          setBonDetails(response.data as any);
+          const movements = (response.data as any).movements as RollMovement[] | undefined;
+          if (Array.isArray(movements) && movements.length > 0) {
+            await ensureRollDetails(movements.map((m) => m.rollId));
+          }
+        } else {
+          setError(response.message || t('transferBons.failedToLoadBon'));
         }
-      } else {
-        setError(response.message || t('transferBons.failedToLoadBon'));
-      }
+      }, `transfer-view-${bonId}`);
     } catch (e) {
       console.error(e);
       setError(t('transferBons.failedToLoadBon'));
-    } finally {
-      setViewLoadingBonId(null);
     }
   };
 
   const handleDeleteBon = async (bonId: string) => {
+    if (isLocked()) {
+      return;
+    }
     const bon = bons.find((b) => b.id === bonId);
     const isPending = bon ? !bon.dateEntree : true;
     if (!isPending) {
@@ -337,33 +350,33 @@ export function TransferBonsPage() {
     const confirmed = window.confirm(t('transferBons.confirmDelete'));
     if (!confirmed) return;
 
-    setDeleteLoadingBonId(bonId);
     setError(null);
 
     try {
-      const response = await transferBonService.deleteBon(bonId);
-      if (!response.success) {
-        setError(response.message || t('transferBons.failedToDelete'));
-        return;
-      }
+      await run(async () => {
+        const response = await transferBonService.deleteBon(bonId);
+        if (!response.success) {
+          setError(response.message || t('transferBons.failedToDelete'));
+          return;
+        }
 
-      if (selectedBonId === bonId) {
-        setSelectedBonId(null);
-        setBonDetails(null);
-      }
+        if (selectedBonId === bonId) {
+          setSelectedBonId(null);
+          setBonDetails(null);
+        }
 
-      await reloadBons();
+        await reloadBons();
+      }, `transfer-delete-${bonId}`);
     } catch (e) {
       console.error(e);
       setError(t('transferBons.failedToDelete'));
-    } finally {
-      setDeleteLoadingBonId(null);
     }
   };
 
   const handleConfirmReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBonId) return;
+    if (isLocked()) return;
 
     if (!confirmData.dateEntree) {
       setError(t('transferBons.dateEntreeRequired'));
@@ -371,81 +384,80 @@ export function TransferBonsPage() {
     }
 
     try {
-      setLoading(true);
       setError(null);
+      await run(async () => {
+        const isoDateString = confirmData.dateEntree.endsWith('Z')
+          ? confirmData.dateEntree
+          : `${confirmData.dateEntree}:00.000Z`;
 
-      const isoDateString = confirmData.dateEntree.endsWith('Z')
-        ? confirmData.dateEntree
-        : `${confirmData.dateEntree}:00.000Z`;
+        const response = await transferBonService.confirmReceipt(selectedBonId, isoDateString);
+        if (!response.success) {
+          setError(response.message || t('transferBons.failedToConfirm'));
+          return;
+        }
 
-      const response = await transferBonService.confirmReceipt(selectedBonId, isoDateString);
-      if (!response.success) {
-        setError(response.message || t('transferBons.failedToConfirm'));
-        return;
-      }
-
-      await reloadBons();
-      await handleSelectBon(selectedBonId);
+        await reloadBons();
+        await handleSelectBon(selectedBonId);
+      }, 'transfer-confirm');
     } catch (e) {
       console.error(e);
       setError(t('transferBons.failedToConfirm'));
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleRemoveMovement = async (bonId: string, movementId: string) => {
     const confirmed = window.confirm(t('transferBons.confirmRemoveMovement'));
     if (!confirmed) return;
-
-    setRemoveMovementLoadingId(movementId);
+    if (isLocked()) {
+      return;
+    }
     setError(null);
 
     try {
-      const response = await transferBonService.removeMovement(bonId, movementId);
-      if (!response.success) {
-        setError(response.message || t('transferBons.failedToRemoveMovement'));
-        return;
-      }
+      await run(async () => {
+        const response = await transferBonService.removeMovement(bonId, movementId);
+        if (!response.success) {
+          setError(response.message || t('transferBons.failedToRemoveMovement'));
+          return;
+        }
 
-      await reloadBons();
-      await handleSelectBon(bonId);
+        await reloadBons();
+        await handleSelectBon(bonId);
 
-      // Refresh available rolls list so a removed roll can be selected again
-      if (formData.fromAltierID) {
-        try {
-          const [rollsResponse, outgoingResponse] = await Promise.all([
-            RollService.getAll(),
-            rollMovementService.getMovementsFromAltier(formData.fromAltierID)
-          ]);
+        // Refresh available rolls list so a removed roll can be selected again
+        if (formData.fromAltierID) {
+          try {
+            const [rollsResponse, outgoingResponse] = await Promise.all([
+              RollService.getAll(),
+              rollMovementService.getMovementsFromAltier(formData.fromAltierID)
+            ]);
 
-          const excludedRollIds = new Set<string>();
-          if (outgoingResponse.success && outgoingResponse.data) {
-            for (const movement of outgoingResponse.data) {
-              if (movement.transferBonId && !movement.dateEntree) {
-                excludedRollIds.add(movement.rollId);
+            const excludedRollIds = new Set<string>();
+            if (outgoingResponse.success && outgoingResponse.data) {
+              for (const movement of outgoingResponse.data) {
+                if (movement.transferBonId && !movement.dateEntree) {
+                  excludedRollIds.add(movement.rollId);
+                }
               }
             }
-          }
 
-          if (rollsResponse.success && rollsResponse.data) {
-            const filtered = rollsResponse.data.filter((roll) => {
-              const isAtFromAltier = roll.altierId === formData.fromAltierID;
-              const isAvailable = roll.status === 'AVAILABLE' || roll.status === 'OPENED';
-              const isExcluded = excludedRollIds.has(roll.id);
-              return isAtFromAltier && isAvailable && !isExcluded;
-            });
-            setAvailableRolls(filtered);
+            if (rollsResponse.success && rollsResponse.data) {
+              const filtered = rollsResponse.data.filter((roll) => {
+                const isAtFromAltier = roll.altierId === formData.fromAltierID;
+                const isAvailable = roll.status === 'AVAILABLE' || roll.status === 'OPENED';
+                const isExcluded = excludedRollIds.has(roll.id);
+                return isAtFromAltier && isAvailable && !isExcluded;
+              });
+              setAvailableRolls(filtered);
+            }
+          } catch (e) {
+            console.warn('Failed to refresh available rolls after movement removal', e);
           }
-        } catch (e) {
-          console.warn('Failed to refresh available rolls after movement removal', e);
         }
-      }
+      }, `transfer-remove-${movementId}`);
     } catch (e) {
       console.error(e);
       setError(t('transferBons.failedToRemoveMovement'));
-    } finally {
-      setRemoveMovementLoadingId(null);
     }
   };
 
@@ -588,7 +600,8 @@ export function TransferBonsPage() {
                 type="submit"
                 label={t('transferBons.createBonButton')}
                 icon="pi pi-check"
-                loading={loading}
+                loading={isLocked('transfer-create')}
+                disabled={isActionLocked}
               />
             </div>
           </form>
@@ -625,7 +638,7 @@ export function TransferBonsPage() {
                     size="small"
                     onClick={() => handleSelectBon(bon.id)}
                     loading={viewLoadingBonId === bon.id}
-                    disabled={deleteLoadingBonId === bon.id}
+                    disabled={isActionLocked}
                   />
                   {!bon.dateEntree && (
                     <Button
@@ -634,7 +647,7 @@ export function TransferBonsPage() {
                       size="small"
                       onClick={() => handleDeleteBon(bon.id)}
                       loading={deleteLoadingBonId === bon.id}
-                      disabled={viewLoadingBonId === bon.id}
+                      disabled={isActionLocked}
                     />
                   )}
                 </div>
@@ -699,7 +712,8 @@ export function TransferBonsPage() {
                       type="submit"
                       label={t('transferBons.confirmReceipt')}
                       icon="pi pi-check"
-                      loading={loading}
+                      loading={isLocked('transfer-confirm')}
+                      disabled={isActionLocked}
                     />
                   </div>
                 </form>
@@ -748,7 +762,7 @@ export function TransferBonsPage() {
                           text
                           onClick={() => handleRemoveMovement(bonDetails.id, movement.id)}
                           loading={removeMovementLoadingId === movement.id}
-                          disabled={loading}
+                          disabled={isActionLocked}
                         />
                       )}
                     />

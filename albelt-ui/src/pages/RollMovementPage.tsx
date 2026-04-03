@@ -16,6 +16,7 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 
 export function RollMovementPage() {
   const { rollId } = useParams<{ rollId: string }>();
@@ -26,6 +27,7 @@ export function RollMovementPage() {
   const [altiers, setAltiers] = useState<Altier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { run, isLocked } = useAsyncLock();
   
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -114,6 +116,7 @@ export function RollMovementPage() {
     e.preventDefault();
     
     if (!rollId || !user) return;
+    if (isLocked()) return;
     
     // Validate required fields
     if (!formData.fromAltierID) {
@@ -137,38 +140,40 @@ export function RollMovementPage() {
         return `${dateStr}:00.000Z`;
       };
 
-      const response = await rollMovementService.recordMovement({
-        rollId,
-        fromAltierID: formData.fromAltierID,
-        toAltierID: formData.toAltierID,
-        dateSortie: formatDateTimeToISO(formData.dateSortie),
-        dateEntree: '',  // Not set in creation - only when received
-        reason: formData.reason,
-        notes: formData.notes,
-        operatorId: user.id
-      });
-      
-      if (response.success) {
-        // Refresh movement history
-        const histResponse = await rollMovementService.getRollMovementHistory(rollId);
-        if (histResponse.success && histResponse.data) {
-          setMovements(histResponse.data.items);
-        }
-        
-        // Reset form with new altier as the from location
-        setFormData({
-          fromAltierID: formData.toAltierID,  // New location becomes the starting point
-          toAltierID: '',
-          dateSortie: getCurrentDateTimeLocal(),
-          dateEntree: '',  // Empty in create mode
-          reason: '',
-          notes: ''
+      await run(async () => {
+        const response = await rollMovementService.recordMovement({
+          rollId,
+          fromAltierID: formData.fromAltierID,
+          toAltierID: formData.toAltierID,
+          dateSortie: formatDateTimeToISO(formData.dateSortie),
+          dateEntree: '',  // Not set in creation - only when received
+          reason: formData.reason,
+          notes: formData.notes,
+          operatorId: user.id
         });
-        setShowForm(false);
-        setError(null);
-      } else {
-        setError(response.message || t('rollMovement.failedToRecord'));
-      }
+        
+        if (response.success) {
+          // Refresh movement history
+          const histResponse = await rollMovementService.getRollMovementHistory(rollId);
+          if (histResponse.success && histResponse.data) {
+            setMovements(histResponse.data.items);
+          }
+          
+          // Reset form with new altier as the from location
+          setFormData({
+            fromAltierID: formData.toAltierID,  // New location becomes the starting point
+            toAltierID: '',
+            dateSortie: getCurrentDateTimeLocal(),
+            dateEntree: '',  // Empty in create mode
+            reason: '',
+            notes: ''
+          });
+          setShowForm(false);
+          setError(null);
+        } else {
+          setError(response.message || t('rollMovement.failedToRecord'));
+        }
+      }, 'roll-move-create');
     } catch (err) {
       setError(t('rollMovement.failedToRecord'));
       console.error(err);
@@ -179,6 +184,7 @@ export function RollMovementPage() {
     e.preventDefault();
     
     if (!selectedMovementId || !user) return;
+    if (isLocked()) return;
     
     if (!confirmData.dateEntree) {
       setError(t('rollMovement.dateEntreeRequired'));
@@ -192,25 +198,27 @@ export function RollMovementPage() {
         : `${confirmData.dateEntree}:00.000Z`;
       
       // Call API to confirm receipt with dateEntree
-      const response = await rollMovementService.confirmReceipt(
-        selectedMovementId,
-        isoDateString
-      );
-      
-      if (response.success) {
-        // Refresh movement history
-        const histResponse = await rollMovementService.getRollMovementHistory(rollId || '');
-        if (histResponse.success && histResponse.data) {
-          setMovements(histResponse.data.items);
-        }
+      await run(async () => {
+        const response = await rollMovementService.confirmReceipt(
+          selectedMovementId,
+          isoDateString
+        );
         
-        setConfirmData({ dateEntree: getCurrentDateTimeLocal() });
-        setSelectedMovementId(null);
-        setShowConfirmForm(false);
-        setError(null);
-      } else {
-        setError(response.message || t('rollMovement.failedToConfirm'));
-      }
+        if (response.success) {
+          // Refresh movement history
+          const histResponse = await rollMovementService.getRollMovementHistory(rollId || '');
+          if (histResponse.success && histResponse.data) {
+            setMovements(histResponse.data.items);
+          }
+          
+          setConfirmData({ dateEntree: getCurrentDateTimeLocal() });
+          setSelectedMovementId(null);
+          setShowConfirmForm(false);
+          setError(null);
+        } else {
+          setError(response.message || t('rollMovement.failedToConfirm'));
+        }
+      }, 'roll-move-confirm');
     } catch (err) {
       setError(t('rollMovement.failedToConfirm'));
       console.error(err);
@@ -255,6 +263,8 @@ export function RollMovementPage() {
     </div>
   );
 
+  const isBusy = isLocked();
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
@@ -274,6 +284,7 @@ export function RollMovementPage() {
           label={showForm ? t('common.cancel') : t('rollMovement.recordBtn')}
           icon={showForm ? 'pi pi-times' : 'pi pi-plus'}
           onClick={() => setShowForm(!showForm)}
+          disabled={isBusy}
         />
       </div>
 
@@ -363,8 +374,8 @@ export function RollMovementPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <Button type="submit" label={t('rollMovement.recordBtn')} />
-              <Button type="button" label={t('common.cancel')} severity="secondary" onClick={() => setShowForm(false)} />
+              <Button type="submit" label={t('rollMovement.recordBtn')} loading={isLocked('roll-move-create')} disabled={isBusy} />
+              <Button type="button" label={t('common.cancel')} severity="secondary" onClick={() => setShowForm(false)} disabled={isBusy} />
             </div>
           </div>
         </form>
@@ -392,7 +403,7 @@ export function RollMovementPage() {
             />
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
-            <Button type="submit" label={t('rollMovement.confirmReceiptBtn')} />
+            <Button type="submit" label={t('rollMovement.confirmReceiptBtn')} loading={isLocked('roll-move-confirm')} disabled={isBusy} />
             <Button
               type="button"
               label={t('common.cancel')}
@@ -401,6 +412,7 @@ export function RollMovementPage() {
                 setShowConfirmForm(false);
                 setSelectedMovementId(null);
               }}
+              disabled={isBusy}
             />
           </div>
         </form>
@@ -430,6 +442,7 @@ export function RollMovementPage() {
                     setShowConfirmForm(true);
                     setSelectedMovementId(m.id);
                   }}
+                  disabled={isBusy}
                 />
               ) : null
             )}

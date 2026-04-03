@@ -10,6 +10,7 @@ import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 
 export function AltierPage() {
   const { t } = useI18n();
@@ -19,6 +20,7 @@ export function AltierPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const { run, isLocked } = useAsyncLock();
   const [formData, setFormData] = useState<AltierRequest>({
     libelle: '',
     adresse: '',
@@ -60,22 +62,27 @@ export function AltierPage() {
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
+    if (isLocked('altier-save')) {
+      return;
+    }
 
     try {
-      if (editingId) {
-        const response = await AltierService.update(editingId, formData);
-        if (response.success) {
-          setAltiers(altiers.map(a => a.id === editingId ? response.data! : a));
-          setEditingId(null);
+      await run(async () => {
+        if (editingId) {
+          const response = await AltierService.update(editingId, formData);
+          if (response.success) {
+            setAltiers(altiers.map(a => a.id === editingId ? response.data! : a));
+            setEditingId(null);
+          }
+        } else {
+          const response = await AltierService.create(formData);
+          if (response.success) {
+            setAltiers([...altiers, response.data!]);
+          }
         }
-      } else {
-        const response = await AltierService.create(formData);
-        if (response.success) {
-          setAltiers([...altiers, response.data!]);
-        }
-      }
-      resetForm();
-      setShowForm(false);
+        resetForm();
+        setShowForm(false);
+      }, 'altier-save');
     } catch (err) {
       setError(t('altier.failedToSave'));
       console.error(err);
@@ -95,12 +102,17 @@ export function AltierPage() {
     if (!window.confirm(t('altier.confirmDelete'))) {
       return;
     }
+    if (isLocked()) {
+      return;
+    }
 
     try {
-      const response = await AltierService.delete(id);
-      if (response.success) {
-        setAltiers(altiers.filter(a => a.id !== id));
-      }
+      await run(async () => {
+        const response = await AltierService.delete(id);
+        if (response.success) {
+          setAltiers(altiers.filter(a => a.id !== id));
+        }
+      }, `altier-delete-${id}`);
     } catch (err) {
       setError(t('altier.failedToDelete'));
       console.error(err);
@@ -130,6 +142,9 @@ export function AltierPage() {
     );
   }, [safeAltiers, searchTerm]);
 
+  const isSaving = isLocked('altier-save');
+  const isBusy = isLocked();
+
   const formFooter = (
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
       <Button
@@ -137,11 +152,14 @@ export function AltierPage() {
         label={t('altier.cancel')}
         severity="secondary"
         onClick={handleCancel}
+        disabled={isSaving}
       />
       <Button
         type="button"
         label={editingId ? t('altier.update') : t('altier.create')}
         onClick={() => handleSubmit()}
+        loading={isSaving}
+        disabled={isSaving}
       />
     </div>
   );
@@ -161,7 +179,7 @@ export function AltierPage() {
           <h1 style={{ margin: 0 }}>{t('altier.title')}</h1>
           <div style={{ color: 'var(--text-color-secondary)' }}>{t('altier.totalWorkshops')}: {altiers.length}</div>
         </div>
-        <Button icon="pi pi-plus" label={t('altier.addNew')} onClick={() => setShowForm(true)} />
+        <Button icon="pi pi-plus" label={t('altier.addNew')} onClick={() => setShowForm(true)} disabled={isBusy} />
       </div>
 
       {error && <Message severity="error" text={error} />}
@@ -197,8 +215,16 @@ export function AltierPage() {
           header={t('altier.tableActions')}
           body={(row: Altier) => (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Button icon="pi pi-pencil" text onClick={() => handleEdit(row)} aria-label={t('altier.edit')} />
-              <Button icon="pi pi-trash" text severity="danger" onClick={() => handleDelete(row.id)} aria-label={t('altier.delete')} />
+              <Button icon="pi pi-pencil" text onClick={() => handleEdit(row)} aria-label={t('altier.edit')} disabled={isBusy} />
+              <Button
+                icon="pi pi-trash"
+                text
+                severity="danger"
+                onClick={() => handleDelete(row.id)}
+                aria-label={t('altier.delete')}
+                loading={isLocked(`altier-delete-${row.id}`)}
+                disabled={isBusy}
+              />
             </div>
           )}
         />

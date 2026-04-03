@@ -16,6 +16,7 @@ import { CommandeService } from '../services/commandeService';
 import { ColorService } from '../services/colorService';
 import { ClientService } from '../services/clientService';
 import { useI18n } from '@hooks/useI18n';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 import type {
   Client,
   Color,
@@ -57,11 +58,11 @@ export function CommandeEditPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const toastRef = useRef<Toast>(null);
+  const { run, isLocked } = useAsyncLock();
 
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [colors, setColors] = useState<ColorOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [isMobile, setIsMobile] = useState(false);
@@ -284,6 +285,10 @@ export function CommandeEditPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isLocked('commande-update')) {
+      return;
+    }
+
     if (!id) {
       setError(t('commandes.loadError'));
       return;
@@ -300,45 +305,45 @@ export function CommandeEditPage() {
     }
 
     try {
-      setSaving(true);
+      await run(async () => {
+        const commandeRequest: CommandeRequest = {
+          numeroCommande,
+          clientId: selectedClient!,
+          status: selectedStatus,
+          description,
+          notes,
+        };
 
-      const commandeRequest: CommandeRequest = {
-        numeroCommande,
-        clientId: selectedClient!,
-        status: selectedStatus,
-        description,
-        notes,
-      };
+        await CommandeService.update(id, commandeRequest);
 
-      await CommandeService.update(id, commandeRequest);
+        const currentIds = new Set(items.map((item) => item.id).filter(Boolean) as string[]);
+        const removedIds = originalItems
+          .filter((item) => item.id && !currentIds.has(item.id))
+          .map((item) => item.id as string);
 
-      const currentIds = new Set(items.map((item) => item.id).filter(Boolean) as string[]);
-      const removedIds = originalItems
-        .filter((item) => item.id && !currentIds.has(item.id))
-        .map((item) => item.id as string);
+        const itemRequests = items.map((item, index) => {
+          const payload = toItemRequest(item, index);
+          if (item.id) {
+            return CommandeService.updateItem(item.id, payload);
+          }
+          return CommandeService.createItem(id, payload);
+        });
 
-      const itemRequests = items.map((item, index) => {
-        const payload = toItemRequest(item, index);
-        if (item.id) {
-          return CommandeService.updateItem(item.id, payload);
-        }
-        return CommandeService.createItem(id, payload);
-      });
+        const deleteRequests = removedIds.map((itemId) => CommandeService.deleteItem(itemId));
 
-      const deleteRequests = removedIds.map((itemId) => CommandeService.deleteItem(itemId));
+        await Promise.all([...itemRequests, ...deleteRequests]);
 
-      await Promise.all([...itemRequests, ...deleteRequests]);
+        toastRef.current?.show({
+          severity: 'success',
+          summary: t('common.success'),
+          detail: t('commandes.orderUpdatedSuccessfully'),
+          life: 3000,
+        });
 
-      toastRef.current?.show({
-        severity: 'success',
-        summary: t('common.success'),
-        detail: t('commandes.orderUpdatedSuccessfully'),
-        life: 3000,
-      });
-
-      setTimeout(() => {
-        navigate(`/commandes/${id}`);
-      }, 1200);
+        setTimeout(() => {
+          navigate(`/commandes/${id}`);
+        }, 1200);
+      }, 'commande-update');
     } catch (err: any) {
       console.error('Error updating order:', err);
       const errorMsg = err.response?.data?.message || t('commandes.updateError');
@@ -348,8 +353,6 @@ export function CommandeEditPage() {
         summary: t('common.error'),
         detail: errorMsg,
       });
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -369,6 +372,7 @@ export function CommandeEditPage() {
   };
 
   const summary = calculateSummary();
+  const isBusy = isLocked('commande-update');
 
   const materialBodyTemplate = (rowData: EditableCommandeItem, rowIndex: any) => (
     <Dropdown
@@ -520,7 +524,7 @@ export function CommandeEditPage() {
       text
       className="p-button-sm"
       onClick={() => handleRemoveItem(rowIndex.rowIndex)}
-      disabled={items.length === 1}
+      disabled={items.length === 1 || isBusy}
     />
   );
 
@@ -845,7 +849,7 @@ export function CommandeEditPage() {
                         severity="danger"
                         text
                         onClick={() => handleRemoveItem(index)}
-                        disabled={items.length === 1}
+                        disabled={items.length === 1 || isBusy}
                         label={t('commandes.delete')}
                       />
                     </div>
@@ -878,6 +882,7 @@ export function CommandeEditPage() {
               icon="pi pi-plus"
               onClick={handleAddItem}
               severity="success"
+              disabled={isBusy}
             />
           </div>
         </Card>
@@ -887,7 +892,8 @@ export function CommandeEditPage() {
             type="submit"
             label={t('commandes.updateOrder')}
             icon="pi pi-check"
-            loading={saving}
+            loading={isBusy}
+            disabled={isBusy}
             severity="success"
           />
           <Button
@@ -896,6 +902,7 @@ export function CommandeEditPage() {
             icon="pi pi-times"
             onClick={handleCancel}
             severity="secondary"
+            disabled={isBusy}
           />
         </div>
       </form>

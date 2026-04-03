@@ -12,6 +12,7 @@ import { Checkbox } from 'primereact/checkbox';
 import { Tag } from 'primereact/tag';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 
 interface ColorFormData {
   name: string;
@@ -34,6 +35,7 @@ export function ColorsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState<ColorFormData>(defaultForm);
+  const { run, isLocked } = useAsyncLock();
 
   useEffect(() => {
     loadColors();
@@ -66,22 +68,27 @@ export function ColorsPage() {
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setError(null);
+    if (isLocked('color-save')) {
+      return;
+    }
 
     try {
-      if (editingId) {
-        const response = await ColorService.update(editingId, formData);
-        if (response.success && response.data) {
-          setColors(colors.map((c) => (c.id === editingId ? response.data! : c)));
-          setEditingId(null);
+      await run(async () => {
+        if (editingId) {
+          const response = await ColorService.update(editingId, formData);
+          if (response.success && response.data) {
+            setColors(colors.map((c) => (c.id === editingId ? response.data! : c)));
+            setEditingId(null);
+          }
+        } else {
+          const response = await ColorService.create(formData as any);
+          if (response.success && response.data) {
+            setColors([...colors, response.data!]);
+          }
         }
-      } else {
-        const response = await ColorService.create(formData as any);
-        if (response.success && response.data) {
-          setColors([...colors, response.data!]);
-        }
-      }
-      resetForm();
-      setShowForm(false);
+        resetForm();
+        setShowForm(false);
+      }, 'color-save');
     } catch (err) {
       setError(t('messages.operationFailed'));
       console.error(err);
@@ -102,12 +109,17 @@ export function ColorsPage() {
     if (!window.confirm(t('messages.confirmDelete'))) {
       return;
     }
+    if (isLocked()) {
+      return;
+    }
 
     try {
-      const response = await ColorService.delete(id);
-      if (response.success) {
-        setColors(colors.filter((c) => c.id !== id));
-      }
+      await run(async () => {
+        const response = await ColorService.delete(id);
+        if (response.success) {
+          setColors(colors.filter((c) => c.id !== id));
+        }
+      }, `color-delete-${id}`);
     } catch (err) {
       setError(t('messages.failedToDelete'));
       console.error(err);
@@ -133,10 +145,13 @@ export function ColorsPage() {
     );
   }, [colors, searchTerm]);
 
+  const isSaving = isLocked('color-save');
+  const isBusy = isLocked();
+
   const formFooter = (
     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-      <Button type="button" label={t('common.cancel') || 'Cancel'} severity="secondary" onClick={handleCancel} />
-      <Button type="button" label={t('common.save') || 'Save'} onClick={() => handleSubmit()} />
+      <Button type="button" label={t('common.cancel') || 'Cancel'} severity="secondary" onClick={handleCancel} disabled={isSaving} />
+      <Button type="button" label={t('common.save') || 'Save'} onClick={() => handleSubmit()} loading={isSaving} disabled={isSaving} />
     </div>
   );
 
@@ -155,7 +170,7 @@ export function ColorsPage() {
           <h1 style={{ margin: 0 }}>{t('navigation.colors') || 'Colors'}</h1>
           <div style={{ color: 'var(--text-color-secondary)' }}>{filteredColors.length} {t('common.list') || 'items'}</div>
         </div>
-        <Button icon="pi pi-plus" label={t('common.add') || 'Add Color'} onClick={() => setShowForm(true)} />
+        <Button icon="pi pi-plus" label={t('common.add') || 'Add Color'} onClick={() => setShowForm(true)} disabled={isBusy} />
       </div>
 
       {error && <Message severity="error" text={error} />}
@@ -194,8 +209,16 @@ export function ColorsPage() {
           header={t('common.actions') || 'Actions'}
           body={(row: Color) => (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Button icon="pi pi-pencil" text onClick={() => handleEdit(row)} aria-label={t('common.edit') || 'Edit'} />
-              <Button icon="pi pi-trash" text severity="danger" onClick={() => handleDelete(row.id)} aria-label={t('common.delete') || 'Delete'} />
+              <Button icon="pi pi-pencil" text onClick={() => handleEdit(row)} aria-label={t('common.edit') || 'Edit'} disabled={isBusy} />
+              <Button
+                icon="pi pi-trash"
+                text
+                severity="danger"
+                onClick={() => handleDelete(row.id)}
+                aria-label={t('common.delete') || 'Delete'}
+                loading={isLocked(`color-delete-${row.id}`)}
+                disabled={isBusy}
+              />
             </div>
           )}
         />

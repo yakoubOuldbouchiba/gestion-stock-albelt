@@ -14,6 +14,7 @@ import { formatDate } from '../utils/date';
 import { CommandeService } from '../services/commandeService';
 import { ClientService } from '../services/clientService';
 import { useI18n } from '@hooks/useI18n';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 import type { Commande, Client, CommandeStatus } from '../types';
 
 export function CommandesListPage() {
@@ -27,6 +28,7 @@ export function CommandesListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedClient, setSelectedClient] = useState<string>('');
+  const { run, isLocked } = useAsyncLock();
 
   const statuses: CommandeStatus[] = ['PENDING', 'ENCOURS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
   const statusOptions = statuses.map(s => ({ label: s, value: s }));
@@ -94,15 +96,20 @@ export function CommandesListPage() {
 
   const handleDeleteOrder = async (id: string) => {
     if (window.confirm(t('commandes.confirmDelete'))) {
+      if (isLocked()) {
+        return;
+      }
       try {
-        await CommandeService.delete(id);
-        setCommandes(safeCommandes.filter((c: Commande) => c.id !== id));
-        toast.current?.show({
-          severity: 'success',
-          summary: t('common.success'),
-          detail: t('commandes.orderDeleted'),
-          life: 2000,
-        });
+        await run(async () => {
+          await CommandeService.delete(id);
+          setCommandes(safeCommandes.filter((c: Commande) => c.id !== id));
+          toast.current?.show({
+            severity: 'success',
+            summary: t('common.success'),
+            detail: t('commandes.orderDeleted'),
+            life: 2000,
+          });
+        }, `commande-delete-${id}`);
       } catch (err) {
         toast.current?.show({
           severity: 'error',
@@ -126,6 +133,7 @@ export function CommandesListPage() {
   };
 
   const actionsBodyTemplate = (rowData: Commande) => {
+    const isBusy = isLocked();
     return (
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <Button
@@ -135,6 +143,7 @@ export function CommandesListPage() {
           severity="info"
           onClick={() => handleViewOrder(rowData.id)}
           tooltip={t('commandes.view')}
+          disabled={isBusy}
         />
         <Button
           icon="pi pi-trash"
@@ -143,6 +152,8 @@ export function CommandesListPage() {
           severity="danger"
           onClick={() => handleDeleteOrder(rowData.id)}
           tooltip={t('commandes.delete')}
+          loading={isLocked(`commande-delete-${rowData.id}`)}
+          disabled={isBusy}
         />
       </div>
     );
@@ -156,6 +167,7 @@ export function CommandesListPage() {
       label={t('commandes.newOrder')}
       onClick={handleCreateOrder}
       severity="success"
+      disabled={isLocked()}
     />
   );
 

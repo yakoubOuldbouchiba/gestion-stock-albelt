@@ -26,6 +26,7 @@ import { InputTextarea } from 'primereact/inputtextarea';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Tag } from 'primereact/tag';
+import { useAsyncLock } from '@hooks/useAsyncLock';
 
 export function PurchaseBonsPage() {
   const { t } = useI18n();
@@ -37,7 +38,7 @@ export function PurchaseBonsPage() {
   const [selectedBon, setSelectedBon] = useState<PurchaseBon | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { run, isLocked } = useAsyncLock();
 
   const toArray = <T,>(data: any): T[] => {
     if (Array.isArray(data)) return data;
@@ -161,6 +162,9 @@ export function PurchaseBonsPage() {
   };
 
   const addItem = () => {
+    if (isLocked('purchase-bon')) {
+      return;
+    }
     if (!itemForm.materialType || !itemForm.quantity || itemForm.quantity <= 0) {
       setError(t('purchaseBons.itemRequired'));
       return;
@@ -182,12 +186,18 @@ export function PurchaseBonsPage() {
   };
 
   const removeItem = (index: number) => {
+    if (isLocked('purchase-bon')) {
+      return;
+    }
     setItems((prev) => prev.filter((_, idx) => idx !== index));
   };
 
   const handleCreateBon = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (isLocked('purchase-bon')) {
+      return;
+    }
 
     if (!bonForm.reference || !bonForm.supplierId || !bonForm.bonDate) {
       setError(t('purchaseBons.headerRequired'));
@@ -207,64 +217,67 @@ export function PurchaseBonsPage() {
     };
 
     try {
-      setSaving(true);
-      const response = await PurchaseBonService.create(request);
-      if (response.success && response.data) {
-        await loadBaseData();
-        setSelectedBon(response.data);
-        setBonForm({
-          reference: '',
-          bonDate: formatDateInput(new Date()),
-          supplierId: '',
-          notes: ''
-        });
-        setItems([]);
-      } else {
-        setError(response.message || t('purchaseBons.failedToCreate'));
-      }
+      await run(async () => {
+        const response = await PurchaseBonService.create(request);
+        if (response.success && response.data) {
+          await loadBaseData();
+          setSelectedBon(response.data);
+          setBonForm({
+            reference: '',
+            bonDate: formatDateInput(new Date()),
+            supplierId: '',
+            notes: ''
+          });
+          setItems([]);
+        } else {
+          setError(response.message || t('purchaseBons.failedToCreate'));
+        }
+      }, 'purchase-bon');
     } catch (err) {
       console.error(err);
       setError(t('purchaseBons.failedToCreate'));
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleValidate = async (bonId: string) => {
     try {
-      setSaving(true);
-      const response = await PurchaseBonService.validate(bonId);
-      if (response.success) {
-        await loadBaseData();
-        await loadBonDetails(bonId);
-      } else {
-        setError(response.message || t('purchaseBons.failedToValidate'));
+      if (isLocked('purchase-bon')) {
+        return;
       }
+      await run(async () => {
+        const response = await PurchaseBonService.validate(bonId);
+        if (response.success) {
+          await loadBaseData();
+          await loadBonDetails(bonId);
+        } else {
+          setError(response.message || t('purchaseBons.failedToValidate'));
+        }
+      }, 'purchase-bon');
     } catch (err) {
       console.error(err);
       setError(t('purchaseBons.failedToValidate'));
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleDelete = async (bonId: string) => {
     try {
-      setSaving(true);
-      const response = await PurchaseBonService.delete(bonId);
-      if (response.success) {
-        await loadBaseData();
-        if (selectedBon?.id === bonId) {
-          setSelectedBon(null);
-        }
-      } else {
-        setError(response.message || t('purchaseBons.failedToDelete'));
+      if (isLocked('purchase-bon')) {
+        return;
       }
+      await run(async () => {
+        const response = await PurchaseBonService.delete(bonId);
+        if (response.success) {
+          await loadBaseData();
+          if (selectedBon?.id === bonId) {
+            setSelectedBon(null);
+          }
+        } else {
+          setError(response.message || t('purchaseBons.failedToDelete'));
+        }
+      }, 'purchase-bon');
     } catch (err) {
       console.error(err);
       setError(t('purchaseBons.failedToDelete'));
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -452,7 +465,7 @@ export function PurchaseBonsPage() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                <Button type="button" label={t('purchaseBons.addItem')} icon="pi pi-plus" onClick={addItem} />
+                <Button type="button" label={t('purchaseBons.addItem')} icon="pi pi-plus" onClick={addItem} disabled={isLocked('purchase-bon')} />
               </div>
 
               <div style={{ marginTop: '1rem' }}>
@@ -481,6 +494,7 @@ export function PurchaseBonsPage() {
                         severity="danger"
                         text
                         onClick={() => removeItem(options.rowIndex)}
+                        disabled={isLocked('purchase-bon')}
                       />
                     )}
                   />
@@ -491,9 +505,10 @@ export function PurchaseBonsPage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
               <Button
                 type="submit"
-                label={saving ? t('common.saving') : t('purchaseBons.create')}
+                label={isLocked('purchase-bon') ? t('common.saving') : t('purchaseBons.create')}
                 icon="pi pi-check"
-                loading={saving}
+                loading={isLocked('purchase-bon')}
+                disabled={isLocked('purchase-bon')}
               />
             </div>
           </form>
@@ -533,7 +548,7 @@ export function PurchaseBonsPage() {
                         <Button
                           label={t('purchaseBons.validate')}
                           onClick={() => handleValidate(bon.id)}
-                          disabled={saving}
+                          disabled={isLocked('purchase-bon')}
                           size="small"
                         />
                       )}
@@ -542,7 +557,7 @@ export function PurchaseBonsPage() {
                           label={t('common.delete')}
                           severity="danger"
                           onClick={() => handleDelete(bon.id)}
-                          disabled={saving}
+                          disabled={isLocked('purchase-bon')}
                           size="small"
                         />
                       )}
