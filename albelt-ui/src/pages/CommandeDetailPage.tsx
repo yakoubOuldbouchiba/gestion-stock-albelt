@@ -616,7 +616,8 @@ export function CommandeDetailPage() {
     );
   };
 
-  const getContrastTextColor = (hexColor?: string) => {
+  const 
+  getContrastTextColor = (hexColor?: string) => {
     if (!hexColor) return 'inherit';
     const normalized = hexColor.replace('#', '').trim();
     if (normalized.length !== 3 && normalized.length !== 6) return 'inherit';

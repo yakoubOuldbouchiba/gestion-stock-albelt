@@ -27,6 +27,7 @@ const ColorsPage = lazy(() => import('./pages/ColorsPage'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const CommandesListPage = lazy(() => import('./pages/CommandesListPage'));
 const CommandeCreatePage = lazy(() => import('./pages/CommandeCreatePage'));
+const CommandeEditPage = lazy(() => import('./pages/CommandeEditPage'));
 const CommandeDetailPage = lazy(() => import('./pages/CommandeDetailPage'));
 import './App.css';
 
@@ -185,6 +186,19 @@ export function App() {
               <Layout>
                 <Suspense fallback={<LazyLoadingFallback />}>
                   <CommandeCreatePage />
+                </Suspense>
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/commandes/:id/edit"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <CommandeEditPage />
                 </Suspense>
               </Layout>
             </ProtectedRoute>

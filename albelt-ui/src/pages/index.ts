@@ -13,4 +13,5 @@ export { ColorsPage } from './ColorsPage';
 export { ClientsPage } from './ClientsPage';
 export { CommandesListPage } from './CommandesListPage';
 export { CommandeCreatePage } from './CommandeCreatePage';
+export { CommandeEditPage } from './CommandeEditPage';
 export { CommandeDetailPage } from './CommandeDetailPage';

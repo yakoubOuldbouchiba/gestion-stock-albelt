@@ -218,6 +218,40 @@ public class CommandeController {
     }
 
     /**
+     * Create item for an order
+     * POST /api/commandes/{commandeId}/items
+     */
+    @PostMapping("/{commandeId}/items")
+    public ResponseEntity<ApiResponse<CommandeItemResponse>> createOrderItem(
+            @PathVariable UUID commandeId,
+            @Valid @RequestBody CommandeItemRequest request) {
+        log.info("POST /api/commandes/{}/items - Create item", commandeId);
+
+        Commande commande = commandeService.getById(commandeId);
+        CommandeItem item = itemService.createItem(request, commande);
+        CommandeItemResponse response = itemMapper.toResponse(item);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(response, "Item created successfully"));
+    }
+
+    /**
+     * Update item
+     * PUT /api/commandes/items/{itemId}
+     */
+    @PutMapping("/items/{itemId}")
+    public ResponseEntity<ApiResponse<CommandeItemResponse>> updateOrderItem(
+            @PathVariable UUID itemId,
+            @Valid @RequestBody CommandeItemRequest request) {
+        log.info("PUT /api/commandes/items/{} - Update item", itemId);
+
+        CommandeItem item = itemService.update(itemId, request);
+        CommandeItemResponse response = itemMapper.toResponse(item);
+
+        return ResponseEntity.ok(ApiResponse.success(response, "Item updated successfully"));
+    }
+
+    /**
      * Get item by ID
      * GET /api/commandes/items/{itemId}
      */

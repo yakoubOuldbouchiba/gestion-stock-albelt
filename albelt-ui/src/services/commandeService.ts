@@ -3,6 +3,7 @@ import type {
   Commande,
   CommandeRequest,
   CommandeItem,
+  CommandeItemRequest,
   ApiResponse,
   PagedResponse
 } from '../types/index';
@@ -119,6 +120,20 @@ export const CommandeService = {
    */
   async updateItemStatus(itemId: string, status: string): Promise<ApiResponse<CommandeItem>> {
     return ApiService.patch<CommandeItem>(`/commandes/items/${itemId}/status`, { status });
+  },
+
+  /**
+   * Create item for an order
+   */
+  async createItem(commandeId: string, request: CommandeItemRequest): Promise<ApiResponse<CommandeItem>> {
+    return ApiService.post<CommandeItem>(`/commandes/${commandeId}/items`, request);
+  },
+
+  /**
+   * Update item
+   */
+  async updateItem(itemId: string, request: CommandeItemRequest): Promise<ApiResponse<CommandeItem>> {
+    return ApiService.put<CommandeItem>(`/commandes/items/${itemId}`, request);
   },
 
   /**

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
@@ -11,11 +11,21 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Message } from 'primereact/message';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { ProgressSpinner } from 'primereact/progressspinner';
 import { CommandeService } from '../services/commandeService';
 import { ColorService } from '../services/colorService';
 import { ClientService } from '../services/clientService';
 import { useI18n } from '@hooks/useI18n';
-import type { Client, Color, CommandeRequest, CommandeItemRequest, MaterialType, TypeMouvement } from '../types';
+import type {
+  Client,
+  Color,
+  CommandeItem,
+  CommandeItemRequest,
+  CommandeRequest,
+  CommandeStatus,
+  MaterialType,
+  TypeMouvement,
+} from '../types';
 
 interface ClientOption {
   label: string;
@@ -38,41 +48,34 @@ interface ColorOption {
   hexCode?: string;
 }
 
-export function CommandeCreatePage() {
+interface EditableCommandeItem extends CommandeItemRequest {
+  id?: string;
+}
+
+export function CommandeEditPage() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useI18n();
   const toastRef = useRef<Toast>(null);
 
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [colors, setColors] = useState<ColorOption[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [isMobile, setIsMobile] = useState(false);
+  const [originalItems, setOriginalItems] = useState<EditableCommandeItem[]>([]);
 
   // Form state
   const [numeroCommande, setNumeroCommande] = useState('');
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState<CommandeStatus>('PENDING');
 
   // Items state
-  const [items, setItems] = useState<CommandeItemRequest[]>([
-    {
-      materialType: 'PU',
-      nbPlis: 1,
-      thicknessMm: 2.5,
-      longueurM: 5,
-      longueurToleranceM: 0,
-      largeurMm: 1000,
-      quantite: 1,
-      surfaceConsommeeM2: 5,
-      typeMouvement: 'COUPE',
-      reference: '',
-      colorId: undefined,
-      lineNumber: 1,
-    },
-  ]);
+  const [items, setItems] = useState<EditableCommandeItem[]>([]);
 
   const materials: MaterialOption[] = [
     { label: 'PU', value: 'PU' },
@@ -87,63 +90,7 @@ export function CommandeCreatePage() {
     { label: 'RETOUR', value: 'RETOUR' },
   ];
 
-  // Fetch clients on mount
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        setLoading(true);
-        const res = await ClientService.getAll();
-        console.log('Clients response:', res);
-        
-        if (res && res.data) {
-          const dataArray = Array.isArray(res.data) ? res.data : (res.data.items || []);
-          const clientOptions: ClientOption[] = dataArray.map((client: Client) => ({
-            label: client.name,
-            value: client.id,
-          }));
-          setClients(clientOptions);
-          if (clientOptions.length === 0) {
-            setError(t('commandes.noClientsAvailable'));
-          }
-        } else {
-          throw new Error('Invalid response format');
-        }
-      } catch (err: any) {
-        console.error('Error fetching clients:', err);
-        setError(t('commandes.errorLoadingClients'));
-        toastRef.current?.show({
-          severity: 'error',
-          summary: t('common.error'),
-          detail: err?.message || t('commandes.errorLoadingClients'),
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClients();
-  }, [t]);
-
-  useEffect(() => {
-    const fetchColors = async () => {
-      try {
-        const res = await ColorService.getAll();
-        if (res && res.data) {
-          const dataArray = Array.isArray(res.data) ? res.data : [];
-          const colorOptions: ColorOption[] = dataArray.map((color: Color) => ({
-            label: color.name,
-            value: color.id,
-            hexCode: color.hexCode,
-          }));
-          setColors(colorOptions);
-        }
-      } catch (err) {
-        console.error('Error fetching colors:', err);
-      }
-    };
-
-    fetchColors();
-  }, []);
+  const statuses: CommandeStatus[] = ['PENDING', 'ENCOURS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
 
   useEffect(() => {
     const media = window.matchMedia('(max-width: 960px)');
@@ -159,17 +106,86 @@ export function CommandeCreatePage() {
     return () => media.removeListener(handleChange);
   }, []);
 
-  // Generate order number
-  const generateOrderNumber = async () => {
-    try {
-      const uniqueNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-      setNumeroCommande(uniqueNumber);
-    } catch (err) {
-      console.error('Error generating order number:', err);
+  useEffect(() => {
+    if (!id) {
+      setError(t('commandes.loadError'));
+      setLoading(false);
+      return;
     }
-  };
 
-  // Validation
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [commandeRes, clientsRes, colorsRes] = await Promise.all([
+          CommandeService.getById(id),
+          ClientService.getAll(),
+          ColorService.getAll(),
+        ]);
+
+        const commandeData = commandeRes?.data;
+        if (commandeData) {
+          setNumeroCommande(commandeData.numeroCommande);
+          setSelectedClient(commandeData.clientId);
+          setDescription(commandeData.description || '');
+          setNotes(commandeData.notes || '');
+          setSelectedStatus(commandeData.status || 'PENDING');
+
+          const mappedItems = (commandeData.items || []).map((item: CommandeItem) => ({
+            id: item.id,
+            materialType: item.materialType,
+            nbPlis: item.nbPlis,
+            thicknessMm: item.thicknessMm,
+            longueurM: item.longueurM,
+            longueurToleranceM: item.longueurToleranceM ?? 0,
+            largeurMm: item.largeurMm,
+            quantite: item.quantite,
+            surfaceConsommeeM2: item.surfaceConsommeeM2 ?? calculateSurface(item),
+            typeMouvement: item.typeMouvement,
+            status: item.status,
+            observations: item.observations,
+            reference: item.reference,
+            colorId: item.colorId,
+            lineNumber: item.lineNumber,
+          }));
+
+          setItems(mappedItems);
+          setOriginalItems(mappedItems);
+        }
+
+        const clientData = clientsRes?.data;
+        const clientArray = Array.isArray(clientData)
+          ? clientData
+          : clientData?.items || [];
+        const clientOptions: ClientOption[] = clientArray.map((client: Client) => ({
+          label: client.name,
+          value: client.id,
+        }));
+        setClients(clientOptions);
+        if (clientOptions.length === 0) {
+          setError(t('commandes.noClientsAvailable'));
+        }
+
+        const colorData = colorsRes?.data;
+        const colorArray = Array.isArray(colorData) ? colorData : [];
+        const colorOptions: ColorOption[] = colorArray.map((color: Color) => ({
+          label: color.name,
+          value: color.id,
+          hexCode: color.hexCode,
+        }));
+        setColors(colorOptions);
+
+        setError(null);
+      } catch (err) {
+        console.error('Error loading order data:', err);
+        setError(t('commandes.loadError'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id, t]);
+
   const validateForm = (): boolean => {
     const errors: { [key: string]: string } = {};
 
@@ -187,6 +203,14 @@ export function CommandeCreatePage() {
     return Object.keys(errors).length === 0;
   };
 
+  const calculateSurface = (item: { longueurM: number; largeurMm: number }): number => {
+    return (item.longueurM * item.largeurMm) / 1000;
+  };
+
+  const calculateTotalSurface = (item: { longueurM: number; largeurMm: number; quantite: number }): number => {
+    return ((item.longueurM * item.largeurMm) / 1000) * item.quantite;
+  };
+
   const calculateSummary = () => {
     const totalItems = items.length;
     const totalSurface = items.reduce((sum, item) => sum + calculateSurface(item), 0);
@@ -199,22 +223,20 @@ export function CommandeCreatePage() {
     };
   };
 
-
-   const calculateSurface = (item: CommandeItemRequest): number => {
-    return ((item.longueurM * item.largeurMm) / 1000);
-  };
-  const calculateTotalSurface = (item: CommandeItemRequest): number => {
-    return ((item.longueurM * item.largeurMm) / 1000) * item.quantite;
+  const getNextLineNumber = (currentItems: EditableCommandeItem[]) => {
+    const maxLine = currentItems.reduce((max, item) => Math.max(max, item.lineNumber || 0), 0);
+    return maxLine + 1;
   };
 
-  const handleItemChange = (index: number, field: keyof CommandeItemRequest, value: unknown) => {
+  const handleItemChange = (index: number, field: keyof EditableCommandeItem, value: unknown) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
   };
 
   const handleAddItem = () => {
-    const newItem: CommandeItemRequest = {
+    const lineNumber = getNextLineNumber(items);
+    const newItem: EditableCommandeItem = {
       materialType: 'PU',
       nbPlis: 1,
       thicknessMm: 2.5,
@@ -222,11 +244,11 @@ export function CommandeCreatePage() {
       longueurToleranceM: 0,
       largeurMm: 1000,
       quantite: 1,
-      surfaceConsommeeM2: 5,
+      surfaceConsommeeM2: calculateSurface({ longueurM: 5, largeurMm: 1000 }),
       typeMouvement: 'COUPE',
       reference: '',
       colorId: undefined,
-      lineNumber: items.length + 1,
+      lineNumber,
     };
     setItems([...items, newItem]);
   };
@@ -242,8 +264,30 @@ export function CommandeCreatePage() {
     });
   };
 
+  const toItemRequest = (item: EditableCommandeItem, index: number): CommandeItemRequest => ({
+    materialType: item.materialType,
+    nbPlis: item.nbPlis,
+    thicknessMm: item.thicknessMm,
+    longueurM: item.longueurM,
+    longueurToleranceM: item.longueurToleranceM ?? 0,
+    largeurMm: item.largeurMm,
+    quantite: item.quantite,
+    surfaceConsommeeM2: calculateSurface(item),
+    typeMouvement: item.typeMouvement,
+    status: item.status,
+    observations: item.observations,
+    reference: item.reference,
+    colorId: item.colorId,
+    lineNumber: item.lineNumber || index + 1,
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!id) {
+      setError(t('commandes.loadError'));
+      return;
+    }
 
     if (!validateForm()) {
       setError(t('commandes.requiredFieldsError'));
@@ -256,33 +300,48 @@ export function CommandeCreatePage() {
     }
 
     try {
-      setLoading(true);
+      setSaving(true);
 
       const commandeRequest: CommandeRequest = {
         numeroCommande,
         clientId: selectedClient!,
+        status: selectedStatus,
         description,
         notes,
-        items,
       };
 
-      const res = await CommandeService.create(commandeRequest);
+      await CommandeService.update(id, commandeRequest);
 
-      if (res.data) {
-        toastRef.current?.show({
-          severity: 'success',
-          summary: t('common.success'),
-          detail: t('commandes.orderCreatedSuccessfully'),
-          life: 3000,
-        });
+      const currentIds = new Set(items.map((item) => item.id).filter(Boolean) as string[]);
+      const removedIds = originalItems
+        .filter((item) => item.id && !currentIds.has(item.id))
+        .map((item) => item.id as string);
 
-        setTimeout(() => {
-          navigate('/commandes');
-        }, 1500);
-      }
+      const itemRequests = items.map((item, index) => {
+        const payload = toItemRequest(item, index);
+        if (item.id) {
+          return CommandeService.updateItem(item.id, payload);
+        }
+        return CommandeService.createItem(id, payload);
+      });
+
+      const deleteRequests = removedIds.map((itemId) => CommandeService.deleteItem(itemId));
+
+      await Promise.all([...itemRequests, ...deleteRequests]);
+
+      toastRef.current?.show({
+        severity: 'success',
+        summary: t('common.success'),
+        detail: t('commandes.orderUpdatedSuccessfully'),
+        life: 3000,
+      });
+
+      setTimeout(() => {
+        navigate(`/commandes/${id}`);
+      }, 1200);
     } catch (err: any) {
-      console.error('Error creating order:', err);
-      const errorMsg = err.response?.data?.message || t('commandes.createError');
+      console.error('Error updating order:', err);
+      const errorMsg = err.response?.data?.message || t('commandes.updateError');
       setError(errorMsg);
       toastRef.current?.show({
         severity: 'error',
@@ -290,7 +349,7 @@ export function CommandeCreatePage() {
         detail: errorMsg,
       });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -300,14 +359,18 @@ export function CommandeCreatePage() {
       header: t('common.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: () => {
-        navigate('/commandes');
+        if (id) {
+          navigate(`/commandes/${id}`);
+        } else {
+          navigate('/commandes');
+        }
       },
     });
   };
 
   const summary = calculateSummary();
 
-  const materialBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+  const materialBodyTemplate = (rowData: EditableCommandeItem, rowIndex: any) => (
     <Dropdown
       value={rowData.materialType}
       onChange={(e) => handleItemChange(rowIndex.rowIndex, 'materialType', e.value)}
@@ -321,7 +384,7 @@ export function CommandeCreatePage() {
     />
   );
 
-  const quantiteBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+  const quantiteBodyTemplate = (rowData: EditableCommandeItem, rowIndex: any) => (
     <InputNumber
       value={rowData.quantite}
       onValueChange={(e) => handleItemChange(rowIndex.rowIndex, 'quantite', e.value || 0)}
@@ -331,7 +394,7 @@ export function CommandeCreatePage() {
     />
   );
 
-  const nbPlisBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+  const nbPlisBodyTemplate = (rowData: EditableCommandeItem, rowIndex: any) => (
     <InputNumber
       value={rowData.nbPlis}
       onValueChange={(e) => handleItemChange(rowIndex.rowIndex, 'nbPlis', e.value || 0)}
@@ -340,7 +403,7 @@ export function CommandeCreatePage() {
     />
   );
 
-  const thicknessBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+  const thicknessBodyTemplate = (rowData: EditableCommandeItem, rowIndex: any) => (
     <InputNumber
       value={rowData.thicknessMm}
       onValueChange={(e) => handleItemChange(rowIndex.rowIndex, 'thicknessMm', e.value || 0)}
@@ -354,7 +417,7 @@ export function CommandeCreatePage() {
     />
   );
 
-  const longueurBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+  const longueurBodyTemplate = (rowData: EditableCommandeItem, rowIndex: any) => (
     <InputNumber
       value={rowData.longueurM}
       onValueChange={(e) => handleItemChange(rowIndex.rowIndex, 'longueurM', e.value || 0)}
@@ -365,7 +428,7 @@ export function CommandeCreatePage() {
     />
   );
 
-  const largeurBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+  const largeurBodyTemplate = (rowData: EditableCommandeItem, rowIndex: any) => (
     <InputNumber
       value={rowData.largeurMm}
       onValueChange={(e) => handleItemChange(rowIndex.rowIndex, 'largeurMm', e.value || 0)}
@@ -374,7 +437,7 @@ export function CommandeCreatePage() {
     />
   );
 
-  const referenceBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+  const referenceBodyTemplate = (rowData: EditableCommandeItem, rowIndex: any) => (
     <InputText
       value={rowData.reference || ''}
       onChange={(e) => handleItemChange(rowIndex.rowIndex, 'reference', e.target.value)}
@@ -383,7 +446,7 @@ export function CommandeCreatePage() {
     />
   );
 
-  const colorBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+  const colorBodyTemplate = (rowData: EditableCommandeItem, rowIndex: any) => (
     <Dropdown
       value={rowData.colorId}
       onChange={(e) => handleItemChange(rowIndex.rowIndex, 'colorId', e.value)}
@@ -427,10 +490,7 @@ export function CommandeCreatePage() {
     />
   );
 
-  
-
-
-  const mouvementBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+  const mouvementBodyTemplate = (rowData: EditableCommandeItem, rowIndex: any) => (
     <Dropdown
       value={rowData.typeMouvement}
       onChange={(e) => handleItemChange(rowIndex.rowIndex, 'typeMouvement', e.value)}
@@ -444,12 +504,12 @@ export function CommandeCreatePage() {
     />
   );
 
-  const surfaceBodyTemplate = (rowData: CommandeItemRequest) => (
-    <span>{calculateSurface(rowData).toFixed(2)} m²</span>
+  const surfaceBodyTemplate = (rowData: EditableCommandeItem) => (
+    <span>{calculateSurface(rowData).toFixed(2)} m2</span>
   );
 
-  const surfaceTotalBodyTemplate = (rowData: CommandeItemRequest) => (
-    <span>{calculateTotalSurface(rowData).toFixed(2)} m²</span>
+  const surfaceTotalBodyTemplate = (rowData: EditableCommandeItem) => (
+    <span>{calculateTotalSurface(rowData).toFixed(2)} m2</span>
   );
 
   const actionsBodyTemplate = (_: any, rowIndex: any) => (
@@ -464,6 +524,14 @@ export function CommandeCreatePage() {
     />
   );
 
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+        <ProgressSpinner />
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1.5rem' }}>
       <Toast ref={toastRef} />
@@ -476,15 +544,14 @@ export function CommandeCreatePage() {
       )}
 
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ margin: '0 0 0.5rem 0' }}>{t('commandes.createOrder')}</h1>
-        <p style={{ margin: 0 }}>{t('commandes.fillDetailsBelow')}</p>
+        <h1 style={{ margin: '0 0 0.5rem 0' }}>{t('commandes.editOrderTitle')}</h1>
+        <p style={{ margin: 0 }}>{t('commandes.editDetailsBelow')}</p>
       </div>
 
       <form
         onSubmit={handleSubmit}
         style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
       >
-        {/* Order Header Card */}
         <Card title={t('commandes.orderHeader')}>
           <div
             style={{
@@ -495,26 +562,12 @@ export function CommandeCreatePage() {
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label>{t('commandes.orderNumber')} *</label>
-              <div className="p-inputgroup">
-                <InputText
-                  value={numeroCommande}
-                  onChange={(e) => {
-                    setNumeroCommande(e.target.value);
-                    if (formErrors.numeroCommande) {
-                      setFormErrors({ ...formErrors, numeroCommande: '' });
-                    }
-                  }}
-                  placeholder={t('commandes.orderNumberPlaceholder')}
-                  className={formErrors.numeroCommande ? 'p-invalid' : ''}
-                />
-                <Button
-                  type="button"
-                  label={t('commandes.autoGenerate')}
-                  icon="pi pi-refresh"
-                  onClick={generateOrderNumber}
-                  severity="secondary"
-                />
-              </div>
+              <InputText
+                value={numeroCommande}
+                onChange={(e) => setNumeroCommande(e.target.value)}
+                placeholder={t('commandes.orderNumberPlaceholder')}
+                disabled
+              />
               {formErrors.numeroCommande && (
                 <small className="p-error">{formErrors.numeroCommande}</small>
               )}
@@ -525,24 +578,29 @@ export function CommandeCreatePage() {
               <Dropdown
                 options={clients}
                 value={selectedClient}
-                onChange={(e) => {
-                  setSelectedClient(e.value);
-                  if (formErrors.selectedClient) {
-                    setFormErrors({ ...formErrors, selectedClient: '' });
-                  }
-                }}
+                onChange={(e) => setSelectedClient(e.value)}
                 optionLabel="label"
                 optionValue="value"
                 placeholder={t('commandes.selectClient')}
                 filter
                 showClear
-                disabled={loading}
-                className={formErrors.selectedClient ? 'p-invalid' : ''}
+                disabled
                 style={{ width: '100%' }}
               />
               {formErrors.selectedClient && (
                 <small className="p-error">{formErrors.selectedClient}</small>
               )}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label>{t('common.status')}</label>
+              <Dropdown
+                options={statuses}
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.value)}
+                placeholder={t('common.status')}
+                style={{ width: '100%' }}
+              />
             </div>
           </div>
 
@@ -569,7 +627,6 @@ export function CommandeCreatePage() {
           </div>
         </Card>
 
-        {/* Items Summary Card */}
         <Card>
           <div
             style={{
@@ -589,12 +646,11 @@ export function CommandeCreatePage() {
             </div>
             <div>
               <div style={{ fontSize: '0.875rem' }}>{t('commandes.totalSurface')}</div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{summary.totalSurface} m²</div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{summary.totalSurface} m2</div>
             </div>
           </div>
         </Card>
 
-        {/* Items Table */}
         <Card title={t('commandes.orderItems')}>
           {formErrors.items && (
             <div className="p-error" style={{ marginBottom: '0.75rem' }}>
@@ -780,7 +836,7 @@ export function CommandeCreatePage() {
                       <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
                         {t('commandes.surface')}
                       </label>
-                      <div>{calculateSurface(item).toFixed(2)} m²</div>
+                      <div>{calculateSurface(item).toFixed(2)} m2</div>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -826,13 +882,12 @@ export function CommandeCreatePage() {
           </div>
         </Card>
 
-        {/* Form Actions */}
         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <Button
             type="submit"
-            label={t('commandes.createOrder')}
+            label={t('commandes.updateOrder')}
             icon="pi pi-check"
-            loading={loading}
+            loading={saving}
             severity="success"
           />
           <Button
@@ -848,4 +903,4 @@ export function CommandeCreatePage() {
   );
 }
 
-export default CommandeCreatePage;
+export default CommandeEditPage;
