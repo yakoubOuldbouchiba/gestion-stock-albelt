@@ -832,11 +832,11 @@ export function CommandeDetailPage() {
                     >
                       <span style={{ fontWeight: 600 }}>{t('commandes.rollProcessing')}</span>
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <Button
+                        {/* <Button
                           label={t('commandes.processRoll')}
                           icon="pi pi-cog"
                           onClick={() => handleOpenProcessingModal(item)}
-                        />
+                        /> */}
                         <Button
                           label={t('commandes.addProductionItem')}
                           icon="pi pi-plus"
