@@ -13,10 +13,11 @@ import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { CommandeService } from '../services/commandeService';
 import { WastePieceService } from '../services/wastePieceService';
+import { ProductionItemService } from '../services/productionItemService';
 import { formatDate, formatDateTime } from '../utils/date';
 import { RollService } from '../services/rollService';
 import { useI18n } from '@hooks/useI18n';
-import type { Commande, CommandeItem, ItemStatus, Roll, WasteType } from '../types';
+import type { Commande, CommandeItem, ItemStatus, ProductionItem, Roll, WasteType } from '../types';
 
 export function CommandeDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +35,9 @@ export function CommandeDetailPage() {
   const [showProcessingModal, setShowProcessingModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<CommandeItem | null>(null);
   const [wasteForItem, setWasteForItem] = useState<any[]>([]);
+  const [productionForItem, setProductionForItem] = useState<ProductionItem[]>([]);
+  const [showProductionModal, setShowProductionModal] = useState(false);
+  const [productionTargetItem, setProductionTargetItem] = useState<CommandeItem | null>(null);
   
   // Roll processing form
   const [processingForm, setProcessingForm] = useState({
@@ -42,6 +46,16 @@ export function CommandeDetailPage() {
     widthRemainingMm: '',
     wasteType: 'DECHET' as WasteType,
     weightKg: '',
+    notes: '',
+  });
+
+  const [productionForm, setProductionForm] = useState({
+    sourceType: 'ROLL',
+    rollId: '',
+    wastePieceId: '',
+    pieceLengthM: '',
+    pieceWidthMm: '',
+    quantity: '',
     notes: '',
   });
 
@@ -245,6 +259,21 @@ export function CommandeDetailPage() {
     }
   };
 
+  const loadProductionForItem = async (itemId: string) => {
+    try {
+      const response = await ProductionItemService.getByCommandeItemId(itemId);
+      if (response.data) {
+        const items = Array.isArray(response.data) ? response.data : [];
+        setProductionForItem(items);
+      } else {
+        setProductionForItem([]);
+      }
+    } catch (err) {
+      console.error('Error loading production items:', err);
+      setProductionForItem([]);
+    }
+  };
+
   const updateProcessingField = (name: keyof typeof processingForm, value: string) => {
     setProcessingForm((prev) => ({
       ...prev,
@@ -322,15 +351,270 @@ export function CommandeDetailPage() {
     }
     setExpandedItemId(item.id);
     loadWasteForItem(item.id);
+    loadProductionForItem(item.id);
+  };
+
+  const handleOpenProductionModal = (item: CommandeItem) => {
+    setProductionTargetItem(item);
+    setProductionForm({
+      sourceType: 'ROLL',
+      rollId: '',
+      wastePieceId: '',
+      pieceLengthM: '',
+      pieceWidthMm: '',
+      quantity: '',
+      notes: '',
+    });
+    setShowProductionModal(true);
+  };
+
+  const handleCloseProductionModal = () => {
+    setShowProductionModal(false);
+    setProductionTargetItem(null);
+    setProductionForm({
+      sourceType: 'ROLL',
+      rollId: '',
+      wastePieceId: '',
+      pieceLengthM: '',
+      pieceWidthMm: '',
+      quantity: '',
+      notes: '',
+    });
+  };
+
+  const updateProductionField = (name: keyof typeof productionForm, value: string) => {
+    setProductionForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const toNumber = (value: unknown) => {
+    if (typeof value === 'number') return value;
+    if (value === null || value === undefined) return NaN;
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? NaN : parsed;
+  };
+
+  const getSourceColorLabel = (source: any) => source?.colorName ?? source?.colorHexCode;
+
+  const getProductionWarnings = (
+    item: CommandeItem,
+    source: any,
+    pieceLength: number,
+    pieceWidth: number
+  ) => {
+    const warnings: string[] = [];
+
+    if (source?.materialType && source.materialType !== item.materialType) {
+      warnings.push(
+        t('commandes.productionMismatchMaterial', {
+          expected: item.materialType,
+          actual: source.materialType,
+        })
+      );
+    }
+
+    const sourcePlis = toNumber(source?.nbPlis);
+    if (!Number.isNaN(sourcePlis) && sourcePlis !== item.nbPlis) {
+      warnings.push(
+        t('commandes.productionMismatchPlies', {
+          expected: item.nbPlis,
+          actual: sourcePlis,
+        })
+      );
+    }
+
+    const sourceThickness = toNumber(source?.thicknessMm);
+    const itemThickness = toNumber(item.thicknessMm);
+    if (!Number.isNaN(sourceThickness) && !Number.isNaN(itemThickness) && sourceThickness !== itemThickness) {
+      warnings.push(
+        t('commandes.productionMismatchThickness', {
+          expected: itemThickness,
+          actual: sourceThickness,
+        })
+      );
+    }
+
+    const itemWidth = toNumber(item.largeurMm);
+    if (!Number.isNaN(itemWidth) && pieceWidth !== itemWidth) {
+      warnings.push(
+        t('commandes.productionMismatchWidth', {
+          expected: itemWidth,
+          actual: pieceWidth,
+        })
+      );
+    }
+
+    const itemLength = toNumber(item.longueurM);
+    const rawTolerance = toNumber(item.longueurToleranceM ?? 0);
+    const lengthTolerance = Number.isNaN(rawTolerance) ? 0 : rawTolerance;
+    const minLength = itemLength - lengthTolerance;
+    const maxLength = itemLength + lengthTolerance;
+    if (!Number.isNaN(itemLength) && (pieceLength < minLength || pieceLength > maxLength)) {
+      warnings.push(
+        t('commandes.productionMismatchLength', {
+          expected: itemLength,
+          actual: pieceLength,
+          tolerance: lengthTolerance,
+        })
+      );
+    }
+
+    const existingColors = new Set<string>();
+    productionForItem.forEach((production) => {
+      const rollColor = production.rollId
+        ? getSourceColorLabel(rolls.find((roll) => roll.id === production.rollId))
+        : null;
+      const wasteColor = production.wastePieceId
+        ? getSourceColorLabel(wasteForItem.find((waste: any) => waste.id === production.wastePieceId))
+        : null;
+      const color = rollColor ?? wasteColor;
+      if (color) {
+        existingColors.add(color);
+      }
+    });
+
+    const sourceColor = getSourceColorLabel(source);
+    if (sourceColor && existingColors.size > 0 && !existingColors.has(sourceColor)) {
+      warnings.push(
+        t('commandes.productionMismatchColor', {
+          actual: sourceColor,
+        })
+      );
+    }
+
+    return warnings;
+  };
+
+  const handleCreateProductionItem = async () => {
+    if (!productionTargetItem) return;
+
+    const quantity = parseInt(productionForm.quantity, 10);
+    const pieceLength = parseFloat(productionForm.pieceLengthM);
+    const pieceWidth = parseInt(productionForm.pieceWidthMm, 10);
+
+    if (!quantity || !pieceLength || !pieceWidth) {
+      showError(t('commandes.productionItemRequired'));
+      return;
+    }
+
+    const isRoll = productionForm.sourceType === 'ROLL';
+    const sourceId = isRoll ? productionForm.rollId : productionForm.wastePieceId;
+    if (!sourceId) {
+      showError(t('commandes.productionItemSourceRequired'));
+      return;
+    }
+
+    const source = isRoll
+      ? rolls.find((roll) => roll.id === sourceId)
+      : wasteForItem.find((waste: any) => waste.id === sourceId);
+    const warnings = source
+      ? getProductionWarnings(productionTargetItem, source, pieceLength, pieceWidth)
+      : [];
+
+    const saveProductionItem = async () => {
+      try {
+        await ProductionItemService.create({
+          commandeItemId: productionTargetItem.id,
+          rollId: isRoll ? sourceId : undefined,
+          wastePieceId: isRoll ? undefined : sourceId,
+          pieceLengthM: pieceLength,
+          pieceWidthMm: pieceWidth,
+          quantity,
+          notes: productionForm.notes || undefined,
+        });
+
+        await loadProductionForItem(productionTargetItem.id);
+        showSuccess(t('commandes.productionItemCreated'));
+        handleCloseProductionModal();
+      } catch (err) {
+        console.error('Error creating production item:', err);
+        showError(t('commandes.productionItemCreateError'));
+      }
+    };
+
+    if (warnings.length > 0) {
+      confirmDialog({
+        header: t('commandes.productionMismatchTitle'),
+        message: (
+          <div>
+            <div style={{ marginBottom: '0.5rem' }}>{t('commandes.productionMismatchMessage')}</div>
+            <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+              {warnings.map((warning, index) => (
+                <li key={`${warning}-${index}`}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        ),
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: t('commandes.continueSave'),
+        rejectLabel: t('commandes.cancel'),
+        accept: saveProductionItem,
+      });
+      return;
+    }
+
+    await saveProductionItem();
   };
 
   const statusOptions = statuses.map((status) => ({ label: status, value: status }));
   const itemStatusOptions = itemStatuses.map((status) => ({ label: status, value: status }));
 
-  const rollOptions = rolls.map((roll) => ({
-    label: `${roll.reference ?? (roll as any).referenceRouleau ?? roll.id} - ${roll.lengthRemainingM ?? roll.lengthM}m × ${roll.widthMm}mm`,
-    value: roll.id,
-  }));
+  const rollOptionsBase = rolls.map((roll) => {
+    const reference = roll.reference ?? (roll as any).referenceRouleau ?? t('commandes.notAvailable');
+    const lengthValue = roll.lengthRemainingM ?? roll.lengthM;
+    return {
+      label: `${reference} - ${roll.materialType} | ${roll.nbPlis}P | ${roll.thicknessMm}mm | ${lengthValue}m x ${roll.widthMm}mm`,
+      value: roll.id,
+      materialType: roll.materialType,
+      nbPlis: roll.nbPlis,
+      thicknessMm: roll.thicknessMm,
+      colorHexCode: roll.colorHexCode,
+      colorName: roll.colorName,
+    };
+  });
+
+  const filterRollOptions = (materialType?: string) =>
+    rollOptionsBase.filter((option) => !materialType || option.materialType === materialType);
+
+  const processingRollOptions = filterRollOptions(selectedItem?.materialType);
+
+  const productionSourceOptions = [
+    { label: t('commandes.productionSourceRoll'), value: 'ROLL' },
+    { label: t('commandes.productionSourceWaste'), value: 'WASTE' },
+  ];
+
+  const productionRollOptions = filterRollOptions(productionTargetItem?.materialType);
+  const productionWasteOptions = wasteForItem
+    .filter((waste: any) => !productionTargetItem || waste.materialType === productionTargetItem.materialType)
+    .map((waste: any) => ({
+      label: `${waste.lengthM}m x ${waste.widthMm}mm (${waste.areaM2?.toFixed(2)}m2)`,
+      value: waste.id,
+    }));
+
+  const renderRollOption = (option: any) => {
+    if (!option) return null;
+    const colorHex = option.colorHexCode;
+    const colorName = option.colorName ?? t('commandes.notAvailable');
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <span
+          style={{
+            width: '14px',
+            height: '14px',
+            borderRadius: '3px',
+            backgroundColor: colorHex || 'transparent',
+            border: '1px solid var(--surface-border)',
+          }}
+          title={colorName}
+        />
+        <span>{colorName}</span>
+        <span style={{ color: 'var(--text-color-secondary)' }}>•</span>
+        <span>{option.label}</span>
+      </div>
+    );
+  };
 
   const wasteTypeOptions = [
     { label: t('commandes.wasteTypeScrap'), value: 'DECHET' },
@@ -518,11 +802,19 @@ export function CommandeDetailPage() {
                       }}
                     >
                       <span style={{ fontWeight: 600 }}>{t('commandes.rollProcessing')}</span>
-                      <Button
-                        label={t('commandes.processRoll')}
-                        icon="pi pi-cog"
-                        onClick={() => handleOpenProcessingModal(item)}
-                      />
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <Button
+                          label={t('commandes.processRoll')}
+                          icon="pi pi-cog"
+                          onClick={() => handleOpenProcessingModal(item)}
+                        />
+                        <Button
+                          label={t('commandes.addProductionItem')}
+                          icon="pi pi-plus"
+                          severity="secondary"
+                          onClick={() => handleOpenProductionModal(item)}
+                        />
+                      </div>
                     </div>
 
                     <div style={{ marginTop: '0.75rem' }}>
@@ -552,6 +844,40 @@ export function CommandeDetailPage() {
                                 </span>
                                 {waste.weightKg ? <span>{waste.weightKg}kg</span> : null}
                                 <span>{formatDate(waste.createdAt)}</span>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>
+                        {t('commandes.productionItems')}
+                      </div>
+                      {productionForItem.length === 0 ? (
+                        <Message severity="info" text={t('commandes.noProductionItems')} />
+                      ) : (
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                          {productionForItem.map((production) => (
+                            <Card key={production.id} style={{ padding: '0.5rem' }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.75rem',
+                                  flexWrap: 'wrap',
+                                }}
+                              >
+                                <Tag
+                                  value={production.rollId ? t('commandes.productionSourceRoll') : t('commandes.productionSourceWaste')}
+                                  severity={production.rollId ? 'info' : 'success'}
+                                />
+                                <span>
+                                  {production.pieceLengthM}m x {production.pieceWidthMm}mm x {production.quantity}
+                                  {' '}({production.totalAreaM2?.toFixed(2)}m2)
+                                </span>
+                                <span>{formatDate(production.createdAt)}</span>
                               </div>
                             </Card>
                           ))}
@@ -589,7 +915,9 @@ export function CommandeDetailPage() {
             </label>
             <Dropdown
               value={processingForm.rollId}
-              options={rollOptions}
+              options={processingRollOptions}
+              itemTemplate={renderRollOption}
+              valueTemplate={(option) => renderRollOption(option)}
               onChange={(e) => updateProcessingField('rollId', e.value as string)}
               placeholder={t('commandes.selectRollOption')}
               style={{ width: '100%' }}
@@ -656,6 +984,119 @@ export function CommandeDetailPage() {
             <InputTextarea
               value={processingForm.notes}
               onChange={(e) => updateProcessingField('notes', e.target.value)}
+              placeholder={t('commandes.notesPlaceholder')}
+              rows={3}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </div>
+      </Dialog>
+
+      <Dialog
+        header={
+          productionTargetItem
+            ? `${t('commandes.addProductionItem')} - ${t('commandes.line')} ${productionTargetItem.lineNumber}`
+            : t('commandes.addProductionItem')
+        }
+        visible={showProductionModal}
+        onHide={handleCloseProductionModal}
+        style={{ width: 'min(600px, 95vw)' }}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <Button label={t('commandes.cancel')} severity="secondary" onClick={handleCloseProductionModal} />
+            <Button label={t('commandes.saveProductionItem')} onClick={handleCreateProductionItem} />
+          </div>
+        }
+      >
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.productionSourceType')}
+            </label>
+            <Dropdown
+              value={productionForm.sourceType}
+              options={productionSourceOptions}
+              onChange={(e) => updateProductionField('sourceType', e.value as string)}
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          {productionForm.sourceType === 'ROLL' ? (
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {t('commandes.productionRoll')}
+              </label>
+              <Dropdown
+                value={productionForm.rollId}
+                options={productionRollOptions}
+                itemTemplate={renderRollOption}
+                valueTemplate={(option) => renderRollOption(option)}
+                onChange={(e) => updateProductionField('rollId', e.value as string)}
+                placeholder={t('commandes.selectRollOption')}
+                style={{ width: '100%' }}
+              />
+            </div>
+          ) : (
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {t('commandes.productionWastePiece')}
+              </label>
+              <Dropdown
+                value={productionForm.wastePieceId}
+                options={productionWasteOptions}
+                onChange={(e) => updateProductionField('wastePieceId', e.value as string)}
+                placeholder={t('commandes.productionWastePlaceholder')}
+                style={{ width: '100%' }}
+              />
+            </div>
+          )}
+
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.productionPieceLength')}
+            </label>
+            <InputText
+              value={productionForm.pieceLengthM}
+              onChange={(e) => updateProductionField('pieceLengthM', e.target.value)}
+              placeholder="0.00"
+              type="number"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.productionPieceWidth')}
+            </label>
+            <InputText
+              value={productionForm.pieceWidthMm}
+              onChange={(e) => updateProductionField('pieceWidthMm', e.target.value)}
+              placeholder="0"
+              type="number"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.productionQuantity')}
+            </label>
+            <InputText
+              value={productionForm.quantity}
+              onChange={(e) => updateProductionField('quantity', e.target.value)}
+              placeholder="0"
+              type="number"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('commandes.notes')}
+            </label>
+            <InputTextarea
+              value={productionForm.notes}
+              onChange={(e) => updateProductionField('notes', e.target.value)}
               placeholder={t('commandes.notesPlaceholder')}
               rows={3}
               style={{ width: '100%' }}

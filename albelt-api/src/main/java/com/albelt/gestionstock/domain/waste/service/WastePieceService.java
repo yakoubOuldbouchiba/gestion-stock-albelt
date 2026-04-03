@@ -3,6 +3,7 @@ package com.albelt.gestionstock.domain.waste.service;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.altier.service.AltierService;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
+import com.albelt.gestionstock.domain.commandes.repository.CommandeItemRepository;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.waste.mapper.WastePieceMapper;
@@ -54,6 +55,7 @@ public class WastePieceService {
     private final WastePieceMapper wastePieceMapper;
     private final ColorService colorService;
     private final AltierService altierService;
+    private final CommandeItemRepository commandeItemRepository;
 
     /**
      * Record a waste piece from a commande item processing
@@ -67,6 +69,11 @@ public class WastePieceService {
 
         WastePiece parentWastePiece = null;
         Roll roll = null;
+
+        if (request.getCommandeItemId() != null
+                && !commandeItemRepository.existsById(request.getCommandeItemId())) {
+            throw new ResourceNotFoundException("Order item not found: " + request.getCommandeItemId());
+        }
 
         if (request.getParentWastePieceId() != null) {
             parentWastePiece = wastePieceRepository.findById(request.getParentWastePieceId())

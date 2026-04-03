@@ -627,6 +627,31 @@ export interface CommandeRequest {
   items?: CommandeItemRequest[];
 }
 
+export interface ProductionItem {
+  id: string;
+  commandeItemId: string;
+  rollId?: string | null;
+  wastePieceId?: string | null;
+  pieceLengthM: number;
+  pieceWidthMm: number;
+  quantity: number;
+  areaPerPieceM2: number;
+  totalAreaM2: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductionItemRequest {
+  commandeItemId: string;
+  rollId?: string;
+  wastePieceId?: string;
+  pieceLengthM: number;
+  pieceWidthMm: number;
+  quantity: number;
+  notes?: string;
+}
+
 export interface RollGroupedStatsResponse {
   colorId: string | null;
   colorName: string | null;
