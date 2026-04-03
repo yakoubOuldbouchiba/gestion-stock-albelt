@@ -38,6 +38,18 @@ export function CommandeDetailPage() {
   const [productionForItem, setProductionForItem] = useState<ProductionItem[]>([]);
   const [showProductionModal, setShowProductionModal] = useState(false);
   const [productionTargetItem, setProductionTargetItem] = useState<CommandeItem | null>(null);
+  const [showChuteForm, setShowChuteForm] = useState(false);
+  const [chuteTargetItem, setChuteTargetItem] = useState<CommandeItem | null>(null);
+  const [chuteSourceType, setChuteSourceType] = useState<'ROLL' | 'WASTE_PIECE'>('ROLL');
+  const [chuteRollId, setChuteRollId] = useState('');
+  const [parentWastePieceId, setParentWastePieceId] = useState('');
+  const [parentWastePieces, setParentWastePieces] = useState<any[]>([]);
+  const [parentWastePiecesLoading, setParentWastePiecesLoading] = useState(false);
+  const [chuteDimensions, setChuteDimensions] = useState({
+    widthMm: 0,
+    lengthM: 0,
+    areaM2: 0,
+  });
   
   // Roll processing form
   const [processingForm, setProcessingForm] = useState({
@@ -97,6 +109,30 @@ export function CommandeDetailPage() {
 
     fetchData();
   }, [id, t]);
+
+  useEffect(() => {
+    if (showChuteForm && chuteSourceType === 'WASTE_PIECE') {
+      loadParentWastePieces();
+    }
+  }, [showChuteForm, chuteSourceType]);
+
+  useEffect(() => {
+    if (!showChuteForm || chuteSourceType !== 'ROLL' || !chuteRollId) return;
+    const source = rolls.find((roll) => roll.id === chuteRollId);
+    if (!source) return;
+    const width = source.widthMm ?? 0;
+    const length = source.lengthM ?? 0;
+    setChuteDimensions({ widthMm: width, lengthM: length, areaM2: (width / 1000) * length });
+  }, [showChuteForm, chuteSourceType, chuteRollId, rolls]);
+
+  useEffect(() => {
+    if (!showChuteForm || chuteSourceType !== 'WASTE_PIECE' || !parentWastePieceId) return;
+    const source = parentWastePieces.find((piece: any) => piece.id === parentWastePieceId);
+    if (!source) return;
+    const width = source.widthMm ?? 0;
+    const length = source.lengthM ?? 0;
+    setChuteDimensions({ widthMm: width, lengthM: length, areaM2: (width / 1000) * length });
+  }, [showChuteForm, chuteSourceType, parentWastePieceId, parentWastePieces]);
 
   const showError = (detail: string) => {
     toastRef.current?.show({
@@ -250,12 +286,36 @@ export function CommandeDetailPage() {
       // Fetch waste for this specific commande item
       const response = await WastePieceService.getAll();
       if (response.data) {
-        const wastes = Array.isArray(response.data) ? response.data : [];
+        const wastes = Array.isArray(response.data)
+          ? response.data
+          : (response.data as any).items || [];
         const itemWaste = wastes.filter((w: any) => w.commandeItemId === itemId);
         setWasteForItem(itemWaste);
       }
     } catch (err) {
       console.error('Error loading waste:', err);
+    }
+  };
+
+  const loadParentWastePieces = async () => {
+    setParentWastePiecesLoading(true);
+    try {
+      const response = await WastePieceService.getAll({
+        page: 0,
+        size: 200,
+        status: 'AVAILABLE',
+      });
+      if (response.data) {
+        const items = Array.isArray(response.data) ? response.data : response.data.items || [];
+        setParentWastePieces(items);
+      } else {
+        setParentWastePieces([]);
+      }
+    } catch (err) {
+      console.error('Error loading parent waste pieces:', err);
+      setParentWastePieces([]);
+    } finally {
+      setParentWastePiecesLoading(false);
     }
   };
 
@@ -279,6 +339,32 @@ export function CommandeDetailPage() {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const resetChuteForm = () => {
+    setChuteSourceType('ROLL');
+    setChuteRollId('');
+    setParentWastePieceId('');
+    setChuteDimensions({ widthMm: 0, lengthM: 0, areaM2: 0 });
+  };
+
+  const handleOpenChuteModal = (item: CommandeItem) => {
+    setChuteTargetItem(item);
+    resetChuteForm();
+    setShowChuteForm(true);
+  };
+
+  const handleCloseChuteModal = () => {
+    setShowChuteForm(false);
+    setChuteTargetItem(null);
+    resetChuteForm();
+  };
+
+  const updateChuteDimension = (field: 'widthMm' | 'lengthM', value: string) => {
+    const nextWidth = field === 'widthMm' ? parseFloat(value) || 0 : chuteDimensions.widthMm;
+    const nextLength = field === 'lengthM' ? parseFloat(value) || 0 : chuteDimensions.lengthM;
+    const nextArea = (nextWidth / 1000) * nextLength;
+    setChuteDimensions({ widthMm: nextWidth, lengthM: nextLength, areaM2: nextArea });
   };
 
   const handleProcessRoll = async () => {
@@ -317,6 +403,7 @@ export function CommandeDetailPage() {
           status: 'AVAILABLE',
           wasteType: processingForm.wasteType,
           altierID: selectedRoll.altierId,
+          commandeItemId: selectedItem.id,
         };
 
         await WastePieceService.create(wasteData);
@@ -340,6 +427,52 @@ export function CommandeDetailPage() {
     } catch (err) {
       console.error('Error processing roll:', err);
       setError(t('commandes.wasteRecordError'));
+      showError(t('commandes.wasteRecordError'));
+    }
+  };
+
+  const handleCreateChute = async () => {
+    if (!chuteTargetItem) return;
+
+    const isRollSource = chuteSourceType === 'ROLL';
+    const source = isRollSource
+      ? rolls.find((roll) => roll.id === chuteRollId)
+      : parentWastePieces.find((piece: any) => piece.id === parentWastePieceId);
+
+    if (!source) {
+      showError(t('commandes.productionItemSourceRequired'));
+      return;
+    }
+
+    if (chuteDimensions.widthMm <= 0 || chuteDimensions.lengthM <= 0) {
+      showError(t('commandes.invalidDimensionsError'));
+      return;
+    }
+
+    const wasteData = {
+      rollId: isRollSource ? source.id : source.rollId,
+      parentWastePieceId: isRollSource ? undefined : source.id,
+      materialType: source.materialType,
+      nbPlis: source.nbPlis,
+      thicknessMm: source.thicknessMm,
+      widthMm: chuteDimensions.widthMm,
+      lengthM: chuteDimensions.lengthM,
+      areaM2: chuteDimensions.areaM2,
+      status: 'AVAILABLE',
+      wasteType: 'CHUTE_EXPLOITABLE',
+      altierID: source.altierId,
+      colorId: source.colorId,
+      reference: source.reference,
+      commandeItemId: chuteTargetItem.id,
+    };
+
+    try {
+      await WastePieceService.create(wasteData);
+      await loadWasteForItem(chuteTargetItem.id);
+      showSuccess(t('commandes.wasteRecordedSuccess'));
+      handleCloseChuteModal();
+    } catch (err) {
+      console.error('Error creating chute:', err);
       showError(t('commandes.wasteRecordError'));
     }
   };
@@ -593,6 +726,23 @@ export function CommandeDetailPage() {
       value: waste.id,
     }));
 
+  const chuteSourceOptions = [
+    { label: t('inventory.roll'), value: 'ROLL' },
+    { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' },
+  ];
+
+  const chuteRollOptions = filterRollOptions(chuteTargetItem?.materialType);
+  const chuteParentOptions = parentWastePieces
+    .filter((piece: any) => !chuteTargetItem || piece.materialType === chuteTargetItem.materialType)
+    .map((piece: any) => ({
+      label: `${piece.materialType} | ${piece.lengthM}m x ${piece.widthMm}mm (${piece.areaM2?.toFixed(2)}m2)`,
+      value: piece.id,
+    }));
+
+  const chuteSource = chuteSourceType === 'ROLL'
+    ? rolls.find((roll) => roll.id === chuteRollId)
+    : parentWastePieces.find((piece: any) => piece.id === parentWastePieceId);
+
   const renderRollOption = (option: any) => {
     if (!option) return null;
     const colorHex = option.colorHexCode;
@@ -767,57 +917,80 @@ export function CommandeDetailPage() {
           <Message severity="info" text={t('commandes.noItems')} />
         ) : (
           <div>
-            {commande.items.map((item: CommandeItem) => (
-              <Card key={item.id} style={{ marginBottom: '1rem' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '1rem',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                  }}
-                >
+            {commande.items.map((item: CommandeItem) => {
+              const totalConforme = item.totalItemsConforme ?? 0;
+              const totalNonConforme = item.totalItemsNonConforme ?? 0;
+              const totalProduced = totalConforme + totalNonConforme;
+              const remaining = Math.max(0, item.quantite - totalProduced);
+              const over = Math.max(0, totalProduced - item.quantite);
+
+              return (
+                <Card key={item.id} style={{ marginBottom: '1rem' }}>
                   <div
                     style={{
-                      flex: '1 1 240px',
-                      backgroundColor: item.colorHexCode ? item.colorHexCode : 'transparent',
-                      color: item.colorHexCode ? getContrastTextColor(item.colorHexCode) : 'inherit',
-                      padding: '0.5rem',
-                      borderRadius: '4px',
+                      display: 'flex',
+                      gap: '1rem',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
                     }}
                   >
-                    <div style={{ fontWeight: 600 }}>{item.materialType}</div>
-                    <div style={{ fontSize: '0.9rem' }}>
-                      {item.nbPlis}P | {item.thicknessMm}mm | {item.longueurM}m x {item.largeurMm}mm
+                    <div
+                      style={{
+                        flex: '1 1 240px',
+                        backgroundColor: item.colorHexCode ? item.colorHexCode : 'transparent',
+                        color: item.colorHexCode ? getContrastTextColor(item.colorHexCode) : 'inherit',
+                        padding: '0.5rem',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{item.materialType}</div>
+                      <div style={{ fontSize: '0.9rem' }}>
+                        {item.nbPlis}P | {item.thicknessMm}mm | {item.longueurM}m x {item.largeurMm}mm
+                      </div>
+                    </div>
+                    <div style={{ minWidth: '90px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.qty')}</div>
+                      <div>{item.quantite}</div>
+                    </div>
+                    <div style={{ minWidth: '150px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.itemsConforme')}</div>
+                      <div>{totalConforme}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.35rem' }}>
+                        {t('commandes.itemsNonConforme')}
+                      </div>
+                      <div>{totalNonConforme}</div>
+                    </div>
+                    <div style={{ minWidth: '140px' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.itemsRemaining')}</div>
+                      <div>{remaining}</div>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.35rem' }}>
+                        {t('commandes.itemsOver')}
+                      </div>
+                      <div>{over}</div>
+                    </div>
+                    <Dropdown
+                      value={item.status}
+                      options={itemStatusOptions}
+                      onChange={(e) => handleItemStatusUpdate(item.id, e.value as ItemStatus)}
+                      style={{ minWidth: '180px' }}
+                    />
+                    <Tag value={item.typeMouvement} severity="info" />
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <Button
+                        label={expandedItemId === item.id ? t('commandes.hide') : t('commandes.show')}
+                        icon={expandedItemId === item.id ? 'pi pi-chevron-up' : 'pi pi-chevron-down'}
+                        outlined
+                        onClick={() => toggleItemDetails(item)}
+                      />
+                      <Button
+                        icon="pi pi-trash"
+                        label={t('commandes.delete')}
+                        severity="danger"
+                        outlined
+                        onClick={() => handleDeleteItem(item.id)}
+                      />
                     </div>
                   </div>
-                  <div style={{ minWidth: '90px' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.qty')}</div>
-                    <div>{item.quantite}</div>
-                  </div>
-                  <Dropdown
-                    value={item.status}
-                    options={itemStatusOptions}
-                    onChange={(e) => handleItemStatusUpdate(item.id, e.value as ItemStatus)}
-                    style={{ minWidth: '180px' }}
-                  />
-                  <Tag value={item.typeMouvement} severity="info" />
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <Button
-                      label={expandedItemId === item.id ? t('commandes.hide') : t('commandes.show')}
-                      icon={expandedItemId === item.id ? 'pi pi-chevron-up' : 'pi pi-chevron-down'}
-                      outlined
-                      onClick={() => toggleItemDetails(item)}
-                    />
-                    <Button
-                      icon="pi pi-trash"
-                      label={t('commandes.delete')}
-                      severity="danger"
-                      outlined
-                      onClick={() => handleDeleteItem(item.id)}
-                    />
-                  </div>
-                </div>
 
                 {expandedItemId === item.id && (
                   <div style={{ marginTop: '1rem' }}>
@@ -832,11 +1005,17 @@ export function CommandeDetailPage() {
                     >
                       <span style={{ fontWeight: 600 }}>{t('commandes.rollProcessing')}</span>
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {/* <Button
+                        <Button
                           label={t('commandes.processRoll')}
                           icon="pi pi-cog"
                           onClick={() => handleOpenProcessingModal(item)}
-                        /> */}
+                        />
+                        <Button
+                          label={t('inventory.createChute')}
+                          icon="pi pi-plus-circle"
+                          severity="secondary"
+                          onClick={() => handleOpenChuteModal(item)}
+                        />
                         <Button
                           label={t('commandes.addProductionItem')}
                           icon="pi pi-plus"
@@ -890,6 +1069,7 @@ export function CommandeDetailPage() {
                         <div style={{ display: 'grid', gap: '0.5rem' }}>
                           {productionForItem.map((production) => (
                             <Card key={production.id} style={{ padding: '0.5rem' }}>
+                              {production.goodProduction}
                               <div
                                 style={{
                                   display: 'flex',
@@ -902,12 +1082,27 @@ export function CommandeDetailPage() {
                                   value={production.rollId ? t('commandes.productionSourceRoll') : t('commandes.productionSourceWaste')}
                                   severity={production.rollId ? 'info' : 'success'}
                                 />
+                                {typeof production.goodProduction === 'boolean' && (
+                                  <Tag
+                                    value={
+                                      production.goodProduction
+                                        ? t('commandes.productionGood')
+                                        : t('commandes.productionBad')
+                                    }
+                                    severity={production.goodProduction ? 'success' : 'danger'}
+                                  />
+                                )}
                                 <span>
                                   {production.pieceLengthM}m x {production.pieceWidthMm}mm x {production.quantity}
                                   {' '}({production.totalAreaM2?.toFixed(2)}m2)
                                 </span>
                                 <span>{formatDate(production.createdAt)}</span>
                               </div>
+                              {production.productionMiss && (
+                                <div style={{ marginTop: '0.35rem', color: 'var(--text-color-secondary)', fontSize: '0.85rem' }}>
+                                  {t('commandes.productionMissLabel')}: {production.productionMiss}
+                                </div>
+                              )}
                             </Card>
                           ))}
                         </div>
@@ -915,11 +1110,132 @@ export function CommandeDetailPage() {
                     </div>
                   </div>
                 )}
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         )}
       </Card>
+
+      <Dialog
+        header={
+          chuteTargetItem
+            ? `${t('inventory.createChute')} - ${t('commandes.line')} ${chuteTargetItem.lineNumber}`
+            : t('inventory.createChute')
+        }
+        visible={showChuteForm}
+        onHide={handleCloseChuteModal}
+        style={{ width: 'min(700px, 95vw)' }}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+            <Button label={t('common.cancel')} severity="secondary" onClick={handleCloseChuteModal} />
+            <Button label={t('inventory.createChute')} onClick={handleCreateChute} />
+          </div>
+        }
+      >
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('inventory.sourceType')}
+            </label>
+            <Dropdown
+              value={chuteSourceType}
+              options={chuteSourceOptions}
+              onChange={(e) => {
+                setChuteSourceType(e.value);
+                setChuteRollId('');
+                setParentWastePieceId('');
+                setChuteDimensions({ widthMm: 0, lengthM: 0, areaM2: 0 });
+              }}
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          {chuteSourceType === 'ROLL' ? (
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {t('inventory.selectRoll')}
+              </label>
+              <Dropdown
+                value={chuteRollId}
+                options={chuteRollOptions}
+                itemTemplate={renderRollOption}
+                valueTemplate={(option) => renderRollOption(option)}
+                onChange={(e) => setChuteRollId(e.value as string)}
+                placeholder={t('commandes.selectRollOption')}
+                style={{ width: '100%' }}
+              />
+            </div>
+          ) : (
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {t('inventory.selectWastePiece')}
+              </label>
+              <Dropdown
+                value={parentWastePieceId}
+                options={chuteParentOptions}
+                onChange={(e) => setParentWastePieceId(e.value as string)}
+                placeholder={
+                  parentWastePiecesLoading
+                    ? t('inventory.loadingWastePieces')
+                    : t('inventory.selectWastePiece')
+                }
+                style={{ width: '100%' }}
+              />
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {t('inventory.material')}
+              </label>
+              <InputText value={chuteSource?.materialType || ''} disabled />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {t('rolls.plies')}
+              </label>
+              <InputText value={chuteSource?.nbPlis ?? ''} disabled />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {t('rolls.thickness')}
+              </label>
+              <InputText value={chuteSource?.thicknessMm ?? ''} disabled />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {t('rolls.width')}
+              </label>
+              <InputText
+                value={chuteDimensions.widthMm ? String(chuteDimensions.widthMm) : ''}
+                onChange={(e) => updateChuteDimension('widthMm', e.target.value)}
+                type="number"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {t('rolls.length')}
+              </label>
+              <InputText
+                value={chuteDimensions.lengthM ? String(chuteDimensions.lengthM) : ''}
+                onChange={(e) => updateChuteDimension('lengthM', e.target.value)}
+                type="number"
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {t('rolls.area')}
+              </label>
+              <InputText value={chuteDimensions.areaM2.toFixed(4)} disabled />
+            </div>
+          </div>
+        </div>
+      </Dialog>
 
       <Dialog
         header={

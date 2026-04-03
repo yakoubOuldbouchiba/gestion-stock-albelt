@@ -578,6 +578,10 @@ export interface CommandeItem {
   colorId?: string;
   colorName?: string;
   colorHexCode?: string;
+  goodProduction?: boolean;
+  productionMiss?: string;
+  totalItemsConforme?: number;
+  totalItemsNonConforme?: number;
   lineNumber: number;
   cuttingOperationId?: string;
   cutDate?: string;
@@ -644,6 +648,8 @@ export interface ProductionItem {
   areaPerPieceM2: number;
   totalAreaM2: number;
   notes?: string;
+  goodProduction?: boolean;
+  productionMiss?: string;
   createdAt: string;
   updatedAt: string;
 }

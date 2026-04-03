@@ -55,6 +55,8 @@ public class ProductionItemMapper {
                 .areaPerPieceM2(entity.getAreaPerPieceM2())
                 .totalAreaM2(entity.getTotalAreaM2())
                 .notes(entity.getNotes())
+                .goodProduction(entity.getGoodProduction())
+                .productionMiss(entity.getProductionMiss())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

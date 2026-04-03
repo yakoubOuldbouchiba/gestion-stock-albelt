@@ -100,6 +100,14 @@ public class CommandeItem {
     @Builder.Default
     private BigDecimal wasteCreatedM2 = BigDecimal.ZERO; // Total waste created for this item
 
+    @Column(name = "total_items_conforme", nullable = false)
+    @Builder.Default
+    private Integer totalItemsConforme = 0;
+
+    @Column(name = "total_items_non_conforme", nullable = false)
+    @Builder.Default
+    private Integer totalItemsNonConforme = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

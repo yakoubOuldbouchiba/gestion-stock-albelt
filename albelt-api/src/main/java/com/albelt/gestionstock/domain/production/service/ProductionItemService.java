@@ -47,8 +47,16 @@ public class ProductionItemService {
         BigDecimal areaPerPiece = calculateAreaPerPiece(request.getPieceWidthMm(), request.getPieceLengthM());
         BigDecimal totalArea = calculateTotalArea(areaPerPiece, request.getQuantity());
 
-        validateQuantity(commandeItem, request.getQuantity(), null);
-        validateArea(roll, wastePiece, totalArea, null);
+        //validateQuantity(commandeItem, request.getQuantity(), null);
+        //validateArea(roll, wastePiece, totalArea, null);
+
+        ProductionMatchResult matchResult = evaluateProductionMatch(
+            commandeItem,
+            roll,
+            wastePiece,
+            request.getPieceLengthM(),
+            request.getPieceWidthMm()
+        );
 
         ProductionItem item = productionItemMapper.toEntity(
                 request,
@@ -58,6 +66,8 @@ public class ProductionItemService {
                 areaPerPiece,
                 totalArea
         );
+        item.setGoodProduction(matchResult.goodProduction());
+        item.setProductionMiss(matchResult.productionMiss());
 
         return productionItemRepository.save(item);
     }
@@ -78,6 +88,14 @@ public class ProductionItemService {
         validateQuantity(commandeItem, request.getQuantity(), existing.getId());
         validateArea(roll, wastePiece, totalArea, existing.getId());
 
+        ProductionMatchResult matchResult = evaluateProductionMatch(
+            commandeItem,
+            roll,
+            wastePiece,
+            request.getPieceLengthM(),
+            request.getPieceWidthMm()
+        );
+
         existing.setCommandeItem(commandeItem);
         existing.setRoll(roll);
         existing.setWastePiece(wastePiece);
@@ -87,6 +105,8 @@ public class ProductionItemService {
         existing.setAreaPerPieceM2(areaPerPiece);
         existing.setTotalAreaM2(totalArea);
         existing.setNotes(request.getNotes());
+        existing.setGoodProduction(matchResult.goodProduction());
+        existing.setProductionMiss(matchResult.productionMiss());
 
         return productionItemRepository.save(existing);
     }
@@ -191,5 +211,134 @@ public class ProductionItemService {
                 );
             }
         }
+    }
+
+    private ProductionMatchResult evaluateProductionMatch(
+            CommandeItem commandeItem,
+            Roll roll,
+            WastePiece wastePiece,
+            BigDecimal pieceLengthM,
+            Integer pieceWidthMm
+    ) {
+        List<String> mismatches = new java.util.ArrayList<>();
+
+        String sourceMaterial = roll != null
+                ? roll.getMaterialType() != null ? roll.getMaterialType().name() : null
+                : wastePiece != null && wastePiece.getMaterialType() != null
+                ? wastePiece.getMaterialType().name()
+                : null;
+        if (!matchesString(sourceMaterial, commandeItem.getMaterialType())) {
+            mismatches.add(buildMismatch("material_type",
+                    formatStringValue(commandeItem.getMaterialType()),
+                    formatStringValue(sourceMaterial)));
+        }
+
+        Integer sourcePlis = roll != null ? roll.getNbPlis() : wastePiece != null ? wastePiece.getNbPlis() : null;
+        if (!matchesInteger(sourcePlis, commandeItem.getNbPlis())) {
+            mismatches.add(buildMismatch("nb_plis",
+                    formatInteger(commandeItem.getNbPlis()),
+                    formatInteger(sourcePlis)));
+        }
+
+        BigDecimal sourceThickness = roll != null ? roll.getThicknessMm() : wastePiece != null ? wastePiece.getThicknessMm() : null;
+        if (!matchesDecimal(sourceThickness, commandeItem.getThicknessMm())) {
+            mismatches.add(buildMismatch("thickness_mm",
+                    formatDecimal(commandeItem.getThicknessMm()),
+                    formatDecimal(sourceThickness)));
+        }
+
+        String sourceReference = roll != null ? roll.getReference() : wastePiece != null ? wastePiece.getReference() : null;
+        if (!matchesString(sourceReference, commandeItem.getReference())) {
+            mismatches.add(buildMismatch("reference",
+                    formatStringValue(commandeItem.getReference()),
+                    formatStringValue(sourceReference)));
+        }
+
+        var sourceColor = roll != null ? roll.getColor() : wastePiece != null ? wastePiece.getColor() : null;
+        var itemColor = commandeItem.getColor();
+        UUID sourceColorId = sourceColor != null ? sourceColor.getId() : null;
+        UUID itemColorId = itemColor != null ? itemColor.getId() : null;
+        if (!matchesUuid(sourceColorId, itemColorId)) {
+            mismatches.add(buildMismatch("color",
+                formatColor(itemColor),
+                formatColor(sourceColor)));
+        }
+
+        if (!matchesDecimal(pieceLengthM, commandeItem.getLongueurM())) {
+            mismatches.add(buildMismatch("piece_length_m",
+                    formatDecimal(commandeItem.getLongueurM()),
+                    formatDecimal(pieceLengthM)));
+        }
+
+        if (!matchesInteger(pieceWidthMm, commandeItem.getLargeurMm())) {
+            mismatches.add(buildMismatch("piece_width_mm",
+                    formatInteger(commandeItem.getLargeurMm()),
+                    formatInteger(pieceWidthMm)));
+        }
+
+        boolean goodProduction = mismatches.isEmpty();
+        String productionMiss = goodProduction ? null : String.join(", ", mismatches);
+        return new ProductionMatchResult(goodProduction, productionMiss);
+    }
+
+    private boolean matchesInteger(Integer left, Integer right) {
+        if (left == null && right == null) return true;
+        if (left == null || right == null) return false;
+        return left.equals(right);
+    }
+
+    private boolean matchesDecimal(BigDecimal left, BigDecimal right) {
+        if (left == null && right == null) return true;
+        if (left == null || right == null) return false;
+        return left.compareTo(right) == 0;
+    }
+
+    private boolean matchesUuid(UUID left, UUID right) {
+        if (left == null && right == null) return true;
+        if (left == null || right == null) return false;
+        return left.equals(right);
+    }
+
+    private boolean matchesString(String left, String right) {
+        String normalizedLeft = normalizeString(left);
+        String normalizedRight = normalizeString(right);
+        if (normalizedLeft == null && normalizedRight == null) return true;
+        if (normalizedLeft == null || normalizedRight == null) return false;
+        return normalizedLeft.equalsIgnoreCase(normalizedRight);
+    }
+
+    private String normalizeString(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String buildMismatch(String key, String expected, String actual) {
+        return key + " expected=" + expected + " actual=" + actual;
+    }
+
+    private String formatStringValue(String value) {
+        String normalized = normalizeString(value);
+        return normalized == null ? "null" : normalized;
+    }
+
+    private String formatInteger(Integer value) {
+        return value == null ? "null" : value.toString();
+    }
+
+    private String formatDecimal(BigDecimal value) {
+        if (value == null) return "null";
+        return value.stripTrailingZeros().toPlainString();
+    }
+
+    private String formatColor(com.albelt.gestionstock.domain.colors.entity.Color color) {
+        if (color == null) return "null";
+        String name = normalizeString(color.getName());
+        if (name != null) return name;
+        UUID id = color.getId();
+        return id != null ? id.toString() : "null";
+    }
+
+    private record ProductionMatchResult(boolean goodProduction, String productionMiss) {
     }
 }

@@ -35,6 +35,10 @@ public class ProductionItemResponse {
 
     private String notes;
 
+    private Boolean goodProduction;
+
+    private String productionMiss;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

@@ -48,6 +48,14 @@ public class CommandeItemResponse {
     private String colorName;
 
     private String colorHexCode;
+
+    private Boolean goodProduction;
+
+    private String productionMiss;
+
+    private Integer totalItemsConforme;
+
+    private Integer totalItemsNonConforme;
     
     private Integer lineNumber;
     

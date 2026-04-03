@@ -61,6 +61,13 @@ public class ProductionItem {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "good_production", nullable = false)
+    @Builder.Default
+    private Boolean goodProduction = true;
+
+    @Column(name = "production_miss", columnDefinition = "TEXT")
+    private String productionMiss;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
