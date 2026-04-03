@@ -12,9 +12,10 @@ import { Column } from 'primereact/column';
 import { Message } from 'primereact/message';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { CommandeService } from '../services/commandeService';
+import { ColorService } from '../services/colorService';
 import { ClientService } from '../services/clientService';
 import { useI18n } from '@hooks/useI18n';
-import type { Client, CommandeRequest, CommandeItemRequest, MaterialType, TypeMouvement } from '../types';
+import type { Client, Color, CommandeRequest, CommandeItemRequest, MaterialType, TypeMouvement } from '../types';
 
 interface ClientOption {
   label: string;
@@ -31,15 +32,23 @@ interface MouvementOption {
   value: TypeMouvement;
 }
 
+interface ColorOption {
+  label: string;
+  value: string;
+  hexCode?: string;
+}
+
 export function CommandeCreatePage() {
   const navigate = useNavigate();
   const { t } = useI18n();
   const toastRef = useRef<Toast>(null);
 
   const [clients, setClients] = useState<ClientOption[]>([]);
+  const [colors, setColors] = useState<ColorOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const [isMobile, setIsMobile] = useState(false);
 
   // Form state
   const [numeroCommande, setNumeroCommande] = useState('');
@@ -59,6 +68,8 @@ export function CommandeCreatePage() {
       quantite: 1,
       surfaceConsommeeM2: 5,
       typeMouvement: 'COUPE',
+      reference: '',
+      colorId: undefined,
       lineNumber: 1,
     },
   ]);
@@ -113,6 +124,41 @@ export function CommandeCreatePage() {
     fetchClients();
   }, [t]);
 
+  useEffect(() => {
+    const fetchColors = async () => {
+      try {
+        const res = await ColorService.getAll();
+        if (res && res.data) {
+          const dataArray = Array.isArray(res.data) ? res.data : [];
+          const colorOptions: ColorOption[] = dataArray.map((color: Color) => ({
+            label: color.name,
+            value: color.id,
+            hexCode: color.hexCode,
+          }));
+          setColors(colorOptions);
+        }
+      } catch (err) {
+        console.error('Error fetching colors:', err);
+      }
+    };
+
+    fetchColors();
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 960px)');
+    const handleChange = () => setIsMobile(media.matches);
+    handleChange();
+
+    if (media.addEventListener) {
+      media.addEventListener('change', handleChange);
+      return () => media.removeEventListener('change', handleChange);
+    }
+
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
+  }, []);
+
   // Generate order number
   const generateOrderNumber = async () => {
     try {
@@ -153,8 +199,12 @@ export function CommandeCreatePage() {
     };
   };
 
-  const calculateSurface = (item: CommandeItemRequest): number => {
-    return (item.longueurM * item.largeurMm) / 1000;
+
+   const calculateSurface = (item: CommandeItemRequest): number => {
+    return ((item.longueurM * item.largeurMm) / 1000);
+  };
+  const calculateTotalSurface = (item: CommandeItemRequest): number => {
+    return ((item.longueurM * item.largeurMm) / 1000) * item.quantite;
   };
 
   const handleItemChange = (index: number, field: keyof CommandeItemRequest, value: unknown) => {
@@ -174,6 +224,8 @@ export function CommandeCreatePage() {
       quantite: 1,
       surfaceConsommeeM2: 5,
       typeMouvement: 'COUPE',
+      reference: '',
+      colorId: undefined,
       lineNumber: items.length + 1,
     };
     setItems([...items, newItem]);
@@ -279,6 +331,105 @@ export function CommandeCreatePage() {
     />
   );
 
+  const nbPlisBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+    <InputNumber
+      value={rowData.nbPlis}
+      onValueChange={(e) => handleItemChange(rowIndex.rowIndex, 'nbPlis', e.value || 0)}
+      min={0}
+      style={{ width: '100%' }}
+    />
+  );
+
+  const thicknessBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+    <InputNumber
+      value={rowData.thicknessMm}
+      onValueChange={(e) => handleItemChange(rowIndex.rowIndex, 'thicknessMm', e.value || 0)}
+      min={0.0}
+      max={100}
+      step={0.1}
+      mode="decimal"
+      minFractionDigits={1}
+      maxFractionDigits={3}
+      style={{ width: '100%' }}
+    />
+  );
+
+  const longueurBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+    <InputNumber
+      value={rowData.longueurM}
+      onValueChange={(e) => handleItemChange(rowIndex.rowIndex, 'longueurM', e.value || 0)}
+      mode="decimal"
+      minFractionDigits={1}
+      maxFractionDigits={2}
+      style={{ width: '100%' }}
+    />
+  );
+
+  const largeurBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+    <InputNumber
+      value={rowData.largeurMm}
+      onValueChange={(e) => handleItemChange(rowIndex.rowIndex, 'largeurMm', e.value || 0)}
+      min={0}
+      style={{ width: '100%' }}
+    />
+  );
+
+  const referenceBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+    <InputText
+      value={rowData.reference || ''}
+      onChange={(e) => handleItemChange(rowIndex.rowIndex, 'reference', e.target.value)}
+      placeholder={t('inventory.reference')}
+      style={{ width: '100%' }}
+    />
+  );
+
+  const colorBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
+    <Dropdown
+      value={rowData.colorId}
+      onChange={(e) => handleItemChange(rowIndex.rowIndex, 'colorId', e.value)}
+      options={colors}
+      optionLabel="label"
+      optionValue="value"
+      placeholder={t('inventory.selectColor')}
+      showClear
+      style={{ width: '100%' }}
+      itemTemplate={(option) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span
+            style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '3px',
+              backgroundColor: option.hexCode || 'transparent',
+              border: '1px solid var(--surface-border)',
+            }}
+          />
+          <span>{option.label}</span>
+        </div>
+      )}
+      valueTemplate={(option) => {
+        if (!option) return <span>{t('inventory.selectColor')}</span>;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span
+              style={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '3px',
+                backgroundColor: option.hexCode || 'transparent',
+                border: '1px solid var(--surface-border)',
+              }}
+            />
+            <span>{option.label}</span>
+          </div>
+        );
+      }}
+    />
+  );
+
+  
+
+
   const mouvementBodyTemplate = (rowData: CommandeItemRequest, rowIndex: any) => (
     <Dropdown
       value={rowData.typeMouvement}
@@ -295,6 +446,10 @@ export function CommandeCreatePage() {
 
   const surfaceBodyTemplate = (rowData: CommandeItemRequest) => (
     <span>{calculateSurface(rowData).toFixed(2)} m²</span>
+  );
+
+  const surfaceTotalBodyTemplate = (rowData: CommandeItemRequest) => (
+    <span>{calculateTotalSurface(rowData).toFixed(2)} m²</span>
   );
 
   const actionsBodyTemplate = (_: any, rowIndex: any) => (
@@ -447,18 +602,218 @@ export function CommandeCreatePage() {
             </div>
           )}
 
-          <DataTable value={items} className="p-datatable-sm">
-            <Column field="lineNumber" header={t('commandes.lineNumber')} style={{ width: '60px' }} />
-            <Column field="materialType" header={t('commandes.material')} body={materialBodyTemplate} />
-            <Column field="nbPlis" header={t('commandes.plies')} style={{ width: '80px' }} />
-            <Column field="thicknessMm" header={t('commandes.thickness')} style={{ width: '100px' }} />
-            <Column field="longueurM" header={t('commandes.length')} style={{ width: '100px' }} />
-            <Column field="largeurMm" header={t('commandes.width')} style={{ width: '100px' }} />
-            <Column field="quantite" header={t('commandes.quantity')} body={quantiteBodyTemplate} />
-            <Column field="typeMouvement" header={t('commandes.movement')} body={mouvementBodyTemplate} />
-            <Column body={surfaceBodyTemplate} header={t('commandes.surface')} style={{ width: '100px' }} />
-            <Column body={actionsBodyTemplate} style={{ width: '60px' }} />
-          </DataTable>
+          {isMobile ? (
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              {items.map((item, index) => (
+                <Card key={`${item.lineNumber}-${index}`}>
+                  <div style={{ fontWeight: 600, marginBottom: '0.75rem' }}>
+                    {t('commandes.line')} {item.lineNumber}
+                  </div>
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        {t('commandes.material')}
+                      </label>
+                      <Dropdown
+                        value={item.materialType}
+                        onChange={(e) => handleItemChange(index, 'materialType', e.value)}
+                        options={materials}
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder={t('commandes.selectMaterial')}
+                        filter
+                        showClear={false}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        {t('commandes.plies')}
+                      </label>
+                      <InputNumber
+                        value={item.nbPlis}
+                        onValueChange={(e) => handleItemChange(index, 'nbPlis', e.value || 0)}
+                        min={1}
+                        max={50}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        {t('commandes.thickness')}
+                      </label>
+                      <InputNumber
+                        value={item.thicknessMm}
+                        onValueChange={(e) => handleItemChange(index, 'thicknessMm', e.value || 0)}
+                        min={0.1}
+                        max={100}
+                        step={0.1}
+                        mode="decimal"
+                        minFractionDigits={1}
+                        maxFractionDigits={3}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        {t('commandes.length')}
+                      </label>
+                      <InputNumber
+                        value={item.longueurM}
+                        onValueChange={(e) => handleItemChange(index, 'longueurM', e.value || 0)}
+                        min={0.1}
+                        max={1000}
+                        step={0.1}
+                        mode="decimal"
+                        minFractionDigits={1}
+                        maxFractionDigits={2}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        {t('commandes.width')}
+                      </label>
+                      <InputNumber
+                        value={item.largeurMm}
+                        onValueChange={(e) => handleItemChange(index, 'largeurMm', e.value || 0)}
+                        min={1}
+                        max={10000}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        {t('inventory.reference')}
+                      </label>
+                      <InputText
+                        value={item.reference || ''}
+                        onChange={(e) => handleItemChange(index, 'reference', e.target.value)}
+                        placeholder={t('inventory.reference')}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        {t('inventory.color')}
+                      </label>
+                      <Dropdown
+                        value={item.colorId}
+                        onChange={(e) => handleItemChange(index, 'colorId', e.value)}
+                        options={colors}
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder={t('inventory.selectColor')}
+                        showClear
+                        style={{ width: '100%' }}
+                        itemTemplate={(option) => (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span
+                              style={{
+                                width: '12px',
+                                height: '12px',
+                                borderRadius: '3px',
+                                backgroundColor: option.hexCode || 'transparent',
+                                border: '1px solid var(--surface-border)',
+                              }}
+                            />
+                            <span>{option.label}</span>
+                          </div>
+                        )}
+                        valueTemplate={(option) => {
+                          if (!option) return <span>{t('inventory.selectColor')}</span>;
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span
+                                style={{
+                                  width: '12px',
+                                  height: '12px',
+                                  borderRadius: '3px',
+                                  backgroundColor: option.hexCode || 'transparent',
+                                  border: '1px solid var(--surface-border)',
+                                }}
+                              />
+                              <span>{option.label}</span>
+                            </div>
+                          );
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        {t('commandes.quantity')}
+                      </label>
+                      <InputNumber
+                        value={item.quantite}
+                        onValueChange={(e) => handleItemChange(index, 'quantite', e.value || 0)}
+                        min={1}
+                        max={1000}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        {t('commandes.movement')}
+                      </label>
+                      <Dropdown
+                        value={item.typeMouvement}
+                        onChange={(e) => handleItemChange(index, 'typeMouvement', e.value)}
+                        options={mouvements}
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder={t('commandes.selectMouvement')}
+                        filter
+                        showClear={false}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
+                        {t('commandes.surface')}
+                      </label>
+                      <div>{calculateSurface(item).toFixed(2)} m²</div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <Button
+                        icon="pi pi-trash"
+                        severity="danger"
+                        text
+                        onClick={() => handleRemoveItem(index)}
+                        disabled={items.length === 1}
+                        label={t('commandes.delete')}
+                      />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <DataTable value={items} className="p-datatable-sm">
+              <Column field="lineNumber" header={t('commandes.lineNumber')} />
+              <Column field="materialType" header={t('commandes.material')} body={materialBodyTemplate} />
+              <Column field="nbPlis" header={t('commandes.plies')} body={nbPlisBodyTemplate} />
+              <Column field="thicknessMm" header={t('commandes.thickness')} body={thicknessBodyTemplate} />
+              <Column field="longueurM" header={t('commandes.length')} body={longueurBodyTemplate} />
+              <Column field="largeurMm" header={t('commandes.width')} body={largeurBodyTemplate} />
+              <Column field="reference" header={t('inventory.reference')} body={referenceBodyTemplate} />
+              <Column field="colorId" header={t('inventory.color')} body={colorBodyTemplate} />
+              <Column field="quantite" header={t('commandes.quantity')} body={quantiteBodyTemplate} />
+              <Column field="typeMouvement" header={t('commandes.movement')} body={mouvementBodyTemplate} />
+              <Column body={surfaceBodyTemplate} header={t('commandes.surface')} />
+              <Column body={surfaceTotalBodyTemplate} header={t('inventory.totalSurface')} />
+              <Column body={actionsBodyTemplate} />
+            </DataTable>
+          )}
 
           <div style={{ marginTop: '1rem' }}>
             <Button

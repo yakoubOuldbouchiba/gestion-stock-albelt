@@ -574,6 +574,10 @@ export interface CommandeItem {
   typeMouvement: TypeMouvement;
   status: ItemStatus;
   observations?: string;
+  reference?: string;
+  colorId?: string;
+  colorName?: string;
+  colorHexCode?: string;
   lineNumber: number;
   cuttingOperationId?: string;
   cutDate?: string;
@@ -595,6 +599,8 @@ export interface CommandeItemRequest {
   typeMouvement: TypeMouvement;
   status?: ItemStatus;
   observations?: string;
+  reference?: string;
+  colorId?: string;
   lineNumber: number;
   cuttingOperationId?: string;
   actualSurfaceCutM2?: number;

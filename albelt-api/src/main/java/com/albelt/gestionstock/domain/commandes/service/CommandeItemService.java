@@ -5,6 +5,8 @@ import com.albelt.gestionstock.domain.commandes.dto.*;
 import com.albelt.gestionstock.domain.commandes.entity.*;
 import com.albelt.gestionstock.domain.commandes.mapper.CommandeItemMapper;
 import com.albelt.gestionstock.domain.commandes.repository.*;
+import com.albelt.gestionstock.domain.colors.entity.Color;
+import com.albelt.gestionstock.domain.colors.service.ColorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class CommandeItemService {
 
     private final CommandeItemRepository itemRepository;
     private final CommandeItemMapper itemMapper;
+    private final ColorService colorService;
 
     // ==================== ITEM CRUD ====================
 
@@ -35,6 +38,12 @@ public class CommandeItemService {
         log.info("Creating new order item for order: {} with line: {}", commande.getId(), request.getLineNumber());
 
         CommandeItem item = itemMapper.toEntity(request, commande);
+
+        if (request.getColorId() != null) {
+            Color color = colorService.getById(request.getColorId());
+            item.setColor(color);
+        }
+
         CommandeItem saved = itemRepository.save(item);
 
         log.info("Order item created successfully: {}", saved.getId());
@@ -128,6 +137,13 @@ public class CommandeItemService {
         }
         if (request.getObservations() != null) {
             item.setObservations(request.getObservations());
+        }
+        if (request.getReference() != null) {
+            item.setReference(request.getReference());
+        }
+        if (request.getColorId() != null) {
+            Color color = colorService.getById(request.getColorId());
+            item.setColor(color);
         }
 
         CommandeItem updated = itemRepository.save(item);

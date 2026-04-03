@@ -31,6 +31,7 @@ public class CommandeItemMapper {
                 .surfaceConsommeeM2(request.getSurfaceConsommeeM2())
                 .typeMouvement(request.getTypeMouvement())
                 .observations(request.getObservations())
+            .reference(request.getReference())
                 .lineNumber(request.getLineNumber())
                 .build();
     }
@@ -57,6 +58,10 @@ public class CommandeItemMapper {
                 .typeMouvement(item.getTypeMouvement())
                 .status(item.getStatus())
                 .observations(item.getObservations())
+            .reference(item.getReference())
+            .colorId(item.getColor() != null ? item.getColor().getId() : null)
+            .colorName(item.getColor() != null ? item.getColor().getName() : null)
+            .colorHexCode(item.getColor() != null ? item.getColor().getHexCode() : null)
                 .lineNumber(item.getLineNumber())
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())

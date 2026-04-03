@@ -49,6 +49,10 @@ public class CommandeItemRequest {
     private String typeMouvement;  // ENCOURS, COUPE, SORTIE, RETOUR
     
     private String observations;
+
+    private String reference;
+
+    private UUID colorId;
     
     @NotNull(message = "Line number is required")
     @Positive(message = "Line number must be positive")

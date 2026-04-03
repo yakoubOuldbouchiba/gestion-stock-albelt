@@ -616,6 +616,27 @@ export function CommandeDetailPage() {
     );
   };
 
+  const getContrastTextColor = (hexColor?: string) => {
+    if (!hexColor) return 'inherit';
+    const normalized = hexColor.replace('#', '').trim();
+    if (normalized.length !== 3 && normalized.length !== 6) return 'inherit';
+
+    const fullHex = normalized.length === 3
+      ? normalized
+          .split('')
+          .map((char) => `${char}${char}`)
+          .join('')
+      : normalized;
+
+    const r = parseInt(fullHex.slice(0, 2), 16) / 255;
+    const g = parseInt(fullHex.slice(2, 4), 16) / 255;
+    const b = parseInt(fullHex.slice(4, 6), 16) / 255;
+    if ([r, g, b].some((value) => Number.isNaN(value))) return 'inherit';
+
+    const luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
+    return luminance > 0.6 ? '#000000' : '#ffffff';
+  };
+
   const wasteTypeOptions = [
     { label: t('commandes.wasteTypeScrap'), value: 'DECHET' },
     { label: t('commandes.wasteTypeReusable'), value: 'CHUTE_EXPLOITABLE' },
@@ -755,8 +776,15 @@ export function CommandeDetailPage() {
                     flexWrap: 'wrap',
                   }}
                 >
-                  <Tag value={`${t('commandes.line')} ${item.lineNumber}`} />
-                  <div style={{ flex: '1 1 240px' }}>
+                  <div
+                    style={{
+                      flex: '1 1 240px',
+                      backgroundColor: item.colorHexCode ? item.colorHexCode : 'transparent',
+                      color: item.colorHexCode ? getContrastTextColor(item.colorHexCode) : 'inherit',
+                      padding: '0.5rem',
+                      borderRadius: '4px',
+                    }}
+                  >
                     <div style={{ fontWeight: 600 }}>{item.materialType}</div>
                     <div style={{ fontSize: '0.9rem' }}>
                       {item.nbPlis}P | {item.thicknessMm}mm | {item.longueurM}m x {item.largeurMm}mm

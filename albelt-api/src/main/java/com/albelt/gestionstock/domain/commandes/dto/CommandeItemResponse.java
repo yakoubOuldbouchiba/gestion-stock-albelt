@@ -40,6 +40,14 @@ public class CommandeItemResponse {
     private String status;
     
     private String observations;
+
+    private String reference;
+
+    private UUID colorId;
+
+    private String colorName;
+
+    private String colorHexCode;
     
     private Integer lineNumber;
     

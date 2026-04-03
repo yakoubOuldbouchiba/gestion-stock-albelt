@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.commandes.entity;
 
+import com.albelt.gestionstock.domain.colors.entity.Color;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -18,7 +19,8 @@ import java.util.UUID;
         @Index(name = "idx_commande_items_roll_id", columnList = "roll_id"),
         @Index(name = "idx_commande_items_status", columnList = "status"),
         @Index(name = "idx_commande_items_type_mouvement", columnList = "type_mouvement"),
-        @Index(name = "idx_commande_items_material_type", columnList = "material_type")
+    @Index(name = "idx_commande_items_material_type", columnList = "material_type"),
+    @Index(name = "idx_commande_items_color_id", columnList = "color_id")
 })
 @Data
 @NoArgsConstructor
@@ -75,6 +77,13 @@ public class CommandeItem {
     // Additional Info
     @Column(name = "observations", columnDefinition = "TEXT")
     private String observations;
+
+    @Column(name = "reference", length = 100)
+    private String reference;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "color_id")
+    private Color color;
 
     // Sequence
     @Column(name = "line_number", nullable = false)
