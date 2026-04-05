@@ -1,8 +1,6 @@
 package com.albelt.gestionstock.domain.production.entity;
 
-import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
-import com.albelt.gestionstock.domain.rolls.entity.Roll;
-import com.albelt.gestionstock.domain.waste.entity.WastePiece;
+import com.albelt.gestionstock.domain.placement.entity.PlacedRectangle;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -17,9 +15,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "production_items", indexes = {
-        @Index(name = "idx_production_items_commande_item_id", columnList = "commande_item_id"),
-        @Index(name = "idx_production_items_roll_id", columnList = "roll_id"),
-        @Index(name = "idx_production_items_waste_piece_id", columnList = "waste_piece_id")
+    @Index(name = "idx_production_items_placed_rectangle_id", columnList = "placed_rectangle_id")
 })
 @Data
 @NoArgsConstructor
@@ -31,17 +27,9 @@ public class ProductionItem {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "commande_item_id", nullable = false)
-    private CommandeItem commandeItem;
-
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "roll_id")
-    private Roll roll;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "waste_piece_id")
-    private WastePiece wastePiece;
+    @JoinColumn(name = "placed_rectangle_id", nullable = false)
+    private PlacedRectangle placedRectangle;
 
     @Column(name = "piece_length_m", nullable = false, precision = 10, scale = 2)
     private BigDecimal pieceLengthM;

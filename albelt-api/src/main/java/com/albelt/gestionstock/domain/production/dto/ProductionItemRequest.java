@@ -17,12 +17,8 @@ import java.util.UUID;
 @Builder
 public class ProductionItemRequest {
 
-    @NotNull(message = "Commande item ID is required")
-    private UUID commandeItemId;
-
-    private UUID rollId;
-
-    private UUID wastePieceId;
+    @NotNull(message = "Placed rectangle ID is required")
+    private UUID placedRectangleId;
 
     @NotNull(message = "Piece length is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Piece length must be greater than 0")

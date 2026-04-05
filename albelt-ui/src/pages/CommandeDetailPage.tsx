@@ -25,7 +25,6 @@ import type {
   PlacedRectangle,
   ProductionItem,
   Roll,
-  WasteType,
 } from '../types';
 
 export function CommandeDetailPage() {
@@ -41,8 +40,6 @@ export function CommandeDetailPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [rolls, setRolls] = useState<Roll[]>([]);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
-  const [showProcessingModal, setShowProcessingModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<CommandeItem | null>(null);
   const [wasteForItem, setWasteForItem] = useState<any[]>([]);
   const [productionForItem, setProductionForItem] = useState<ProductionItem[]>([]);
   const [placementsForItem, setPlacementsForItem] = useState<PlacedRectangle[]>([]);
@@ -56,6 +53,8 @@ export function CommandeDetailPage() {
     heightMm: '',
   });
   const [editingPlacementId, setEditingPlacementId] = useState<string | null>(null);
+  const [showPlacementModal, setShowPlacementModal] = useState(false);
+  const [placementTargetItem, setPlacementTargetItem] = useState<CommandeItem | null>(null);
   const [showProductionModal, setShowProductionModal] = useState(false);
   const [productionTargetItem, setProductionTargetItem] = useState<CommandeItem | null>(null);
   const [showChuteForm, setShowChuteForm] = useState(false);
@@ -70,27 +69,14 @@ export function CommandeDetailPage() {
     lengthM: 0,
     areaM2: 0,
   });
-  const [creatingWaste, setCreatingWaste] = useState(false);
   const [creatingProduction, setCreatingProduction] = useState(false);
   const [creatingChute, setCreatingChute] = useState(false);
   const [deletingOrder, setDeletingOrder] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [updatingItemStatusId, setUpdatingItemStatusId] = useState<string | null>(null);
-  
-  // Roll processing form
-  const [processingForm, setProcessingForm] = useState({
-    rollId: '',
-    lengthUsedM: '',
-    widthRemainingMm: '',
-    wasteType: 'DECHET' as WasteType,
-    weightKg: '',
-    notes: '',
-  });
 
   const [productionForm, setProductionForm] = useState({
-    sourceType: 'ROLL',
-    rollId: '',
-    wastePieceId: '',
+    placedRectangleId: '',
     pieceLengthM: '',
     pieceWidthMm: '',
     quantity: '',
@@ -291,34 +277,6 @@ export function CommandeDetailPage() {
     return severities[status] || 'secondary';
   };
 
-  const handleOpenProcessingModal = (item: CommandeItem) => {
-    setSelectedItem(item);
-    setProcessingForm({
-      rollId: '',
-      lengthUsedM: '',
-      widthRemainingMm: '',
-      wasteType: 'DECHET',
-      weightKg: '',
-      notes: '',
-    });
-    // Load waste already created for this item
-    loadWasteForItem(item.id);
-    setShowProcessingModal(true);
-  };
-
-  const handleCloseProcessingModal = () => {
-    setShowProcessingModal(false);
-    setSelectedItem(null);
-    setProcessingForm({
-      rollId: '',
-      lengthUsedM: '',
-      widthRemainingMm: '',
-      wasteType: 'DECHET',
-      weightKg: '',
-      notes: '',
-    });
-  };
-
   const loadWasteForItem = async (itemId: string) => {
     try {
       // Fetch waste for this specific commande item
@@ -435,7 +393,7 @@ export function CommandeDetailPage() {
     const isRollSource = placementForm.sourceType === 'ROLL';
     if (!sourceId && !isEditing) {
       showError('Select a roll or waste piece for placement.');
-      return;
+      return false;
     }
 
     const source = isRollSource
@@ -443,7 +401,7 @@ export function CommandeDetailPage() {
       : wasteForItem.find((waste: any) => waste.id === sourceId);
     if (!source) {
       showError('Placement source not found.');
-      return;
+      return false;
     }
 
     const xMm = parseInt(placementForm.xMm, 10);
@@ -453,24 +411,24 @@ export function CommandeDetailPage() {
 
     if ([xMm, yMm, widthMm, heightMm].some((value) => Number.isNaN(value))) {
       showError('Placement dimensions are required.');
-      return;
+      return false;
     }
 
     const sourceWidth = Number(source.widthMm) || 0;
     const sourceLengthMm = Math.round((Number(source.lengthM) || 0) * 1000);
     if (sourceWidth <= 0 || sourceLengthMm <= 0) {
       showError('Source dimensions are required for placement.');
-      return;
+      return false;
     }
 
     if (xMm < 0 || yMm < 0 || widthMm <= 0 || heightMm <= 0) {
       showError('Placement values must be positive.');
-      return;
+      return false;
     }
 
     if (xMm >= sourceWidth || yMm >= sourceLengthMm || xMm + widthMm > sourceWidth || yMm + heightMm > sourceLengthMm) {
       showError('Placement is outside the source bounds.');
-      return;
+      return false;
     }
 
     const placementsForSource = placementsForItem.filter((placement) => (
@@ -490,11 +448,12 @@ export function CommandeDetailPage() {
     });
     if (hasOverlap) {
       showError('Placement overlaps an existing rectangle.');
-      return;
+      return false;
     }
 
+    let didSucceed = false;
     try {
-      if (creatingPlacement) return;
+      if (creatingPlacement) return false;
       setCreatingPlacement(true);
       if (isEditing && editingPlacementId) {
         await PlacedRectangleService.update(editingPlacementId, {
@@ -524,12 +483,14 @@ export function CommandeDetailPage() {
       }));
       setEditingPlacementId(null);
       showSuccess(isEditing ? 'Placement updated.' : 'Placement saved.');
+      didSucceed = true;
     } catch (err) {
       console.error('Error creating placement:', err);
       showError(isEditing ? 'Unable to update placement.' : 'Unable to save placement.');
     } finally {
       setCreatingPlacement(false);
     }
+    return didSucceed;
   };
 
   const startEditPlacement = (placement: PlacedRectangle) => {
@@ -544,6 +505,43 @@ export function CommandeDetailPage() {
       widthMm: String(placement.widthMm),
       heightMm: String(placement.heightMm),
     });
+  };
+
+  const handleOpenPlacementModal = (item: CommandeItem) => {
+    setPlacementTargetItem(item);
+    setEditingPlacementId(null);
+    setPlacementForm((prev) => ({
+      ...prev,
+      xMm: '',
+      yMm: '',
+      widthMm: '',
+      heightMm: '',
+    }));
+    setShowPlacementModal(true);
+  };
+
+  const handleOpenEditPlacementModal = (item: CommandeItem, placement: PlacedRectangle) => {
+    setPlacementTargetItem(item);
+    startEditPlacement(placement);
+    setShowPlacementModal(true);
+  };
+
+  const handleClosePlacementModal = () => {
+    setShowPlacementModal(false);
+    setPlacementTargetItem(null);
+    resetPlacementForm();
+  };
+
+  const handleSavePlacement = async () => {
+    if (!placementTargetItem) {
+      showError('Placement item is required.');
+      return;
+    }
+    const didSucceed = await handleCreatePlacement(placementTargetItem);
+    if (didSucceed) {
+      setShowPlacementModal(false);
+      setPlacementTargetItem(null);
+    }
   };
 
   const handleDeletePlacement = (placementId: string, itemId: string) => {
@@ -592,13 +590,6 @@ export function CommandeDetailPage() {
     });
   };
 
-  const updateProcessingField = (name: keyof typeof processingForm, value: string) => {
-    setProcessingForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   const resetChuteForm = () => {
     setChuteSourceType('ROLL');
     setChuteRollId('');
@@ -623,74 +614,6 @@ export function CommandeDetailPage() {
     const nextLength = field === 'lengthM' ? parseFloat(value) || 0 : chuteDimensions.lengthM;
     const nextArea = (nextWidth / 1000) * nextLength;
     setChuteDimensions({ widthMm: nextWidth, lengthM: nextLength, areaM2: nextArea });
-  };
-
-  const handleProcessRoll = async () => {
-    if (!selectedItem || !processingForm.rollId) {
-      showError(t('commandes.selectRollError'));
-      return;
-    }
-
-    try {
-      if (creatingWaste) return;
-      setCreatingWaste(true);
-      const selectedRoll = rolls.find(r => r.id === processingForm.rollId);
-      if (!selectedRoll) {
-        showError(t('commandes.rollNotFoundError'));
-        return;
-      }
-
-      const lengthUsed = parseFloat(processingForm.lengthUsedM) || 0;
-      const widthRemaining = parseInt(processingForm.widthRemainingMm) || selectedRoll.widthMm;
-      
-      // Calculate waste dimensions
-      const wasteLength = lengthUsed;
-      const wasteWidth = selectedRoll.widthMm - widthRemaining;
-
-      if (wasteWidth > 0 && wasteLength > 0) {
-        // Calculate waste area (m²)
-        const wasteAreaM2 = (wasteWidth / 1000) * wasteLength;
-
-        // Create waste record with all required fields
-        const wasteData = {
-          rollId: processingForm.rollId,
-          materialType: selectedRoll.materialType,
-          nbPlis: selectedRoll.nbPlis,
-          thicknessMm: selectedRoll.thicknessMm,
-          widthMm: wasteWidth,
-          lengthM: wasteLength,
-          areaM2: wasteAreaM2,
-          status: 'AVAILABLE',
-          wasteType: processingForm.wasteType,
-          altierID: selectedRoll.altierId,
-          commandeItemId: selectedItem.id,
-        };
-
-        await WastePieceService.create(wasteData);
-
-        // Mark roll as opened (being used)
-        await RollService.updateStatus(processingForm.rollId, 'OPENED');
-
-        // Reload data
-        await loadWasteForItem(selectedItem.id);
-        const res = await CommandeService.getById(id!);
-        if (res.data) {
-          setCommande(res.data);
-        }
-
-        setError(null);
-        // Don't close modal - let operator add more waste if needed
-        showSuccess(t('commandes.wasteRecordedSuccess'));
-      } else {
-        showError(t('commandes.invalidDimensionsError'));
-      }
-    } catch (err) {
-      console.error('Error processing roll:', err);
-      setError(t('commandes.wasteRecordError'));
-      showError(t('commandes.wasteRecordError'));
-    } finally {
-      setCreatingWaste(false);
-    }
   };
 
   const handleCreateChute = async () => {
@@ -758,17 +681,20 @@ export function CommandeDetailPage() {
     resetPlacementForm();
   };
 
-  const handleOpenProductionModal = (item: CommandeItem) => {
+  const handleOpenProductionModal = (item: CommandeItem, placementId: string) => {
+    if (!placementId) {
+      showError(t('commandes.productionItemSourceRequired'));
+      return;
+    }
     setProductionTargetItem(item);
     setProductionForm({
-      sourceType: 'ROLL',
-      rollId: '',
-      wastePieceId: '',
+      placedRectangleId: placementId,
       pieceLengthM: '',
       pieceWidthMm: '',
       quantity: '',
       notes: '',
     });
+    loadPlacementsForItem(item.id);
     setShowProductionModal(true);
   };
 
@@ -776,9 +702,7 @@ export function CommandeDetailPage() {
     setShowProductionModal(false);
     setProductionTargetItem(null);
     setProductionForm({
-      sourceType: 'ROLL',
-      rollId: '',
-      wastePieceId: '',
+      placedRectangleId: '',
       pieceLengthM: '',
       pieceWidthMm: '',
       quantity: '',
@@ -804,11 +728,26 @@ export function CommandeDetailPage() {
 
   const getProductionWarnings = (
     item: CommandeItem,
-    source: any,
+    placement: PlacedRectangle | undefined,
     pieceLength: number,
     pieceWidth: number
   ) => {
     const warnings: string[] = [];
+
+    const source = placement?.rollId
+      ? rolls.find((roll) => roll.id === placement.rollId)
+      : placement?.wastePieceId
+      ? wasteForItem.find((waste: any) => waste.id === placement.wastePieceId)
+      : null;
+
+    const placementWidth = placement?.widthMm ?? null;
+    const placementHeight = placement?.heightMm ?? null;
+    if (placementWidth !== null && pieceWidth > placementWidth) {
+      warnings.push(`piece_width_mm exceeds placed rectangle width (${placementWidth} mm)`);
+    }
+    if (placementHeight !== null && pieceLength * 1000 > placementHeight) {
+      warnings.push(`piece_length_m exceeds placed rectangle length (${placementHeight} mm)`);
+    }
 
     if (source?.materialType && source.materialType !== item.materialType) {
       warnings.push(
@@ -867,19 +806,20 @@ export function CommandeDetailPage() {
 
     const existingColors = new Set<string>();
     productionForItem.forEach((production) => {
-      const rollColor = production.rollId
-        ? getSourceColorLabel(rolls.find((roll) => roll.id === production.rollId))
+      const productionPlacement = placementsForItem.find((item) => item.id === production.placedRectangleId);
+      const rollColor = productionPlacement?.rollId
+        ? getSourceColorLabel(rolls.find((roll) => roll.id === productionPlacement.rollId))
         : null;
-      const wasteColor = production.wastePieceId
-        ? getSourceColorLabel(wasteForItem.find((waste: any) => waste.id === production.wastePieceId))
+      const wasteColor = productionPlacement?.wastePieceId
+        ? getSourceColorLabel(wasteForItem.find((waste: any) => waste.id === productionPlacement.wastePieceId))
         : null;
-      const color = rollColor ?? wasteColor;
+      const color = rollColor ?? wasteColor ?? productionPlacement?.colorHexCode;
       if (color) {
         existingColors.add(color);
       }
     });
 
-    const sourceColor = getSourceColorLabel(source);
+    const sourceColor = getSourceColorLabel(source) ?? placement?.colorHexCode;
     if (sourceColor && existingColors.size > 0 && !existingColors.has(sourceColor)) {
       warnings.push(
         t('commandes.productionMismatchColor', {
@@ -903,28 +843,26 @@ export function CommandeDetailPage() {
       return;
     }
 
-    const isRoll = productionForm.sourceType === 'ROLL';
-    const sourceId = isRoll ? productionForm.rollId : productionForm.wastePieceId;
-    if (!sourceId) {
+    const placementId = productionForm.placedRectangleId;
+    if (!placementId) {
       showError(t('commandes.productionItemSourceRequired'));
       return;
     }
 
-    const source = isRoll
-      ? rolls.find((roll) => roll.id === sourceId)
-      : wasteForItem.find((waste: any) => waste.id === sourceId);
-    const warnings = source
-      ? getProductionWarnings(productionTargetItem, source, pieceLength, pieceWidth)
-      : [];
+    const placement = placementsForItem.find((item) => item.id === placementId);
+    if (!placement) {
+      showError(t('commandes.productionItemSourceRequired'));
+      return;
+    }
+
+    const warnings = getProductionWarnings(productionTargetItem, placement, pieceLength, pieceWidth);
 
     const saveProductionItem = async () => {
       try {
         if (creatingProduction) return;
         setCreatingProduction(true);
         await ProductionItemService.create({
-          commandeItemId: productionTargetItem.id,
-          rollId: isRoll ? sourceId : undefined,
-          wastePieceId: isRoll ? undefined : sourceId,
+          placedRectangleId: placementId,
           pieceLengthM: pieceLength,
           pieceWidthMm: pieceWidth,
           quantity,
@@ -970,7 +908,6 @@ export function CommandeDetailPage() {
   const itemStatusOptions = itemStatuses.map((status) => ({ label: status, value: status }));
   const isBusy =
     updating ||
-    creatingWaste ||
     creatingProduction ||
     creatingChute ||
     creatingPlacement ||
@@ -995,20 +932,23 @@ export function CommandeDetailPage() {
   const filterRollOptions = (materialType?: string) =>
     rollOptionsBase.filter((option) => !materialType || option.materialType === materialType);
 
-  const processingRollOptions = filterRollOptions(selectedItem?.materialType);
-
-  const productionSourceOptions = [
-    { label: t('commandes.productionSourceRoll'), value: 'ROLL' },
-    { label: t('commandes.productionSourceWaste'), value: 'WASTE' },
-  ];
-
-  const productionRollOptions = filterRollOptions(productionTargetItem?.materialType);
-  const productionWasteOptions = wasteForItem
-    .filter((waste: any) => !productionTargetItem || waste.materialType === productionTargetItem.materialType)
-    .map((waste: any) => ({
-      label: `${waste.lengthM}m x ${waste.widthMm}mm (${waste.areaM2?.toFixed(2)}m2)`,
-      value: waste.id,
-    }));
+  const selectedProductionPlacement = placementsForItem.find(
+    (placement) => placement.id === productionForm.placedRectangleId
+  );
+  const selectedProductionSource = selectedProductionPlacement?.rollId
+    ? rolls.find((roll) => roll.id === selectedProductionPlacement.rollId)
+    : selectedProductionPlacement?.wastePieceId
+    ? wasteForItem.find((waste: any) => waste.id === selectedProductionPlacement.wastePieceId)
+    : null;
+  const selectedProductionColorHex =
+    selectedProductionSource?.colorHexCode ?? selectedProductionPlacement?.colorHexCode ?? '';
+  const selectedProductionColorName =
+    selectedProductionSource?.colorName ?? selectedProductionPlacement?.colorName ?? '';
+  const selectedProductionLabel = selectedProductionPlacement
+    ? `${selectedProductionSource?.reference ?? selectedProductionSource?.materialType ?? 'Placement'} | x:${selectedProductionPlacement.xMm} y:${selectedProductionPlacement.yMm} ${selectedProductionPlacement.widthMm}x${selectedProductionPlacement.heightMm}mm`
+    : productionForm.placedRectangleId
+    ? productionForm.placedRectangleId.slice(0, 8)
+    : t('commandes.notAvailable');
 
   const chuteSourceOptions = [
     { label: t('inventory.roll'), value: 'ROLL' },
@@ -1192,7 +1132,24 @@ export function CommandeDetailPage() {
           )}
 
           <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <div style={{ fontWeight: 600 }}>Existing placements</div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ fontWeight: 600 }}>Existing placements</div>
+              <Button
+                label="Add placement"
+                icon="pi pi-plus"
+                severity="secondary"
+                onClick={() => handleOpenPlacementModal(item)}
+                disabled={isBusy}
+              />
+            </div>
             {groupedPlacements.length === 0 ? (
               <Message severity="info" text="No placements recorded for this item." />
             ) : (
@@ -1285,10 +1242,16 @@ export function CommandeDetailPage() {
                               )}
                               <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <Button
+                                  label={t('commandes.addProductionItem')}
+                                  icon="pi pi-plus"
+                                  severity="secondary"
+                                  onClick={() => handleOpenProductionModal(item, placement.id)}
+                                />
+                                <Button
                                   label="Edit"
                                   icon="pi pi-pencil"
                                   outlined
-                                  onClick={() => startEditPlacement(placement)}
+                                  onClick={() => handleOpenEditPlacementModal(item, placement)}
                                 />
                                 <Button
                                   label="Delete"
@@ -1309,73 +1272,12 @@ export function CommandeDetailPage() {
             )}
           </div>
 
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <div style={{ fontWeight: 600 }}>{editingPlacementId ? 'Update placement' : 'Add placement'}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
-              <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X (length mm)</label>
-                <InputText
-                  value={placementForm.xMm}
-                  onChange={(e) => updatePlacementField('xMm', e.target.value)}
-                  type="number"
-                  min={0}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Y (width mm)</label>
-                <InputText
-                  value={placementForm.yMm}
-                  onChange={(e) => updatePlacementField('yMm', e.target.value)}
-                  type="number"
-                  min={0}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Width (mm)</label>
-                <InputText
-                  value={placementForm.widthMm}
-                  onChange={(e) => updatePlacementField('widthMm', e.target.value)}
-                  type="number"
-                  min={1}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Height (mm)</label>
-                <InputText
-                  value={placementForm.heightMm}
-                  onChange={(e) => updatePlacementField('heightMm', e.target.value)}
-                  type="number"
-                  min={1}
-                />
-              </div>
-            </div>
-            <div>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <Button
-                  label={creatingPlacement ? 'Saving...' : (editingPlacementId ? 'Update placement' : 'Save placement')}
-                  icon={editingPlacementId ? 'pi pi-check' : 'pi pi-plus'}
-                  onClick={() => handleCreatePlacement(item)}
-                  disabled={creatingPlacement || isBusy}
-                  loading={creatingPlacement}
-                />
-                {editingPlacementId && (
-                  <Button
-                    label="Cancel"
-                    severity="secondary"
-                    outlined
-                    onClick={resetPlacementForm}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     );
   };
 
-  const 
-  getContrastTextColor = (hexColor?: string) => {
+  const getContrastTextColor = (hexColor?: string) => {
     if (!hexColor) return 'inherit';
     const normalized = hexColor.replace('#', '').trim();
     if (normalized.length !== 3 && normalized.length !== 6) return 'inherit';
@@ -1395,11 +1297,6 @@ export function CommandeDetailPage() {
     const luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
     return luminance > 0.6 ? '#000000' : '#ffffff';
   };
-
-  const wasteTypeOptions = [
-    { label: t('commandes.wasteTypeScrap'), value: 'DECHET' },
-    { label: t('commandes.wasteTypeReusable'), value: 'CHUTE_EXPLOITABLE' },
-  ];
 
   if (loading) {
     return (
@@ -1615,23 +1512,18 @@ export function CommandeDetailPage() {
 
                 {expandedItemId === item.id && (
                   <div style={{ marginTop: '1rem' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '0.75rem',
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <span style={{ fontWeight: 600 }}>{t('commandes.rollProcessing')}</span>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <Button
-                          label={t('commandes.processRoll')}
-                          icon="pi pi-cog"
-                          onClick={() => handleOpenProcessingModal(item)}
-                          disabled={isBusy}
-                        />
+                    <div style={{ marginTop: '0.75rem' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '0.75rem',
+                          flexWrap: 'wrap',
+                          marginBottom: '0.5rem',
+                        }}
+                      >
+                        <span style={{ fontWeight: 600 }}>{t('commandes.wasteCreated')}</span>
                         <Button
                           label={t('inventory.createChute')}
                           icon="pi pi-plus-circle"
@@ -1639,19 +1531,6 @@ export function CommandeDetailPage() {
                           onClick={() => handleOpenChuteModal(item)}
                           disabled={isBusy}
                         />
-                        <Button
-                          label={t('commandes.addProductionItem')}
-                          icon="pi pi-plus"
-                          severity="secondary"
-                          onClick={() => handleOpenProductionModal(item)}
-                          disabled={isBusy}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ marginTop: '0.75rem' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>
-                        {t('commandes.wasteCreated')}
                       </div>
                       {wasteForItem.length === 0 ? (
                         <Message severity="info" text={t('commandes.noWasteRecorded')} />
@@ -1691,21 +1570,34 @@ export function CommandeDetailPage() {
                         <Message severity="info" text={t('commandes.noProductionItems')} />
                       ) : (
                         <div style={{ display: 'grid', gap: '0.5rem' }}>
-                          {productionForItem.map((production) => (
-                            <Card key={production.id} style={{ padding: '0.5rem' }}>
-                              {production.goodProduction}
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.75rem',
-                                  flexWrap: 'wrap',
-                                }}
-                              >
-                                <Tag
-                                  value={production.rollId ? t('commandes.productionSourceRoll') : t('commandes.productionSourceWaste')}
-                                  severity={production.rollId ? 'info' : 'success'}
-                                />
+                          {productionForItem.map((production) => {
+                            const placement = placementsForItem.find((item) => item.id === production.placedRectangleId);
+                            const source = placement?.rollId
+                              ? rolls.find((roll) => roll.id === placement.rollId)
+                              : placement?.wastePieceId
+                              ? wasteForItem.find((waste: any) => waste.id === placement.wastePieceId)
+                              : null;
+                            const sourceLabel = source?.reference ?? source?.materialType ?? 'Placement';
+                            return (
+                              <Card key={production.id} style={{ padding: '0.5rem' }}>
+                                {production.goodProduction}
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    flexWrap: 'wrap',
+                                  }}
+                                >
+                                  <Tag
+                                    value={sourceLabel}
+                                    severity={placement?.rollId ? 'info' : 'success'}
+                                  />
+                                  {placement && (
+                                    <span>
+                                      x:{placement.xMm} y:{placement.yMm} {placement.widthMm}x{placement.heightMm}mm
+                                    </span>
+                                  )}
                                 {typeof production.goodProduction === 'boolean' && (
                                   <Tag
                                     value={
@@ -1721,14 +1613,15 @@ export function CommandeDetailPage() {
                                   {' '}({production.totalAreaM2?.toFixed(2)}m2)
                                 </span>
                                 <span>{formatDate(production.createdAt)}</span>
-                              </div>
-                              {production.productionMiss && (
-                                <div style={{ marginTop: '0.35rem', color: 'var(--text-color-secondary)', fontSize: '0.85rem' }}>
-                                  {t('commandes.productionMissLabel')}: {production.productionMiss}
                                 </div>
-                              )}
-                            </Card>
-                          ))}
+                                {production.productionMiss && (
+                                  <div style={{ marginTop: '0.35rem', color: 'var(--text-color-secondary)', fontSize: '0.85rem' }}>
+                                    {t('commandes.productionMissLabel')}: {production.productionMiss}
+                                  </div>
+                                )}
+                              </Card>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -1864,101 +1757,60 @@ export function CommandeDetailPage() {
       </Dialog>
 
       <Dialog
-        header={
-          selectedItem
-            ? `${t('commandes.processRollLine')} ${selectedItem.lineNumber}`
-            : t('commandes.processRoll')
-        }
-        visible={showProcessingModal}
-        onHide={handleCloseProcessingModal}
-        style={{ width: 'min(600px, 95vw)' }}
+        header={editingPlacementId ? 'Update placement' : 'Add placement'}
+        visible={showPlacementModal}
+        onHide={handleClosePlacementModal}
+        style={{ width: 'min(560px, 95vw)' }}
         footer={
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            <Button label={t('commandes.cancel')} severity="secondary" onClick={handleCloseProcessingModal} />
-            <Button label={t('commandes.recordWaste')} onClick={handleProcessRoll} loading={creatingWaste} />
+            <Button label={t('commandes.cancel')} severity="secondary" onClick={handleClosePlacementModal} />
+            <Button
+              label={editingPlacementId ? 'Update placement' : 'Save placement'}
+              onClick={handleSavePlacement}
+              loading={creatingPlacement}
+              disabled={creatingPlacement || !placementTargetItem}
+            />
           </div>
         }
       >
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.rollRequired')}
-            </label>
-            <Dropdown
-              value={processingForm.rollId}
-              options={processingRollOptions}
-              itemTemplate={renderRollOption}
-              valueTemplate={(option) => renderRollOption(option)}
-              onChange={(e) => updateProcessingField('rollId', e.value as string)}
-              placeholder={t('commandes.selectRollOption')}
-              style={{ width: '100%' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.lengthUsed')}
-            </label>
-            <InputText
-              value={processingForm.lengthUsedM}
-              onChange={(e) => updateProcessingField('lengthUsedM', e.target.value)}
-              placeholder="0.00"
-              type="number"
-              style={{ width: '100%' }}
-            />
-            <small>{t('commandes.lengthUsedHelp')}</small>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.remainingWidth')}
-            </label>
-            <InputText
-              value={processingForm.widthRemainingMm}
-              onChange={(e) => updateProcessingField('widthRemainingMm', e.target.value)}
-              placeholder="0"
-              type="number"
-              style={{ width: '100%' }}
-            />
-            <small>{t('commandes.remainingWidthHelp')}</small>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.wasteTypeRequired')}
-            </label>
-            <Dropdown
-              value={processingForm.wasteType}
-              options={wasteTypeOptions}
-              onChange={(e) => updateProcessingField('wasteType', e.value as string)}
-              style={{ width: '100%' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.weight')}
-            </label>
-            <InputText
-              value={processingForm.weightKg}
-              onChange={(e) => updateProcessingField('weightKg', e.target.value)}
-              placeholder="0.00"
-              type="number"
-              style={{ width: '100%' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.notes')}
-            </label>
-            <InputTextarea
-              value={processingForm.notes}
-              onChange={(e) => updateProcessingField('notes', e.target.value)}
-              placeholder={t('commandes.notesPlaceholder')}
-              rows={3}
-              style={{ width: '100%' }}
-            />
+        <div style={{ display: 'grid', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X (length mm)</label>
+              <InputText
+                value={placementForm.xMm}
+                onChange={(e) => updatePlacementField('xMm', e.target.value)}
+                type="number"
+                min={0}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Y (width mm)</label>
+              <InputText
+                value={placementForm.yMm}
+                onChange={(e) => updatePlacementField('yMm', e.target.value)}
+                type="number"
+                min={0}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Width (mm)</label>
+              <InputText
+                value={placementForm.widthMm}
+                onChange={(e) => updatePlacementField('widthMm', e.target.value)}
+                type="number"
+                min={1}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Height (mm)</label>
+              <InputText
+                value={placementForm.heightMm}
+                onChange={(e) => updatePlacementField('heightMm', e.target.value)}
+                type="number"
+                min={1}
+              />
+            </div>
           </div>
         </div>
       </Dialog>
@@ -1986,45 +1838,37 @@ export function CommandeDetailPage() {
         <div style={{ display: 'grid', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.productionSourceType')}
+              Placement
             </label>
-            <Dropdown
-              value={productionForm.sourceType}
-              options={productionSourceOptions}
-              onChange={(e) => updateProductionField('sourceType', e.value as string)}
-              style={{ width: '100%' }}
-            />
+            <div
+              style={{
+                border: '1px solid var(--surface-border)',
+                borderRadius: '6px',
+                padding: '0.5rem 0.75rem',
+                background: 'var(--surface-card)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                flexWrap: 'wrap',
+              }}
+            >
+              {selectedProductionColorHex ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span
+                    style={{
+                      width: '12px',
+                      height: '12px',
+                      backgroundColor: selectedProductionColorHex,
+                      borderRadius: '3px',
+                      border: '1px solid var(--surface-border)',
+                    }}
+                  />
+                  <span>{selectedProductionColorName || selectedProductionColorHex}</span>
+                </span>
+              ) : null}
+              <span>{selectedProductionLabel}</span>
+            </div>
           </div>
-
-          {productionForm.sourceType === 'ROLL' ? (
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-                {t('commandes.productionRoll')}
-              </label>
-              <Dropdown
-                value={productionForm.rollId}
-                options={productionRollOptions}
-                itemTemplate={renderRollOption}
-                valueTemplate={(option) => renderRollOption(option)}
-                onChange={(e) => updateProductionField('rollId', e.value as string)}
-                placeholder={t('commandes.selectRollOption')}
-                style={{ width: '100%' }}
-              />
-            </div>
-          ) : (
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-                {t('commandes.productionWastePiece')}
-              </label>
-              <Dropdown
-                value={productionForm.wastePieceId}
-                options={productionWasteOptions}
-                onChange={(e) => updateProductionField('wastePieceId', e.value as string)}
-                placeholder={t('commandes.productionWastePlaceholder')}
-                style={{ width: '100%' }}
-              />
-            </div>
-          )}
 
           <div>
             <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>

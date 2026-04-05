@@ -2,14 +2,14 @@ package com.albelt.gestionstock.domain.production.service;
 
 import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
 import com.albelt.gestionstock.domain.commandes.repository.CommandeItemRepository;
+import com.albelt.gestionstock.domain.placement.entity.PlacedRectangle;
+import com.albelt.gestionstock.domain.placement.repository.PlacedRectangleRepository;
 import com.albelt.gestionstock.domain.production.dto.ProductionItemRequest;
 import com.albelt.gestionstock.domain.production.entity.ProductionItem;
 import com.albelt.gestionstock.domain.production.mapper.ProductionItemMapper;
 import com.albelt.gestionstock.domain.production.repository.ProductionItemRepository;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
-import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
-import com.albelt.gestionstock.domain.waste.repository.WastePieceRepository;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,23 +32,23 @@ public class ProductionItemService {
 
     private final ProductionItemRepository productionItemRepository;
     private final CommandeItemRepository commandeItemRepository;
-    private final RollRepository rollRepository;
-    private final WastePieceRepository wastePieceRepository;
+    private final PlacedRectangleRepository placedRectangleRepository;
     private final ProductionItemMapper productionItemMapper;
 
     public ProductionItem create(ProductionItemRequest request) {
-        log.info("Creating production item for commande item: {}", request.getCommandeItemId());
+        log.info("Creating production item for placed rectangle: {}", request.getPlacedRectangleId());
 
-        validateSource(request.getRollId(), request.getWastePieceId());
-        CommandeItem commandeItem = getCommandeItem(request.getCommandeItemId());
-        Roll roll = getRollIfPresent(request.getRollId());
-        WastePiece wastePiece = getWastePieceIfPresent(request.getWastePieceId());
+        PlacedRectangle placedRectangle = getPlacedRectangle(request.getPlacedRectangleId());
+        CommandeItem commandeItem = getCommandeItemFromPlacement(placedRectangle);
+        Roll roll = placedRectangle.getRoll();
+        WastePiece wastePiece = placedRectangle.getWastePiece();
 
         BigDecimal areaPerPiece = calculateAreaPerPiece(request.getPieceWidthMm(), request.getPieceLengthM());
         BigDecimal totalArea = calculateTotalArea(areaPerPiece, request.getQuantity());
 
-        //validateQuantity(commandeItem, request.getQuantity(), null);
-        //validateArea(roll, wastePiece, totalArea, null);
+        validatePlacementFit(placedRectangle, request.getPieceWidthMm(), request.getPieceLengthM());
+        validateQuantity(commandeItem, request.getQuantity(), null);
+        validateArea(placedRectangle, totalArea, null);
 
         ProductionMatchResult matchResult = evaluateProductionMatch(
             commandeItem,
@@ -60,9 +60,7 @@ public class ProductionItemService {
 
         ProductionItem item = productionItemMapper.toEntity(
                 request,
-                commandeItem,
-                roll,
-                wastePiece,
+            placedRectangle,
                 areaPerPiece,
                 totalArea
         );
@@ -76,17 +74,23 @@ public class ProductionItemService {
         log.info("Updating production item: {}", id);
 
         ProductionItem existing = getById(id);
-        validateSource(request.getRollId(), request.getWastePieceId());
+        PlacedRectangle placedRectangle = existing.getPlacedRectangle();
 
-        CommandeItem commandeItem = getCommandeItem(request.getCommandeItemId());
-        Roll roll = getRollIfPresent(request.getRollId());
-        WastePiece wastePiece = getWastePieceIfPresent(request.getWastePieceId());
+        if (request.getPlacedRectangleId() != null
+                && !request.getPlacedRectangleId().equals(placedRectangle.getId())) {
+            throw new IllegalArgumentException("Placed rectangle cannot be changed");
+        }
+
+        CommandeItem commandeItem = getCommandeItemFromPlacement(placedRectangle);
+        Roll roll = placedRectangle.getRoll();
+        WastePiece wastePiece = placedRectangle.getWastePiece();
 
         BigDecimal areaPerPiece = calculateAreaPerPiece(request.getPieceWidthMm(), request.getPieceLengthM());
         BigDecimal totalArea = calculateTotalArea(areaPerPiece, request.getQuantity());
 
+        validatePlacementFit(placedRectangle, request.getPieceWidthMm(), request.getPieceLengthM());
         validateQuantity(commandeItem, request.getQuantity(), existing.getId());
-        validateArea(roll, wastePiece, totalArea, existing.getId());
+        validateArea(placedRectangle, totalArea, existing.getId());
 
         ProductionMatchResult matchResult = evaluateProductionMatch(
             commandeItem,
@@ -96,9 +100,7 @@ public class ProductionItemService {
             request.getPieceWidthMm()
         );
 
-        existing.setCommandeItem(commandeItem);
-        existing.setRoll(roll);
-        existing.setWastePiece(wastePiece);
+        existing.setPlacedRectangle(placedRectangle);
         existing.setPieceLengthM(request.getPieceLengthM());
         existing.setPieceWidthMm(request.getPieceWidthMm());
         existing.setQuantity(request.getQuantity());
@@ -137,31 +139,22 @@ public class ProductionItemService {
         productionItemRepository.delete(item);
     }
 
-    private void validateSource(UUID rollId, UUID wastePieceId) {
-        if ((rollId == null && wastePieceId == null) || (rollId != null && wastePieceId != null)) {
-            throw new IllegalArgumentException("Specify exactly one of rollId or wastePieceId");
-        }
-    }
-
     private CommandeItem getCommandeItem(UUID commandeItemId) {
         return commandeItemRepository.findById(commandeItemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order item not found: " + commandeItemId));
     }
 
-    private Roll getRollIfPresent(UUID rollId) {
-        if (rollId == null) {
-            return null;
-        }
-        return rollRepository.findById(rollId)
-                .orElseThrow(() -> ResourceNotFoundException.roll(rollId.toString()));
+    private PlacedRectangle getPlacedRectangle(UUID placedRectangleId) {
+        return placedRectangleRepository.findById(placedRectangleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Placed rectangle not found: " + placedRectangleId));
     }
 
-    private WastePiece getWastePieceIfPresent(UUID wastePieceId) {
-        if (wastePieceId == null) {
-            return null;
+    private CommandeItem getCommandeItemFromPlacement(PlacedRectangle placedRectangle) {
+        UUID commandeItemId = placedRectangle.getCommandeItemId();
+        if (commandeItemId == null) {
+            throw new IllegalArgumentException("Placed rectangle must be linked to a commande item");
         }
-        return wastePieceRepository.findById(wastePieceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Waste piece not found: " + wastePieceId));
+        return getCommandeItem(commandeItemId);
     }
 
     private BigDecimal calculateAreaPerPiece(Integer widthMm, BigDecimal lengthM) {
@@ -187,29 +180,44 @@ public class ProductionItemService {
         }
     }
 
-    private void validateArea(Roll roll, WastePiece wastePiece, BigDecimal totalArea, UUID excludeId) {
-        if (roll != null) {
-            BigDecimal existingArea = productionItemRepository
-                    .sumTotalAreaByRollIdExcludingId(roll.getId(), excludeId);
-            BigDecimal current = existingArea != null ? existingArea : BigDecimal.ZERO;
-            BigDecimal maxAllowed = roll.getAreaM2();
+    private void validateArea(PlacedRectangle placedRectangle, BigDecimal totalArea, UUID excludeId) {
+        if (placedRectangle == null) {
+            return;
+        }
+        BigDecimal existingArea = productionItemRepository
+                .sumTotalAreaByPlacedRectangleIdExcludingId(placedRectangle.getId(), excludeId);
+        BigDecimal current = existingArea != null ? existingArea : BigDecimal.ZERO;
 
-            if (maxAllowed != null && current.add(totalArea).compareTo(maxAllowed) > 0) {
-                throw new IllegalArgumentException(
-                        "Total production area exceeds roll area"
-                );
-            }
-        } else if (wastePiece != null) {
-            BigDecimal existingArea = productionItemRepository
-                    .sumTotalAreaByWastePieceIdExcludingId(wastePiece.getId(), excludeId);
-            BigDecimal current = existingArea != null ? existingArea : BigDecimal.ZERO;
-            BigDecimal maxAllowed = wastePiece.getAreaM2();
+        BigDecimal widthM = BigDecimal.valueOf(placedRectangle.getWidthMm())
+                .divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
+        BigDecimal heightM = BigDecimal.valueOf(placedRectangle.getHeightMm())
+                .divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
+        BigDecimal maxAllowed = widthM.multiply(heightM).setScale(4, RoundingMode.HALF_UP);
 
-            if (maxAllowed != null && current.add(totalArea).compareTo(maxAllowed) > 0) {
-                throw new IllegalArgumentException(
-                        "Total production area exceeds waste piece area"
-                );
-            }
+        if (current.add(totalArea).compareTo(maxAllowed) > 0) {
+            throw new IllegalArgumentException(
+                    "Total production area exceeds placed rectangle area"
+            );
+        }
+    }
+
+    private void validatePlacementFit(PlacedRectangle placedRectangle, Integer pieceWidthMm, BigDecimal pieceLengthM) {
+        if (placedRectangle == null || pieceWidthMm == null || pieceLengthM == null) {
+            return;
+        }
+        Integer rectWidth = placedRectangle.getWidthMm();
+        Integer rectHeight = placedRectangle.getHeightMm();
+        if (rectWidth == null || rectHeight == null) {
+            return;
+        }
+
+        if (pieceWidthMm > rectWidth) {
+            throw new IllegalArgumentException("Piece width exceeds placed rectangle width");
+        }
+
+        BigDecimal lengthMm = pieceLengthM.multiply(BigDecimal.valueOf(1000));
+        if (lengthMm.compareTo(BigDecimal.valueOf(rectHeight)) > 0) {
+            throw new IllegalArgumentException("Piece length exceeds placed rectangle length");
         }
     }
 

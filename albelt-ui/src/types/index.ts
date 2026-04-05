@@ -669,9 +669,7 @@ export interface CommandeRequest {
 
 export interface ProductionItem {
   id: string;
-  commandeItemId: string;
-  rollId?: string | null;
-  wastePieceId?: string | null;
+  placedRectangleId: string;
   pieceLengthM: number;
   pieceWidthMm: number;
   quantity: number;
@@ -685,9 +683,7 @@ export interface ProductionItem {
 }
 
 export interface ProductionItemRequest {
-  commandeItemId: string;
-  rollId?: string;
-  wastePieceId?: string;
+  placedRectangleId: string;
   pieceLengthM: number;
   pieceWidthMm: number;
   quantity: number;

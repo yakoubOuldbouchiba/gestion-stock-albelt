@@ -17,26 +17,23 @@ import java.util.UUID;
 public interface ProductionItemRepository extends JpaRepository<ProductionItem, UUID> {
 
     @Query("SELECT COALESCE(SUM(pi.totalAreaM2), 0) FROM ProductionItem pi " +
-           "WHERE pi.roll.id = :rollId " +
+           "WHERE pi.placedRectangle.id = :placedRectangleId " +
            "AND (:excludeId IS NULL OR pi.id <> :excludeId)")
-    BigDecimal sumTotalAreaByRollIdExcludingId(@Param("rollId") UUID rollId,
-                                               @Param("excludeId") UUID excludeId);
-
-    @Query("SELECT COALESCE(SUM(pi.totalAreaM2), 0) FROM ProductionItem pi " +
-           "WHERE pi.wastePiece.id = :wastePieceId " +
-           "AND (:excludeId IS NULL OR pi.id <> :excludeId)")
-    BigDecimal sumTotalAreaByWastePieceIdExcludingId(@Param("wastePieceId") UUID wastePieceId,
-                                                     @Param("excludeId") UUID excludeId);
+    BigDecimal sumTotalAreaByPlacedRectangleIdExcludingId(@Param("placedRectangleId") UUID placedRectangleId,
+                                                          @Param("excludeId") UUID excludeId);
 
     @Query("SELECT COALESCE(SUM(pi.quantity), 0) FROM ProductionItem pi " +
-           "WHERE pi.commandeItem.id = :commandeItemId " +
+           "WHERE pi.placedRectangle.commandeItemId = :commandeItemId " +
            "AND (:excludeId IS NULL OR pi.id <> :excludeId)")
     Long sumQuantityByCommandeItemIdExcludingId(@Param("commandeItemId") UUID commandeItemId,
                                                 @Param("excludeId") UUID excludeId);
 
-    List<ProductionItem> findByCommandeItemId(UUID commandeItemId);
+    @Query("SELECT pi FROM ProductionItem pi WHERE pi.placedRectangle.commandeItemId = :commandeItemId")
+    List<ProductionItem> findByCommandeItemId(@Param("commandeItemId") UUID commandeItemId);
 
-    List<ProductionItem> findByRollId(UUID rollId);
+    @Query("SELECT pi FROM ProductionItem pi WHERE pi.placedRectangle.roll.id = :rollId")
+    List<ProductionItem> findByRollId(@Param("rollId") UUID rollId);
 
-    List<ProductionItem> findByWastePieceId(UUID wastePieceId);
+    @Query("SELECT pi FROM ProductionItem pi WHERE pi.placedRectangle.wastePiece.id = :wastePieceId")
+    List<ProductionItem> findByWastePieceId(@Param("wastePieceId") UUID wastePieceId);
 }

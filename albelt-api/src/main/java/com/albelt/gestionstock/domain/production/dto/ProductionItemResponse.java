@@ -17,11 +17,7 @@ public class ProductionItemResponse {
 
     private UUID id;
 
-    private UUID commandeItemId;
-
-    private UUID rollId;
-
-    private UUID wastePieceId;
+    private UUID placedRectangleId;
 
     private BigDecimal pieceLengthM;
 
