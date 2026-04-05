@@ -69,7 +69,7 @@ export type RollStatus = 'AVAILABLE' | 'OPENED' | 'EXHAUSTED' | 'ARCHIVED';
 export type WasteType = 'CHUTE_EXPLOITABLE' | 'DECHET';
 export type WasteClassification = 'DECHET' | 'CHUTE_EXPLOITABLE';
 export type CuttingOperationStatus = 'PREPARED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
-export type WasteItemStatus = 'AVAILABLE' | 'USED_IN_ORDER' | 'SCRAP' | 'RESERVED';
+export type WasteItemStatus = 'AVAILABLE' | 'USED_IN_ORDER' | 'SCRAP' | 'RESERVED' | 'EXHAUSTED';
 export type WasteStatus = WasteItemStatus; // Alias for backend compatibility
 
 /**
@@ -244,6 +244,36 @@ export interface WastePieceRequest {
   weightKg?: number;
   notes?: string;
   status?: 'AVAILABLE';
+}
+
+/**
+ * Placed Rectangle Types
+ */
+export interface PlacedRectangle {
+  id: string;
+  rollId?: string | null;
+  wastePieceId?: string | null;
+  commandeItemId?: string | null;
+  xMm: number;
+  yMm: number;
+  widthMm: number;
+  heightMm: number;
+  colorId?: string | null;
+  colorName?: string | null;
+  colorHexCode?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlacedRectangleRequest {
+  rollId?: string;
+  wastePieceId?: string;
+  commandeItemId?: string;
+  xMm: number;
+  yMm: number;
+  widthMm: number;
+  heightMm: number;
+  colorId?: string;
 }
 
 /**

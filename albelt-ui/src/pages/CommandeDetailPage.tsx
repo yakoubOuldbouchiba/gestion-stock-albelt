@@ -16,8 +16,17 @@ import { WastePieceService } from '../services/wastePieceService';
 import { ProductionItemService } from '../services/productionItemService';
 import { formatDate, formatDateTime } from '../utils/date';
 import { RollService } from '../services/rollService';
+import { PlacedRectangleService } from '../services/placedRectangleService';
 import { useI18n } from '@hooks/useI18n';
-import type { Commande, CommandeItem, ItemStatus, ProductionItem, Roll, WasteType } from '../types';
+import type {
+  Commande,
+  CommandeItem,
+  ItemStatus,
+  PlacedRectangle,
+  ProductionItem,
+  Roll,
+  WasteType,
+} from '../types';
 
 export function CommandeDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +45,17 @@ export function CommandeDetailPage() {
   const [selectedItem, setSelectedItem] = useState<CommandeItem | null>(null);
   const [wasteForItem, setWasteForItem] = useState<any[]>([]);
   const [productionForItem, setProductionForItem] = useState<ProductionItem[]>([]);
+  const [placementsForItem, setPlacementsForItem] = useState<PlacedRectangle[]>([]);
+  const [creatingPlacement, setCreatingPlacement] = useState(false);
+  const [placementForm, setPlacementForm] = useState({
+    sourceType: 'ROLL' as 'ROLL' | 'WASTE_PIECE',
+    sourceId: '',
+    xMm: '',
+    yMm: '',
+    widthMm: '',
+    heightMm: '',
+  });
+  const [editingPlacementId, setEditingPlacementId] = useState<string | null>(null);
   const [showProductionModal, setShowProductionModal] = useState(false);
   const [productionTargetItem, setProductionTargetItem] = useState<CommandeItem | null>(null);
   const [showChuteForm, setShowChuteForm] = useState(false);
@@ -352,6 +372,226 @@ export function CommandeDetailPage() {
     }
   };
 
+  const loadPlacementsForItem = async (itemId: string) => {
+    try {
+      const response = await PlacedRectangleService.getByCommandeItem(itemId);
+      if (response.data) {
+        const items = Array.isArray(response.data) ? response.data : [];
+        setPlacementsForItem(items);
+        if (items.length > 0) {
+          setPlacementForm((prev) => {
+            if (prev.sourceId) {
+              return prev;
+            }
+            const first = items[0];
+            if (first.rollId) {
+              return {
+                ...prev,
+                sourceType: 'ROLL',
+                sourceId: first.rollId,
+              };
+            }
+            if (first.wastePieceId) {
+              return {
+                ...prev,
+                sourceType: 'WASTE_PIECE',
+                sourceId: first.wastePieceId,
+              };
+            }
+            return prev;
+          });
+        }
+      } else {
+        setPlacementsForItem([]);
+      }
+    } catch (err) {
+      console.error('Error loading placements:', err);
+      setPlacementsForItem([]);
+    }
+  };
+
+  const resetPlacementForm = () => {
+    setPlacementForm({
+      sourceType: 'ROLL',
+      sourceId: '',
+      xMm: '',
+      yMm: '',
+      widthMm: '',
+      heightMm: '',
+    });
+    setEditingPlacementId(null);
+  };
+
+  const updatePlacementField = (name: keyof typeof placementForm, value: string) => {
+    setPlacementForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleCreatePlacement = async (item: CommandeItem) => {
+    const isEditing = editingPlacementId !== null;
+    const sourceId = placementForm.sourceId;
+    const isRollSource = placementForm.sourceType === 'ROLL';
+    if (!sourceId && !isEditing) {
+      showError('Select a roll or waste piece for placement.');
+      return;
+    }
+
+    const source = isRollSource
+      ? rolls.find((roll) => roll.id === sourceId)
+      : wasteForItem.find((waste: any) => waste.id === sourceId);
+    if (!source) {
+      showError('Placement source not found.');
+      return;
+    }
+
+    const xMm = parseInt(placementForm.xMm, 10);
+    const yMm = parseInt(placementForm.yMm, 10);
+    const widthMm = parseInt(placementForm.widthMm, 10);
+    const heightMm = parseInt(placementForm.heightMm, 10);
+
+    if ([xMm, yMm, widthMm, heightMm].some((value) => Number.isNaN(value))) {
+      showError('Placement dimensions are required.');
+      return;
+    }
+
+    const sourceWidth = Number(source.widthMm) || 0;
+    const sourceLengthMm = Math.round((Number(source.lengthM) || 0) * 1000);
+    if (sourceWidth <= 0 || sourceLengthMm <= 0) {
+      showError('Source dimensions are required for placement.');
+      return;
+    }
+
+    if (xMm < 0 || yMm < 0 || widthMm <= 0 || heightMm <= 0) {
+      showError('Placement values must be positive.');
+      return;
+    }
+
+    if (xMm >= sourceWidth || yMm >= sourceLengthMm || xMm + widthMm > sourceWidth || yMm + heightMm > sourceLengthMm) {
+      showError('Placement is outside the source bounds.');
+      return;
+    }
+
+    const placementsForSource = placementsForItem.filter((placement) => (
+      isRollSource
+        ? placement.rollId === sourceId
+        : placement.wastePieceId === sourceId
+    ));
+    const hasOverlap = placementsForSource.some((placement) => {
+      if (isEditing && placement.id === editingPlacementId) {
+        return false;
+      }
+      const exX = placement.xMm;
+      const exY = placement.yMm;
+      const exW = placement.widthMm;
+      const exH = placement.heightMm;
+      return xMm < exX + exW && xMm + widthMm > exX && yMm < exY + exH && yMm + heightMm > exY;
+    });
+    if (hasOverlap) {
+      showError('Placement overlaps an existing rectangle.');
+      return;
+    }
+
+    try {
+      if (creatingPlacement) return;
+      setCreatingPlacement(true);
+      if (isEditing && editingPlacementId) {
+        await PlacedRectangleService.update(editingPlacementId, {
+          xMm,
+          yMm,
+          widthMm,
+          heightMm,
+        });
+      } else {
+        await PlacedRectangleService.create({
+          rollId: isRollSource ? sourceId : undefined,
+          wastePieceId: isRollSource ? undefined : sourceId,
+          commandeItemId: item.id,
+          xMm,
+          yMm,
+          widthMm,
+          heightMm,
+        });
+      }
+      await loadPlacementsForItem(item.id);
+      setPlacementForm((prev) => ({
+        ...prev,
+        xMm: '',
+        yMm: '',
+        widthMm: '',
+        heightMm: '',
+      }));
+      setEditingPlacementId(null);
+      showSuccess(isEditing ? 'Placement updated.' : 'Placement saved.');
+    } catch (err) {
+      console.error('Error creating placement:', err);
+      showError(isEditing ? 'Unable to update placement.' : 'Unable to save placement.');
+    } finally {
+      setCreatingPlacement(false);
+    }
+  };
+
+  const startEditPlacement = (placement: PlacedRectangle) => {
+    const sourceType = placement.rollId ? 'ROLL' : 'WASTE_PIECE';
+    const sourceId = placement.rollId ?? placement.wastePieceId ?? '';
+    setEditingPlacementId(placement.id);
+    setPlacementForm({
+      sourceType,
+      sourceId,
+      xMm: String(placement.xMm),
+      yMm: String(placement.yMm),
+      widthMm: String(placement.widthMm),
+      heightMm: String(placement.heightMm),
+    });
+  };
+
+  const handleDeletePlacement = (placementId: string, itemId: string) => {
+    confirmDialog({
+      message: 'Delete this placement?',
+      header: t('common.confirm'),
+      icon: 'pi pi-exclamation-triangle',
+      accept: async () => {
+        try {
+          await PlacedRectangleService.delete(placementId);
+          await loadPlacementsForItem(itemId);
+          if (editingPlacementId === placementId) {
+            resetPlacementForm();
+          }
+          showSuccess('Placement deleted.');
+        } catch (err) {
+          console.error('Error deleting placement:', err);
+          showError('Unable to delete placement.');
+        }
+      },
+    });
+  };
+
+  const handleClearSourcePlacements = (group: { type: 'ROLL' | 'WASTE_PIECE'; sourceId: string }, itemId: string) => {
+    confirmDialog({
+      message: 'Clear all placements for this source?',
+      header: t('common.confirm'),
+      icon: 'pi pi-exclamation-triangle',
+      accept: async () => {
+        try {
+          if (group.type === 'ROLL') {
+            await PlacedRectangleService.clearByRoll(group.sourceId);
+          } else {
+            await PlacedRectangleService.clearByWastePiece(group.sourceId);
+          }
+          await loadPlacementsForItem(itemId);
+          if (placementForm.sourceId === group.sourceId) {
+            resetPlacementForm();
+          }
+          showSuccess('Placements cleared.');
+        } catch (err) {
+          console.error('Error clearing placements:', err);
+          showError('Unable to clear placements.');
+        }
+      },
+    });
+  };
+
   const updateProcessingField = (name: keyof typeof processingForm, value: string) => {
     setProcessingForm((prev) => ({
       ...prev,
@@ -507,11 +747,15 @@ export function CommandeDetailPage() {
   const toggleItemDetails = (item: CommandeItem) => {
     if (expandedItemId === item.id) {
       setExpandedItemId(null);
+      setPlacementsForItem([]);
+      resetPlacementForm();
       return;
     }
     setExpandedItemId(item.id);
     loadWasteForItem(item.id);
     loadProductionForItem(item.id);
+    loadPlacementsForItem(item.id);
+    resetPlacementForm();
   };
 
   const handleOpenProductionModal = (item: CommandeItem) => {
@@ -729,6 +973,7 @@ export function CommandeDetailPage() {
     creatingWaste ||
     creatingProduction ||
     creatingChute ||
+    creatingPlacement ||
     deletingOrder ||
     deletingItemId !== null ||
     updatingItemStatusId !== null;
@@ -801,6 +1046,330 @@ export function CommandeDetailPage() {
         <span>{colorName}</span>
         <span style={{ color: 'var(--text-color-secondary)' }}>•</span>
         <span>{option.label}</span>
+      </div>
+    );
+  };
+
+  const renderPlacementSection = (item: CommandeItem) => {
+    const placementSourceOptions = [
+      { label: t('inventory.roll'), value: 'ROLL' },
+      { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' },
+    ];
+
+    const placementRollOptions = filterRollOptions(item.materialType);
+    const placementWasteOptions = wasteForItem
+      .filter((waste: any) => waste.materialType === item.materialType)
+      .map((waste: any) => ({
+        label: `${waste.lengthM}m x ${waste.widthMm}mm (${waste.areaM2?.toFixed(2)}m2)`,
+        value: waste.id,
+      }));
+
+    const placementSource = placementForm.sourceType === 'ROLL'
+      ? rolls.find((roll) => roll.id === placementForm.sourceId)
+      : wasteForItem.find((waste: any) => waste.id === placementForm.sourceId);
+
+    const sourceWidthMm = Number(placementSource?.widthMm) || 0;
+    const sourceLengthMm = Math.round((Number(placementSource?.lengthM) || 0) * 1000);
+    const placementsForSource = placementsForItem.filter((placement) => (
+      placementForm.sourceType === 'ROLL'
+        ? placement.rollId === placementForm.sourceId
+        : placement.wastePieceId === placementForm.sourceId
+    ));
+
+    const placementGroups = placementsForItem.reduce((groups, placement) => {
+      const sourceId = placement.rollId ?? placement.wastePieceId;
+      if (!sourceId) {
+        return groups;
+      }
+      const type = placement.rollId ? 'ROLL' : 'WASTE_PIECE';
+      const key = `${type}:${sourceId}`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.placements.push(placement);
+      } else {
+        groups.set(key, { type, sourceId, placements: [placement] });
+      }
+      return groups;
+    }, new Map<string, { type: 'ROLL' | 'WASTE_PIECE'; sourceId: string; placements: PlacedRectangle[] }>());
+
+    const groupedPlacements = Array.from(placementGroups.values());
+
+    const getGroupSource = (group: { type: 'ROLL' | 'WASTE_PIECE'; sourceId: string }) => (
+      group.type === 'ROLL'
+        ? rolls.find((roll) => roll.id === group.sourceId)
+        : wasteForItem.find((waste: any) => waste.id === group.sourceId)
+    );
+
+    const getGroupLabel = (group: { type: 'ROLL' | 'WASTE_PIECE'; sourceId: string }) => {
+      const source = getGroupSource(group);
+      const fallback = group.sourceId.slice(0, 8);
+      if (group.type === 'ROLL') {
+        return `Roll ${source?.reference ?? fallback}`;
+      }
+      return `Waste ${source?.reference ?? fallback}`;
+    };
+
+    return (
+      <div style={{ marginTop: '0.75rem' }}>
+        <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Placements (SVG)</div>
+        <div style={{ display: 'grid', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Source</label>
+              <Dropdown
+                value={placementForm.sourceType}
+                options={placementSourceOptions}
+                onChange={(e) => {
+                  const nextType = e.value as 'ROLL' | 'WASTE_PIECE';
+                  setPlacementForm((prev) => ({
+                    ...prev,
+                    sourceType: nextType,
+                    sourceId: '',
+                  }));
+                }}
+                disabled={editingPlacementId !== null}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Roll / Waste</label>
+              <Dropdown
+                value={placementForm.sourceId}
+                options={placementForm.sourceType === 'ROLL' ? placementRollOptions : placementWasteOptions}
+                itemTemplate={placementForm.sourceType === 'ROLL' ? renderRollOption : undefined}
+                valueTemplate={placementForm.sourceType === 'ROLL' ? (option) => renderRollOption(option) : undefined}
+                onChange={(e) => updatePlacementField('sourceId', e.value as string)}
+                placeholder={t('commandes.selectRollOption')}
+                disabled={editingPlacementId !== null}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+
+          {!placementForm.sourceId || sourceWidthMm <= 0 || sourceLengthMm <= 0 ? (
+            <Message severity="info" text="Select a source to preview placements." />
+          ) : (
+            <div
+              style={{
+                border: '1px solid var(--surface-border)',
+                borderRadius: '8px',
+                padding: '0.5rem',
+                background: 'var(--surface-card)',
+              }}
+            >
+              <svg
+                viewBox={`0 0 ${Math.max(1, sourceLengthMm)} ${Math.max(1, sourceWidthMm)}`}
+                width="100%"
+                height="240"
+                preserveAspectRatio="xMidYMid meet"
+              >
+                <rect
+                  x={0}
+                  y={0}
+                  width={sourceLengthMm}
+                  height={sourceWidthMm}
+                  fill={placementSource?.colorHexCode || '#f5f5f5'}
+                  stroke="#bdbdbd"
+                  strokeWidth={2}
+                />
+                {placementsForSource.map((placement) => (
+                  <rect
+                    key={placement.id}
+                    x={placement.yMm}
+                    y={placement.xMm}
+                    width={placement.heightMm}
+                    height={placement.widthMm}
+                    fill={placement.colorHexCode || 'rgba(25, 118, 210, 0.35)'}
+                    stroke={placement.colorHexCode || '#1565c0'}
+                    strokeWidth={1}
+                  />
+                ))}
+              </svg>
+              <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
+                {(sourceLengthMm / 1000).toFixed(2)}m x {sourceWidthMm}mm (length on X, width on Y)
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            <div style={{ fontWeight: 600 }}>Existing placements</div>
+            {groupedPlacements.length === 0 ? (
+              <Message severity="info" text="No placements recorded for this item." />
+            ) : (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                {groupedPlacements.map((group) => {
+                  const source = getGroupSource(group);
+                  const widthMm = Number(source?.widthMm) || 0;
+                  const lengthMm = Math.round((Number(source?.lengthM) || 0) * 1000);
+                  return (
+                    <Card key={`${group.type}-${group.sourceId}`} style={{ padding: '0.75rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                        <div style={{ fontWeight: 600 }}>{getGroupLabel(group)}</div>
+                        <Button
+                          label="Clear"
+                          icon="pi pi-trash"
+                          severity="danger"
+                          outlined
+                          onClick={() => handleClearSourcePlacements(group, item.id)}
+                        />
+                      </div>
+                      {widthMm > 0 && lengthMm > 0 ? (
+                        <div
+                          style={{
+                            border: '1px solid var(--surface-border)',
+                            borderRadius: '8px',
+                            padding: '0.5rem',
+                            background: 'var(--surface-card)',
+                            marginBottom: '0.75rem',
+                          }}
+                        >
+                          <svg
+                            viewBox={`0 0 ${Math.max(1, lengthMm)} ${Math.max(1, widthMm)}`}
+                            width="100%"
+                            height="220"
+                            preserveAspectRatio="xMidYMid meet"
+                          >
+                            <rect
+                              x={0}
+                              y={0}
+                              width={lengthMm}
+                              height={widthMm}
+                              fill={source?.colorHexCode || '#f5f5f5'}
+                              stroke="#bdbdbd"
+                              strokeWidth={2}
+                            />
+                            {group.placements.map((placement) => (
+                              <rect
+                                key={placement.id}
+                                x={placement.yMm}
+                                y={placement.xMm}
+                                width={placement.heightMm}
+                                height={placement.widthMm}
+                                fill={placement.colorHexCode || 'rgba(25, 118, 210, 0.35)'}
+                                stroke={placement.colorHexCode || '#1565c0'}
+                                strokeWidth={1}
+                              />
+                            ))}
+                          </svg>
+                          <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
+                            {(lengthMm / 1000).toFixed(2)}m x {widthMm}mm (length on X, width on Y)
+                          </div>
+                        </div>
+                      ) : (
+                        <Message severity="info" text="Source dimensions are required for SVG preview." />
+                      )}
+
+                      <div style={{ display: 'grid', gap: '0.5rem' }}>
+                        {group.placements.map((placement) => (
+                          <Card key={placement.id} style={{ padding: '0.5rem' }}>
+                            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                              <span>
+                                x:{placement.xMm} y:{placement.yMm}
+                              </span>
+                              <span>
+                                {placement.widthMm} x {placement.heightMm} mm
+                              </span>
+                              {placement.colorHexCode && (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <span
+                                    style={{
+                                      width: '12px',
+                                      height: '12px',
+                                      backgroundColor: placement.colorHexCode,
+                                      borderRadius: '3px',
+                                      border: '1px solid var(--surface-border)',
+                                    }}
+                                  />
+                                  {placement.colorName || placement.colorHexCode}
+                                </span>
+                              )}
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <Button
+                                  label="Edit"
+                                  icon="pi pi-pencil"
+                                  outlined
+                                  onClick={() => startEditPlacement(placement)}
+                                />
+                                <Button
+                                  label="Delete"
+                                  icon="pi pi-trash"
+                                  severity="danger"
+                                  outlined
+                                  onClick={() => handleDeletePlacement(placement.id, item.id)}
+                                />
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            <div style={{ fontWeight: 600 }}>{editingPlacementId ? 'Update placement' : 'Add placement'}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X (length mm)</label>
+                <InputText
+                  value={placementForm.xMm}
+                  onChange={(e) => updatePlacementField('xMm', e.target.value)}
+                  type="number"
+                  min={0}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Y (width mm)</label>
+                <InputText
+                  value={placementForm.yMm}
+                  onChange={(e) => updatePlacementField('yMm', e.target.value)}
+                  type="number"
+                  min={0}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Width (mm)</label>
+                <InputText
+                  value={placementForm.widthMm}
+                  onChange={(e) => updatePlacementField('widthMm', e.target.value)}
+                  type="number"
+                  min={1}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Height (mm)</label>
+                <InputText
+                  value={placementForm.heightMm}
+                  onChange={(e) => updatePlacementField('heightMm', e.target.value)}
+                  type="number"
+                  min={1}
+                />
+              </div>
+            </div>
+            <div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <Button
+                  label={creatingPlacement ? 'Saving...' : (editingPlacementId ? 'Update placement' : 'Save placement')}
+                  icon={editingPlacementId ? 'pi pi-check' : 'pi pi-plus'}
+                  onClick={() => handleCreatePlacement(item)}
+                  disabled={creatingPlacement || isBusy}
+                  loading={creatingPlacement}
+                />
+                {editingPlacementId && (
+                  <Button
+                    label="Cancel"
+                    severity="secondary"
+                    outlined
+                    onClick={resetPlacementForm}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -1163,6 +1732,8 @@ export function CommandeDetailPage() {
                         </div>
                       )}
                     </div>
+
+                    {renderPlacementSection(item)}
                   </div>
                 )}
                 </Card>

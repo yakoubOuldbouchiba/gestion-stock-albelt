@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { Roll, RollStatus, WastePiece } from '../types/index';
+import type { PlacedRectangle, Roll, RollStatus, WastePiece } from '../types/index';
 import { RollService } from '../services/rollService';
 import { WastePieceService } from '../services/wastePieceService';
+import { PlacedRectangleService } from '../services/placedRectangleService';
 import { useI18n } from '@hooks/useI18n';
 import { formatDate } from '../utils/date';
 import { Button } from 'primereact/button';
@@ -14,6 +15,7 @@ import { Column } from 'primereact/column';
 import { ProgressBar } from 'primereact/progressbar';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { InputText } from 'primereact/inputtext';
 
 export function RollDetailPage() {
   const { t } = useI18n();
@@ -22,6 +24,16 @@ export function RollDetailPage() {
   
   const [roll, setRoll] = useState<Roll | null>(null);
   const [wastePieces, setWastePieces] = useState<WastePiece[]>([]);
+  const [placements, setPlacements] = useState<PlacedRectangle[]>([]);
+  const [creatingPlacement, setCreatingPlacement] = useState(false);
+  const [placementForm, setPlacementForm] = useState({
+    xMm: '',
+    yMm: '',
+    widthMm: '',
+    heightMm: '',
+    commandeItemId: '',
+  });
+  const [editingPlacementId, setEditingPlacementId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,9 +49,10 @@ export function RollDetailPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [rollResponse, wasteResponse] = await Promise.all([
+      const [rollResponse, wasteResponse, placementsResponse] = await Promise.all([
         RollService.getById(rollId),
         WastePieceService.getByRoll(rollId),
+        PlacedRectangleService.getByRoll(rollId),
       ]);
 
       if (rollResponse.success && rollResponse.data) {
@@ -53,6 +66,12 @@ export function RollDetailPage() {
         setWastePieces(wasteResponse.data);
       } else {
         setWastePieces([]);
+      }
+
+      if (placementsResponse.success && placementsResponse.data) {
+        setPlacements(Array.isArray(placementsResponse.data) ? placementsResponse.data : []);
+      } else {
+        setPlacements([]);
       }
     } catch (err) {
       setError(t('rollDetail.failedToLoad'));
@@ -76,8 +95,154 @@ export function RollDetailPage() {
     }
   };
 
+  const updatePlacementField = (name: keyof typeof placementForm, value: string) => {
+    setPlacementForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleCreatePlacement = async () => {
+    if (!roll) return;
+    const isEditing = editingPlacementId !== null;
+    const xMm = parseInt(placementForm.xMm, 10);
+    const yMm = parseInt(placementForm.yMm, 10);
+    const widthMm = parseInt(placementForm.widthMm, 10);
+    const heightMm = parseInt(placementForm.heightMm, 10);
+
+    if ([xMm, yMm, widthMm, heightMm].some((value) => Number.isNaN(value))) {
+      setError('Placement dimensions are required.');
+      return;
+    }
+
+    const sourceWidthMm = roll.widthMm;
+    const sourceLengthMm = Math.round(roll.lengthM * 1000);
+    if (sourceWidthMm <= 0 || sourceLengthMm <= 0) {
+      setError('Source dimensions are required for placement.');
+      return;
+    }
+
+    if (xMm < 0 || yMm < 0 || widthMm <= 0 || heightMm <= 0) {
+      setError('Placement values must be positive.');
+      return;
+    }
+
+    if (xMm >= sourceWidthMm || yMm >= sourceLengthMm || xMm + widthMm > sourceWidthMm || yMm + heightMm > sourceLengthMm) {
+      setError('Placement is outside the source bounds.');
+      return;
+    }
+
+    const hasOverlap = placements.some((placement) => {
+      if (isEditing && placement.id === editingPlacementId) {
+        return false;
+      }
+      const exX = placement.xMm;
+      const exY = placement.yMm;
+      const exW = placement.widthMm;
+      const exH = placement.heightMm;
+      return xMm < exX + exW && xMm + widthMm > exX && yMm < exY + exH && yMm + heightMm > exY;
+    });
+    if (hasOverlap) {
+      setError('Placement overlaps an existing rectangle.');
+      return;
+    }
+
+    try {
+      if (creatingPlacement) return;
+      setCreatingPlacement(true);
+      if (isEditing && editingPlacementId) {
+        await PlacedRectangleService.update(editingPlacementId, {
+          xMm,
+          yMm,
+          widthMm,
+          heightMm,
+        });
+      } else {
+        await PlacedRectangleService.create({
+          rollId: roll.id,
+          commandeItemId: placementForm.commandeItemId || undefined,
+          xMm,
+          yMm,
+          widthMm,
+          heightMm,
+        });
+      }
+      const placementsResponse = await PlacedRectangleService.getByRoll(roll.id);
+      const items = Array.isArray(placementsResponse.data) ? placementsResponse.data : [];
+      setPlacements(items);
+      setPlacementForm((prev) => ({
+        ...prev,
+        xMm: '',
+        yMm: '',
+        widthMm: '',
+        heightMm: '',
+      }));
+      setEditingPlacementId(null);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError(t('rollDetail.failedToUpdate'));
+    } finally {
+      setCreatingPlacement(false);
+    }
+  };
+
+  const startEditPlacement = (placement: PlacedRectangle) => {
+    setEditingPlacementId(placement.id);
+    setPlacementForm({
+      xMm: String(placement.xMm),
+      yMm: String(placement.yMm),
+      widthMm: String(placement.widthMm),
+      heightMm: String(placement.heightMm),
+      commandeItemId: placement.commandeItemId || '',
+    });
+  };
+
+  const cancelEditPlacement = () => {
+    setEditingPlacementId(null);
+    setPlacementForm({
+      xMm: '',
+      yMm: '',
+      widthMm: '',
+      heightMm: '',
+      commandeItemId: '',
+    });
+  };
+
+  const handleDeletePlacement = async (placementId: string) => {
+    if (!roll) return;
+    if (!window.confirm('Delete this placement?')) return;
+    try {
+      await PlacedRectangleService.delete(placementId);
+      const placementsResponse = await PlacedRectangleService.getByRoll(roll.id);
+      const items = Array.isArray(placementsResponse.data) ? placementsResponse.data : [];
+      setPlacements(items);
+      if (editingPlacementId === placementId) {
+        cancelEditPlacement();
+      }
+    } catch (err) {
+      console.error(err);
+      setError(t('rollDetail.failedToUpdate'));
+    }
+  };
+
+  const handleClearPlacements = async () => {
+    if (!roll) return;
+    if (!window.confirm('Clear all placements for this roll?')) return;
+    try {
+      await PlacedRectangleService.clearByRoll(roll.id);
+      setPlacements([]);
+      cancelEditPlacement();
+    } catch (err) {
+      console.error(err);
+      setError(t('rollDetail.failedToUpdate'));
+    }
+  };
+
   const statusOptions = statuses.map((status) => ({ label: status, value: status }));
   const wastePercent = roll?.areaM2 ? (roll.totalWasteAreaM2 / roll.areaM2) * 100 : 0;
+  const placementWidthMm = roll?.widthMm ?? 0;
+  const placementLengthMm = roll ? Math.round(roll.lengthM * 1000) : 0;
 
   if (isLoading) {
     return (
@@ -171,6 +336,183 @@ export function RollDetailPage() {
               />
             </div>
             <div><strong>{t('rollDetail.qrCode') || 'QR Code'}:</strong> {roll.qrCode || 'N/A'}</div>
+          </div>
+        </Card>
+
+        <Card title="Placements (SVG)">
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {placementWidthMm > 0 && placementLengthMm > 0 ? (
+              <div
+                style={{
+                  border: '1px solid var(--surface-border)',
+                  borderRadius: '8px',
+                  padding: '0.5rem',
+                  background: 'var(--surface-card)',
+                }}
+              >
+                <svg
+                  viewBox={`0 0 ${Math.max(1, placementLengthMm)} ${Math.max(1, placementWidthMm)}`}
+                  width="100%"
+                  height="240"
+                  preserveAspectRatio="xMidYMid meet"
+                >
+                  <rect
+                    x={0}
+                    y={0}
+                    width={placementLengthMm}
+                    height={placementWidthMm}
+                    fill={roll?.colorHexCode || '#f5f5f5'}
+                    stroke="#bdbdbd"
+                    strokeWidth={2}
+                  />
+                  {placements.map((placement) => (
+                    <rect
+                      key={placement.id}
+                      x={placement.yMm}
+                      y={placement.xMm}
+                      width={placement.heightMm}
+                      height={placement.widthMm}
+                      fill={placement.colorHexCode || 'rgba(25, 118, 210, 0.35)'}
+                      stroke={placement.colorHexCode || '#1565c0'}
+                      strokeWidth={1}
+                    />
+                  ))}
+                </svg>
+                <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
+                  {placementLengthMm / 1000}m x {placementWidthMm}mm (length on X, width on Y)
+                </div>
+              </div>
+            ) : (
+              <Message severity="info" text="Source dimensions are required for placement preview." />
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ fontWeight: 600 }}>Existing placements</div>
+              {placements.length > 0 && (
+                <Button
+                  label="Clear roll"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  outlined
+                  onClick={handleClearPlacements}
+                />
+              )}
+            </div>
+
+            {placements.length === 0 ? (
+              <Message severity="info" text="No placements recorded for this roll." />
+            ) : (
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
+                {placements.map((placement) => (
+                  <Card key={placement.id} style={{ padding: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span>x:{placement.xMm} y:{placement.yMm}</span>
+                      <span>{placement.widthMm} x {placement.heightMm} mm</span>
+                      {placement.commandeItemId && (
+                        <span>Item: {placement.commandeItemId}</span>
+                      )}
+                      {placement.colorHexCode && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <span
+                            style={{
+                              width: '12px',
+                              height: '12px',
+                              backgroundColor: placement.colorHexCode,
+                              borderRadius: '3px',
+                              border: '1px solid var(--surface-border)',
+                            }}
+                          />
+                          {placement.colorName || placement.colorHexCode}
+                        </span>
+                      )}
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <Button
+                          label="Edit"
+                          icon="pi pi-pencil"
+                          outlined
+                          onClick={() => startEditPlacement(placement)}
+                        />
+                        <Button
+                          label="Delete"
+                          icon="pi pi-trash"
+                          severity="danger"
+                          outlined
+                          onClick={() => handleDeletePlacement(placement.id)}
+                        />
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              <div style={{ fontWeight: 600 }}>{editingPlacementId ? 'Update placement' : 'Add placement'}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X (length mm)</label>
+                  <InputText
+                    value={placementForm.xMm}
+                    onChange={(e) => updatePlacementField('xMm', e.target.value)}
+                    type="number"
+                    min={0}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Y (width mm)</label>
+                  <InputText
+                    value={placementForm.yMm}
+                    onChange={(e) => updatePlacementField('yMm', e.target.value)}
+                    type="number"
+                    min={0}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Width (mm)</label>
+                  <InputText
+                    value={placementForm.widthMm}
+                    onChange={(e) => updatePlacementField('widthMm', e.target.value)}
+                    type="number"
+                    min={1}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Height (mm)</label>
+                  <InputText
+                    value={placementForm.heightMm}
+                    onChange={(e) => updatePlacementField('heightMm', e.target.value)}
+                    type="number"
+                    min={1}
+                  />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Commande Item ID (optional)</label>
+                <InputText
+                  value={placementForm.commandeItemId}
+                  onChange={(e) => updatePlacementField('commandeItemId', e.target.value)}
+                  placeholder="UUID"
+                />
+              </div>
+              <div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <Button
+                    label={creatingPlacement ? 'Saving...' : (editingPlacementId ? 'Update placement' : 'Save placement')}
+                    icon={editingPlacementId ? 'pi pi-check' : 'pi pi-plus'}
+                    onClick={handleCreatePlacement}
+                    loading={creatingPlacement}
+                  />
+                  {editingPlacementId && (
+                    <Button
+                      label="Cancel"
+                      severity="secondary"
+                      outlined
+                      onClick={cancelEditPlacement}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </Card>
 
