@@ -1,5 +1,8 @@
 package com.albelt.gestionstock.domain.placement.dto;
 
+import com.albelt.gestionstock.domain.commandes.dto.CommandeItemSummaryResponse;
+import com.albelt.gestionstock.domain.rolls.dto.RollSummaryResponse;
+import com.albelt.gestionstock.domain.waste.dto.WastePieceSummaryResponse;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
@@ -16,6 +19,10 @@ public class PlacedRectangleResponse {
     private UUID rollId;
     private UUID wastePieceId;
     private UUID commandeItemId;
+
+    private RollSummaryResponse roll;
+    private WastePieceSummaryResponse wastePiece;
+    private CommandeItemSummaryResponse commandeItem;
 
     @JsonProperty("xMm")
     private Integer xMm;

@@ -115,23 +115,23 @@ public class ProductionItemService {
 
     @Transactional(readOnly = true)
     public ProductionItem getById(UUID id) {
-        return productionItemRepository.findById(id)
+        return productionItemRepository.findByIdWithSources(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Production item not found: " + id));
     }
 
     @Transactional(readOnly = true)
     public List<ProductionItem> getByCommandeItemId(UUID commandeItemId) {
-        return productionItemRepository.findByCommandeItemId(commandeItemId);
+        return productionItemRepository.findByCommandeItemIdWithSources(commandeItemId);
     }
 
     @Transactional(readOnly = true)
     public List<ProductionItem> getByRollId(UUID rollId) {
-        return productionItemRepository.findByRollId(rollId);
+        return productionItemRepository.findByRollIdWithSources(rollId);
     }
 
     @Transactional(readOnly = true)
     public List<ProductionItem> getByWastePieceId(UUID wastePieceId) {
-        return productionItemRepository.findByWastePieceId(wastePieceId);
+        return productionItemRepository.findByWastePieceIdWithSources(wastePieceId);
     }
 
     public void delete(UUID id) {

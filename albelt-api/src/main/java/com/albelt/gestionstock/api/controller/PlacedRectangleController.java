@@ -3,7 +3,6 @@ package com.albelt.gestionstock.api.controller;
 import com.albelt.gestionstock.api.response.ApiResponse;
 import com.albelt.gestionstock.domain.placement.dto.PlacedRectangleRequest;
 import com.albelt.gestionstock.domain.placement.dto.PlacedRectangleResponse;
-import com.albelt.gestionstock.domain.placement.mapper.PlacedRectangleMapper;
 import com.albelt.gestionstock.domain.placement.service.PlacedRectangleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +21,6 @@ import java.util.UUID;
 public class PlacedRectangleController {
 
     private final PlacedRectangleService placedRectangleService;
-    private final PlacedRectangleMapper placedRectangleMapper;
 
     @PostMapping
     public ResponseEntity<ApiResponse<PlacedRectangleResponse>> create(
@@ -30,7 +28,7 @@ public class PlacedRectangleController {
         log.info("POST /api/placed-rectangles - Create placed rectangle");
 
         var placed = placedRectangleService.create(request);
-        var response = placedRectangleMapper.toResponse(placed);
+        var response = placedRectangleService.toResponse(placed);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response, "Placed rectangle created successfully"));
     }
@@ -42,7 +40,7 @@ public class PlacedRectangleController {
         log.info("PUT /api/placed-rectangles/{} - Update placed rectangle", id);
 
         var placed = placedRectangleService.update(id, request);
-        var response = placedRectangleMapper.toResponse(placed);
+        var response = placedRectangleService.toResponse(placed);
         return ResponseEntity.ok(ApiResponse.success(response, "Placed rectangle updated successfully"));
     }
 
@@ -51,7 +49,7 @@ public class PlacedRectangleController {
         log.info("GET /api/placed-rectangles/{} - Fetch placed rectangle", id);
 
         var placed = placedRectangleService.getById(id);
-        var response = placedRectangleMapper.toResponse(placed);
+        var response = placedRectangleService.toResponse(placed);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -60,7 +58,7 @@ public class PlacedRectangleController {
         log.info("GET /api/placed-rectangles/by-roll/{} - Fetch placed rectangles", rollId);
 
         var placed = placedRectangleService.getByRollId(rollId);
-        var responses = placedRectangleMapper.toResponseList(placed);
+        var responses = placedRectangleService.toResponseList(placed);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
@@ -69,7 +67,7 @@ public class PlacedRectangleController {
         log.info("GET /api/placed-rectangles/by-waste-piece/{} - Fetch placed rectangles", wastePieceId);
 
         var placed = placedRectangleService.getByWastePieceId(wastePieceId);
-        var responses = placedRectangleMapper.toResponseList(placed);
+        var responses = placedRectangleService.toResponseList(placed);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
@@ -78,7 +76,7 @@ public class PlacedRectangleController {
         log.info("GET /api/placed-rectangles/by-commande-item/{} - Fetch placed rectangles", commandeItemId);
 
         var placed = placedRectangleService.getByCommandeItemId(commandeItemId);
-        var responses = placedRectangleMapper.toResponseList(placed);
+        var responses = placedRectangleService.toResponseList(placed);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 

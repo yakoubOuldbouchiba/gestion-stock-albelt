@@ -2,22 +2,18 @@ import { Card } from 'primereact/card';
 import { Message } from 'primereact/message';
 import { Tag } from 'primereact/tag';
 import { formatDate } from '../../utils/date';
-import type { PlacedRectangle, ProductionItem, Roll } from '../../types';
+import type { PlacedRectangle, ProductionItem } from '../../types';
 import type { Translate } from './commandeTypes';
 
 type ProductionSectionProps = {
   productionForItem: ProductionItem[];
   placementsForItem: PlacedRectangle[];
-  rolls: Roll[];
-  wasteForItem: any[];
   t: Translate;
 };
 
 export const ProductionSection = ({
   productionForItem,
   placementsForItem,
-  rolls,
-  wasteForItem,
   t,
 }: ProductionSectionProps) => (
   <div style={{ marginTop: '0.75rem' }}>
@@ -27,12 +23,10 @@ export const ProductionSection = ({
     ) : (
       <div style={{ display: 'grid', gap: '0.5rem' }}>
         {productionForItem.map((production) => {
-          const placement = placementsForItem.find((item) => item.id === production.placedRectangleId);
-          const source = placement?.rollId
-            ? rolls.find((roll) => roll.id === placement.rollId)
-            : placement?.wastePieceId
-            ? wasteForItem.find((waste: any) => waste.id === placement.wastePieceId)
-            : null;
+          const placement = production.placedRectangle
+            ?? placementsForItem.find((item) => item.id === production.placedRectangleId);
+          const source = placement?.roll ?? placement?.wastePiece ?? null;
+          const isRollSource = Boolean(placement?.rollId ?? placement?.roll?.id);
           const sourceLabel = source?.reference ?? source?.materialType ?? 'Placement';
           return (
             <Card key={production.id} style={{ padding: '0.5rem' }}>
@@ -45,7 +39,7 @@ export const ProductionSection = ({
                   flexWrap: 'wrap',
                 }}
               >
-                <Tag value={sourceLabel} severity={placement?.rollId ? 'info' : 'success'} />
+                <Tag value={sourceLabel} severity={isRollSource ? 'info' : 'success'} />
                 {placement && (
                   <span>
                     x:{placement.xMm} y:{placement.yMm} {placement.widthMm}x{placement.heightMm}mm

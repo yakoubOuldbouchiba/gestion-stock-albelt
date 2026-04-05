@@ -137,6 +137,23 @@ export interface Roll {
   updatedAt: string;
 }
 
+export interface RollSummary {
+  id: string;
+  reference?: string;
+  materialType?: MaterialType;
+  nbPlis?: number;
+  thicknessMm?: number;
+  widthMm?: number;
+  widthRemainingMm?: number;
+  lengthM?: number;
+  lengthRemainingM?: number;
+  areaM2?: number;
+  status?: RollStatus;
+  colorId?: string;
+  colorName?: string;
+  colorHexCode?: string;
+}
+
 export interface RollRequest {
   supplierId: string;
   altierId?: string;
@@ -231,6 +248,26 @@ export interface WastePiece {
   updatedAt: string;
 }
 
+export interface WastePieceSummary {
+  id: string;
+  rollId?: string | null;
+  parentWastePieceId?: string | null;
+  reference?: string;
+  materialType?: MaterialType;
+  nbPlis?: number;
+  thicknessMm?: number;
+  widthMm?: number;
+  widthRemainingMm?: number;
+  lengthM?: number;
+  lengthRemainingM?: number;
+  areaM2?: number;
+  status?: WasteStatus;
+  wasteType?: WasteType;
+  colorId?: string;
+  colorName?: string;
+  colorHexCode?: string;
+}
+
 export interface WastePieceRequest {
   rollId?: string;
   parentWastePieceId?: string;
@@ -254,6 +291,9 @@ export interface PlacedRectangle {
   rollId?: string | null;
   wastePieceId?: string | null;
   commandeItemId?: string | null;
+  roll?: RollSummary | null;
+  wastePiece?: WastePieceSummary | null;
+  commandeItem?: CommandeItemSummary | null;
   xMm: number;
   yMm: number;
   widthMm: number;
@@ -590,6 +630,24 @@ export type CommandeStatus = 'PENDING' | 'ENCOURS' | 'COMPLETED' | 'CANCELLED' |
 export type ItemStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 export type TypeMouvement = 'ENCOURS' | 'COUPE' | 'SORTIE' | 'RETOUR';
 
+export interface CommandeItemSummary {
+  id: string;
+  lineNumber?: number;
+  materialType?: string;
+  nbPlis?: number;
+  thicknessMm?: number;
+  longueurM?: number;
+  longueurToleranceM?: number;
+  largeurMm?: number;
+  quantite?: number;
+  status?: ItemStatus;
+  typeMouvement?: TypeMouvement;
+  reference?: string;
+  colorId?: string;
+  colorName?: string;
+  colorHexCode?: string;
+}
+
 export interface CommandeItem {
   id: string;
   commandeId: string;
@@ -670,6 +728,7 @@ export interface CommandeRequest {
 export interface ProductionItem {
   id: string;
   placedRectangleId: string;
+  placedRectangle?: PlacedRectangle | null;
   pieceLengthM: number;
   pieceWidthMm: number;
   quantity: number;

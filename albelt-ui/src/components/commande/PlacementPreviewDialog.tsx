@@ -1,13 +1,11 @@
 import { Dialog } from 'primereact/dialog';
 import { Message } from 'primereact/message';
-import type { PlacedRectangle, Roll } from '../../types';
+import type { PlacedRectangle } from '../../types';
 
 type PlacementPreviewDialogProps = {
   showPlacementPreview: boolean;
   onHide: () => void;
   previewPlacement: PlacedRectangle | null;
-  rolls: Roll[];
-  wasteForItem: any[];
   placementsForItem: PlacedRectangle[];
 };
 
@@ -15,8 +13,6 @@ export const PlacementPreviewDialog = ({
   showPlacementPreview,
   onHide,
   previewPlacement,
-  rolls,
-  wasteForItem,
   placementsForItem,
 }: PlacementPreviewDialogProps) => (
   <Dialog
@@ -27,16 +23,26 @@ export const PlacementPreviewDialog = ({
     style={{ width: 'min(700px, 95vw)', height: '100vh' }}
   >
     {previewPlacement ? (() => {
-      const isRoll = Boolean(previewPlacement.rollId);
-      const source = isRoll
-        ? rolls.find((roll) => roll.id === previewPlacement.rollId)
-        : wasteForItem.find((waste: any) => waste.id === previewPlacement.wastePieceId);
+      const rollId = previewPlacement.rollId ?? previewPlacement.roll?.id;
+      const wastePieceId = previewPlacement.wastePieceId ?? previewPlacement.wastePiece?.id;
+      const isRoll = Boolean(rollId);
+      const source = previewPlacement.roll ?? previewPlacement.wastePiece ?? null;
+      const itemLabel = previewPlacement.commandeItem
+        ? [
+            previewPlacement.commandeItem.lineNumber
+              ? `Line ${previewPlacement.commandeItem.lineNumber}`
+              : null,
+            previewPlacement.commandeItem.reference ?? null,
+          ]
+            .filter(Boolean)
+            .join(' • ')
+        : null;
       const sourceWidthMm = Number(source?.widthMm) || 0;
       const sourceLengthMm = Math.round((Number(source?.lengthM) || 0) * 1000);
       const sourcePlacements = placementsForItem.filter((placement) => (
         isRoll
-          ? placement.rollId === previewPlacement.rollId
-          : placement.wastePieceId === previewPlacement.wastePieceId
+          ? placement.rollId === rollId
+          : placement.wastePieceId === wastePieceId
       ));
 
       if (!sourceWidthMm || !sourceLengthMm) {
@@ -48,6 +54,9 @@ export const PlacementPreviewDialog = ({
           <div style={{ fontWeight: 600 }}>
             {isRoll ? 'Roll' : 'Waste'} {source?.reference ?? previewPlacement.id.slice(0, 8)}
           </div>
+          {itemLabel ? (
+            <div style={{ color: 'var(--text-color-secondary)', fontSize: '0.9rem' }}>{itemLabel}</div>
+          ) : null}
           <div
             style={{
               border: '1px solid var(--surface-border)',

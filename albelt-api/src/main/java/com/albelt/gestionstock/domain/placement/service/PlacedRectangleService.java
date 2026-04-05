@@ -5,6 +5,7 @@ import com.albelt.gestionstock.domain.colors.service.ColorService;
 import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
 import com.albelt.gestionstock.domain.commandes.repository.CommandeItemRepository;
 import com.albelt.gestionstock.domain.placement.dto.PlacedRectangleRequest;
+import com.albelt.gestionstock.domain.placement.dto.PlacedRectangleResponse;
 import com.albelt.gestionstock.domain.placement.entity.PlacedRectangle;
 import com.albelt.gestionstock.domain.placement.mapper.PlacedRectangleMapper;
 import com.albelt.gestionstock.domain.placement.repository.PlacedRectangleRepository;
@@ -22,8 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -68,23 +74,38 @@ public class PlacedRectangleService {
 
     @Transactional(readOnly = true)
     public PlacedRectangle getById(UUID id) {
-        return placedRectangleRepository.findById(id)
+        return placedRectangleRepository.findByIdWithSources(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Placed rectangle not found: " + id));
     }
 
     @Transactional(readOnly = true)
+    public PlacedRectangleResponse toResponse(PlacedRectangle placedRectangle) {
+        if (placedRectangle == null) {
+            return null;
+        }
+        CommandeItem commandeItem = findCommandeItemIfPresent(placedRectangle.getCommandeItemId());
+        return placedRectangleMapper.toResponse(placedRectangle, commandeItem);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlacedRectangleResponse> toResponseList(List<PlacedRectangle> placements) {
+        Map<UUID, CommandeItem> commandeItemsById = getCommandeItemsById(placements);
+        return placedRectangleMapper.toResponseList(placements, commandeItemsById);
+    }
+
+    @Transactional(readOnly = true)
     public List<PlacedRectangle> getByRollId(UUID rollId) {
-        return placedRectangleRepository.findByRollIdOrderByCreatedAtAsc(rollId);
+        return placedRectangleRepository.findByRollIdWithSources(rollId);
     }
 
     @Transactional(readOnly = true)
     public List<PlacedRectangle> getByWastePieceId(UUID wastePieceId) {
-        return placedRectangleRepository.findByWastePieceIdOrderByCreatedAtAsc(wastePieceId);
+        return placedRectangleRepository.findByWastePieceIdWithSources(wastePieceId);
     }
 
     @Transactional(readOnly = true)
     public List<PlacedRectangle> getByCommandeItemId(UUID commandeItemId) {
-        return placedRectangleRepository.findByCommandeItemIdOrderByCreatedAtAsc(commandeItemId);
+        return placedRectangleRepository.findByCommandeItemIdWithSources(commandeItemId);
     }
 
     public PlacedRectangle update(UUID id, PlacedRectangleRequest request) {
@@ -153,6 +174,28 @@ public class PlacedRectangleService {
         }
         return commandeItemRepository.findById(commandeItemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order item not found: " + commandeItemId));
+    }
+
+    private CommandeItem findCommandeItemIfPresent(UUID commandeItemId) {
+        if (commandeItemId == null) {
+            return null;
+        }
+        return commandeItemRepository.findById(commandeItemId).orElse(null);
+    }
+
+    private Map<UUID, CommandeItem> getCommandeItemsById(List<PlacedRectangle> placements) {
+        if (placements == null || placements.isEmpty()) {
+            return Map.of();
+        }
+        Set<UUID> ids = placements.stream()
+                .map(PlacedRectangle::getCommandeItemId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return commandeItemRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(CommandeItem::getId, Function.identity()));
     }
 
     private void validateBounds(PlacedRectangleRequest request, Integer parentWidthMm, BigDecimal parentLengthM) {

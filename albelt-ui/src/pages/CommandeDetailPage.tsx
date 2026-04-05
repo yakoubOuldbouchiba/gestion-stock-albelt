@@ -47,6 +47,7 @@ export function CommandeDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [rolls, setRolls] = useState<Roll[]>([]);
+  const [rollsLoading, setRollsLoading] = useState(false);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [wasteForItem, setWasteForItem] = useState<any[]>([]);
   const [productionForItem, setProductionForItem] = useState<ProductionItem[]>([]);
@@ -111,15 +112,6 @@ export function CommandeDetailPage() {
           setSelectedStatus(res.data.status);
         }
         
-        // Fetch available rolls
-        const rollsRes = await RollService.getAll();
-        if (rollsRes.data) {
-          const rollItems = Array.isArray(rollsRes.data)
-            ? rollsRes.data
-            : (rollsRes.data as any).items ?? (rollsRes.data as any).content ?? [];
-          setRolls(rollItems);
-        }
-        
         setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -137,6 +129,12 @@ export function CommandeDetailPage() {
       loadParentWastePieces();
     }
   }, [showChuteForm, chuteSourceType]);
+
+  useEffect(() => {
+    const needsRolls = showPlacementModal || (showChuteForm && chuteSourceType === 'ROLL');
+    if (!needsRolls || rolls.length > 0) return;
+    loadRolls();
+  }, [showPlacementModal, showChuteForm, chuteSourceType, rolls.length]);
 
   useEffect(() => {
     if (!showChuteForm || chuteSourceType !== 'ROLL' || !chuteRollId) return;
@@ -300,6 +298,24 @@ export function CommandeDetailPage() {
       }
     } catch (err) {
       console.error('Error loading waste:', err);
+    }
+  };
+
+  const loadRolls = async () => {
+    if (rollsLoading) return;
+    setRollsLoading(true);
+    try {
+      const rollsRes = await RollService.getAll();
+      if (rollsRes.data) {
+        const rollItems = Array.isArray(rollsRes.data)
+          ? rollsRes.data
+          : (rollsRes.data as any).items ?? (rollsRes.data as any).content ?? [];
+        setRolls(rollItems);
+      }
+    } catch (err) {
+      console.error('Error loading rolls:', err);
+    } finally {
+      setRollsLoading(false);
     }
   };
 
@@ -729,11 +745,7 @@ export function CommandeDetailPage() {
   ) => {
     const warnings: string[] = [];
 
-    const source = placement?.rollId
-      ? rolls.find((roll) => roll.id === placement.rollId)
-      : placement?.wastePieceId
-      ? wasteForItem.find((waste: any) => waste.id === placement.wastePieceId)
-      : null;
+    const source = placement?.roll ?? placement?.wastePiece ?? null;
 
     const placementWidth = placement?.widthMm ?? null;
     const placementHeight = placement?.heightMm ?? null;
@@ -801,14 +813,10 @@ export function CommandeDetailPage() {
 
     const existingColors = new Set<string>();
     productionForItem.forEach((production) => {
-      const productionPlacement = placementsForItem.find((item) => item.id === production.placedRectangleId);
-      const rollColor = productionPlacement?.rollId
-        ? getSourceColorLabel(rolls.find((roll) => roll.id === productionPlacement.rollId))
-        : null;
-      const wasteColor = productionPlacement?.wastePieceId
-        ? getSourceColorLabel(wasteForItem.find((waste: any) => waste.id === productionPlacement.wastePieceId))
-        : null;
-      const color = rollColor ?? wasteColor ?? productionPlacement?.colorHexCode;
+      const productionPlacement = production.placedRectangle
+        ?? placementsForItem.find((item) => item.id === production.placedRectangleId);
+      const placementSource = productionPlacement?.roll ?? productionPlacement?.wastePiece;
+      const color = getSourceColorLabel(placementSource) ?? productionPlacement?.colorHexCode;
       if (color) {
         existingColors.add(color);
       }
@@ -930,11 +938,9 @@ export function CommandeDetailPage() {
   const selectedProductionPlacement = placementsForItem.find(
     (placement) => placement.id === productionForm.placedRectangleId
   );
-  const selectedProductionSource = selectedProductionPlacement?.rollId
-    ? rolls.find((roll) => roll.id === selectedProductionPlacement.rollId)
-    : selectedProductionPlacement?.wastePieceId
-    ? wasteForItem.find((waste: any) => waste.id === selectedProductionPlacement.wastePieceId)
-    : null;
+  const selectedProductionSource = selectedProductionPlacement?.roll
+    ?? selectedProductionPlacement?.wastePiece
+    ?? null;
   const selectedProductionColorHex =
     selectedProductionSource?.colorHexCode ?? selectedProductionPlacement?.colorHexCode ?? '';
   const selectedProductionColorName =
@@ -1001,17 +1007,26 @@ export function CommandeDetailPage() {
   const renderPlacementSection = (item: CommandeItem) => {
 
     const getPlacementSource = (placement: PlacedRectangle) => (
-      placement.rollId
-        ? rolls.find((roll) => roll.id === placement.rollId)
-        : placement.wastePieceId
-        ? wasteForItem.find((waste: any) => waste.id === placement.wastePieceId)
-        : null
+      placement.roll ?? placement.wastePiece ?? null
     );
 
     const renderPlacementSource = (placement: PlacedRectangle) => {
       const source = getPlacementSource(placement);
-      const label = source?.reference ?? source?.materialType ?? placement.id.slice(0, 8);
-      const typeLabel = placement.rollId ? 'Roll' : placement.wastePieceId ? 'Waste' : t('commandes.notAvailable');
+      const isRollSource = Boolean(placement.rollId ?? placement.roll?.id);
+      const isWasteSource = Boolean(placement.wastePieceId ?? placement.wastePiece?.id);
+      const typeLabel = isRollSource ? 'Roll' : isWasteSource ? 'Waste' : t('commandes.notAvailable');
+      const itemLabel = placement.commandeItem
+        ? [
+            placement.commandeItem.lineNumber
+              ? `Line ${placement.commandeItem.lineNumber}`
+              : null,
+            placement.commandeItem.reference ?? null,
+          ]
+            .filter(Boolean)
+            .join(' • ')
+        : null;
+      const sourceLabel = source?.reference ?? source?.materialType ?? placement.id.slice(0, 8);
+      const label = itemLabel ?? sourceLabel;
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
           <span style={{ fontWeight: 600 }}>{typeLabel}</span>
@@ -1068,9 +1083,21 @@ export function CommandeDetailPage() {
     const placementRows = placementsForItem
       .map((placement) => {
         const source = getPlacementSource(placement);
-        const type = placement.rollId ? 'ROLL' : placement.wastePieceId ? 'WASTE_PIECE' : 'UNKNOWN';
-        const sourceId = placement.rollId ?? placement.wastePieceId ?? placement.id;
+        const rollId = placement.rollId ?? placement.roll?.id;
+        const wastePieceId = placement.wastePieceId ?? placement.wastePiece?.id;
+        const type = rollId ? 'ROLL' : wastePieceId ? 'WASTE_PIECE' : 'UNKNOWN';
+        const sourceId = rollId ?? wastePieceId ?? placement.id;
         const reference = source?.reference ?? source?.materialType ?? sourceId.slice(0, 8);
+        const itemLabel = placement.commandeItem
+          ? [
+              placement.commandeItem.lineNumber
+                ? `Line ${placement.commandeItem.lineNumber}`
+                : null,
+              placement.commandeItem.reference ?? null,
+            ]
+              .filter(Boolean)
+              .join(' • ')
+          : null;
         const groupLabel = type === 'ROLL'
           ? `Roll ${reference}`
           : type === 'WASTE_PIECE'
@@ -1080,6 +1107,7 @@ export function CommandeDetailPage() {
           ...placement,
           groupKey: `${type}:${sourceId}`,
           groupLabel,
+          groupItemLabel: itemLabel,
         };
       })
       .sort((a, b) => a.groupKey.localeCompare(b.groupKey));
@@ -1125,10 +1153,16 @@ export function CommandeDetailPage() {
                       justifyContent: 'space-between',
                       gap: '0.75rem',
                       padding: '0.25rem 0',
-                      fontWeight: 600,
                     }}
                   >
-                    <span>{row.groupLabel}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      <span style={{ fontWeight: 600 }}>{row.groupLabel}</span>
+                      {row.groupItemLabel ? (
+                        <span style={{ color: 'var(--text-color-secondary)', fontSize: '0.9rem' }}>
+                          {row.groupItemLabel}
+                        </span>
+                      ) : null}
+                    </div>
                     <Button
                       label="Preview"
                       icon="pi pi-eye"
@@ -1317,8 +1351,6 @@ export function CommandeDetailPage() {
                     <ProductionSection
                       productionForItem={productionForItem}
                       placementsForItem={placementsForItem}
-                      rolls={rolls}
-                      wasteForItem={wasteForItem}
                       t={t}
                     />
 
@@ -1391,8 +1423,6 @@ export function CommandeDetailPage() {
         showPlacementPreview={showPlacementPreview}
         onHide={handleClosePlacementPreview}
         previewPlacement={previewPlacement}
-        rolls={rolls}
-        wasteForItem={wasteForItem}
         placementsForItem={placementsForItem}
       />
 

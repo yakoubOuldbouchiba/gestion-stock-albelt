@@ -1,10 +1,14 @@
 package com.albelt.gestionstock.domain.placement.mapper;
 
 import com.albelt.gestionstock.domain.colors.entity.Color;
+import com.albelt.gestionstock.domain.commandes.dto.CommandeItemSummaryResponse;
+import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
 import com.albelt.gestionstock.domain.placement.dto.PlacedRectangleRequest;
 import com.albelt.gestionstock.domain.placement.dto.PlacedRectangleResponse;
 import com.albelt.gestionstock.domain.placement.entity.PlacedRectangle;
+import com.albelt.gestionstock.domain.rolls.dto.RollSummaryResponse;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
+import com.albelt.gestionstock.domain.waste.dto.WastePieceSummaryResponse;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import org.springframework.stereotype.Component;
 
@@ -30,14 +34,23 @@ public class PlacedRectangleMapper {
     }
 
     public PlacedRectangleResponse toResponse(PlacedRectangle entity) {
+        return toResponse(entity, null);
+    }
+
+    public PlacedRectangleResponse toResponse(PlacedRectangle entity, CommandeItem commandeItem) {
         if (entity == null) {
             return null;
         }
+        Roll roll = entity.getRoll();
+        WastePiece wastePiece = entity.getWastePiece();
         return PlacedRectangleResponse.builder()
                 .id(entity.getId())
-                .rollId(entity.getRoll() != null ? entity.getRoll().getId() : null)
-                .wastePieceId(entity.getWastePiece() != null ? entity.getWastePiece().getId() : null)
+                .rollId(roll != null ? roll.getId() : null)
+                .wastePieceId(wastePiece != null ? wastePiece.getId() : null)
                 .commandeItemId(entity.getCommandeItemId())
+                .roll(toRollSummary(roll))
+                .wastePiece(toWastePieceSummary(wastePiece))
+                .commandeItem(toCommandeItemSummary(commandeItem))
                 .xMm(entity.getXMm())
                 .yMm(entity.getYMm())
                 .widthMm(entity.getWidthMm())
@@ -55,5 +68,88 @@ public class PlacedRectangleMapper {
             return List.of();
         }
         return entities.stream().map(this::toResponse).toList();
+    }
+
+    public List<PlacedRectangleResponse> toResponseList(
+            List<PlacedRectangle> entities,
+            java.util.Map<java.util.UUID, CommandeItem> commandeItemsById) {
+        if (entities == null) {
+            return List.of();
+        }
+        return entities.stream()
+                .map(entity -> toResponse(entity, commandeItemsById.get(entity.getCommandeItemId())))
+                .toList();
+    }
+
+    private RollSummaryResponse toRollSummary(Roll roll) {
+        if (roll == null) {
+            return null;
+        }
+        return RollSummaryResponse.builder()
+                .id(roll.getId())
+                .reference(roll.getReference())
+                .materialType(roll.getMaterialType())
+                .nbPlis(roll.getNbPlis())
+                .thicknessMm(roll.getThicknessMm())
+                .widthMm(roll.getWidthMm())
+                .widthRemainingMm(roll.getWidthRemainingMm())
+                .lengthM(roll.getLengthM())
+                .lengthRemainingM(roll.getLengthRemainingM())
+                .areaM2(roll.getAreaM2())
+                .status(roll.getStatus())
+                .colorId(roll.getColor() != null ? roll.getColor().getId() : null)
+                .colorName(roll.getColor() != null ? roll.getColor().getName() : null)
+                .colorHexCode(roll.getColor() != null ? roll.getColor().getHexCode() : null)
+                .build();
+    }
+
+    private WastePieceSummaryResponse toWastePieceSummary(WastePiece wastePiece) {
+        if (wastePiece == null) {
+            return null;
+        }
+        return WastePieceSummaryResponse.builder()
+                .id(wastePiece.getId())
+                .rollId(wastePiece.getRoll() != null ? wastePiece.getRoll().getId() : null)
+                .parentWastePieceId(wastePiece.getParentWastePiece() != null
+                        ? wastePiece.getParentWastePiece().getId()
+                        : null)
+                .reference(wastePiece.getReference())
+                .materialType(wastePiece.getMaterialType())
+                .nbPlis(wastePiece.getNbPlis())
+                .thicknessMm(wastePiece.getThicknessMm())
+                .widthMm(wastePiece.getWidthMm())
+                .widthRemainingMm(wastePiece.getWidthRemainingMm())
+                .lengthM(wastePiece.getLengthM())
+                .lengthRemainingM(wastePiece.getLengthRemainingM())
+                .areaM2(wastePiece.getAreaM2())
+                .status(wastePiece.getStatus())
+                .wasteType(wastePiece.getWasteType())
+                .colorId(wastePiece.getColor() != null ? wastePiece.getColor().getId() : null)
+                .colorName(wastePiece.getColor() != null ? wastePiece.getColor().getName() : null)
+                .colorHexCode(wastePiece.getColor() != null ? wastePiece.getColor().getHexCode() : null)
+                .build();
+    }
+
+    private CommandeItemSummaryResponse toCommandeItemSummary(CommandeItem item) {
+        if (item == null) {
+            return null;
+        }
+        return CommandeItemSummaryResponse.builder()
+                .id(item.getId())
+                .lineNumber(item.getLineNumber())
+                .materialType(item.getMaterialType())
+                .nbPlis(item.getNbPlis())
+                .thicknessMm(item.getThicknessMm())
+                .longueurM(item.getLongueurM())
+                .longueurToleranceM(item.getLongueurToleranceM())
+                .largeurMm(item.getLargeurMm())
+                .quantite(item.getQuantite())
+                .status(item.getStatus())
+                .typeMouvement(item.getTypeMouvement())
+                .reference(item.getReference())
+                .colorId(item.getColor() != null ? item.getColor().getId() : null)
+                .colorName(item.getColor() != null ? item.getColor().getName() : null)
+                .colorHexCode(item.getColor() != null ? item.getColor().getHexCode() : null)
+                .build();
     }
 }

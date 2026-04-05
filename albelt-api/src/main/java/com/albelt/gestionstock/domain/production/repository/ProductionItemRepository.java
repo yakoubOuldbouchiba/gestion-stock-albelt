@@ -36,4 +36,44 @@ public interface ProductionItemRepository extends JpaRepository<ProductionItem, 
 
     @Query("SELECT pi FROM ProductionItem pi WHERE pi.placedRectangle.wastePiece.id = :wastePieceId")
     List<ProductionItem> findByWastePieceId(@Param("wastePieceId") UUID wastePieceId);
+
+       @Query("""
+              select pi from ProductionItem pi
+              join fetch pi.placedRectangle pr
+              left join fetch pr.roll
+              left join fetch pr.wastePiece
+              left join fetch pr.color
+              where pi.id = :id
+              """)
+       java.util.Optional<ProductionItem> findByIdWithSources(@Param("id") UUID id);
+
+       @Query("""
+              select pi from ProductionItem pi
+              join fetch pi.placedRectangle pr
+              left join fetch pr.roll
+              left join fetch pr.wastePiece
+              left join fetch pr.color
+              where pr.commandeItemId = :commandeItemId
+              """)
+       List<ProductionItem> findByCommandeItemIdWithSources(@Param("commandeItemId") UUID commandeItemId);
+
+       @Query("""
+              select pi from ProductionItem pi
+              join fetch pi.placedRectangle pr
+              left join fetch pr.roll
+              left join fetch pr.wastePiece
+              left join fetch pr.color
+              where pr.roll.id = :rollId
+              """)
+       List<ProductionItem> findByRollIdWithSources(@Param("rollId") UUID rollId);
+
+       @Query("""
+              select pi from ProductionItem pi
+              join fetch pi.placedRectangle pr
+              left join fetch pr.roll
+              left join fetch pr.wastePiece
+              left join fetch pr.color
+              where pr.wastePiece.id = :wastePieceId
+              """)
+       List<ProductionItem> findByWastePieceIdWithSources(@Param("wastePieceId") UUID wastePieceId);
 }

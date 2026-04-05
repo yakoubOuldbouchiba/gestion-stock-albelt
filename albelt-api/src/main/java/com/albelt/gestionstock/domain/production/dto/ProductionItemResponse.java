@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.production.dto;
 
+import com.albelt.gestionstock.domain.placement.dto.PlacedRectangleResponse;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -18,6 +19,8 @@ public class ProductionItemResponse {
     private UUID id;
 
     private UUID placedRectangleId;
+
+    private PlacedRectangleResponse placedRectangle;
 
     private BigDecimal pieceLengthM;
 

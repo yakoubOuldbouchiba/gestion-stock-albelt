@@ -18,6 +18,45 @@ public interface PlacedRectangleRepository extends JpaRepository<PlacedRectangle
     List<PlacedRectangle> findByWastePieceIdOrderByCreatedAtAsc(UUID wastePieceId);
     List<PlacedRectangle> findByCommandeItemIdOrderByCreatedAtAsc(UUID commandeItemId);
 
+    @Query("""
+        select pr from PlacedRectangle pr
+        left join fetch pr.roll
+        left join fetch pr.wastePiece
+        left join fetch pr.color
+        where pr.id = :id
+        """)
+    Optional<PlacedRectangle> findByIdWithSources(@Param("id") UUID id);
+
+    @Query("""
+        select pr from PlacedRectangle pr
+        left join fetch pr.roll
+        left join fetch pr.wastePiece
+        left join fetch pr.color
+        where pr.roll.id = :rollId
+        order by pr.createdAt asc
+        """)
+    List<PlacedRectangle> findByRollIdWithSources(@Param("rollId") UUID rollId);
+
+    @Query("""
+        select pr from PlacedRectangle pr
+        left join fetch pr.roll
+        left join fetch pr.wastePiece
+        left join fetch pr.color
+        where pr.wastePiece.id = :wastePieceId
+        order by pr.createdAt asc
+        """)
+    List<PlacedRectangle> findByWastePieceIdWithSources(@Param("wastePieceId") UUID wastePieceId);
+
+    @Query("""
+        select pr from PlacedRectangle pr
+        left join fetch pr.roll
+        left join fetch pr.wastePiece
+        left join fetch pr.color
+        where pr.commandeItemId = :commandeItemId
+        order by pr.createdAt asc
+        """)
+    List<PlacedRectangle> findByCommandeItemIdWithSources(@Param("commandeItemId") UUID commandeItemId);
+
     Optional<PlacedRectangle> findFirstByCommandeItemIdAndColorIsNotNullOrderByCreatedAtAsc(UUID commandeItemId);
     Optional<PlacedRectangle> findFirstByRollIdAndCommandeItemIdIsNullAndColorIsNotNullOrderByCreatedAtAsc(UUID rollId);
     Optional<PlacedRectangle> findFirstByWastePieceIdAndCommandeItemIdIsNullAndColorIsNotNullOrderByCreatedAtAsc(UUID wastePieceId);
