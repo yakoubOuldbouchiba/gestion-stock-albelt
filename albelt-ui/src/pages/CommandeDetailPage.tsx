@@ -5,19 +5,27 @@ import { Dropdown } from 'primereact/dropdown';
 import { Tag } from 'primereact/tag';
 import { Card } from 'primereact/card';
 import { Message } from 'primereact/message';
-import { Dialog } from 'primereact/dialog';
-import { InputText } from 'primereact/inputtext';
-import { InputTextarea } from 'primereact/inputtextarea';
 import { Toast } from 'primereact/toast';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
 import { CommandeService } from '../services/commandeService';
 import { WastePieceService } from '../services/wastePieceService';
 import { ProductionItemService } from '../services/productionItemService';
-import { formatDate, formatDateTime } from '../utils/date';
 import { RollService } from '../services/rollService';
 import { PlacedRectangleService } from '../services/placedRectangleService';
 import { useI18n } from '@hooks/useI18n';
+import { ChuteDialog } from '../components/commande/ChuteDialog';
+import { OrderHeaderCard } from '../components/commande/OrderHeaderCard';
+import { OrderInfoCard } from '../components/commande/OrderInfoCard';
+import { PlacementDialog } from '../components/commande/PlacementDialog';
+import { PlacementPreviewDialog } from '../components/commande/PlacementPreviewDialog';
+import { ProductionDialog } from '../components/commande/ProductionDialog';
+import { ProductionSection } from '../components/commande/ProductionSection';
+import { StatusUpdateCard } from '../components/commande/StatusUpdateCard';
+import { WasteSection } from '../components/commande/WasteSection';
+import type { StatusSeverity } from '../components/commande/commandeTypes';
 import type {
   Commande,
   CommandeItem,
@@ -55,6 +63,8 @@ export function CommandeDetailPage() {
   const [editingPlacementId, setEditingPlacementId] = useState<string | null>(null);
   const [showPlacementModal, setShowPlacementModal] = useState(false);
   const [placementTargetItem, setPlacementTargetItem] = useState<CommandeItem | null>(null);
+  const [showPlacementPreview, setShowPlacementPreview] = useState(false);
+  const [previewPlacement, setPreviewPlacement] = useState<PlacedRectangle | null>(null);
   const [showProductionModal, setShowProductionModal] = useState(false);
   const [productionTargetItem, setProductionTargetItem] = useState<CommandeItem | null>(null);
   const [showChuteForm, setShowChuteForm] = useState(false);
@@ -266,7 +276,7 @@ export function CommandeDetailPage() {
   };
 
   const getStatusSeverity = (status: string) => {
-    const severities: Record<string, 'success' | 'info' | 'warning' | 'danger' | 'secondary'> = {
+    const severities: Record<string, StatusSeverity> = {
       PENDING: 'warning',
       ENCOURS: 'info',
       COMPLETED: 'success',
@@ -544,6 +554,16 @@ export function CommandeDetailPage() {
     }
   };
 
+  const handleOpenPlacementPreview = (placement: PlacedRectangle) => {
+    setPreviewPlacement(placement);
+    setShowPlacementPreview(true);
+  };
+
+  const handleClosePlacementPreview = () => {
+    setShowPlacementPreview(false);
+    setPreviewPlacement(null);
+  };
+
   const handleDeletePlacement = (placementId: string, itemId: string) => {
     confirmDialog({
       message: 'Delete this placement?',
@@ -560,31 +580,6 @@ export function CommandeDetailPage() {
         } catch (err) {
           console.error('Error deleting placement:', err);
           showError('Unable to delete placement.');
-        }
-      },
-    });
-  };
-
-  const handleClearSourcePlacements = (group: { type: 'ROLL' | 'WASTE_PIECE'; sourceId: string }, itemId: string) => {
-    confirmDialog({
-      message: 'Clear all placements for this source?',
-      header: t('common.confirm'),
-      icon: 'pi pi-exclamation-triangle',
-      accept: async () => {
-        try {
-          if (group.type === 'ROLL') {
-            await PlacedRectangleService.clearByRoll(group.sourceId);
-          } else {
-            await PlacedRectangleService.clearByWastePiece(group.sourceId);
-          }
-          await loadPlacementsForItem(itemId);
-          if (placementForm.sourceId === group.sourceId) {
-            resetPlacementForm();
-          }
-          showSuccess('Placements cleared.');
-        } catch (err) {
-          console.error('Error clearing placements:', err);
-          showError('Unable to clear placements.');
         }
       },
     });
@@ -955,12 +950,25 @@ export function CommandeDetailPage() {
     { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' },
   ];
 
+  const placementSourceOptionsDialog = [
+    { label: t('inventory.roll'), value: 'ROLL' },
+    { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' },
+  ];
+
   const chuteRollOptions = filterRollOptions(chuteTargetItem?.materialType);
   const chuteParentOptions = parentWastePieces
     .filter((piece: any) => !chuteTargetItem || piece.materialType === chuteTargetItem.materialType)
     .map((piece: any) => ({
       label: `${piece.materialType} | ${piece.lengthM}m x ${piece.widthMm}mm (${piece.areaM2?.toFixed(2)}m2)`,
       value: piece.id,
+    }));
+
+  const placementRollOptionsDialog = filterRollOptions(placementTargetItem?.materialType);
+  const placementWasteOptionsDialog = wasteForItem
+    .filter((waste: any) => !placementTargetItem || waste.materialType === placementTargetItem.materialType)
+    .map((waste: any) => ({
+      label: `${waste.lengthM}m x ${waste.widthMm}mm (${waste.areaM2?.toFixed(2)}m2)`,
+      value: waste.id,
     }));
 
   const chuteSource = chuteSourceType === 'ROLL'
@@ -991,146 +999,95 @@ export function CommandeDetailPage() {
   };
 
   const renderPlacementSection = (item: CommandeItem) => {
-    const placementSourceOptions = [
-      { label: t('inventory.roll'), value: 'ROLL' },
-      { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' },
-    ];
 
-    const placementRollOptions = filterRollOptions(item.materialType);
-    const placementWasteOptions = wasteForItem
-      .filter((waste: any) => waste.materialType === item.materialType)
-      .map((waste: any) => ({
-        label: `${waste.lengthM}m x ${waste.widthMm}mm (${waste.areaM2?.toFixed(2)}m2)`,
-        value: waste.id,
-      }));
-
-    const placementSource = placementForm.sourceType === 'ROLL'
-      ? rolls.find((roll) => roll.id === placementForm.sourceId)
-      : wasteForItem.find((waste: any) => waste.id === placementForm.sourceId);
-
-    const sourceWidthMm = Number(placementSource?.widthMm) || 0;
-    const sourceLengthMm = Math.round((Number(placementSource?.lengthM) || 0) * 1000);
-    const placementsForSource = placementsForItem.filter((placement) => (
-      placementForm.sourceType === 'ROLL'
-        ? placement.rollId === placementForm.sourceId
-        : placement.wastePieceId === placementForm.sourceId
-    ));
-
-    const placementGroups = placementsForItem.reduce((groups, placement) => {
-      const sourceId = placement.rollId ?? placement.wastePieceId;
-      if (!sourceId) {
-        return groups;
-      }
-      const type = placement.rollId ? 'ROLL' : 'WASTE_PIECE';
-      const key = `${type}:${sourceId}`;
-      const existing = groups.get(key);
-      if (existing) {
-        existing.placements.push(placement);
-      } else {
-        groups.set(key, { type, sourceId, placements: [placement] });
-      }
-      return groups;
-    }, new Map<string, { type: 'ROLL' | 'WASTE_PIECE'; sourceId: string; placements: PlacedRectangle[] }>());
-
-    const groupedPlacements = Array.from(placementGroups.values());
-
-    const getGroupSource = (group: { type: 'ROLL' | 'WASTE_PIECE'; sourceId: string }) => (
-      group.type === 'ROLL'
-        ? rolls.find((roll) => roll.id === group.sourceId)
-        : wasteForItem.find((waste: any) => waste.id === group.sourceId)
+    const getPlacementSource = (placement: PlacedRectangle) => (
+      placement.rollId
+        ? rolls.find((roll) => roll.id === placement.rollId)
+        : placement.wastePieceId
+        ? wasteForItem.find((waste: any) => waste.id === placement.wastePieceId)
+        : null
     );
 
-    const getGroupLabel = (group: { type: 'ROLL' | 'WASTE_PIECE'; sourceId: string }) => {
-      const source = getGroupSource(group);
-      const fallback = group.sourceId.slice(0, 8);
-      if (group.type === 'ROLL') {
-        return `Roll ${source?.reference ?? fallback}`;
-      }
-      return `Waste ${source?.reference ?? fallback}`;
+    const renderPlacementSource = (placement: PlacedRectangle) => {
+      const source = getPlacementSource(placement);
+      const label = source?.reference ?? source?.materialType ?? placement.id.slice(0, 8);
+      const typeLabel = placement.rollId ? 'Roll' : placement.wastePieceId ? 'Waste' : t('commandes.notAvailable');
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+          <span style={{ fontWeight: 600 }}>{typeLabel}</span>
+          <span style={{ color: 'var(--text-color-secondary)' }}>{label}</span>
+        </div>
+      );
     };
+
+    const renderPlacementColor = (placement: PlacedRectangle) => {
+      const source = getPlacementSource(placement);
+      const colorHex = placement.colorHexCode ?? source?.colorHexCode;
+      const colorName = placement.colorName ?? source?.colorName ?? colorHex;
+      if (!colorHex) return null;
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+          <span
+            style={{
+              width: '12px',
+              height: '12px',
+              backgroundColor: colorHex,
+              borderRadius: '3px',
+              border: '1px solid var(--surface-border)',
+            }}
+          />
+          <span>{colorName}</span>
+        </span>
+      );
+    };
+
+    const renderPlacementActions = (placement: PlacedRectangle) => (
+      <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+        <Button
+          label={t('commandes.addProductionItem')}
+          icon="pi pi-plus"
+          text
+          onClick={() => handleOpenProductionModal(item, placement.id)}
+        />
+        <Button
+          label={t('common.edit')}
+          icon="pi pi-pencil"
+          text
+          onClick={() => handleOpenEditPlacementModal(item, placement)}
+        />
+        <Button
+          label={t('common.delete')}
+          icon="pi pi-trash"
+          severity="danger"
+          text
+          onClick={() => handleDeletePlacement(placement.id, item.id)}
+        />
+      </div>
+    );
+
+    const placementRows = placementsForItem
+      .map((placement) => {
+        const source = getPlacementSource(placement);
+        const type = placement.rollId ? 'ROLL' : placement.wastePieceId ? 'WASTE_PIECE' : 'UNKNOWN';
+        const sourceId = placement.rollId ?? placement.wastePieceId ?? placement.id;
+        const reference = source?.reference ?? source?.materialType ?? sourceId.slice(0, 8);
+        const groupLabel = type === 'ROLL'
+          ? `Roll ${reference}`
+          : type === 'WASTE_PIECE'
+          ? `Waste ${reference}`
+          : `Source ${reference}`;
+        return {
+          ...placement,
+          groupKey: `${type}:${sourceId}`,
+          groupLabel,
+        };
+      })
+      .sort((a, b) => a.groupKey.localeCompare(b.groupKey));
 
     return (
       <div style={{ marginTop: '0.75rem' }}>
         <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Placements (SVG)</div>
         <div style={{ display: 'grid', gap: '0.75rem' }}>
-          <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Source</label>
-              <Dropdown
-                value={placementForm.sourceType}
-                options={placementSourceOptions}
-                onChange={(e) => {
-                  const nextType = e.value as 'ROLL' | 'WASTE_PIECE';
-                  setPlacementForm((prev) => ({
-                    ...prev,
-                    sourceType: nextType,
-                    sourceId: '',
-                  }));
-                }}
-                disabled={editingPlacementId !== null}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Roll / Waste</label>
-              <Dropdown
-                value={placementForm.sourceId}
-                options={placementForm.sourceType === 'ROLL' ? placementRollOptions : placementWasteOptions}
-                itemTemplate={placementForm.sourceType === 'ROLL' ? renderRollOption : undefined}
-                valueTemplate={placementForm.sourceType === 'ROLL' ? (option) => renderRollOption(option) : undefined}
-                onChange={(e) => updatePlacementField('sourceId', e.value as string)}
-                placeholder={t('commandes.selectRollOption')}
-                disabled={editingPlacementId !== null}
-                style={{ width: '100%' }}
-              />
-            </div>
-          </div>
-
-          {!placementForm.sourceId || sourceWidthMm <= 0 || sourceLengthMm <= 0 ? (
-            <Message severity="info" text="Select a source to preview placements." />
-          ) : (
-            <div
-              style={{
-                border: '1px solid var(--surface-border)',
-                borderRadius: '8px',
-                padding: '0.5rem',
-                background: 'var(--surface-card)',
-              }}
-            >
-              <svg
-                viewBox={`0 0 ${Math.max(1, sourceLengthMm)} ${Math.max(1, sourceWidthMm)}`}
-                width="100%"
-                height="240"
-                preserveAspectRatio="xMidYMid meet"
-              >
-                <rect
-                  x={0}
-                  y={0}
-                  width={sourceLengthMm}
-                  height={sourceWidthMm}
-                  fill={placementSource?.colorHexCode || '#f5f5f5'}
-                  stroke="#bdbdbd"
-                  strokeWidth={2}
-                />
-                {placementsForSource.map((placement) => (
-                  <rect
-                    key={placement.id}
-                    x={placement.yMm}
-                    y={placement.xMm}
-                    width={placement.heightMm}
-                    height={placement.widthMm}
-                    fill={placement.colorHexCode || 'rgba(25, 118, 210, 0.35)'}
-                    stroke={placement.colorHexCode || '#1565c0'}
-                    strokeWidth={1}
-                  />
-                ))}
-              </svg>
-              <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
-                {(sourceLengthMm / 1000).toFixed(2)}m x {sourceWidthMm}mm (length on X, width on Y)
-              </div>
-            </div>
-          )}
-
           <div style={{ display: 'grid', gap: '0.75rem' }}>
             <div
               style={{
@@ -1150,126 +1107,45 @@ export function CommandeDetailPage() {
                 disabled={isBusy}
               />
             </div>
-            {groupedPlacements.length === 0 ? (
-              <Message severity="info" text="No placements recorded for this item." />
-            ) : (
-              <div style={{ display: 'grid', gap: '0.75rem' }}>
-                {groupedPlacements.map((group) => {
-                  const source = getGroupSource(group);
-                  const widthMm = Number(source?.widthMm) || 0;
-                  const lengthMm = Math.round((Number(source?.lengthM) || 0) * 1000);
-                  return (
-                    <Card key={`${group.type}-${group.sourceId}`} style={{ padding: '0.75rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                        <div style={{ fontWeight: 600 }}>{getGroupLabel(group)}</div>
-                        <Button
-                          label="Clear"
-                          icon="pi pi-trash"
-                          severity="danger"
-                          outlined
-                          onClick={() => handleClearSourcePlacements(group, item.id)}
-                        />
-                      </div>
-                      {widthMm > 0 && lengthMm > 0 ? (
-                        <div
-                          style={{
-                            border: '1px solid var(--surface-border)',
-                            borderRadius: '8px',
-                            padding: '0.5rem',
-                            background: 'var(--surface-card)',
-                            marginBottom: '0.75rem',
-                          }}
-                        >
-                          <svg
-                            viewBox={`0 0 ${Math.max(1, lengthMm)} ${Math.max(1, widthMm)}`}
-                            width="100%"
-                            height="220"
-                            preserveAspectRatio="xMidYMid meet"
-                          >
-                            <rect
-                              x={0}
-                              y={0}
-                              width={lengthMm}
-                              height={widthMm}
-                              fill={source?.colorHexCode || '#f5f5f5'}
-                              stroke="#bdbdbd"
-                              strokeWidth={2}
-                            />
-                            {group.placements.map((placement) => (
-                              <rect
-                                key={placement.id}
-                                x={placement.yMm}
-                                y={placement.xMm}
-                                width={placement.heightMm}
-                                height={placement.widthMm}
-                                fill={placement.colorHexCode || 'rgba(25, 118, 210, 0.35)'}
-                                stroke={placement.colorHexCode || '#1565c0'}
-                                strokeWidth={1}
-                              />
-                            ))}
-                          </svg>
-                          <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
-                            {(lengthMm / 1000).toFixed(2)}m x {widthMm}mm (length on X, width on Y)
-                          </div>
-                        </div>
-                      ) : (
-                        <Message severity="info" text="Source dimensions are required for SVG preview." />
-                      )}
-
-                      <div style={{ display: 'grid', gap: '0.5rem' }}>
-                        {group.placements.map((placement) => (
-                          <Card key={placement.id} style={{ padding: '0.5rem' }}>
-                            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                              <span>
-                                x:{placement.xMm} y:{placement.yMm}
-                              </span>
-                              <span>
-                                {placement.widthMm} x {placement.heightMm} mm
-                              </span>
-                              {placement.colorHexCode && (
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                                  <span
-                                    style={{
-                                      width: '12px',
-                                      height: '12px',
-                                      backgroundColor: placement.colorHexCode,
-                                      borderRadius: '3px',
-                                      border: '1px solid var(--surface-border)',
-                                    }}
-                                  />
-                                  {placement.colorName || placement.colorHexCode}
-                                </span>
-                              )}
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <Button
-                                  label={t('commandes.addProductionItem')}
-                                  icon="pi pi-plus"
-                                  severity="secondary"
-                                  onClick={() => handleOpenProductionModal(item, placement.id)}
-                                />
-                                <Button
-                                  label="Edit"
-                                  icon="pi pi-pencil"
-                                  outlined
-                                  onClick={() => handleOpenEditPlacementModal(item, placement)}
-                                />
-                                <Button
-                                  label="Delete"
-                                  icon="pi pi-trash"
-                                  severity="danger"
-                                  outlined
-                                  onClick={() => handleDeletePlacement(placement.id, item.id)}
-                                />
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
+              <DataTable
+                value={placementRows}
+                dataKey="id"
+                emptyMessage="No placements recorded for this item."
+                size="small"
+                className="p-datatable-sm"
+                rowGroupMode="subheader"
+                groupRowsBy="groupKey"
+                sortField="groupKey"
+                sortOrder={1}
+                rowGroupHeaderTemplate={(row) => (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.75rem',
+                      padding: '0.25rem 0',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>{row.groupLabel}</span>
+                    <Button
+                      label="Preview"
+                      icon="pi pi-eye"
+                      text
+                      onClick={() => handleOpenPlacementPreview(row)}
+                    />
+                  </div>
+                )}
+              >
+                <Column header="Source" body={renderPlacementSource} />
+                <Column field="xMm" header="X (mm)" />
+                <Column field="yMm" header="Y (mm)" />
+                <Column field="widthMm" header="Width (mm)" />
+                <Column field="heightMm" header="Height (mm)" />
+                <Column header="Color" body={renderPlacementColor} />
+                <Column header="Actions" body={renderPlacementActions} />
+              </DataTable>
           </div>
 
         </div>
@@ -1320,111 +1196,30 @@ export function CommandeDetailPage() {
       <Toast ref={toastRef} />
       <ConfirmDialog />
 
-      <Card style={{ marginBottom: '1rem' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '0.75rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: 600 }}>{commande.numeroCommande}</span>
-            <Tag value={commande.status} severity={getStatusSeverity(commande.status)} />
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <Button
-              icon="pi pi-pencil"
-              label={t('commandes.editOrder')}
-              onClick={handleEditOrder}
-              disabled={isBusy}
-            />
-            <Button
-              icon="pi pi-trash"
-              label={t('commandes.deleteOrder')}
-              severity="danger"
-              onClick={handleDeleteOrder}
-              disabled={isBusy}
-              loading={deletingOrder}
-            />
-            <Button
-              icon="pi pi-arrow-left"
-              label={t('commandes.backButton')}
-              severity="secondary"
-              outlined
-              onClick={() => navigate('/commandes')}
-              disabled={isBusy}
-            />
-          </div>
-        </div>
-      </Card>
+      <OrderHeaderCard
+        commande={commande}
+        isBusy={isBusy}
+        deletingOrder={deletingOrder}
+        getStatusSeverity={getStatusSeverity}
+        onEdit={handleEditOrder}
+        onDelete={handleDeleteOrder}
+        onBack={() => navigate('/commandes')}
+        t={t}
+      />
 
       {error && <Message severity="error" text={error} style={{ marginBottom: '1rem' }} />}
 
-      <Card title={t('commandes.orderInformation')} style={{ marginBottom: '1rem' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: '1rem',
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.orderNumber')}</div>
-            <div>{commande.numeroCommande}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.client')}</div>
-            <div>{commande.clientName}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.createdBy')}</div>
-            <div>{commande.createdByName || t('commandes.notAvailable')}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.createdDate')}</div>
-            <div>{formatDateTime(commande.createdAt)}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.totalItems')}</div>
-            <div>{commande.items?.length || 0}</div>
-          </div>
-        </div>
+      <OrderInfoCard commande={commande} t={t} />
 
-        {commande.description && (
-          <div style={{ marginTop: '1rem' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.description')}</div>
-            <div>{commande.description}</div>
-          </div>
-        )}
-
-        {commande.notes && (
-          <div style={{ marginTop: '0.75rem' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.notes')}</div>
-            <div>{commande.notes}</div>
-          </div>
-        )}
-      </Card>
-
-      <Card title={t('commandes.updateOrderStatus')} style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Dropdown
-            value={selectedStatus}
-            options={statusOptions}
-            onChange={(e) => setSelectedStatus(e.value)}
-            placeholder={t('commandes.updateStatus')}
-            style={{ minWidth: '220px' }}
-          />
-          <Button
-            label={updating ? t('commandes.updating') : t('commandes.updateStatus')}
-            onClick={handleStatusUpdate}
-            disabled={updating || selectedStatus === commande.status}
-            loading={updating}
-          />
-        </div>
-      </Card>
+      <StatusUpdateCard
+        selectedStatus={selectedStatus}
+        statusOptions={statusOptions}
+        updating={updating}
+        currentStatus={commande.status}
+        onStatusChange={(nextStatus) => setSelectedStatus(nextStatus)}
+        onUpdate={handleStatusUpdate}
+        t={t}
+      />
 
       <Card title={`${t('commandes.orderItems')} (${commande.items?.length || 0})`}>
         {!commande.items || commande.items.length === 0 ? (
@@ -1512,119 +1307,20 @@ export function CommandeDetailPage() {
 
                 {expandedItemId === item.id && (
                   <div style={{ marginTop: '1rem' }}>
-                    <div style={{ marginTop: '0.75rem' }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '0.75rem',
-                          flexWrap: 'wrap',
-                          marginBottom: '0.5rem',
-                        }}
-                      >
-                        <span style={{ fontWeight: 600 }}>{t('commandes.wasteCreated')}</span>
-                        <Button
-                          label={t('inventory.createChute')}
-                          icon="pi pi-plus-circle"
-                          severity="secondary"
-                          onClick={() => handleOpenChuteModal(item)}
-                          disabled={isBusy}
-                        />
-                      </div>
-                      {wasteForItem.length === 0 ? (
-                        <Message severity="info" text={t('commandes.noWasteRecorded')} />
-                      ) : (
-                        <div style={{ display: 'grid', gap: '0.5rem' }}>
-                          {wasteForItem.map((waste: any) => (
-                            <Card key={waste.id} style={{ padding: '0.5rem' }}>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.75rem',
-                                  flexWrap: 'wrap',
-                                }}
-                              >
-                                <Tag
-                                  value={waste.wasteType}
-                                  severity={waste.wasteType === 'DECHET' ? 'warning' : 'success'}
-                                />
-                                <span>
-                                  {waste.lengthM}m x {waste.widthMm}mm ({waste.areaM2?.toFixed(2)}m2)
-                                </span>
-                                {waste.weightKg ? <span>{waste.weightKg}kg</span> : null}
-                                <span>{formatDate(waste.createdAt)}</span>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <WasteSection
+                      wasteForItem={wasteForItem}
+                      onCreateChute={() => handleOpenChuteModal(item)}
+                      isBusy={isBusy}
+                      t={t}
+                    />
 
-                    <div style={{ marginTop: '0.75rem' }}>
-                      <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>
-                        {t('commandes.productionItems')}
-                      </div>
-                      {productionForItem.length === 0 ? (
-                        <Message severity="info" text={t('commandes.noProductionItems')} />
-                      ) : (
-                        <div style={{ display: 'grid', gap: '0.5rem' }}>
-                          {productionForItem.map((production) => {
-                            const placement = placementsForItem.find((item) => item.id === production.placedRectangleId);
-                            const source = placement?.rollId
-                              ? rolls.find((roll) => roll.id === placement.rollId)
-                              : placement?.wastePieceId
-                              ? wasteForItem.find((waste: any) => waste.id === placement.wastePieceId)
-                              : null;
-                            const sourceLabel = source?.reference ?? source?.materialType ?? 'Placement';
-                            return (
-                              <Card key={production.id} style={{ padding: '0.5rem' }}>
-                                {production.goodProduction}
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    flexWrap: 'wrap',
-                                  }}
-                                >
-                                  <Tag
-                                    value={sourceLabel}
-                                    severity={placement?.rollId ? 'info' : 'success'}
-                                  />
-                                  {placement && (
-                                    <span>
-                                      x:{placement.xMm} y:{placement.yMm} {placement.widthMm}x{placement.heightMm}mm
-                                    </span>
-                                  )}
-                                {typeof production.goodProduction === 'boolean' && (
-                                  <Tag
-                                    value={
-                                      production.goodProduction
-                                        ? t('commandes.productionGood')
-                                        : t('commandes.productionBad')
-                                    }
-                                    severity={production.goodProduction ? 'success' : 'danger'}
-                                  />
-                                )}
-                                <span>
-                                  {production.pieceLengthM}m x {production.pieceWidthMm}mm x {production.quantity}
-                                  {' '}({production.totalAreaM2?.toFixed(2)}m2)
-                                </span>
-                                <span>{formatDate(production.createdAt)}</span>
-                                </div>
-                                {production.productionMiss && (
-                                  <div style={{ marginTop: '0.35rem', color: 'var(--text-color-secondary)', fontSize: '0.85rem' }}>
-                                    {t('commandes.productionMissLabel')}: {production.productionMiss}
-                                  </div>
-                                )}
-                              </Card>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                    <ProductionSection
+                      productionForItem={productionForItem}
+                      placementsForItem={placementsForItem}
+                      rolls={rolls}
+                      wasteForItem={wasteForItem}
+                      t={t}
+                    />
 
                     {renderPlacementSection(item)}
                   </div>
@@ -1636,293 +1332,83 @@ export function CommandeDetailPage() {
         )}
       </Card>
 
-      <Dialog
-        header={
-          chuteTargetItem
-            ? `${t('inventory.createChute')} - ${t('commandes.line')} ${chuteTargetItem.lineNumber}`
-            : t('inventory.createChute')
-        }
-        visible={showChuteForm}
+      <ChuteDialog
+        chuteTargetItem={chuteTargetItem}
+        showChuteForm={showChuteForm}
         onHide={handleCloseChuteModal}
-        style={{ width: 'min(700px, 95vw)' }}
-        footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            <Button label={t('common.cancel')} severity="secondary" onClick={handleCloseChuteModal} />
-            <Button label={t('inventory.createChute')} onClick={handleCreateChute} loading={creatingChute} />
-          </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('inventory.sourceType')}
-            </label>
-            <Dropdown
-              value={chuteSourceType}
-              options={chuteSourceOptions}
-              onChange={(e) => {
-                setChuteSourceType(e.value);
-                setChuteRollId('');
-                setParentWastePieceId('');
-                setChuteDimensions({ widthMm: 0, lengthM: 0, areaM2: 0 });
-              }}
-              style={{ width: '100%' }}
-            />
-          </div>
+        t={t}
+        chuteSourceType={chuteSourceType}
+        chuteSourceOptions={chuteSourceOptions}
+        onSourceTypeChange={(value) => {
+          setChuteSourceType(value as 'ROLL' | 'WASTE_PIECE');
+          setChuteRollId('');
+          setParentWastePieceId('');
+          setChuteDimensions({ widthMm: 0, lengthM: 0, areaM2: 0 });
+        }}
+        chuteRollId={chuteRollId}
+        chuteRollOptions={chuteRollOptions}
+        onRollChange={(value) => setChuteRollId(value)}
+        parentWastePieceId={parentWastePieceId}
+        chuteParentOptions={chuteParentOptions}
+        onParentWasteChange={(value) => setParentWastePieceId(value)}
+        parentWastePiecesLoading={parentWastePiecesLoading}
+        renderRollOption={renderRollOption}
+        chuteSource={chuteSource}
+        chuteDimensions={chuteDimensions}
+        onDimensionChange={updateChuteDimension}
+        onCreate={handleCreateChute}
+        creatingChute={creatingChute}
+      />
 
-          {chuteSourceType === 'ROLL' ? (
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-                {t('inventory.selectRoll')}
-              </label>
-              <Dropdown
-                value={chuteRollId}
-                options={chuteRollOptions}
-                itemTemplate={renderRollOption}
-                valueTemplate={(option) => renderRollOption(option)}
-                onChange={(e) => setChuteRollId(e.value as string)}
-                placeholder={t('commandes.selectRollOption')}
-                style={{ width: '100%' }}
-              />
-            </div>
-          ) : (
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-                {t('inventory.selectWastePiece')}
-              </label>
-              <Dropdown
-                value={parentWastePieceId}
-                options={chuteParentOptions}
-                onChange={(e) => setParentWastePieceId(e.value as string)}
-                placeholder={
-                  parentWastePiecesLoading
-                    ? t('inventory.loadingWastePieces')
-                    : t('inventory.selectWastePiece')
-                }
-                style={{ width: '100%' }}
-              />
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-                {t('inventory.material')}
-              </label>
-              <InputText value={chuteSource?.materialType || ''} disabled />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-                {t('rolls.plies')}
-              </label>
-              <InputText value={chuteSource?.nbPlis ?? ''} disabled />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-                {t('rolls.thickness')}
-              </label>
-              <InputText value={chuteSource?.thicknessMm ?? ''} disabled />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-                {t('rolls.width')}
-              </label>
-              <InputText
-                value={chuteDimensions.widthMm ? String(chuteDimensions.widthMm) : ''}
-                onChange={(e) => updateChuteDimension('widthMm', e.target.value)}
-                type="number"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-                {t('rolls.length')}
-              </label>
-              <InputText
-                value={chuteDimensions.lengthM ? String(chuteDimensions.lengthM) : ''}
-                onChange={(e) => updateChuteDimension('lengthM', e.target.value)}
-                type="number"
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-                {t('rolls.area')}
-              </label>
-              <InputText value={chuteDimensions.areaM2.toFixed(4)} disabled />
-            </div>
-          </div>
-        </div>
-      </Dialog>
-
-      <Dialog
-        header={editingPlacementId ? 'Update placement' : 'Add placement'}
-        visible={showPlacementModal}
+      <PlacementDialog
+        showPlacementModal={showPlacementModal}
+        editingPlacementId={editingPlacementId}
+        placementTargetItem={placementTargetItem}
         onHide={handleClosePlacementModal}
-        style={{ width: 'min(560px, 95vw)' }}
-        footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            <Button label={t('commandes.cancel')} severity="secondary" onClick={handleClosePlacementModal} />
-            <Button
-              label={editingPlacementId ? 'Update placement' : 'Save placement'}
-              onClick={handleSavePlacement}
-              loading={creatingPlacement}
-              disabled={creatingPlacement || !placementTargetItem}
-            />
-          </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: '0.75rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X (length mm)</label>
-              <InputText
-                value={placementForm.xMm}
-                onChange={(e) => updatePlacementField('xMm', e.target.value)}
-                type="number"
-                min={0}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Y (width mm)</label>
-              <InputText
-                value={placementForm.yMm}
-                onChange={(e) => updatePlacementField('yMm', e.target.value)}
-                type="number"
-                min={0}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Width (mm)</label>
-              <InputText
-                value={placementForm.widthMm}
-                onChange={(e) => updatePlacementField('widthMm', e.target.value)}
-                type="number"
-                min={1}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Height (mm)</label>
-              <InputText
-                value={placementForm.heightMm}
-                onChange={(e) => updatePlacementField('heightMm', e.target.value)}
-                type="number"
-                min={1}
-              />
-            </div>
-          </div>
-        </div>
-      </Dialog>
+        t={t}
+        placementForm={placementForm}
+        placementSourceOptionsDialog={placementSourceOptionsDialog}
+        onSourceTypeChange={(value) => {
+          setPlacementForm((prev) => ({
+            ...prev,
+            sourceType: value as 'ROLL' | 'WASTE_PIECE',
+            sourceId: '',
+          }));
+        }}
+        placementRollOptionsDialog={placementRollOptionsDialog}
+        placementWasteOptionsDialog={placementWasteOptionsDialog}
+        renderRollOption={renderRollOption}
+        onSourceIdChange={(value) => updatePlacementField('sourceId', value)}
+        rolls={rolls}
+        wasteForItem={wasteForItem}
+        placementsForItem={placementsForItem}
+        onFieldChange={(name, value) => updatePlacementField(name, value)}
+        onSave={handleSavePlacement}
+        creatingPlacement={creatingPlacement}
+      />
 
-      <Dialog
-        header={
-          productionTargetItem
-            ? `${t('commandes.addProductionItem')} - ${t('commandes.line')} ${productionTargetItem.lineNumber}`
-            : t('commandes.addProductionItem')
-        }
-        visible={showProductionModal}
+      <PlacementPreviewDialog
+        showPlacementPreview={showPlacementPreview}
+        onHide={handleClosePlacementPreview}
+        previewPlacement={previewPlacement}
+        rolls={rolls}
+        wasteForItem={wasteForItem}
+        placementsForItem={placementsForItem}
+      />
+
+      <ProductionDialog
+        productionTargetItem={productionTargetItem}
+        showProductionModal={showProductionModal}
         onHide={handleCloseProductionModal}
-        style={{ width: 'min(600px, 95vw)' }}
-        footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-            <Button label={t('commandes.cancel')} severity="secondary" onClick={handleCloseProductionModal} />
-            <Button
-              label={t('commandes.saveProductionItem')}
-              onClick={handleCreateProductionItem}
-              loading={creatingProduction}
-            />
-          </div>
-        }
-      >
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              Placement
-            </label>
-            <div
-              style={{
-                border: '1px solid var(--surface-border)',
-                borderRadius: '6px',
-                padding: '0.5rem 0.75rem',
-                background: 'var(--surface-card)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                flexWrap: 'wrap',
-              }}
-            >
-              {selectedProductionColorHex ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <span
-                    style={{
-                      width: '12px',
-                      height: '12px',
-                      backgroundColor: selectedProductionColorHex,
-                      borderRadius: '3px',
-                      border: '1px solid var(--surface-border)',
-                    }}
-                  />
-                  <span>{selectedProductionColorName || selectedProductionColorHex}</span>
-                </span>
-              ) : null}
-              <span>{selectedProductionLabel}</span>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.productionPieceLength')}
-            </label>
-            <InputText
-              value={productionForm.pieceLengthM}
-              onChange={(e) => updateProductionField('pieceLengthM', e.target.value)}
-              placeholder="0.00"
-              type="number"
-              style={{ width: '100%' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.productionPieceWidth')}
-            </label>
-            <InputText
-              value={productionForm.pieceWidthMm}
-              onChange={(e) => updateProductionField('pieceWidthMm', e.target.value)}
-              placeholder="0"
-              type="number"
-              style={{ width: '100%' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.productionQuantity')}
-            </label>
-            <InputText
-              value={productionForm.quantity}
-              onChange={(e) => updateProductionField('quantity', e.target.value)}
-              placeholder="0"
-              type="number"
-              style={{ width: '100%' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-              {t('commandes.notes')}
-            </label>
-            <InputTextarea
-              value={productionForm.notes}
-              onChange={(e) => updateProductionField('notes', e.target.value)}
-              placeholder={t('commandes.notesPlaceholder')}
-              rows={3}
-              style={{ width: '100%' }}
-            />
-          </div>
-        </div>
-      </Dialog>
+        t={t}
+        selectedProductionColorHex={selectedProductionColorHex}
+        selectedProductionColorName={selectedProductionColorName}
+        selectedProductionLabel={selectedProductionLabel}
+        productionForm={productionForm}
+        onFieldChange={(name, value) => updateProductionField(name, value)}
+        onSave={handleCreateProductionItem}
+        creatingProduction={creatingProduction}
+      />
     </div>
   );
 }
