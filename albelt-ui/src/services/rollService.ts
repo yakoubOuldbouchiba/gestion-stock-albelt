@@ -22,6 +22,9 @@ export const RollService = {
     materialType?: MaterialType;
     supplierId?: string;
     altierId?: string;
+    colorId?: string;
+    nbPlis?: number;
+    thicknessMm?: number;
     dateFrom?: string;
     dateTo?: string;
   }): Promise<ApiResponse<PagedResponse<Roll>>> {

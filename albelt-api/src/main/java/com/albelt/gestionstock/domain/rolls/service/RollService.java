@@ -170,6 +170,9 @@ public class RollService {
                                             MaterialType materialType,
                                             UUID supplierId,
                                             UUID altierId,
+                                            UUID colorId,
+                                            Integer nbPlis,
+                                            BigDecimal thicknessMm,
                                             java.time.LocalDate fromDate,
                                             java.time.LocalDate toDate,
                                             String search,
@@ -189,7 +192,7 @@ public class RollService {
         java.time.LocalDate effectiveToDate = toDate != null ? toDate : java.time.LocalDate.of(2100, 1, 1);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "receivedDate"));
         return rollRepository.findFiltered(userAltierIds, status, materialType, supplierId, altierId,
-            effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
+            colorId, nbPlis, thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
     }
 
     /**

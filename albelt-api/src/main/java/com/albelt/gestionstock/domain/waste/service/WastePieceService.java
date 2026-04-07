@@ -140,6 +140,7 @@ public class WastePieceService {
      */
     @Transactional(readOnly = true)
     public Page<WastePiece> getAllPaged(MaterialType materialType, WasteStatus status, UUID altierId,
+                                        UUID colorId, Integer nbPlis, BigDecimal thicknessMm,
                                         java.time.LocalDateTime fromDate, java.time.LocalDateTime toDate,
                                         String search, int page, int size) {
         String normalizedSearch = normalize(search);
@@ -151,7 +152,8 @@ public class WastePieceService {
         java.time.LocalDateTime effectiveFromDate = fromDate != null ? fromDate : java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
         java.time.LocalDateTime effectiveToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return wastePieceRepository.findFiltered(materialType, status, altierId, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
+        return wastePieceRepository.findFiltered(materialType, status, altierId, colorId, nbPlis,
+            thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
     }
 
     /**

@@ -111,6 +111,9 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
            "AND (:materialType IS NULL OR r.materialType = :materialType) " +
            "AND (:supplierId IS NULL OR r.supplier.id = :supplierId) " +
            "AND (:altierId IS NULL OR r.altier.id = :altierId) " +
+          "AND (:colorId IS NULL OR r.color.id = :colorId) " +
+          "AND (:nbPlis IS NULL OR r.nbPlis = :nbPlis) " +
+          "AND (:thicknessMm IS NULL OR r.thicknessMm = :thicknessMm) " +
            "AND r.receivedDate >= :fromDate " +
            "AND r.receivedDate <= :toDate " +
            "AND (:search = '' OR " +
@@ -125,6 +128,9 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
             @Param("materialType") MaterialType materialType,
             @Param("supplierId") UUID supplierId,
             @Param("altierId") UUID altierId,
+           @Param("colorId") UUID colorId,
+           @Param("nbPlis") Integer nbPlis,
+           @Param("thicknessMm") BigDecimal thicknessMm,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
             @Param("search") String search,

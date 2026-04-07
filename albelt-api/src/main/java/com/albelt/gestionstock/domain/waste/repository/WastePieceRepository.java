@@ -48,6 +48,9 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
            "WHERE (:materialType IS NULL OR wp.materialType = :materialType) " +
            "AND (:status IS NULL OR wp.status = :status) " +
            "AND (:altierId IS NULL OR wp.altier.id = :altierId) " +
+          "AND (:colorId IS NULL OR wp.color.id = :colorId) " +
+          "AND (:nbPlis IS NULL OR wp.nbPlis = :nbPlis) " +
+          "AND (:thicknessMm IS NULL OR wp.thicknessMm = :thicknessMm) " +
            "AND wp.createdAt >= :fromDate " +
            "AND wp.createdAt <= :toDate " +
            "AND (:search = '' OR " +
@@ -58,6 +61,9 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
             @Param("materialType") MaterialType materialType,
             @Param("status") WasteStatus status,
             @Param("altierId") UUID altierId,
+           @Param("colorId") UUID colorId,
+           @Param("nbPlis") Integer nbPlis,
+           @Param("thicknessMm") BigDecimal thicknessMm,
             @Param("fromDate") java.time.LocalDateTime fromDate,
             @Param("toDate") java.time.LocalDateTime toDate,
             @Param("search") String search,

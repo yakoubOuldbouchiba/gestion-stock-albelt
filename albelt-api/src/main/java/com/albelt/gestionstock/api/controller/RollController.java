@@ -63,6 +63,9 @@ public class RollController {
             @RequestParam(required = false) MaterialType materialType,
             @RequestParam(required = false) UUID supplierId,
             @RequestParam(required = false) UUID altierId,
+            @RequestParam(required = false) UUID colorId,
+            @RequestParam(required = false) Integer nbPlis,
+            @RequestParam(required = false) BigDecimal thicknessMm,
             @RequestParam(required = false) String dateFrom,
             @RequestParam(required = false) String dateTo) {
         UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -93,6 +96,9 @@ public class RollController {
                 materialType,
                 supplierId,
                 altierId,
+            colorId,
+            nbPlis,
+            thicknessMm,
                 fromDate,
                 toDate,
                 search,

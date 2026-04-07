@@ -58,12 +58,16 @@ public class WastePieceController {
             @RequestParam(required = false) MaterialType materialType,
             @RequestParam(required = false) WasteStatus status,
             @RequestParam(required = false) UUID altierId,
+            @RequestParam(required = false) UUID colorId,
+            @RequestParam(required = false) Integer nbPlis,
+            @RequestParam(required = false) BigDecimal thicknessMm,
             @RequestParam(required = false) String dateFrom,
             @RequestParam(required = false) String dateTo) {
         log.debug("Fetching all waste pieces: page={}, size={}", page, size);
         var fromDate = parseDateStart(dateFrom);
         var toDate = parseDateEnd(dateTo);
-        var wastePieces = wastePieceService.getAllPaged(materialType, status, altierId, fromDate, toDate, search, page, size);
+        var wastePieces = wastePieceService.getAllPaged(materialType, status, altierId, colorId, nbPlis,
+            thicknessMm, fromDate, toDate, search, page, size);
         var responses = wastePieceMapper.toResponseList(wastePieces.getContent());
         var paged = PagedResponse.<WastePieceResponse>builder()
                 .items(responses)

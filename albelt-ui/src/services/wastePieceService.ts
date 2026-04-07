@@ -81,6 +81,9 @@ export const WastePieceService = {
     materialType?: MaterialType;
     status?: WasteStatus;
     altierId?: string;
+    colorId?: string;
+    nbPlis?: number;
+    thicknessMm?: number;
     dateFrom?: string;
     dateTo?: string;
   }): Promise<ApiResponse<PagedResponse<WastePiece>>> {
