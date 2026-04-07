@@ -308,12 +308,10 @@ public class RollService {
 
     /**
      * Record consumption/waste on a roll after cutting operation
-     * Updates total waste area, cut count, last processing date, and status
+    * Updates total waste area, cut count, and last processing date
      * 
      * Status transitions:
-     * - AVAILABLE → OPENED (on first cut)
-     * - OPENED → EXHAUSTED (when waste ≥ 90% of area)
-     * - EXHAUSTED → ARCHIVED (manual transition)
+    * Status is managed by placement usage rules and manual updates.
      * 
      * @param rollId UUID of the roll being processed
      * @param wasteAreaM2 Area consumed/wasted in this operation (m²)
@@ -329,8 +327,6 @@ public class RollService {
         log.info("Recording waste consumption: roll_id={}, waste_area_m2={}", rollId, wasteAreaM2);
         
         Roll roll = getById(rollId);
-        RollStatus oldStatus = roll.getStatus();
-        
         // Update total waste tracking
         BigDecimal newTotalWaste = roll.getTotalWasteAreaM2().add(wasteAreaM2);
         if (newTotalWaste.compareTo(roll.getAreaM2()) > 0) {
@@ -344,25 +340,10 @@ public class RollService {
         // Update last processing date
         roll.setLastProcessingDate(LocalDateTime.now());
         
-        // Update status based on waste percentage
-        BigDecimal wastePercentage = newTotalWaste.divide(roll.getAreaM2(), 4, java.math.RoundingMode.HALF_UP)
-                                                   .multiply(BigDecimal.valueOf(100));
-        
-        if (RollStatus.AVAILABLE.equals(roll.getStatus())) {
-            roll.setStatus(RollStatus.OPENED);
-            log.debug("Roll status transitioned: AVAILABLE → OPENED");
-        }
-        
-        if (wastePercentage.compareTo(BigDecimal.valueOf(90)) >= 0) {
-            roll.setStatus(RollStatus.EXHAUSTED);
-            log.info("Roll marked EXHAUSTED: waste percentage={}%", wastePercentage.setScale(2, java.math.RoundingMode.HALF_UP));
-        }
-        
         Roll updated = rollRepository.save(roll);
-        
-        log.info("Consumption recorded: roll_id={}, total_waste={}m², waste_pct={}%, cuts={}, status_transition={}→{}", 
-                 rollId, newTotalWaste, wastePercentage.setScale(2, java.math.RoundingMode.HALF_UP), 
-                 updated.getTotalCuts(), oldStatus, updated.getStatus());
+
+        log.info("Consumption recorded: roll_id={}, total_waste={}m², cuts={}", 
+                 rollId, newTotalWaste, updated.getTotalCuts());
         return updated;
     }
 
@@ -381,8 +362,8 @@ public class RollService {
     public List<Roll> getRollsBySupplierAndMaterial(UUID supplierId, MaterialType materialType) {
         log.debug("Getting rolls: supplier={}, material={}", supplierId, materialType);
 
-        List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
-        return rollRepository.findBySupplierAndMaterial(supplierId, materialType, availableStatuses);
+        List<RollStatus> allStatuses = Arrays.asList(RollStatus.values());
+        return rollRepository.findBySupplierAndMaterial(supplierId, materialType, allStatuses);
     }
 
     /**

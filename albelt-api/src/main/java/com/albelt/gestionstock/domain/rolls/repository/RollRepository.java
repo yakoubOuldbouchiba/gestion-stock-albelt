@@ -45,7 +45,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      */
     @Query("SELECT r FROM Roll r WHERE r.materialType = :materialType " +
            "AND r.status IN (:statuses) " +
-           "AND r.areaM2 >= :requiredArea " +
+           "AND r.availableAreaM2 >= :requiredArea " +
            "ORDER BY r.receivedDate ASC")
     List<Roll> findRollsBySizeAndMaterial(@Param("materialType") MaterialType materialType,
                                           @Param("requiredArea") BigDecimal requiredArea,
@@ -84,7 +84,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
     /**
      * Get statistics: total area available by material type
      */
-    @Query("SELECT r.materialType, SUM(r.areaM2) FROM Roll r " +
+    @Query("SELECT r.materialType, SUM(r.availableAreaM2) FROM Roll r " +
            "WHERE r.status IN (:statuses) GROUP BY r.materialType")
     List<Object[]> getTotalAreaByMaterial(@Param("statuses") List<RollStatus> statuses);
 
@@ -147,7 +147,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      * Get statistics by material type only (aggregated across all waste types)
      * Returns count and total area for each material
      */
-    @Query("SELECT r.materialType, COUNT(r), SUM(r.areaM2) FROM Roll r " +
+    @Query("SELECT r.materialType, COUNT(r), SUM(r.availableAreaM2) FROM Roll r " +
            "WHERE r.status IN (:statuses) " +
            "GROUP BY r.materialType")
     List<Object[]> getStatsByMaterial(@Param("statuses") List<RollStatus> statuses);
@@ -167,7 +167,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
               r.status, 
               COUNT(r), 
               SUM(r.areaM2),
-              SUM(r.totalWasteAreaM2)       
+              SUM(r.usedAreaM2)       
        FROM Roll r
        LEFT JOIN r.color c
        LEFT JOIN r.supplier s

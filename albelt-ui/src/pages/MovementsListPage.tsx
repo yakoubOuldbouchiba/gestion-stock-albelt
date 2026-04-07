@@ -221,6 +221,16 @@ export function MovementsListPage() {
     />
   );
 
+  const movementItemBody = (movement: RollMovement) => {
+    if (movement.rollId) {
+      return `${t('inventory.roll')}: ${movement.rollId.substring(0, 8)}...`;
+    }
+    if (movement.wastePieceId) {
+      return `${t('inventory.wastePiece')}: ${movement.wastePieceId.substring(0, 8)}...`;
+    }
+    return '-';
+  };
+
   const fromAltierBody = (movement: RollMovement) => (
     <div>
       {movement.fromAltier ? (
@@ -357,7 +367,7 @@ export function MovementsListPage() {
             <Message severity="info" text={t('movementsList.noCreatedMovements')} />
           ) : (
             <DataTable value={createdMovements} dataKey="id" size="small">
-              <Column header={t('common.roll')} field="rollId" />
+              <Column header={t('movementsList.item')} body={movementItemBody} />
               <Column header={t('movementsList.bon')} body={bonBody} />
               <Column header={t('movementsList.from')} body={fromAltierBody} />
               <Column header={t('movementsList.to')} body={toAltierBody} />
@@ -374,7 +384,7 @@ export function MovementsListPage() {
             <Message severity="info" text={t('movementsList.noPendingReceipts')} />
           ) : (
             <DataTable value={pendingMovements} dataKey="id" size="small">
-              <Column header={t('common.roll')} field="rollId" />
+              <Column header={t('movementsList.item')} body={movementItemBody} />
               <Column header={t('movementsList.bon')} body={bonBody} />
               <Column header={t('movementsList.from')} body={fromAltierBody} />
               <Column header={t('movementsList.toYourAltier')} body={toAltierBody} />

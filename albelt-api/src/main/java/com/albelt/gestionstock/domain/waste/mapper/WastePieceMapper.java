@@ -63,6 +63,8 @@ public class WastePieceMapper {
                 .widthMm(request.getWidthMm())
                 .lengthM(request.getLengthM())
                 .areaM2(request.getAreaM2())
+            .usedAreaM2(BigDecimal.ZERO)
+            .availableAreaM2(request.getAreaM2())
                 .widthRemainingMm(request.getWidthRemainingMm())
                 .lengthRemainingM(request.getLengthRemainingM())
                 .wasteType(request.getWasteType())
@@ -113,6 +115,7 @@ public class WastePieceMapper {
         }
         if (request.getAreaM2() != null) {
             existing.setAreaM2(request.getAreaM2());
+            existing.setAvailableAreaM2(request.getAreaM2());
         }
         if (request.getWidthRemainingMm() != null) {
             existing.setWidthRemainingMm(request.getWidthRemainingMm());
@@ -156,6 +159,8 @@ public class WastePieceMapper {
                 .lengthM(entity.getLengthM())
                 .lengthRemainingM(entity.getLengthRemainingM())
                 .areaM2(entity.getAreaM2())
+                .usedAreaM2(entity.getUsedAreaM2())
+                .availableAreaM2(entity.getAvailableAreaM2())
                 .status(entity.getStatus() != null ? entity.getStatus().name() : "AVAILABLE")
                 .wasteType(entity.getWasteType())
                 .altierId(entity.getAltier() != null ? entity.getAltier().getId() : null)

@@ -3,6 +3,7 @@ import { Dialog } from 'primereact/dialog';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import type { CommandeItem } from '../../types';
+import { getRollChuteSummary } from '@utils/rollChuteLabel';
 import type { Translate } from './commandeTypes';
 
 type ChuteDialogProps = {
@@ -20,6 +21,10 @@ type ChuteDialogProps = {
   chuteParentOptions: any[];
   onParentWasteChange: (value: string) => void;
   parentWastePiecesLoading: boolean;
+  chutePlacementId: string;
+  chutePlacementOptions: { label: string; value: string }[];
+  onPlacementChange: (value: string) => void;
+  chutePlacementsLoading: boolean;
   renderRollOption: (option: any) => JSX.Element | null;
   chuteSource: any;
   chuteDimensions: { widthMm: number; lengthM: number; areaM2: number };
@@ -43,13 +48,20 @@ export const ChuteDialog = ({
   chuteParentOptions,
   onParentWasteChange,
   parentWastePiecesLoading,
+  chutePlacementId,
+  chutePlacementOptions,
+  onPlacementChange,
+  chutePlacementsLoading,
   renderRollOption,
   chuteSource,
   chuteDimensions,
   onDimensionChange,
   onCreate,
   creatingChute,
-}: ChuteDialogProps) => (
+}: ChuteDialogProps) => {
+  const chuteSummary = chuteSource ? getRollChuteSummary(chuteSource) : null;
+
+  return (
   <Dialog
     header={
       chuteTargetItem
@@ -114,24 +126,53 @@ export const ChuteDialog = ({
         </div>
       )}
 
+      {((chuteSourceType === 'ROLL' && chuteRollId) || (chuteSourceType === 'WASTE_PIECE' && parentWastePieceId)) && (
+        <div>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+            Placement *
+          </label>
+          <Dropdown
+            value={chutePlacementId}
+            options={chutePlacementOptions}
+            onChange={(e) => onPlacementChange(e.value as string)}
+            placeholder={
+              chutePlacementsLoading
+                ? 'Loading placements...'
+                : chutePlacementOptions.length === 0
+                  ? 'No placements available'
+                  : 'Select placement'
+            }
+            style={{ width: '100%' }}
+            disabled={chutePlacementsLoading || chutePlacementOptions.length === 0}
+            filter
+          />
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-            {t('inventory.material')}
+            {t('inventory.reference') || 'Reference'}
           </label>
-          <InputText value={chuteSource?.materialType || ''} disabled />
+          <InputText value={chuteSummary?.reference || ''} disabled />
         </div>
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
             {t('rolls.plies')}
           </label>
-          <InputText value={chuteSource?.nbPlis ?? ''} disabled />
+          <InputText value={chuteSummary?.nbPlis ?? ''} disabled />
         </div>
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
             {t('rolls.thickness')}
           </label>
-          <InputText value={chuteSource?.thicknessMm ?? ''} disabled />
+          <InputText value={chuteSummary?.thickness ?? ''} disabled />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+            {t('inventory.color') || 'Color'}
+          </label>
+          <InputText value={chuteSummary?.color || ''} disabled />
         </div>
       </div>
 
@@ -165,4 +206,5 @@ export const ChuteDialog = ({
       </div>
     </div>
   </Dialog>
-);
+  );
+};

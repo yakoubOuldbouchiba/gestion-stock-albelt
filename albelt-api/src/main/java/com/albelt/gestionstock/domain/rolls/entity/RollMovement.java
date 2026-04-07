@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.domain.rolls.entity;
 
 import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.users.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,8 +35,13 @@ public class RollMovement {
 
     // Roll Reference
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "roll_id", nullable = false)
+    @JoinColumn(name = "roll_id")
     private Roll roll;
+
+    // Chute reference (optional)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "waste_piece_id")
+    private WastePiece wastePiece;
 
     // Location References
     @ManyToOne(fetch = FetchType.EAGER)

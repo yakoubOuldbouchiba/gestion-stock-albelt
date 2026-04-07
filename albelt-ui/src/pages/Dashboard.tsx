@@ -64,8 +64,9 @@ export function Dashboard() {
           reuseEfficiency: 0,
           byStatus: [
             { status: 'AVAILABLE', count: 0, area: 0 },
-            { status: 'USED_IN_ORDER', count: 0, area: 0 },
-            { status: 'SCRAP', count: 0, area: 0 },
+            { status: 'OPENED', count: 0, area: 0 },
+            { status: 'EXHAUSTED', count: 0, area: 0 },
+            { status: 'ARCHIVED', count: 0, area: 0 },
           ],
         });
       }
@@ -81,10 +82,12 @@ export function Dashboard() {
     switch (status) {
       case 'AVAILABLE':
         return 'success';
-      case 'USED_IN_ORDER':
+      case 'OPENED':
         return 'warning';
-      case 'SCRAP':
-        return 'danger';
+      case 'EXHAUSTED':
+        return 'secondary';
+      case 'ARCHIVED':
+        return 'secondary';
       default:
         return 'secondary';
     }

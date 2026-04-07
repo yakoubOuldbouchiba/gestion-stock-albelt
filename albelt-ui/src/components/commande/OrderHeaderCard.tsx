@@ -11,6 +11,7 @@ type OrderHeaderCardProps = {
   getStatusSeverity: (status: string) => StatusSeverity;
   onEdit: () => void;
   onDelete: () => void;
+  onReturn: () => void;
   onBack: () => void;
   t: Translate;
 };
@@ -22,6 +23,7 @@ export const OrderHeaderCard = ({
   getStatusSeverity,
   onEdit,
   onDelete,
+  onReturn,
   onBack,
   t,
 }: OrderHeaderCardProps) => (
@@ -41,6 +43,7 @@ export const OrderHeaderCard = ({
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <Button icon="pi pi-pencil" label={t('commandes.editOrder')} onClick={onEdit} disabled={isBusy} />
+        <Button icon="pi pi-undo" label={t('returns.createReturn')} onClick={onReturn} disabled={isBusy} />
         <Button
           icon="pi pi-trash"
           label={t('commandes.deleteOrder')}

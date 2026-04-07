@@ -83,8 +83,8 @@ export function ReportsPage() {
 
       const [availableRes, usedRes, scrapRes, wasteAreaRes] = await Promise.all([
         AnalyticsService.getWasteCountByStatus('AVAILABLE'),
-        AnalyticsService.getWasteCountByStatus('USED_IN_ORDER'),
-        AnalyticsService.getWasteCountByStatus('SCRAP'),
+        AnalyticsService.getWasteCountByStatus('OPENED'),
+        AnalyticsService.getWasteCountByStatus('ARCHIVED'),
         AnalyticsService.getTotalWasteAreaByMaterial(),
       ]);
 

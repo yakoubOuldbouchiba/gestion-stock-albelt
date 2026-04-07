@@ -2,6 +2,7 @@ import { Card } from 'primereact/card';
 import { Message } from 'primereact/message';
 import { Tag } from 'primereact/tag';
 import { formatDate } from '../../utils/date';
+import { getRollChuteSummary } from '@utils/rollChuteLabel';
 import type { PlacedRectangle, ProductionItem } from '../../types';
 import type { Translate } from './commandeTypes';
 
@@ -27,7 +28,8 @@ export const ProductionSection = ({
             ?? placementsForItem.find((item) => item.id === production.placedRectangleId);
           const source = placement?.roll ?? placement?.wastePiece ?? null;
           const isRollSource = Boolean(placement?.rollId ?? placement?.roll?.id);
-          const sourceLabel = source?.reference ?? source?.materialType ?? 'Placement';
+          const sourceSummary = source ? getRollChuteSummary(source) : null;
+          const sourceLabel = sourceSummary ? `Ref: ${sourceSummary.reference}` : 'Placement';
           return (
             <Card key={production.id} style={{ padding: '0.5rem' }}>
               {production.goodProduction}
@@ -40,6 +42,11 @@ export const ProductionSection = ({
                 }}
               >
                 <Tag value={sourceLabel} severity={isRollSource ? 'info' : 'success'} />
+                {sourceSummary && (
+                  <span>
+                    Plis: {sourceSummary.nbPlis} | Thk: {sourceSummary.thickness} | Color: {sourceSummary.color}
+                  </span>
+                )}
                 {placement && (
                   <span>
                     x:{placement.xMm} y:{placement.yMm} {placement.widthMm}x{placement.heightMm}mm

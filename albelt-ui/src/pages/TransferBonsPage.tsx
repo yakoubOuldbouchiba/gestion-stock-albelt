@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '@hooks/useAuth';
-import { Altier, Roll, RollMovement, TransferBon } from '../types/index';
+import { Altier, Roll, RollMovement, TransferBon, WastePiece } from '../types/index';
 import { AltierService } from '../services/altierService';
 import { RollService } from '../services/rollService';
+import { WastePieceService } from '../services/wastePieceService';
 import rollMovementService from '../services/rollMovementService';
 import transferBonService from '../services/transferBonService';
 import { useI18n } from '@hooks/useI18n';
 import { formatDateTime } from '../utils/date';
+import { formatRollChuteLabel } from '@utils/rollChuteLabel';
 import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
 import { Card } from 'primereact/card';
@@ -24,7 +26,9 @@ export function TransferBonsPage() {
 
   const [altiers, setAltiers] = useState<Altier[]>([]);
   const [availableRolls, setAvailableRolls] = useState<Roll[]>([]);
+  const [availableWastePieces, setAvailableWastePieces] = useState<WastePiece[]>([]);
   const [rollDetailsById, setRollDetailsById] = useState<Record<string, Roll>>({});
+  const [wasteDetailsById, setWasteDetailsById] = useState<Record<string, WastePiece>>({});
   const [bons, setBons] = useState<TransferBon[]>([]);
 
   const [loading, setLoading] = useState(false);
@@ -52,6 +56,7 @@ export function TransferBonsPage() {
   });
 
   const [selectedRollIds, setSelectedRollIds] = useState<string[]>([]);
+  const [selectedWastePieceIds, setSelectedWastePieceIds] = useState<string[]>([]);
   const [selectedBonId, setSelectedBonId] = useState<string | null>(null);
   const [bonDetails, setBonDetails] = useState<(TransferBon & { movements?: RollMovement[] }) | null>(null);
   const [confirmData, setConfirmData] = useState({ dateEntree: getCurrentDateTimeLocal() });
@@ -75,6 +80,11 @@ export function TransferBonsPage() {
   const selectedRolls = useMemo(
     () => availableRolls.filter((roll) => selectedRollIds.includes(roll.id)),
     [availableRolls, selectedRollIds]
+  );
+
+  const selectedWastePieces = useMemo(
+    () => availableWastePieces.filter((piece) => selectedWastePieceIds.includes(piece.id)),
+    [availableWastePieces, selectedWastePieceIds]
   );
 
   const getLockedId = (prefix: string) => {
@@ -125,33 +135,40 @@ export function TransferBonsPage() {
   }, [user?.id, userAltierIds.length]);
 
   useEffect(() => {
-    const loadRolls = async () => {
+    const loadSources = async () => {
       if (!formData.fromAltierID) {
         setAvailableRolls([]);
+        setAvailableWastePieces([]);
         setSelectedRollIds([]);
+        setSelectedWastePieceIds([]);
         return;
       }
 
       try {
-        const [rollsResponse, outgoingResponse] = await Promise.all([
+        const [rollsResponse, wasteResponse, outgoingResponse] = await Promise.all([
           RollService.getAll(),
+          WastePieceService.getAll({ altierId: formData.fromAltierID, page: 0, size: 200 }),
           rollMovementService.getMovementsFromAltier(formData.fromAltierID)
         ]);
 
         const excludedRollIds = new Set<string>();
+        const excludedWastePieceIds = new Set<string>();
         if (outgoingResponse.success && outgoingResponse.data) {
           const outgoingItems = toArray<RollMovement>(outgoingResponse.data);
           for (const movement of outgoingItems) {
-            // Exclude rolls already included in an active bon (not yet received)
             if (movement.transferBonId && !movement.dateEntree) {
-              excludedRollIds.add(movement.rollId);
+              if (movement.rollId) {
+                excludedRollIds.add(movement.rollId);
+              }
+              if (movement.wastePieceId) {
+                excludedWastePieceIds.add(movement.wastePieceId);
+              }
             }
           }
         }
 
         if (rollsResponse.success && rollsResponse.data) {
           const rollItems = toArray<Roll>(rollsResponse.data);
-          // Cache roll details for later display (bon details table)
           const rollMap: Record<string, Roll> = {};
           for (const roll of rollItems) {
             rollMap[roll.id] = roll;
@@ -167,13 +184,26 @@ export function TransferBonsPage() {
           setAvailableRolls(filtered);
           setSelectedRollIds([]);
         }
+
+        if (wasteResponse.success && wasteResponse.data) {
+          const wasteItems = toArray<WastePiece>(wasteResponse.data);
+          const filtered = wasteItems.filter((piece) => {
+            const isAtFromAltier = piece.altierId === formData.fromAltierID;
+            const isAvailable = piece.status === 'AVAILABLE' || piece.status === 'OPENED';
+            const isReusable = piece.wasteType === 'CHUTE_EXPLOITABLE';
+            const isExcluded = excludedWastePieceIds.has(piece.id);
+            return isAtFromAltier && isAvailable && isReusable && !isExcluded;
+          });
+          setAvailableWastePieces(filtered);
+          setSelectedWastePieceIds([]);
+        }
       } catch (e) {
         console.error(e);
         setError(t('transferBons.failedToLoadRolls'));
       }
     };
 
-    loadRolls();
+    loadSources();
   }, [formData.fromAltierID]);
 
   const ensureRollDetails = async (rollIds: string[]) => {
@@ -195,6 +225,27 @@ export function TransferBonsPage() {
     } catch (e) {
       // Non-blocking: we can still show rollId only
       console.warn('Failed to fetch some roll details', e);
+    }
+  };
+
+  const ensureWastePieceDetails = async (wastePieceIds: string[]) => {
+    const unique = Array.from(new Set(wastePieceIds)).filter(Boolean);
+    const missing = unique.filter((id) => !wasteDetailsById[id]);
+    if (missing.length === 0) return;
+
+    try {
+      const responses = await Promise.all(missing.map((id) => WastePieceService.getById(id)));
+      const fetched: Record<string, WastePiece> = {};
+      for (const res of responses) {
+        if (res.success && res.data) {
+          fetched[res.data.id] = res.data;
+        }
+      }
+      if (Object.keys(fetched).length > 0) {
+        setWasteDetailsById((prev) => ({ ...prev, ...fetched }));
+      }
+    } catch (e) {
+      console.warn('Failed to fetch some waste piece details', e);
     }
   };
 
@@ -243,7 +294,7 @@ export function TransferBonsPage() {
       setError(t('transferBons.dateSortieRequired'));
       return;
     }
-    if (selectedRollIds.length === 0) {
+    if (selectedRollIds.length === 0 && selectedWastePieceIds.length === 0) {
       setError(t('transferBons.selectRolls'));
       return;
     }
@@ -269,8 +320,8 @@ export function TransferBonsPage() {
 
         const bonId = bonResponse.data.id;
 
-        await Promise.all(
-          selectedRollIds.map((rollId) =>
+        await Promise.all([
+          ...selectedRollIds.map((rollId) =>
             rollMovementService.recordMovement({
               rollId,
               fromAltierID: formData.fromAltierID,
@@ -280,8 +331,19 @@ export function TransferBonsPage() {
               transferBonId: bonId,
               operatorId: user.id
             })
+          ),
+          ...selectedWastePieceIds.map((wastePieceId) =>
+            rollMovementService.recordMovement({
+              wastePieceId,
+              fromAltierID: formData.fromAltierID,
+              toAltierID: formData.toAltierID,
+              dateSortie: dateSortieIso,
+              dateEntree: dateEntreeIso || '',
+              transferBonId: bonId,
+              operatorId: user.id
+            })
           )
-        );
+        ]);
 
         await reloadBons();
 
@@ -292,6 +354,7 @@ export function TransferBonsPage() {
           dateEntree: ''
         });
         setSelectedRollIds([]);
+        setSelectedWastePieceIds([]);
         setSelectedBonId(bonId);
 
         const details = await transferBonService.getBonDetails(bonId);
@@ -299,7 +362,8 @@ export function TransferBonsPage() {
           setBonDetails(details.data as any);
           const movements = (details.data as any).movements as RollMovement[] | undefined;
           if (Array.isArray(movements) && movements.length > 0) {
-            await ensureRollDetails(movements.map((m) => m.rollId));
+            await ensureRollDetails(movements.map((m) => m.rollId || ''));
+            await ensureWastePieceDetails(movements.map((m) => m.wastePieceId || ''));
           }
         }
       }, 'transfer-create');
@@ -324,7 +388,8 @@ export function TransferBonsPage() {
           setBonDetails(response.data as any);
           const movements = (response.data as any).movements as RollMovement[] | undefined;
           if (Array.isArray(movements) && movements.length > 0) {
-            await ensureRollDetails(movements.map((m) => m.rollId));
+            await ensureRollDetails(movements.map((m) => m.rollId || ''));
+            await ensureWastePieceDetails(movements.map((m) => m.wastePieceId || ''));
           }
         } else {
           setError(response.message || t('transferBons.failedToLoadBon'));
@@ -427,28 +492,49 @@ export function TransferBonsPage() {
         // Refresh available rolls list so a removed roll can be selected again
         if (formData.fromAltierID) {
           try {
-            const [rollsResponse, outgoingResponse] = await Promise.all([
+            const [rollsResponse, wasteResponse, outgoingResponse] = await Promise.all([
               RollService.getAll(),
+              WastePieceService.getAll({ altierId: formData.fromAltierID, page: 0, size: 200 }),
               rollMovementService.getMovementsFromAltier(formData.fromAltierID)
             ]);
 
             const excludedRollIds = new Set<string>();
+            const excludedWastePieceIds = new Set<string>();
             if (outgoingResponse.success && outgoingResponse.data) {
-              for (const movement of outgoingResponse.data) {
+              const outgoingItems = toArray<RollMovement>(outgoingResponse.data);
+              for (const movement of outgoingItems) {
                 if (movement.transferBonId && !movement.dateEntree) {
-                  excludedRollIds.add(movement.rollId);
+                  if (movement.rollId) {
+                    excludedRollIds.add(movement.rollId);
+                  }
+                  if (movement.wastePieceId) {
+                    excludedWastePieceIds.add(movement.wastePieceId);
+                  }
                 }
               }
             }
 
             if (rollsResponse.success && rollsResponse.data) {
-              const filtered = rollsResponse.data.filter((roll) => {
+              const rollItems = toArray<Roll>(rollsResponse.data);
+              const filtered = rollItems.filter((roll) => {
                 const isAtFromAltier = roll.altierId === formData.fromAltierID;
                 const isAvailable = roll.status === 'AVAILABLE' || roll.status === 'OPENED';
                 const isExcluded = excludedRollIds.has(roll.id);
                 return isAtFromAltier && isAvailable && !isExcluded;
               });
               setAvailableRolls(filtered);
+            }
+
+            if (wasteResponse.success && wasteResponse.data) {
+              const wasteItems = toArray<WastePiece>(wasteResponse.data);
+              const filtered = wasteItems.filter((piece) => {
+                const isAtFromAltier = piece.altierId === formData.fromAltierID;
+                const isAvailable = piece.status === 'AVAILABLE' || piece.status === 'OPENED';
+                const isReusable = piece.wasteType === 'CHUTE_EXPLOITABLE';
+                const isExcluded = excludedWastePieceIds.has(piece.id);
+                return isAtFromAltier && isAvailable && isReusable && !isExcluded;
+              });
+              setAvailableWastePieces(filtered);
             }
           } catch (e) {
             console.warn('Failed to refresh available rolls after movement removal', e);
@@ -472,6 +558,26 @@ export function TransferBonsPage() {
   const bonMovements = Array.isArray((bonDetails as any)?.movements)
     ? ((bonDetails as any).movements as RollMovement[])
     : [];
+
+  const movementItemBody = (movement: RollMovement) => {
+    const roll = movement.rollId ? rollDetailsById[movement.rollId] : undefined;
+    const wastePiece = movement.wastePieceId ? wasteDetailsById[movement.wastePieceId] : undefined;
+    const label = roll ? formatRollChuteLabel(roll) : wastePiece ? formatRollChuteLabel(wastePiece) : '';
+    const itemId = movement.rollId || movement.wastePieceId || '';
+    const typeLabel = movement.rollId
+      ? t('inventory.roll')
+      : movement.wastePieceId
+        ? t('inventory.wastePiece')
+        : '-';
+
+    return (
+      <div>
+        <div><strong>{typeLabel}</strong></div>
+        <div>{itemId ? `${itemId.substring(0, 8)}...` : '-'}</div>
+        {label && <small>{label}</small>}
+      </div>
+    );
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -588,6 +694,46 @@ export function TransferBonsPage() {
                       <Tag
                         value={roll.status}
                         severity={roll.status === 'AVAILABLE' ? 'success' : roll.status === 'OPENED' ? 'warning' : 'info'}
+                      />
+                    )}
+                  />
+                </DataTable>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 style={{ margin: 0 }}>{t('transferBons.selectChutesLabel')}</h3>
+                <Tag value={`${t('transferBons.selected')}: ${selectedWastePieceIds.length}`} />
+              </div>
+
+              <div style={{ marginTop: '0.75rem' }}>
+                <DataTable
+                  value={availableWastePieces}
+                  dataKey="id"
+                  selection={selectedWastePieces}
+                  onSelectionChange={(e) =>
+                    setSelectedWastePieceIds((e.value as WastePiece[]).map((piece) => piece.id))
+                  }
+                  emptyMessage={t('transferBons.noAvailableChutes')}
+                  size="small"
+                >
+                  <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
+                  <Column
+                    header={t('inventory.wastePiece')}
+                    body={(piece: WastePiece) => formatRollChuteLabel(piece)}
+                  />
+                  <Column header={t('rolls.material')} body={(piece: WastePiece) => piece.materialType} />
+                  <Column
+                    header={t('purchaseBons.dimensions')}
+                    body={(piece: WastePiece) => `${piece.widthMm}mm x ${piece.lengthM.toFixed(2)}m`}
+                  />
+                  <Column
+                    header={t('rolls.status')}
+                    body={(piece: WastePiece) => (
+                      <Tag
+                        value={piece.status}
+                        severity={piece.status === 'AVAILABLE' ? 'success' : piece.status === 'OPENED' ? 'warning' : 'info'}
                       />
                     )}
                   />
@@ -727,19 +873,7 @@ export function TransferBonsPage() {
                   emptyMessage={t('transferBons.noMovements')}
                   size="small"
                 >
-                  <Column
-                    header={t('transferBons.roll')}
-                    body={(movement: RollMovement) => (
-                      <div>
-                        <div><strong>{movement.rollId}</strong></div>
-                        {rollDetailsById[movement.rollId] && (
-                          <small>
-                            {rollDetailsById[movement.rollId].materialType} • {rollDetailsById[movement.rollId].widthMm}mm × {(rollDetailsById[movement.rollId].lengthRemainingM || rollDetailsById[movement.rollId].lengthM).toFixed(2)}m • {rollDetailsById[movement.rollId].status}
-                          </small>
-                        )}
-                      </div>
-                    )}
-                  />
+                  <Column header={t('transferBons.item')} body={movementItemBody} />
                   <Column header={t('transferBons.exit')} body={(movement: RollMovement) => formatDate(movement.dateSortie)} />
                   <Column header={t('transferBons.entry')} body={(movement: RollMovement) => formatDate(movement.dateEntree)} />
                   <Column

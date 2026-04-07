@@ -66,6 +66,8 @@ public class RollMapper {
             .lengthM(request.getLengthM())
             .lengthRemainingM(request.getLengthRemainingM())
             .areaM2(request.getAreaM2())
+            .usedAreaM2(BigDecimal.ZERO)
+            .availableAreaM2(request.getAreaM2())
             .status(request.getStatus())
             .qrCode(request.getQrCode())
             .color(color)
@@ -120,6 +122,7 @@ public class RollMapper {
         }
         if (request.getAreaM2() != null) {
             existing.setAreaM2(request.getAreaM2());
+            existing.setAvailableAreaM2(request.getAreaM2());
         }
         if (request.getStatus() != null) {
             existing.setStatus(request.getStatus());
@@ -155,6 +158,8 @@ public class RollMapper {
                 .lengthM(entity.getLengthM())
                 .lengthRemainingM(entity.getLengthRemainingM())
                 .areaM2(entity.getAreaM2())
+                .usedAreaM2(entity.getUsedAreaM2())
+                .availableAreaM2(entity.getAvailableAreaM2())
                 .status(entity.getStatus())
                 .altierId(entity.getAltier() != null ? entity.getAltier().getId() : null)
                 .altierLibelle(entity.getAltier() != null ? entity.getAltier().getLibelle() : null)
@@ -168,7 +173,8 @@ public class RollMapper {
                 .createdBy(entity.getCreatedBy())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
-                .availableForCutting(entity.getStatus().toString().equals("AVAILABLE"))
+                .availableForCutting(entity.getStatus() == com.albelt.gestionstock.shared.enums.RollStatus.AVAILABLE
+                    || entity.getStatus() == com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
                 .build();
     }
 

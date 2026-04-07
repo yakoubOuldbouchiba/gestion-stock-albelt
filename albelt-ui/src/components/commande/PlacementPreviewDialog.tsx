@@ -1,5 +1,6 @@
 import { Dialog } from 'primereact/dialog';
 import { Message } from 'primereact/message';
+import { formatRollChuteLabel } from '@utils/rollChuteLabel';
 import type { PlacedRectangle } from '../../types';
 
 type PlacementPreviewDialogProps = {
@@ -52,7 +53,7 @@ export const PlacementPreviewDialog = ({
       return (
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           <div style={{ fontWeight: 600 }}>
-            {isRoll ? 'Roll' : 'Waste'} {source?.reference ?? previewPlacement.id.slice(0, 8)}
+            {isRoll ? 'Roll' : 'Waste'} {source ? formatRollChuteLabel(source) : previewPlacement.id.slice(0, 8)}
           </div>
           {itemLabel ? (
             <div style={{ color: 'var(--text-color-secondary)', fontSize: '0.9rem' }}>{itemLabel}</div>
@@ -80,18 +81,28 @@ export const PlacementPreviewDialog = ({
                 stroke="#bdbdbd"
                 strokeWidth={2}
               />
-              {sourcePlacements.map((placement) => (
-                <rect
-                  key={placement.id}
-                  x={placement.yMm}
-                  y={placement.xMm}
-                  width={placement.heightMm}
-                  height={placement.widthMm}
-                  fill={placement.colorHexCode || 'rgba(25, 118, 210, 0.35)'}
-                  stroke={placement.colorHexCode || '#1565c0'}
-                  strokeWidth={1}
-                />
-              ))}
+              {sourcePlacements.map((placement) => {
+                const placementColor = placement.colorHexCode || null;
+                const sourceColor = source?.colorHexCode || null;
+                const isSameColor = Boolean(
+                  placementColor && sourceColor && placementColor.toLowerCase() === sourceColor.toLowerCase()
+                );
+                const fill = placementColor && !isSameColor ? placementColor : '#ff6f00';
+                const stroke = placementColor && !isSameColor ? placementColor : '#e65100';
+                return (
+                  <rect
+                    key={placement.id}
+                    x={placement.yMm}
+                    y={placement.xMm}
+                    width={placement.heightMm}
+                    height={placement.widthMm}
+                    fill={fill}
+                    fillOpacity={0.35}
+                    stroke={stroke}
+                    strokeWidth={1}
+                  />
+                );
+              })}
             </svg>
             <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
               {(sourceLengthMm / 1000).toFixed(2)}m x {sourceWidthMm}mm (length on X, width on Y)

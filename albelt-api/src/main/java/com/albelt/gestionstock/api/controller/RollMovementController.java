@@ -33,7 +33,8 @@ public class RollMovementController {
      */
     @PostMapping
     public ResponseEntity<ApiResponse<RollMovementDTO>> recordMovement(
-            @RequestParam UUID rollId,
+            @RequestParam(required = false) UUID rollId,
+            @RequestParam(required = false) UUID wastePieceId,
             @RequestParam(required = false) UUID fromAltierID,
             @RequestParam UUID toAltierID,
             @RequestParam String dateSortie,
@@ -43,15 +44,20 @@ public class RollMovementController {
             @RequestParam(required = false) String notes,
             @RequestParam(required = false) UUID transferBonId
     ) {
-        log.info("Recording movement for roll {} from {} to {}", rollId, fromAltierID, toAltierID);
+        log.info("Recording movement for item {} from {} to {}",
+                rollId != null ? rollId : wastePieceId, fromAltierID, toAltierID);
         
         try {
+            if ((rollId == null && wastePieceId == null) || (rollId != null && wastePieceId != null)) {
+                return ResponseEntity.ok(ApiResponse.error("Provide exactly one of rollId or wastePieceId"));
+            }
+
             // Parse ISO 8601 datetime strings (with timezone)
             LocalDateTime sortieDate = parseIsoDateTime(dateSortie);
             LocalDateTime entreeDate = dateEntree != null && !dateEntree.isEmpty() ? parseIsoDateTime(dateEntree) : null;
             
             RollMovementDTO movement = rollMovementService.recordMovement(
-                    rollId, fromAltierID, toAltierID, sortieDate, entreeDate,
+                    rollId, wastePieceId, fromAltierID, toAltierID, sortieDate, entreeDate,
                     reason, operatorId, notes, transferBonId
             );
             return ResponseEntity.ok(ApiResponse.success(movement, "Roll movement recorded successfully"));
@@ -123,6 +129,57 @@ public class RollMovementController {
                 return ResponseEntity.ok(ApiResponse.success(location, "Current location retrieved"));
             } else {
                 return ResponseEntity.ok(ApiResponse.error("No movements found for roll"));
+            }
+        } catch (Exception e) {
+            log.error("Error fetching current location", e);
+            return ResponseEntity.ok(ApiResponse.error("Failed to fetch current location: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get movement history for a waste piece
+     * GET /api/roll-movements/waste-piece/{wastePieceId}/history
+     */
+    @GetMapping("/waste-piece/{wastePieceId}/history")
+    public ResponseEntity<ApiResponse<PagedResponse<RollMovementDTO>>> getWastePieceMovementHistory(
+            @PathVariable UUID wastePieceId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        log.info("Fetching movement history for waste piece: {}", wastePieceId);
+
+        try {
+            var history = rollMovementService.getWastePieceMovementHistoryPaged(wastePieceId, page, size);
+            var paged = PagedResponse.<RollMovementDTO>builder()
+                .items(history.getContent())
+                .page(history.getNumber())
+                .size(history.getSize())
+                .totalElements(history.getTotalElements())
+                .totalPages(history.getTotalPages())
+                .build();
+            return ResponseEntity.ok(ApiResponse.success(paged, "Movement history retrieved"));
+        } catch (Exception e) {
+            log.error("Error fetching movement history", e);
+            return ResponseEntity.ok(ApiResponse.error("Failed to fetch movement history: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get current location of a waste piece
+     * GET /api/roll-movements/waste-piece/{wastePieceId}/current-location
+     */
+    @GetMapping("/waste-piece/{wastePieceId}/current-location")
+    public ResponseEntity<ApiResponse<RollMovementDTO>> getCurrentWastePieceLocation(
+            @PathVariable UUID wastePieceId
+    ) {
+        log.info("Fetching current location for waste piece: {}", wastePieceId);
+
+        try {
+            RollMovementDTO location = rollMovementService.getCurrentWastePieceLocation(wastePieceId);
+            if (location != null) {
+                return ResponseEntity.ok(ApiResponse.success(location, "Current location retrieved"));
+            } else {
+                return ResponseEntity.ok(ApiResponse.error("No movements found for waste piece"));
             }
         } catch (Exception e) {
             log.error("Error fetching current location", e);

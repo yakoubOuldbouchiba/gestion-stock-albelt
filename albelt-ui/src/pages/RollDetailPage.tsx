@@ -16,6 +16,7 @@ import { ProgressBar } from 'primereact/progressbar';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { InputText } from 'primereact/inputtext';
+import { getRollChuteSummary } from '@utils/rollChuteLabel';
 
 export function RollDetailPage() {
   const { t } = useI18n();
@@ -42,6 +43,18 @@ export function RollDetailPage() {
   useEffect(() => {
     loadRollDetails();
   }, [rollId]);
+
+  const refreshRoll = async (id: string) => {
+    try {
+      const response = await RollService.getById(id);
+      if (response.success && response.data) {
+        setRoll(response.data);
+      }
+    } catch (err) {
+      console.error(err);
+      setError(t('rollDetail.failedToLoad'));
+    }
+  };
 
   const loadRollDetails = async () => {
     if (!rollId) return;
@@ -115,8 +128,8 @@ export function RollDetailPage() {
       return;
     }
 
-    const sourceWidthMm = roll.widthMm;
-    const sourceLengthMm = Math.round(roll.lengthM * 1000);
+    const sourceWidthMm = Number(roll.widthRemainingMm ?? roll.widthMm ?? 0);
+    const sourceLengthMm = Math.round(Number(roll.lengthRemainingM ?? roll.lengthM ?? 0) * 1000);
     if (sourceWidthMm <= 0 || sourceLengthMm <= 0) {
       setError('Source dimensions are required for placement.');
       return;
@@ -151,14 +164,18 @@ export function RollDetailPage() {
       if (creatingPlacement) return;
       setCreatingPlacement(true);
       if (isEditing && editingPlacementId) {
-        await PlacedRectangleService.update(editingPlacementId, {
+        const response = await PlacedRectangleService.update(editingPlacementId, {
           xMm,
           yMm,
           widthMm,
           heightMm,
         });
+        if (!response.success) {
+          setError(response.message || t('rollDetail.failedToUpdate'));
+          return;
+        }
       } else {
-        await PlacedRectangleService.create({
+        const response = await PlacedRectangleService.create({
           rollId: roll.id,
           commandeItemId: placementForm.commandeItemId || undefined,
           xMm,
@@ -166,10 +183,19 @@ export function RollDetailPage() {
           widthMm,
           heightMm,
         });
+        if (!response.success) {
+          setError(response.message || t('rollDetail.failedToUpdate'));
+          return;
+        }
       }
       const placementsResponse = await PlacedRectangleService.getByRoll(roll.id);
-      const items = Array.isArray(placementsResponse.data) ? placementsResponse.data : [];
-      setPlacements(items);
+      if (placementsResponse.success && placementsResponse.data) {
+        const items = Array.isArray(placementsResponse.data) ? placementsResponse.data : [];
+        setPlacements(items);
+      } else {
+        setError(placementsResponse.message || t('rollDetail.failedToLoad'));
+      }
+      await refreshRoll(roll.id);
       setPlacementForm((prev) => ({
         ...prev,
         xMm: '',
@@ -217,6 +243,7 @@ export function RollDetailPage() {
       const placementsResponse = await PlacedRectangleService.getByRoll(roll.id);
       const items = Array.isArray(placementsResponse.data) ? placementsResponse.data : [];
       setPlacements(items);
+      await refreshRoll(roll.id);
       if (editingPlacementId === placementId) {
         cancelEditPlacement();
       }
@@ -232,6 +259,7 @@ export function RollDetailPage() {
     try {
       await PlacedRectangleService.clearByRoll(roll.id);
       setPlacements([]);
+      await refreshRoll(roll.id);
       cancelEditPlacement();
     } catch (err) {
       console.error(err);
@@ -240,9 +268,44 @@ export function RollDetailPage() {
   };
 
   const statusOptions = statuses.map((status) => ({ label: status, value: status }));
-  const wastePercent = roll?.areaM2 ? (roll.totalWasteAreaM2 / roll.areaM2) * 100 : 0;
-  const placementWidthMm = roll?.widthMm ?? 0;
-  const placementLengthMm = roll ? Math.round(roll.lengthM * 1000) : 0;
+  const usedAreaM2 = roll?.usedAreaM2 ?? roll?.totalWasteAreaM2 ?? 0;
+  const availableAreaM2 = roll?.availableAreaM2 ?? (roll?.areaM2 ? roll.areaM2 - usedAreaM2 : 0);
+  const wastePercent = roll?.areaM2 ? (usedAreaM2 / roll.areaM2) * 100 : 0;
+  const rollWidthMm = Number(roll?.widthRemainingMm ?? roll?.widthMm ?? 0);
+  const rollLengthM = Number(roll?.lengthRemainingM ?? roll?.lengthM ?? 0);
+  const rollLengthMm = Number.isFinite(rollLengthM) ? Math.round(rollLengthM * 1000) : 0;
+  const placementsWidthMm = placements.length
+    ? Math.max(...placements.map((placement) => placement.xMm + placement.widthMm))
+    : 0;
+  const placementsLengthMm = placements.length
+    ? Math.max(...placements.map((placement) => placement.yMm + placement.heightMm))
+    : 0;
+  const placementWidthMm = rollWidthMm > 0 ? rollWidthMm : placementsWidthMm;
+  const placementLengthMm = rollLengthMm > 0 ? rollLengthMm : placementsLengthMm;
+  const isSameColor = (first?: string | null, second?: string | null) =>
+    Boolean(first && second && first.toLowerCase() === second.toLowerCase());
+  const fallbackPlacementFill = '#ff6f00';
+  const fallbackPlacementStroke = '#e65100';
+  const getPlacementFill = (placement: PlacedRectangle) => {
+    if (!placement.colorHexCode) return fallbackPlacementFill;
+    if (isSameColor(placement.colorHexCode, roll?.colorHexCode)) return fallbackPlacementFill;
+    return placement.colorHexCode;
+  };
+  const getPlacementStroke = (placement: PlacedRectangle) => {
+    if (!placement.colorHexCode) return fallbackPlacementStroke;
+    if (isSameColor(placement.colorHexCode, roll?.colorHexCode)) return fallbackPlacementStroke;
+    return placement.colorHexCode;
+  };
+  const chuteActionsBody = (piece: WastePiece) => (
+    piece.wasteType !== 'DECHET' ? (
+      <Button
+        icon="pi pi-eye"
+        text
+        onClick={() => navigate(`/chute/${piece.id}`)}
+        aria-label={t('common.view')}
+      />
+    ) : null
+  );
 
   if (isLoading) {
     return (
@@ -260,6 +323,8 @@ export function RollDetailPage() {
       </div>
     );
   }
+
+  const rollSummary = getRollChuteSummary(roll);
 
   return (
     <div>
@@ -289,7 +354,9 @@ export function RollDetailPage() {
         <Card title={t('rollDetail.basicInfo')}>
           <div style={{ display: 'grid', gap: '0.5rem' }}>
             <div><strong>{t('rollDetail.rollId')}:</strong> {roll.id}</div>
+            <div><strong>{t('inventory.reference') || 'Reference'}:</strong> {rollSummary.reference}</div>
             <div><strong>{t('rollDetail.material')}:</strong> <Tag value={roll.materialType} style={{ backgroundColor: roll.colorHexCode }} /></div>
+            <div><strong>{t('inventory.color') || 'Color'}:</strong> {rollSummary.color}</div>
             <div><strong>{t('rollDetail.supplier')}:</strong> {roll.supplierName || 'N/A'}</div>
             <div><strong>{t('rollDetail.workshop')}:</strong> {roll.altierLibelle || t('rollDetail.unassigned')}</div>
             <div><strong>{t('rollDetail.receivedDate')}:</strong> {formatDate(roll.receivedDate)}</div>
@@ -314,7 +381,8 @@ export function RollDetailPage() {
         <Card title={t('rollDetail.processing')}>
           <div style={{ display: 'grid', gap: '0.5rem' }}>
             <div><strong>{t('rollDetail.totalArea')}:</strong> {roll.areaM2.toFixed(2)} m²</div>
-            <div><strong>{t('rollDetail.totalWaste')}:</strong> {roll.totalWasteAreaM2.toFixed(2)} m²</div>
+            <div><strong>{t('rollDetail.totalWaste')}:</strong> {usedAreaM2.toFixed(2)} m²</div>
+            <div><strong>{t('inventory.availableArea')}:</strong> {availableAreaM2.toFixed(2)} m²</div>
             <div><strong>{t('rollDetail.totalCuts')}:</strong> {roll.totalCuts}</div>
             <div><strong>{t('rollDetail.lengthRemaining')}:</strong> {roll.lengthRemainingM ? roll.lengthRemainingM.toFixed(2) : roll.lengthM.toFixed(2)} m</div>
           </div>
@@ -341,6 +409,7 @@ export function RollDetailPage() {
 
         <Card title="Placements (SVG)">
           <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {error && <Message severity="error" text={error} />}
             {placementWidthMm > 0 && placementLengthMm > 0 ? (
               <div
                 style={{
@@ -366,20 +435,35 @@ export function RollDetailPage() {
                     strokeWidth={2}
                   />
                   {placements.map((placement) => (
-                    <rect
-                      key={placement.id}
-                      x={placement.yMm}
-                      y={placement.xMm}
-                      width={placement.heightMm}
-                      height={placement.widthMm}
-                      fill={placement.colorHexCode || 'rgba(25, 118, 210, 0.35)'}
-                      stroke={placement.colorHexCode || '#1565c0'}
-                      strokeWidth={1}
-                    />
+                    <g key={placement.id}>
+                      <rect
+                        x={placement.yMm}
+                        y={placement.xMm}
+                        width={placement.heightMm}
+                        height={placement.widthMm}
+                        fill={getPlacementFill(placement)}
+                        fillOpacity={0.35}
+                        stroke={getPlacementStroke(placement)}
+                        strokeWidth={1}
+                      />
+                      <text
+                        x={placement.yMm + 4}
+                        y={placement.xMm + 14}
+                        fontSize={12}
+                        fill="#111111"
+                        stroke="#ffffff"
+                        strokeWidth={2}
+                        paintOrder="stroke"
+                        pointerEvents="none"
+                      >
+                        {`${placement.widthMm}x${placement.heightMm}`}
+                      </text>
+                    </g>
                   ))}
                 </svg>
                 <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
                   {placementLengthMm / 1000}m x {placementWidthMm}mm (length on X, width on Y)
+                  {' '}• Width: {placementWidthMm}mm • Height: {placementLengthMm}mm
                 </div>
               </div>
             ) : (
@@ -408,6 +492,7 @@ export function RollDetailPage() {
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                       <span>x:{placement.xMm} y:{placement.yMm}</span>
                       <span>{placement.widthMm} x {placement.heightMm} mm</span>
+                      <span>Width: {placement.widthMm}mm • Height: {placement.heightMm}mm</span>
                       {placement.commandeItemId && (
                         <span>Item: {placement.commandeItemId}</span>
                       )}
@@ -487,14 +572,6 @@ export function RollDetailPage() {
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Commande Item ID (optional)</label>
-                <InputText
-                  value={placementForm.commandeItemId}
-                  onChange={(e) => updatePlacementField('commandeItemId', e.target.value)}
-                  placeholder="UUID"
-                />
-              </div>
-              <div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <Button
                     label={creatingPlacement ? 'Saving...' : (editingPlacementId ? 'Update placement' : 'Save placement')}
@@ -530,6 +607,7 @@ export function RollDetailPage() {
               <Column header={t('waste.tableStatus')} field="status" />
               <Column header={t('waste.tableType') || 'Type'} body={(piece: WastePiece) => piece.wasteType || 'N/A'} />
               <Column header={t('waste.tableCreated')} body={(piece: WastePiece) => formatDate(piece.createdAt)} />
+              <Column header={t('waste.tableActions')} body={chuteActionsBody} />
             </DataTable>
           )}
         </Card>

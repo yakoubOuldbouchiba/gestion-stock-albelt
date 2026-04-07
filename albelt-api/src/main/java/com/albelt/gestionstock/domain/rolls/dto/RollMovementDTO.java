@@ -17,6 +17,7 @@ import java.util.UUID;
 public class RollMovementDTO {
     private UUID id;
     private UUID rollId;
+    private UUID wastePieceId;
     private UUID transferBonId;
     private AltierDTO fromAltier;
     private AltierDTO toAltier;

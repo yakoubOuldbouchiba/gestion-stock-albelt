@@ -178,15 +178,15 @@ public class WastePieceController {
     }
 
     /**
-     * Mark waste piece as scrap
-     * PATCH /api/waste-pieces/{id}/mark-scrap
+    * Archive waste piece
+    * PATCH /api/waste-pieces/{id}/mark-scrap
      */
     @PatchMapping("/{id}/mark-scrap")
     public ResponseEntity<ApiResponse<WastePieceResponse>> markAsScrap(@PathVariable UUID id) {
-        log.info("Marking waste piece as scrap: {}", id);
+        log.info("Archiving waste piece: {}", id);
         var wastePiece = wastePieceService.markAsScrap(id);
         var response = wastePieceMapper.toResponse(wastePiece);
-        return ResponseEntity.ok(ApiResponse.success(response, "Waste piece marked as scrap"));
+        return ResponseEntity.ok(ApiResponse.success(response, "Waste piece archived"));
     }
 
     /**

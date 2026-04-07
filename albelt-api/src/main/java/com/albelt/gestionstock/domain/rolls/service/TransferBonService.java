@@ -9,6 +9,8 @@ import com.albelt.gestionstock.domain.rolls.entity.TransferBon;
 import com.albelt.gestionstock.domain.rolls.mapper.TransferBonMapper;
 import com.albelt.gestionstock.domain.rolls.repository.RollMovementRepository;
 import com.albelt.gestionstock.domain.rolls.repository.TransferBonRepository;
+import com.albelt.gestionstock.domain.waste.entity.WastePiece;
+import com.albelt.gestionstock.domain.waste.service.WastePieceService;
 import com.albelt.gestionstock.domain.users.entity.User;
 import com.albelt.gestionstock.domain.users.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +51,7 @@ public class TransferBonService {
     private final TransferBonMapper transferBonMapper;
     private final RollMovementRepository rollMovementRepository;
     private final RollService rollService;
+    private final WastePieceService wastePieceService;
     private final AltierService altierService;
     private final UserService userService;
 
@@ -148,6 +151,12 @@ public class TransferBonService {
             if (roll != null) {
                 roll.setAltier(movement.getToAltier());
                 rollService.save(roll);
+            }
+
+            WastePiece wastePiece = movement.getWastePiece();
+            if (wastePiece != null) {
+                wastePiece.setAltier(movement.getToAltier());
+                wastePieceService.save(wastePiece);
             }
         }
 

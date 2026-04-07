@@ -54,7 +54,7 @@ export const WastePieceService = {
   },
 
   /**
-   * Mark waste as scrap
+   * Archive waste piece
    */
   async markAsScrap(id: string): Promise<ApiResponse<WastePiece>> {
     return ApiService.patch<WastePiece>(`/waste-pieces/${id}/mark-scrap`);

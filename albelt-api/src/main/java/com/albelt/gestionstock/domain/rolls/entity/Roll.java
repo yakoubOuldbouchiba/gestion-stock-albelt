@@ -75,6 +75,14 @@ public class Roll {
     @Column(name = "area_m2", nullable = false, columnDefinition = "DECIMAL(12,4)")
     private BigDecimal areaM2;
 
+    @Column(name = "used_area_m2", nullable = false, columnDefinition = "DECIMAL(12,4)")
+    @Builder.Default
+    private BigDecimal usedAreaM2 = BigDecimal.ZERO;
+
+    @Column(name = "available_area_m2", nullable = false, columnDefinition = "DECIMAL(12,4)")
+    @Builder.Default
+    private BigDecimal availableAreaM2 = BigDecimal.ZERO;
+
     // Status & Classification
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -124,7 +132,8 @@ public class Roll {
      * Check if roll has enough area for a requested size
      */
     public boolean hasEnoughArea(BigDecimal requiredArea) {
-        return this.areaM2 != null && this.areaM2.compareTo(requiredArea) >= 0;
+        BigDecimal available = this.availableAreaM2 != null ? this.availableAreaM2 : this.areaM2;
+        return available != null && available.compareTo(requiredArea) >= 0;
     }
 
     /**

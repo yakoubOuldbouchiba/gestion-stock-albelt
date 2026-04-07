@@ -15,6 +15,7 @@ import { Tag } from 'primereact/tag';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Checkbox } from 'primereact/checkbox';
 import { Message } from 'primereact/message';
+import { formatRollChuteLabel, getRollChuteSummary } from '@utils/rollChuteLabel';
 
 export function WastePage() {
   const { t } = useI18n();
@@ -90,16 +91,19 @@ export function WastePage() {
       // Calculate statistics
       if (wasteResponse.data) {
         const available = wasteResponse.data.filter(w => w.status === 'AVAILABLE').length;
-        const used = wasteResponse.data.filter(w => w.status === 'USED_IN_ORDER').length;
-        const scrap = wasteResponse.data.filter(w => w.status === 'SCRAP').length;
-        const totalArea = wasteResponse.data.reduce((sum, w) => sum + (w.areaM2 || 0), 0);
+        const opened = wasteResponse.data.filter(w => w.status === 'OPENED').length;
+        const archived = wasteResponse.data.filter(w => w.status === 'ARCHIVED').length;
+        const totalArea = wasteResponse.data.reduce(
+          (sum, w) => sum + (w.usedAreaM2 ?? w.totalWasteAreaM2 ?? w.areaM2 ?? 0),
+          0
+        );
 
         setStats({
           totalAvailable: available,
-          totalUsed: used,
-          totalScrap: scrap,
+          totalUsed: opened,
+          totalScrap: archived,
           totalWasteArea: totalArea,
-          reuseEfficiency: available > 0 ? ((used / (available + used + scrap)) * 100) : 0,
+          reuseEfficiency: available + opened > 0 ? ((opened / (available + opened)) * 100) : 0,
         });
       }
     } catch (err) {
@@ -111,7 +115,7 @@ export function WastePage() {
   };
 
   const handleMarkAsScrap = async (wasteId: string) => {
-    if (!window.confirm(t('waste.confirmMarkScrap'))) return;
+    if (!window.confirm(t('waste.confirmMarkArchive'))) return;
 
     try {
       const response = await WastePieceService.markAsScrap(wasteId);
@@ -120,7 +124,7 @@ export function WastePage() {
         setShowDetail(false);
       }
     } catch (err) {
-      setError(t('waste.failedToMarkScrap'));
+      setError(t('waste.failedToMarkArchive'));
       console.error(err);
     }
   };
@@ -160,10 +164,12 @@ export function WastePage() {
     switch (status) {
       case 'AVAILABLE':
         return 'success';
-      case 'USED_IN_ORDER':
-        return 'info';
-      case 'SCRAP':
-        return 'danger';
+      case 'OPENED':
+        return 'warning';
+      case 'EXHAUSTED':
+        return 'secondary';
+      case 'ARCHIVED':
+        return 'secondary';
       default:
         return undefined;
     }
@@ -173,10 +179,12 @@ export function WastePage() {
     switch (status) {
       case 'AVAILABLE':
         return t('waste.statusAvailable');
-      case 'USED_IN_ORDER':
-        return t('waste.statusUsed');
-      case 'SCRAP':
-        return t('waste.statusScrap');
+      case 'OPENED':
+        return t('waste.statusOpened');
+      case 'EXHAUSTED':
+        return t('waste.statusExhausted');
+      case 'ARCHIVED':
+        return t('waste.statusArchived');
       default:
         return status;
     }
@@ -185,8 +193,9 @@ export function WastePage() {
   const statusOptions = [
     { label: t('waste.all'), value: 'ALL' },
     { label: t('waste.statusAvailable'), value: 'AVAILABLE' },
-    { label: t('waste.statusUsed'), value: 'USED_IN_ORDER' },
-    { label: t('waste.statusScrap'), value: 'SCRAP' },
+    { label: t('waste.statusOpened'), value: 'OPENED' },
+    { label: t('waste.statusExhausted'), value: 'EXHAUSTED' },
+    { label: t('waste.statusArchived'), value: 'ARCHIVED' },
   ];
 
   const materialOptions = [
@@ -224,7 +233,7 @@ export function WastePage() {
             }}
           />
           <Button
-            label={t('waste.markAsScrap')}
+            label={t('waste.markAsArchived')}
             icon="pi pi-trash"
             severity="danger"
             onClick={() => selectedWaste && handleMarkAsScrap(selectedWaste.id)}
@@ -357,9 +366,16 @@ export function WastePage() {
             <Column header={t('waste.tableWasteId')} body={(waste: WastePiece) => waste.id.substring(0, 8)} />
             <Column
               header={t('waste.tableMaterial')}
-              body={(waste: WastePiece) => (
-                <Tag value={waste.materialType} severity="info" />
-              )}
+              body={(waste: WastePiece) => {
+                const summary = getRollChuteSummary(waste);
+                return (
+                  <div>
+                    <Tag value={waste.materialType} severity="info" />
+                    <div>Ref: {summary.reference}</div>
+                    <div>Plis: {summary.nbPlis} | Thk: {summary.thickness} | Color: {summary.color}</div>
+                  </div>
+                );
+              }}
             />
             <Column
               header={t('waste.tableDimensions')}
@@ -385,7 +401,7 @@ export function WastePage() {
             />
             <Column
               header={t('waste.tableReuse')}
-              body={(waste: WastePiece) => ((waste.status === 'AVAILABLE' || waste.status === 'RESERVED') && ((waste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}
+              body={(waste: WastePiece) => ((waste.status === 'AVAILABLE' || waste.status === 'OPENED') && ((waste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}
             />
             <Column header={t('waste.tableCreated')} body={(waste: WastePiece) => formatDate(waste.createdAt)} />
             <Column
@@ -432,12 +448,16 @@ export function WastePage() {
             {selectedWaste.parentWastePieceId && (
               <div><strong>{t('waste.detailParentWaste') || 'Parent Waste Piece'}:</strong> {selectedWaste.parentWastePieceId.substring(0, 8)}</div>
             )}
+            <div><strong>{t('inventory.reference') || 'Reference'}:</strong> {selectedWaste.reference || 'N/A'}</div>
             <div><strong>{t('waste.detailMaterial')}:</strong> {selectedWaste.materialType}</div>
+            <div><strong>{t('rollDetail.plies')}:</strong> {selectedWaste.nbPlis}</div>
+            <div><strong>{t('rollDetail.thickness')}:</strong> {selectedWaste.thicknessMm} mm</div>
+            <div><strong>{t('inventory.color') || 'Color'}:</strong> {selectedWaste.colorName || selectedWaste.colorHexCode || 'N/A'}</div>
             <div><strong>{t('waste.detailDimensions')}:</strong> {selectedWaste.widthMm}mm × {selectedWaste.lengthM}m</div>
             <div><strong>{t('waste.detailArea')}:</strong> {(selectedWaste.areaM2 || 0).toFixed(2)} m²</div>
             <div><strong>{t('waste.detailStatus')}:</strong> {getStatusLabel(selectedWaste.status)}</div>
             <div><strong>{t('waste.detailLargeWaste')}:</strong> {((selectedWaste.areaM2 || 0) > 3.0) ? t('waste.yes') : t('waste.no')}</div>
-            <div><strong>{t('waste.detailReuseCandidate')}:</strong> {((selectedWaste.status === 'AVAILABLE' || selectedWaste.status === 'RESERVED') && ((selectedWaste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}</div>
+            <div><strong>{t('waste.detailReuseCandidate')}:</strong> {((selectedWaste.status === 'AVAILABLE' || selectedWaste.status === 'OPENED') && ((selectedWaste.areaM2 || 0) > 3.0)) ? t('waste.yes') : t('waste.no')}</div>
             <div><strong>{t('waste.detailCreated')}:</strong> {formatDate(selectedWaste.createdAt)}</div>
           </div>
         )}
@@ -457,7 +477,7 @@ export function WastePage() {
             id="reuse-operation"
             value={reuseInOperation}
             options={cuttingOperations.map(op => ({
-              label: `${op.id.substring(0, 8)} - Roll: ${rolls.find(r => r.id === op.rollId)?.materialType || '-'} - Operator: ${op.operatorId}`,
+              label: `${op.id.substring(0, 8)} - Roll: ${rolls.find(r => r.id === op.rollId) ? formatRollChuteLabel(rolls.find(r => r.id === op.rollId)!) : 'N/A'} - Operator: ${op.operatorId}`,
               value: op.id,
             }))}
             onChange={(e) => setReuseInOperation(e.value)}

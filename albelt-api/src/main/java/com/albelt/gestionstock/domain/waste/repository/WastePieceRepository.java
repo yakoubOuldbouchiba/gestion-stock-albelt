@@ -27,18 +27,18 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
      * Uses composite index: (material_type, status, area_m2 DESC)
      */
     @Query("SELECT wp FROM WastePiece wp WHERE wp.materialType = :materialType " +
-           "AND wp.status = :status ORDER BY wp.areaM2 DESC")
+           "AND wp.status IN (:statuses) ORDER BY wp.availableAreaM2 DESC")
     List<WastePiece> findAvailableByMaterial(@Param("materialType") MaterialType materialType,
-                                             @Param("status") WasteStatus status,
+                                             @Param("statuses") List<WasteStatus> statuses,
                                              Pageable pageable);
 
     /**
      * Find large waste pieces (> 3m²) ready for reuse
      * Critical for waste reuse workflow
      */
-    @Query("SELECT wp FROM WastePiece wp WHERE wp.areaM2 >= 3.0 " +
-           "AND wp.status = :status ORDER BY wp.areaM2 DESC")
-    List<WastePiece> findLargeAvailablePieces(@Param("status") WasteStatus status,
+    @Query("SELECT wp FROM WastePiece wp WHERE wp.availableAreaM2 >= 3.0 " +
+           "AND wp.status IN (:statuses) ORDER BY wp.availableAreaM2 DESC")
+    List<WastePiece> findLargeAvailablePieces(@Param("statuses") List<WasteStatus> statuses,
                                               Pageable pageable);
 
     /**
@@ -67,9 +67,9 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
      * Find reuse candidates with sufficient area
      */
     @Query("SELECT wp FROM WastePiece wp WHERE wp.materialType = :materialType " +
-           "AND wp.areaM2 >= :minArea " +
+           "AND wp.availableAreaM2 >= :minArea " +
            "AND wp.status IN (:statuses) " +
-           "ORDER BY wp.areaM2 DESC")
+           "ORDER BY wp.availableAreaM2 DESC")
     List<WastePiece> findReuseCandidate(@Param("materialType") MaterialType materialType,
                                         @Param("minArea") BigDecimal minArea,
                                         @Param("statuses") List<WasteStatus> statuses);
@@ -102,14 +102,14 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     /**
      * Get total waste area by material type
      */
-    @Query("SELECT wp.materialType, SUM(wp.areaM2) FROM WastePiece wp " +
-           "WHERE wp.status = :status GROUP BY wp.materialType")
-    List<Object[]> getTotalWasteAreaByMaterial(@Param("status") WasteStatus status);
+    @Query("SELECT wp.materialType, SUM(wp.availableAreaM2) FROM WastePiece wp " +
+           "WHERE wp.status IN (:statuses) GROUP BY wp.materialType")
+    List<Object[]> getTotalWasteAreaByMaterial(@Param("statuses") List<WasteStatus> statuses);
 
     /**
      * Get waste reuse efficiency (total reused vs total generated)
      */
-    @Query("SELECT COUNT(CASE WHEN wp.status = 'USED_IN_ORDER' THEN 1 END) as reused, " +
+    @Query("SELECT COUNT(CASE WHEN wp.status = 'EXHAUSTED' THEN 1 END) as reused, " +
            "COUNT(*) as total FROM WastePiece wp WHERE wp.materialType = :materialType")
     Object[] getWasteReuseStats(@Param("materialType") MaterialType materialType);
        /**
@@ -126,7 +126,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
                "    wp.status, " +
                "    COUNT(wp)," +
                "    SUM(wp.areaM2), " +
-               "    SUM(wp.totalWasteAreaM2) " +
+               "    SUM(wp.usedAreaM2) " +
                "FROM WastePiece wp " +
                "Where wp.wasteType = :type " +
                "GROUP BY wp.color.id," +

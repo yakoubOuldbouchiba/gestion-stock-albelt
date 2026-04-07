@@ -37,6 +37,8 @@ public class RollResponse {
     private BigDecimal lengthM;
     private BigDecimal lengthRemainingM;
     private BigDecimal areaM2;
+    private BigDecimal usedAreaM2;
+    private BigDecimal availableAreaM2;
 
     // Status & Classification
     private RollStatus status;

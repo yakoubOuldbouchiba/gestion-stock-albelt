@@ -38,6 +38,10 @@ public class WastePieceSummaryResponse {
 
     private BigDecimal areaM2;
 
+    private BigDecimal usedAreaM2;
+
+    private BigDecimal availableAreaM2;
+
     private WasteStatus status;
 
     private WasteType wasteType;

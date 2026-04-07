@@ -33,6 +33,10 @@ public class RollSummaryResponse {
 
     private BigDecimal areaM2;
 
+    private BigDecimal usedAreaM2;
+
+    private BigDecimal availableAreaM2;
+
     private RollStatus status;
 
     private UUID colorId;

@@ -79,6 +79,14 @@ public class WastePiece {
     @Column(name = "area_m2", nullable = false, columnDefinition = "DECIMAL(12,4)")
     private BigDecimal areaM2;
 
+    @Column(name = "used_area_m2", nullable = false, columnDefinition = "DECIMAL(12,4)")
+    @Builder.Default
+    private BigDecimal usedAreaM2 = BigDecimal.ZERO;
+
+    @Column(name = "available_area_m2", nullable = false, columnDefinition = "DECIMAL(12,4)")
+    @Builder.Default
+    private BigDecimal availableAreaM2 = BigDecimal.ZERO;
+
     // Status & Classification (same as rolls)
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -139,22 +147,23 @@ public class WastePiece {
      * Check if waste piece is large enough for reuse (> 3m²)
      */
     public boolean isLargeWaste() {
-        return this.areaM2 != null && this.areaM2.compareTo(BigDecimal.valueOf(3.0)) >= 0;
+        BigDecimal available = this.availableAreaM2 != null ? this.availableAreaM2 : this.areaM2;
+        return available != null && available.compareTo(BigDecimal.valueOf(3.0)) >= 0;
     }
 
     /**
      * Check if waste piece can potentially be reused
      */
     public boolean isReuseCandidate() {
-        return (WasteStatus.AVAILABLE.equals(this.status) || WasteStatus.RESERVED.equals(this.status)) &&
+        return (WasteStatus.AVAILABLE.equals(this.status) || WasteStatus.OPENED.equals(this.status)) &&
                this.isLargeWaste();
     }
 
     /**
-     * Mark waste piece as scrap and update classification date
+     * Mark waste piece as archived and update classification date
      */
-    public void markAsScrap(LocalDate classificationDate) {
-        this.status = WasteStatus.SCRAP;
+    public void markAsArchived(LocalDate classificationDate) {
+        this.status = WasteStatus.ARCHIVED;
         this.classificationDate = classificationDate != null ? classificationDate.atStartOfDay() : LocalDateTime.now();
     }
 }

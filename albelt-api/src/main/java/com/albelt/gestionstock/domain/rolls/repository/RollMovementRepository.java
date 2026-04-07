@@ -23,6 +23,10 @@ public interface RollMovementRepository extends JpaRepository<RollMovement, UUID
 
     Page<RollMovement> findByRollIdOrderByDateEntreeDesc(UUID rollId, Pageable pageable);
 
+    List<RollMovement> findByWastePieceIdOrderByDateEntreeDesc(UUID wastePieceId);
+
+    Page<RollMovement> findByWastePieceIdOrderByDateEntreeDesc(UUID wastePieceId, Pageable pageable);
+
     /**
      * Find movements for a roll within a date range
      */
@@ -52,6 +56,9 @@ public interface RollMovementRepository extends JpaRepository<RollMovement, UUID
      */
     @Query("SELECT rm FROM RollMovement rm WHERE rm.roll.id = :rollId ORDER BY rm.dateEntree DESC LIMIT 1")
     RollMovement findLatestMovementByRollId(@Param("rollId") UUID rollId);
+
+    @Query("SELECT rm FROM RollMovement rm WHERE rm.wastePiece.id = :wastePieceId ORDER BY rm.dateEntree DESC LIMIT 1")
+    RollMovement findLatestMovementByWastePieceId(@Param("wastePieceId") UUID wastePieceId);
 
     /**
      * Find all movements recorded by an operator

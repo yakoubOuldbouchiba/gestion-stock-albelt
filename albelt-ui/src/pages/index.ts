@@ -1,6 +1,7 @@
 export { InventoryPage } from './InventoryPage';
 export { RollDetailPage } from './RollDetailPage';
 export { RollMovementPage } from './RollMovementPage';
+export { ChuteDetailPage } from './ChuteDetailPage';
 export { MovementsListPage } from './MovementsListPage';
 export { ReportsPage } from './ReportsPage';
 export { SuppliersPage } from './SuppliersPage';
@@ -15,3 +16,4 @@ export { CommandesListPage } from './CommandesListPage';
 export { CommandeCreatePage } from './CommandeCreatePage';
 export { CommandeEditPage } from './CommandeEditPage';
 export { CommandeDetailPage } from './CommandeDetailPage';
+export { CommandeReturnPage } from './CommandeReturnPage';

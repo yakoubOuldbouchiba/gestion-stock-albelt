@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@hooks/useI18n';
 
-import type { Roll, RollRequest, MaterialType, RollStatus, Supplier, Altier, WastePiece, Color, WasteType } from '../types/index';
+import type { Roll, RollRequest, MaterialType, RollStatus, Supplier, Altier, WastePiece, Color, WasteType, PlacedRectangle } from '../types/index';
 import { RollService } from '../services/rollService';
 import { SupplierService } from '../services/supplierService';
 import { AltierService } from '../services/altierService';
 import { WastePieceService } from '../services/wastePieceService';
 import { ColorService } from '../services/colorService';
+import { PlacedRectangleService } from '../services/placedRectangleService';
 import { getMaterialColor } from '../utils/materialColors';
 import { formatDate } from '../utils/date';
+import { formatRollChuteLabel, getRollChuteSummary } from '@utils/rollChuteLabel';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
@@ -141,6 +143,9 @@ export function InventoryPage() {
   const [parentWastePieceId, setParentWastePieceId] = useState<string>('');
   const [parentWastePieces, setParentWastePieces] = useState<WastePiece[]>([]);
   const [parentWastePiecesLoading, setParentWastePiecesLoading] = useState(false);
+  const [chutePlacementId, setChutePlacementId] = useState<string>('');
+  const [chutePlacements, setChutePlacements] = useState<PlacedRectangle[]>([]);
+  const [chutePlacementsLoading, setChutePlacementsLoading] = useState(false);
 
   useEffect(() => {
     loadLookups();
@@ -218,6 +223,41 @@ export function InventoryPage() {
       loadParentWastePieces();
     }
   }, [showChuteForm, chuteSourceType]);
+
+  useEffect(() => {
+    if (!showChuteForm) {
+      setChutePlacements([]);
+      setChutePlacementId('');
+      return;
+    }
+    const sourceId = chuteSourceType === 'ROLL' ? chuteRollId : parentWastePieceId;
+    if (!sourceId) {
+      setChutePlacements([]);
+      setChutePlacementId('');
+      return;
+    }
+
+    const loadPlacements = async () => {
+      setChutePlacementsLoading(true);
+      try {
+        const response = chuteSourceType === 'ROLL'
+          ? await PlacedRectangleService.getByRoll(sourceId)
+          : await PlacedRectangleService.getByWastePiece(sourceId);
+        if (response.success && response.data) {
+          setChutePlacements(Array.isArray(response.data) ? response.data : []);
+        } else {
+          setChutePlacements([]);
+        }
+      } catch (err) {
+        console.error('Failed to load placements:', err);
+        setChutePlacements([]);
+      } finally {
+        setChutePlacementsLoading(false);
+      }
+    };
+
+    loadPlacements();
+  }, [showChuteForm, chuteSourceType, chuteRollId, parentWastePieceId]);
 
   // Handle width/length changes and auto-calculate area
   const handleDimensionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -469,6 +509,17 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
       }
     }
 
+    const selectedPlacement = chutePlacements.find((placement) => placement.id === chutePlacementId);
+    if (!selectedPlacement) {
+      alert('Please select a placement');
+      return;
+    }
+    const chuteLengthMm = (formData.lengthM || 0) * 1000;
+    if (formData.widthMm > selectedPlacement.widthMm || chuteLengthMm > selectedPlacement.heightMm) {
+      alert('Chute dimensions exceed the selected placement.');
+      return;
+    }
+
     const wasteData = {
       rollId: selectedRoll?.id || selectedParent?.rollId,
       parentWastePieceId: selectedParent?.id,
@@ -492,6 +543,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
           setShowChuteForm(false);
           setChuteRollId('');
           setParentWastePieceId('');
+          setChutePlacementId('');
           setChuteSourceType('ROLL');
           resetForm();
           alert('Waste piece created successfully!');
@@ -512,10 +564,10 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
 
   const stats = materials.map(material => ({
     material,
-    count: rolls.filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED').length,
+    count: rolls.filter((r: Roll) => r.materialType === material && (r.status === 'AVAILABLE' || r.status === 'OPENED')).length,
     area: rolls
-      .filter((r: Roll) => r.materialType === material && r.status !== 'EXHAUSTED')
-      .reduce((sum: number, r: Roll) => sum + (r.areaM2 || 0), 0),
+      .filter((r: Roll) => r.materialType === material && (r.status === 'AVAILABLE' || r.status === 'OPENED'))
+      .reduce((sum: number, r: Roll) => sum + (r.availableAreaM2 ?? r.areaM2 ?? 0), 0),
   }));
 
   const statsReusable = materials.map(material => ({
@@ -523,7 +575,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
     count: wastePieces.filter((p: WastePiece) => p.materialType === material && p.wasteType === 'CHUTE_EXPLOITABLE').length,
     area: wastePieces
       .filter((p: WastePiece) => p.materialType === material && p.wasteType === 'CHUTE_EXPLOITABLE')
-      .reduce((sum: number, p: WastePiece) => sum + (p.areaM2 || 0), 0),
+      .reduce((sum: number, p: WastePiece) => sum + (p.availableAreaM2 ?? p.areaM2 ?? 0), 0),
   }));
 
   const statsWaste = materials.map(material => ({
@@ -531,7 +583,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
     count: wastePieces.filter((p: WastePiece) => p.materialType === material && p.wasteType === 'DECHET').length,
     area: wastePieces
       .filter((p: WastePiece) => p.materialType === material && p.wasteType === 'DECHET')
-      .reduce((sum: number, p: WastePiece) => sum + (p.areaM2 || 0), 0),
+      .reduce((sum: number, p: WastePiece) => sum + (p.availableAreaM2 ?? p.areaM2 ?? 0), 0),
   }));
 
   // Debug stats calculation
@@ -553,15 +605,11 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
       case 'AVAILABLE':
         return 'success';
       case 'OPENED':
-        return 'info';
-      case 'EXHAUSTED':
         return 'warning';
+      case 'EXHAUSTED':
+        return 'secondary';
       case 'ARCHIVED':
         return 'secondary';
-      case 'SCRAP':
-        return 'danger';
-      case 'USED_IN_ORDER':
-        return 'info';
       default:
         return undefined;
     }
@@ -570,14 +618,15 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
   const rollMaterialBody = (roll: Roll) => {
     const supplier = suppliers.find(s => s.id === roll.supplierId);
     const altierLabel = roll.altierLibelle || 'Unassigned';
-    const materialDetails = `${roll.widthMm ?? 'N/A'}mm × ${roll.lengthM ?? 'N/A'}m • ${roll.nbPlis ?? 'N/A'} plis`;
+    const summary = getRollChuteSummary(roll);
     return (
       <div>
         <Tag
           value={roll.materialType}
           style={{ backgroundColor: getMaterialColor(roll.materialType, roll.colorHexCode) }}
         />
-        <div>{materialDetails}</div>
+        <div>Ref: {summary.reference}</div>
+        <div>Plis: {summary.nbPlis} | Thk: {summary.thickness} | Color: {summary.color}</div>
         <div>{supplier?.name || 'N/A'}</div>
         <div>{altierLabel}</div>
       </div>
@@ -585,8 +634,9 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
   };
 
   const rollWastePercentBody = (roll: Roll) => {
-    const percent = roll.totalWasteAreaM2 && roll.areaM2
-      ? (roll.totalWasteAreaM2 / roll.areaM2) * 100
+    const usedAreaM2 = roll.usedAreaM2 ?? roll.totalWasteAreaM2 ?? 0;
+    const percent = roll.areaM2
+      ? (usedAreaM2 / roll.areaM2) * 100
       : 0;
     return `${percent.toFixed(1)}%`;
   };
@@ -622,14 +672,15 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
 
   const wasteMaterialBody = (piece: WastePiece) => {
     const altierLabel = piece.altierLibelle || 'Unassigned';
-    const materialDetails = `${piece.widthMm ?? 'N/A'}mm × ${piece.lengthM ?? 'N/A'}m • ${piece.nbPlis ?? 'N/A'} plis`;
+    const summary = getRollChuteSummary(piece);
     return (
       <div>
         <Tag
           value={piece.materialType}
           style={{ backgroundColor: getMaterialColor(piece.materialType, piece.colorHexCode) }}
         />
-        <div>{materialDetails}</div>
+        <div>Ref: {summary.reference}</div>
+        <div>Plis: {summary.nbPlis} | Thk: {summary.thickness} | Color: {summary.color}</div>
         <div>{piece.supplierName || 'N/A'}</div>
         <div>{altierLabel}</div>
       </div>
@@ -638,6 +689,17 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
 
   const wasteStatusBody = (piece: WastePiece) => (
     <Tag value={piece.status} severity={statusSeverity(piece.status)} />
+  );
+
+  const wasteActionsBody = (piece: WastePiece) => (
+    piece.wasteType !== 'DECHET' ? (
+      <Button
+        icon="pi pi-eye"
+        text
+        onClick={() => navigate(`/chute/${piece.id}`)}
+        aria-label={t('common.view')}
+      />
+    ) : null
   );
 
   const materialFilterOptions = [
@@ -673,13 +735,18 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
   ];
 
   const chuteRollOptions = filteredChuteRolls.map((roll) => ({
-    label: `Area: ${roll.areaM2}m² | Width: ${roll.widthMm}mm | Length: ${roll.lengthM}m`,
+    label: formatRollChuteLabel(roll),
     value: roll.id,
   }));
 
   const parentWasteOptions = parentWastePieces.map((piece) => ({
-    label: `${piece.materialType} | Area: ${piece.areaM2.toFixed(2)}m² | Width: ${piece.widthMm}mm | Length: ${piece.lengthM}m`,
+    label: formatRollChuteLabel(piece),
     value: piece.id,
+  }));
+
+  const chutePlacementOptions = chutePlacements.map((placement) => ({
+    label: `Placement ${placement.id.substring(0, 8)} • ${placement.widthMm}x${placement.heightMm}mm • x:${placement.xMm} y:${placement.yMm}`,
+    value: placement.id,
   }));
 
   const renderGroupedStatsTable = (rows: any[], loading: boolean) => {
@@ -823,10 +890,17 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
                 <Column header={t('waste.tableMaterial')} body={rollMaterialBody} />
                 <Column header={t('waste.reference') || 'Reference'} body={(roll: Roll) => roll.reference || 'N/A'} />
                 <Column header={t('waste.tableArea')} body={(roll: Roll) => (roll.areaM2 || 0).toFixed(2)} />
-                <Column header={t('inventory.waste')} body={(roll: Roll) => (roll.totalWasteAreaM2 || 0).toFixed(2)} />
+                <Column
+                  header={t('inventory.waste')}
+                  body={(roll: Roll) => (roll.usedAreaM2 ?? roll.totalWasteAreaM2 ?? 0).toFixed(2)}
+                />
                 <Column
                   header={t('inventory.availableArea')}
-                  body={(roll: Roll) => ((roll.areaM2 || 0) - (roll.totalWasteAreaM2 || 0)).toFixed(2)}
+                  body={(roll: Roll) => {
+                    const used = roll.usedAreaM2 ?? roll.totalWasteAreaM2 ?? 0;
+                    const available = roll.availableAreaM2 ?? (roll.areaM2 || 0) - used;
+                    return available.toFixed(2);
+                  }}
                 />
                 <Column header={t('inventory.wastePercent')} body={rollWastePercentBody} />
                 <Column header={t('waste.tableStatus')} body={rollStatusBody} />
@@ -873,22 +947,31 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
               >
                 <Column header={t('inventory.material')} body={wasteMaterialBody} />
                 <Column header={t('inventory.area')} body={(piece: WastePiece) => piece.areaM2.toFixed(2)} />
-                <Column header={t('inventory.waste')} body={(piece: WastePiece) => piece.totalWasteAreaM2.toFixed(2)} />
+                <Column
+                  header={t('inventory.waste')}
+                  body={(piece: WastePiece) => (piece.usedAreaM2 ?? piece.totalWasteAreaM2 ?? 0).toFixed(2)}
+                />
                 <Column
                   header={t('inventory.availableArea')}
-                  body={(piece: WastePiece) => ((piece.areaM2 || 0) - (piece.totalWasteAreaM2 || 0)).toFixed(2)}
+                  body={(piece: WastePiece) => {
+                    const used = piece.usedAreaM2 ?? piece.totalWasteAreaM2 ?? 0;
+                    const available = piece.availableAreaM2 ?? (piece.areaM2 || 0) - used;
+                    return available.toFixed(2);
+                  }}
                 />
                 <Column
                   header={t('inventory.wastePercent')}
                   body={(piece: WastePiece) => {
-                    const percent = piece.totalWasteAreaM2 && piece.areaM2
-                      ? (piece.totalWasteAreaM2 / piece.areaM2) * 100
+                    const usedAreaM2 = piece.usedAreaM2 ?? piece.totalWasteAreaM2 ?? 0;
+                    const percent = piece.areaM2
+                      ? (usedAreaM2 / piece.areaM2) * 100
                       : 0;
                     return `${percent.toFixed(1)}%`;
                   }}
                 />
                 <Column header={t('inventory.status')} body={wasteStatusBody} />
                 <Column header={t('inventory.received')} body={(piece: WastePiece) => formatDate(piece.createdAt)} />
+                <Column header={t('waste.tableActions')} body={wasteActionsBody} />
               </DataTable>
             )}
 
@@ -1129,6 +1212,8 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
           setShowChuteForm(false);
           setChuteRollId('');
           setParentWastePieceId('');
+          setChutePlacementId('');
+          setChutePlacements([]);
           setChuteSourceType('ROLL');
         }}
         style={{ width: 'min(900px, 95vw)' }}
@@ -1146,6 +1231,8 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
                   setChuteSourceType(nextType);
                   setChuteRollId('');
                   setParentWastePieceId('');
+                  setChutePlacementId('');
+                  setChutePlacements([]);
                 }}
                 required
               />
@@ -1185,7 +1272,10 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
                   id="rollId"
                   value={chuteRollId}
                   options={chuteRollOptions}
-                  onChange={(e) => setChuteRollId(e.value)}
+                  onChange={(e) => {
+                    setChuteRollId(e.value);
+                    setChutePlacementId('');
+                  }}
                   placeholder={
                     chuteRollsLoading
                       ? t('inventory.loadingRolls')
@@ -1209,7 +1299,10 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
                   id="parentWastePieceId"
                   value={parentWastePieceId}
                   options={parentWasteOptions}
-                  onChange={(e) => setParentWastePieceId(e.value)}
+                  onChange={(e) => {
+                    setParentWastePieceId(e.value);
+                    setChutePlacementId('');
+                  }}
                   placeholder={
                     parentWastePiecesLoading
                       ? t('inventory.loadingWastePieces')
@@ -1218,6 +1311,28 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
                         : t('inventory.selectWastePiece')
                   }
                   disabled={parentWastePiecesLoading}
+                  filter
+                  required
+                />
+              </div>
+            )}
+
+            {(chuteSourceType === 'ROLL' ? chuteRollId : parentWastePieceId) && (
+              <div>
+                <label htmlFor="chutePlacementId">Placement *</label>
+                <Dropdown
+                  id="chutePlacementId"
+                  value={chutePlacementId}
+                  options={chutePlacementOptions}
+                  onChange={(e) => setChutePlacementId(e.value)}
+                  placeholder={
+                    chutePlacementsLoading
+                      ? 'Loading placements...'
+                      : chutePlacementOptions.length === 0
+                        ? 'No placements available'
+                        : 'Select placement'
+                  }
+                  disabled={chutePlacementsLoading || chutePlacementOptions.length === 0}
                   filter
                   required
                 />
@@ -1328,6 +1443,8 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
                   setShowChuteForm(false);
                   setChuteRollId('');
                   setParentWastePieceId('');
+                  setChutePlacementId('');
+                  setChutePlacements([]);
                   setChuteSourceType('ROLL');
                 }}
                 disabled={isLocked('inventory-chute')}

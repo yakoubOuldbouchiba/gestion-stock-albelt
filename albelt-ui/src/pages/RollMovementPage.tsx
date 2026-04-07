@@ -278,7 +278,7 @@ export function RollMovementPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
         <div>
           <h1>{t('rollMovement.title')}</h1>
-          <p>{t('rollMovement.description', { rollId: rollId?.substring(0, 8) })}</p>
+          <p>{t('rollMovement.description', { itemId: rollId?.substring(0, 8) })}</p>
         </div>
         <Button
           label={showForm ? t('common.cancel') : t('rollMovement.recordBtn')}

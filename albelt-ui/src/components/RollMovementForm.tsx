@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Roll, Altier } from '../types/index';
+import { Roll, Altier, WastePiece } from '../types/index';
 import rollMovementService, { RollMovement } from '../services/rollMovementService';
 import { RollService } from '../services/rollService';
+import { WastePieceService } from '../services/wastePieceService';
 import { AltierService } from '../services/altierService';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
@@ -9,6 +10,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Message } from 'primereact/message';
+import { formatRollChuteLabel, getRollChuteSummary } from '@utils/rollChuteLabel';
 
 interface RollMovementFormProps {
   mode: 'create' | 'edit';
@@ -27,19 +29,23 @@ export function RollMovementForm({
   userAltierIds,
   userId
 }: RollMovementFormProps) {
-  const [step, setStep] = useState<'roll' | 'details'>(mode === 'create' ? 'roll' : 'details');
+  const [step, setStep] = useState<'source' | 'details'>(mode === 'create' ? 'source' : 'details');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Data
   const [altiers, setAltiers] = useState<Altier[]>([]);
   const [availableRolls, setAvailableRolls] = useState<Roll[]>([]);
+  const [availableWastePieces, setAvailableWastePieces] = useState<WastePiece[]>([]);
   const [loadingRolls, setLoadingRolls] = useState(false);
+  const [loadingWastePieces, setLoadingWastePieces] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState({
     movementType: existingMovement?.reason || '',
+    sourceType: existingMovement?.wastePieceId ? 'WASTE_PIECE' as 'ROLL' | 'WASTE_PIECE' : 'ROLL',
     rollId: existingMovement?.rollId || '',
+    wastePieceId: existingMovement?.wastePieceId || '',
     fromAltierID: existingMovement?.fromAltier?.id || (userAltierIds?.[0] || ''),
     toAltierID: existingMovement?.toAltier?.id || '',
     dateSortie: existingMovement
@@ -95,6 +101,7 @@ export function RollMovementForm({
   useEffect(() => {
     if (formData.fromAltierID) {
       loadRolls();
+      loadWastePieces();
     }
   }, [formData.fromAltierID]);
 
@@ -122,6 +129,34 @@ export function RollMovementForm({
     }
   };
 
+  const loadWastePieces = async () => {
+    try {
+      setLoadingWastePieces(true);
+      const response = await WastePieceService.getAll({
+        altierId: formData.fromAltierID,
+        page: 0,
+        size: 200
+      });
+      if (response.success && response.data) {
+        const items = response.data.items || [];
+        const filtered = items.filter((piece: WastePiece) => {
+          const isAtFromAltier = piece.altierId === formData.fromAltierID;
+          const isAvailable = piece.status === 'AVAILABLE' || piece.status === 'OPENED';
+          const isReusable = piece.wasteType === 'CHUTE_EXPLOITABLE';
+          return isAtFromAltier && isAvailable && isReusable;
+        });
+        setAvailableWastePieces(filtered);
+      } else {
+        setError('Failed to load waste pieces');
+      }
+    } catch (err) {
+      console.error('Failed to load waste pieces:', err);
+      setError('Failed to load waste pieces');
+    } finally {
+      setLoadingWastePieces(false);
+    }
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -135,15 +170,37 @@ export function RollMovementForm({
   const handleRollSelect = (rollId: string) => {
     setFormData((prev) => ({
       ...prev,
-      rollId
+      rollId,
+      wastePieceId: ''
+    }));
+  };
+
+  const handleWastePieceSelect = (wastePieceId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      rollId: '',
+      wastePieceId
+    }));
+  };
+
+  const handleSourceTypeChange = (value: 'ROLL' | 'WASTE_PIECE') => {
+    setFormData((prev) => ({
+      ...prev,
+      sourceType: value,
+      rollId: value === 'ROLL' ? prev.rollId : '',
+      wastePieceId: value === 'WASTE_PIECE' ? prev.wastePieceId : ''
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.rollId) {
+    if (formData.sourceType === 'ROLL' && !formData.rollId) {
       setError('Roll is required');
+      return;
+    }
+    if (formData.sourceType === 'WASTE_PIECE' && !formData.wastePieceId) {
+      setError('Waste piece is required');
       return;
     }
     if (!formData.fromAltierID) {
@@ -170,7 +227,8 @@ export function RollMovementForm({
 
       if (mode === 'create') {
         const response = await rollMovementService.recordMovement({
-          rollId: formData.rollId,
+          rollId: formData.sourceType === 'ROLL' ? formData.rollId : undefined,
+          wastePieceId: formData.sourceType === 'WASTE_PIECE' ? formData.wastePieceId : undefined,
           fromAltierID: formData.fromAltierID,
           toAltierID: formData.toAltierID,
           dateSortie: formatDateToISO(formData.dateSortie),
@@ -220,10 +278,16 @@ export function RollMovementForm({
   const userAvailableAltiers = altiers.filter((a) => userAltierIds.includes(a.id));
   const otherAltiers = altiers.filter((a) => a.id !== formData.fromAltierID);
   const selectedRoll = availableRolls.find((r) => r.id === formData.rollId);
+  const selectedWastePiece = availableWastePieces.find((w) => w.id === formData.wastePieceId);
 
   const rollOptions = availableRolls.map((roll) => ({
-    label: `Roll ${roll.id.substring(0, 8)}... • ${roll.materialType} • ${roll.widthMm}mm × ${(roll.lengthRemainingM || roll.lengthM).toFixed(2)}m`,
+    label: formatRollChuteLabel(roll),
     value: roll.id,
+  }));
+
+  const wastePieceOptions = availableWastePieces.map((piece) => ({
+    label: formatRollChuteLabel(piece),
+    value: piece.id,
   }));
 
   const altierOptions = userAvailableAltiers.map((altier) => ({
@@ -245,7 +309,7 @@ export function RollMovementForm({
     >
       {error && <Message severity="error" text={error} />}
 
-      {mode === 'create' && step === 'roll' && (
+      {mode === 'create' && step === 'source' && (
         <div style={{ display: 'grid', gap: '1rem' }}>
           <div>
             <label htmlFor="fromAltierID">From Altier</label>
@@ -293,17 +357,36 @@ export function RollMovementForm({
           <div style={{ display: 'grid', gap: '1rem' }}>
             {mode === 'create' && (
               <div>
-                <label>Selected Roll</label>
+                <label>{formData.sourceType === 'ROLL' ? 'Selected Roll' : 'Selected Waste Piece'}</label>
                 <div>
-                  {selectedRoll ? (
-                    <div>
-                      <strong>Roll {selectedRoll.id.substring(0, 8)}...</strong>
+                  {formData.sourceType === 'ROLL' ? (
+                    selectedRoll ? (
                       <div>
-                        Material: {selectedRoll.materialType} | Size: {selectedRoll.widthMm}mm × {(selectedRoll.lengthRemainingM || selectedRoll.lengthM).toFixed(2)}m | Area: {((selectedRoll.areaM2 || 0) - (selectedRoll.totalWasteAreaM2 || 0)).toFixed(2)}m²
+                        <strong>Selected roll</strong>
+                        <div>
+                          {(() => {
+                            const summary = getRollChuteSummary(selectedRoll);
+                            return `Ref: ${summary.reference} | Plis: ${summary.nbPlis} | Thk: ${summary.thickness} | Color: ${summary.color}`;
+                          })()}
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      'No roll selected'
+                    )
                   ) : (
-                    'No roll selected'
+                    selectedWastePiece ? (
+                      <div>
+                        <strong>Selected waste piece</strong>
+                        <div>
+                          {(() => {
+                            const summary = getRollChuteSummary(selectedWastePiece);
+                            return `Ref: ${summary.reference} | Plis: ${summary.nbPlis} | Thk: ${summary.thickness} | Color: ${summary.color}`;
+                          })()}
+                        </div>
+                      </div>
+                    ) : (
+                      'No waste piece selected'
+                    )
                   )}
                 </div>
               </div>
@@ -311,7 +394,7 @@ export function RollMovementForm({
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
               <div>
-                <label htmlFor="fromAltierDisplay">From Altier</label>
+              disabled={formData.sourceType === 'ROLL' ? !formData.rollId : !formData.wastePieceId}
                 <InputText
                   id="fromAltierDisplay"
                   value={altiers.find((a) => a.id === formData.fromAltierID)?.libelle || ''}
@@ -380,7 +463,7 @@ export function RollMovementForm({
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               {mode === 'create' && step === 'details' && (
-                <Button type="button" label="Back" severity="secondary" onClick={() => setStep('roll')} />
+                <Button type="button" label="Back" severity="secondary" onClick={() => setStep('source')} />
               )}
               <Button
                 type="submit"

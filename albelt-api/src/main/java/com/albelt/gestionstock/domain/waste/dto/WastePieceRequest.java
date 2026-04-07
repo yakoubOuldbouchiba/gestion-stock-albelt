@@ -54,7 +54,7 @@ public class WastePieceRequest {
     private BigDecimal lengthRemainingM;
 
     // Status & Classification (same as Roll)
-    private String status; // AVAILABLE, OPENED, SCRAP, etc.
+    private String status; // AVAILABLE, OPENED, EXHAUSTED, ARCHIVED
 
     private WasteType wasteType; // CHUTE_EXPLOITABLE, DECHET
 

@@ -7,6 +7,8 @@ import com.albelt.gestionstock.domain.rolls.entity.TransferBon;
 import com.albelt.gestionstock.domain.rolls.mapper.RollMovementMapper;
 import com.albelt.gestionstock.domain.rolls.repository.RollMovementRepository;
 import com.albelt.gestionstock.domain.rolls.repository.TransferBonRepository;
+import com.albelt.gestionstock.domain.waste.entity.WastePiece;
+import com.albelt.gestionstock.domain.waste.service.WastePieceService;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.altier.service.AltierService;
 import com.albelt.gestionstock.domain.users.entity.User;
@@ -42,6 +44,7 @@ public class RollMovementService {
     private final RollMovementRepository rollMovementRepository;
     private final RollMovementMapper rollMovementMapper;
     private final RollService rollService;
+    private final WastePieceService wastePieceService;
     private final AltierService altierService;
     private final UserService userService;
     private final TransferBonRepository transferBonRepository;
@@ -52,6 +55,7 @@ public class RollMovementService {
     @Transactional
     public RollMovementDTO recordMovement(
             UUID rollId,
+            UUID wastePieceId,
             UUID fromAltierID,
             UUID toAltierID,
             LocalDateTime dateSortie,
@@ -61,10 +65,26 @@ public class RollMovementService {
             String notes,
             UUID transferBonId
     ) {
-        log.info("Recording movement for roll {} from {} to {}", rollId, fromAltierID, toAltierID);
+        if ((rollId == null && wastePieceId == null) || (rollId != null && wastePieceId != null)) {
+            throw new IllegalArgumentException("Provide exactly one of rollId or wastePieceId");
+        }
 
-        // Verify roll exists
-        Roll roll = rollService.getById(rollId);
+        log.info("Recording movement for item {} from {} to {}",
+                rollId != null ? rollId : wastePieceId, fromAltierID, toAltierID);
+
+        if (fromAltierID == null || toAltierID == null) {
+            throw new IllegalArgumentException("fromAltierID and toAltierID are required");
+        }
+
+        // Verify source exists
+        Roll roll = null;
+        WastePiece wastePiece = null;
+        if (rollId != null) {
+            roll = rollService.getById(rollId);
+        }
+        if (wastePieceId != null) {
+            wastePiece = wastePieceService.getById(wastePieceId);
+        }
 
         // Verify altiers exist
         Altier toAltier = altierService.getById(toAltierID);
@@ -91,6 +111,7 @@ public class RollMovementService {
         // Create movement record
         RollMovement movement = RollMovement.builder()
                 .roll(roll)
+                .wastePiece(wastePiece)
                 .fromAltier(fromAltier)
                 .toAltier(toAltier)
                 .dateSortie(dateSortie)
@@ -116,11 +137,9 @@ public class RollMovementService {
             transferBonRepository.save(transferBon);
         }
         
-        // Update roll's altier to new location when entry is confirmed
+        // Update item's altier to new location when entry is confirmed
         if (dateEntree != null && movement.getStatusEntree()) {
-            roll.setAltier(toAltier);
-            rollService.save(roll);
-            log.info("Updated roll {} location to altier {}", rollId, toAltierID);
+            updateSourceAltier(movement);
         }
         
         log.info("Movement recorded successfully: {}", movement.getId());
@@ -146,10 +165,35 @@ public class RollMovementService {
     }
 
     /**
+     * Get all movements for a waste piece (history)
+     */
+    public List<RollMovementDTO> getWastePieceMovementHistory(UUID wastePieceId) {
+        log.info("Fetching movement history for waste piece: {}", wastePieceId);
+        return rollMovementRepository.findByWastePieceIdOrderByDateEntreeDesc(wastePieceId)
+                .stream()
+                .map(rollMovementMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    public Page<RollMovementDTO> getWastePieceMovementHistoryPaged(UUID wastePieceId, int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateEntree"));
+        return rollMovementRepository.findByWastePieceIdOrderByDateEntreeDesc(wastePieceId, pageable)
+                .map(rollMovementMapper::toDTO);
+    }
+
+    /**
      * Get current location of a roll (latest movement)
      */
     public RollMovementDTO getCurrentLocation(UUID rollId) {
         RollMovement movement = rollMovementRepository.findLatestMovementByRollId(rollId);
+        return movement != null ? rollMovementMapper.toDTO(movement) : null;
+    }
+
+    /**
+     * Get current location of a waste piece (latest movement)
+     */
+    public RollMovementDTO getCurrentWastePieceLocation(UUID wastePieceId) {
+        RollMovement movement = rollMovementRepository.findLatestMovementByWastePieceId(wastePieceId);
         return movement != null ? rollMovementMapper.toDTO(movement) : null;
     }
 
@@ -241,10 +285,8 @@ public class RollMovementService {
         movement.setStatusEntree(true);
         movement = rollMovementRepository.save(movement);
 
-        // Update roll's current altier to destination altier
-        Roll roll = movement.getRoll();
-        roll.setAltier(movement.getToAltier());
-        rollService.save(roll);
+        // Update item's current altier to destination altier
+        updateSourceAltier(movement);
 
         // If movement belongs to a transfer bon, auto-complete the bon when all movements are received
         if (movement.getTransferBon() != null) {
@@ -262,8 +304,13 @@ public class RollMovementService {
             }
         }
         
-        log.info("Receipt confirmed for movement {}, roll {} now at altier {}", 
-                movementId, roll.getId(), movement.getToAltier().getId());
+        String sourceId = movement.getRoll() != null
+            ? movement.getRoll().getId().toString()
+            : movement.getWastePiece() != null
+                ? movement.getWastePiece().getId().toString()
+                : "N/A";
+        log.info("Receipt confirmed for movement {}, source {} now at altier {}",
+            movementId, sourceId, movement.getToAltier().getId());
 
         return rollMovementMapper.toDTO(movement);
     }
@@ -309,5 +356,20 @@ public class RollMovementService {
     public void deleteMovement(UUID movementId) {
         rollMovementRepository.deleteById(movementId);
         log.info("Movement deleted: {}", movementId);
+    }
+
+    private void updateSourceAltier(RollMovement movement) {
+        if (movement.getRoll() != null) {
+            Roll roll = movement.getRoll();
+            roll.setAltier(movement.getToAltier());
+            rollService.save(roll);
+            log.info("Updated roll {} location to altier {}", roll.getId(), movement.getToAltier().getId());
+        }
+        if (movement.getWastePiece() != null) {
+            WastePiece wastePiece = movement.getWastePiece();
+            wastePiece.setAltier(movement.getToAltier());
+            wastePieceService.save(wastePiece);
+            log.info("Updated waste piece {} location to altier {}", wastePiece.getId(), movement.getToAltier().getId());
+        }
     }
 }

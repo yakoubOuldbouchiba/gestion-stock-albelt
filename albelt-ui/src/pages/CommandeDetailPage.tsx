@@ -26,6 +26,7 @@ import { ProductionSection } from '../components/commande/ProductionSection';
 import { StatusUpdateCard } from '../components/commande/StatusUpdateCard';
 import { WasteSection } from '../components/commande/WasteSection';
 import type { StatusSeverity } from '../components/commande/commandeTypes';
+import { formatRollChuteLabel } from '@utils/rollChuteLabel';
 import type {
   Commande,
   CommandeItem,
@@ -75,6 +76,9 @@ export function CommandeDetailPage() {
   const [parentWastePieceId, setParentWastePieceId] = useState('');
   const [parentWastePieces, setParentWastePieces] = useState<any[]>([]);
   const [parentWastePiecesLoading, setParentWastePiecesLoading] = useState(false);
+  const [chutePlacementId, setChutePlacementId] = useState('');
+  const [chutePlacements, setChutePlacements] = useState<PlacedRectangle[]>([]);
+  const [chutePlacementsLoading, setChutePlacementsLoading] = useState(false);
   const [chuteDimensions, setChuteDimensions] = useState({
     widthMm: 0,
     lengthM: 0,
@@ -153,6 +157,41 @@ export function CommandeDetailPage() {
     const length = source.lengthM ?? 0;
     setChuteDimensions({ widthMm: width, lengthM: length, areaM2: (width / 1000) * length });
   }, [showChuteForm, chuteSourceType, parentWastePieceId, parentWastePieces]);
+
+  useEffect(() => {
+    if (!showChuteForm) {
+      setChutePlacements([]);
+      setChutePlacementId('');
+      return;
+    }
+    const sourceId = chuteSourceType === 'ROLL' ? chuteRollId : parentWastePieceId;
+    if (!sourceId) {
+      setChutePlacements([]);
+      setChutePlacementId('');
+      return;
+    }
+
+    const loadPlacements = async () => {
+      setChutePlacementsLoading(true);
+      try {
+        const response = chuteSourceType === 'ROLL'
+          ? await PlacedRectangleService.getByRoll(sourceId)
+          : await PlacedRectangleService.getByWastePiece(sourceId);
+        if (response.success && response.data) {
+          setChutePlacements(Array.isArray(response.data) ? response.data : []);
+        } else {
+          setChutePlacements([]);
+        }
+      } catch (err) {
+        console.error('Error loading placements:', err);
+        setChutePlacements([]);
+      } finally {
+        setChutePlacementsLoading(false);
+      }
+    };
+
+    loadPlacements();
+  }, [showChuteForm, chuteSourceType, chuteRollId, parentWastePieceId]);
 
   const showError = (detail: string) => {
     toastRef.current?.show({
@@ -270,6 +309,12 @@ export function CommandeDetailPage() {
   const handleEditOrder = () => {
     if (commande?.id) {
       navigate(`/commandes/${commande.id}/edit`);
+    }
+  };
+
+  const handleReturnOrder = () => {
+    if (commande?.id) {
+      navigate(`/commandes/${commande.id}/returns`);
     }
   };
 
@@ -605,6 +650,8 @@ export function CommandeDetailPage() {
     setChuteSourceType('ROLL');
     setChuteRollId('');
     setParentWastePieceId('');
+    setChutePlacementId('');
+    setChutePlacements([]);
     setChuteDimensions({ widthMm: 0, lengthM: 0, areaM2: 0 });
   };
 
@@ -645,6 +692,17 @@ export function CommandeDetailPage() {
 
     if (chuteDimensions.widthMm <= 0 || chuteDimensions.lengthM <= 0) {
       showError(t('commandes.invalidDimensionsError'));
+      return;
+    }
+
+    const selectedPlacement = chutePlacements.find((placement) => placement.id === chutePlacementId);
+    if (!selectedPlacement) {
+      showError('Select a placement before creating a chute.');
+      return;
+    }
+    const chuteLengthMm = chuteDimensions.lengthM * 1000;
+    if (chuteDimensions.widthMm > selectedPlacement.widthMm || chuteLengthMm > selectedPlacement.heightMm) {
+      showError('Chute dimensions exceed the selected placement.');
       return;
     }
 
@@ -736,6 +794,16 @@ export function CommandeDetailPage() {
   };
 
   const getSourceColorLabel = (source: any) => source?.colorName ?? source?.colorHexCode;
+  const formatSourceLabel = (source: any, fallbackRef?: string) => {
+    if (!source) return fallbackRef ?? t('commandes.notAvailable');
+    return formatRollChuteLabel({
+      reference: source.reference ?? fallbackRef,
+      nbPlis: source.nbPlis,
+      thicknessMm: source.thicknessMm,
+      colorName: source.colorName,
+      colorHexCode: source.colorHexCode,
+    });
+  };
 
   const getProductionWarnings = (
     item: CommandeItem,
@@ -920,9 +988,14 @@ export function CommandeDetailPage() {
 
   const rollOptionsBase = rolls.map((roll) => {
     const reference = roll.reference ?? (roll as any).referenceRouleau ?? t('commandes.notAvailable');
-    const lengthValue = roll.lengthRemainingM ?? roll.lengthM;
     return {
-      label: `${reference} - ${roll.materialType} | ${roll.nbPlis}P | ${roll.thicknessMm}mm | ${lengthValue}m x ${roll.widthMm}mm`,
+      label: formatRollChuteLabel({
+        reference,
+        nbPlis: roll.nbPlis,
+        thicknessMm: roll.thicknessMm,
+        colorName: roll.colorName,
+        colorHexCode: roll.colorHexCode,
+      }),
       value: roll.id,
       materialType: roll.materialType,
       nbPlis: roll.nbPlis,
@@ -946,7 +1019,7 @@ export function CommandeDetailPage() {
   const selectedProductionColorName =
     selectedProductionSource?.colorName ?? selectedProductionPlacement?.colorName ?? '';
   const selectedProductionLabel = selectedProductionPlacement
-    ? `${selectedProductionSource?.reference ?? selectedProductionSource?.materialType ?? 'Placement'} | x:${selectedProductionPlacement.xMm} y:${selectedProductionPlacement.yMm} ${selectedProductionPlacement.widthMm}x${selectedProductionPlacement.heightMm}mm`
+    ? `${formatSourceLabel(selectedProductionSource, selectedProductionPlacement.id.slice(0, 8))} | x:${selectedProductionPlacement.xMm} y:${selectedProductionPlacement.yMm} ${selectedProductionPlacement.widthMm}x${selectedProductionPlacement.heightMm}mm`
     : productionForm.placedRectangleId
     ? productionForm.placedRectangleId.slice(0, 8)
     : t('commandes.notAvailable');
@@ -965,15 +1038,32 @@ export function CommandeDetailPage() {
   const chuteParentOptions = parentWastePieces
     .filter((piece: any) => !chuteTargetItem || piece.materialType === chuteTargetItem.materialType)
     .map((piece: any) => ({
-      label: `${piece.materialType} | ${piece.lengthM}m x ${piece.widthMm}mm (${piece.areaM2?.toFixed(2)}m2)`,
+      label: formatRollChuteLabel({
+        reference: piece.reference ?? piece.id.slice(0, 8),
+        nbPlis: piece.nbPlis,
+        thicknessMm: piece.thicknessMm,
+        colorName: piece.colorName,
+        colorHexCode: piece.colorHexCode,
+      }),
       value: piece.id,
     }));
+
+  const chutePlacementOptions = chutePlacements.map((placement) => ({
+    label: `Placement ${placement.id.substring(0, 8)} • ${placement.widthMm}x${placement.heightMm}mm • x:${placement.xMm} y:${placement.yMm}`,
+    value: placement.id,
+  }));
 
   const placementRollOptionsDialog = filterRollOptions(placementTargetItem?.materialType);
   const placementWasteOptionsDialog = wasteForItem
     .filter((waste: any) => !placementTargetItem || waste.materialType === placementTargetItem.materialType)
     .map((waste: any) => ({
-      label: `${waste.lengthM}m x ${waste.widthMm}mm (${waste.areaM2?.toFixed(2)}m2)`,
+      label: formatRollChuteLabel({
+        reference: waste.reference ?? waste.id.slice(0, 8),
+        nbPlis: waste.nbPlis,
+        thicknessMm: waste.thicknessMm,
+        colorName: waste.colorName,
+        colorHexCode: waste.colorHexCode,
+      }),
       value: waste.id,
     }));
 
@@ -1025,7 +1115,7 @@ export function CommandeDetailPage() {
             .filter(Boolean)
             .join(' • ')
         : null;
-      const sourceLabel = source?.reference ?? source?.materialType ?? placement.id.slice(0, 8);
+      const sourceLabel = formatSourceLabel(source, placement.id.slice(0, 8));
       const label = itemLabel ?? sourceLabel;
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
@@ -1088,6 +1178,7 @@ export function CommandeDetailPage() {
         const type = rollId ? 'ROLL' : wastePieceId ? 'WASTE_PIECE' : 'UNKNOWN';
         const sourceId = rollId ?? wastePieceId ?? placement.id;
         const reference = source?.reference ?? source?.materialType ?? sourceId.slice(0, 8);
+        const sourceLabel = formatSourceLabel(source, reference);
         const itemLabel = placement.commandeItem
           ? [
               placement.commandeItem.lineNumber
@@ -1099,10 +1190,10 @@ export function CommandeDetailPage() {
               .join(' • ')
           : null;
         const groupLabel = type === 'ROLL'
-          ? `Roll ${reference}`
+          ? `Roll ${sourceLabel}`
           : type === 'WASTE_PIECE'
-          ? `Waste ${reference}`
-          : `Source ${reference}`;
+          ? `Waste ${sourceLabel}`
+          : `Source ${sourceLabel}`;
         return {
           ...placement,
           groupKey: `${type}:${sourceId}`,
@@ -1237,6 +1328,7 @@ export function CommandeDetailPage() {
         getStatusSeverity={getStatusSeverity}
         onEdit={handleEditOrder}
         onDelete={handleDeleteOrder}
+        onReturn={handleReturnOrder}
         onBack={() => navigate('/commandes')}
         t={t}
       />
@@ -1375,15 +1467,27 @@ export function CommandeDetailPage() {
           setChuteSourceType(value as 'ROLL' | 'WASTE_PIECE');
           setChuteRollId('');
           setParentWastePieceId('');
+          setChutePlacementId('');
+          setChutePlacements([]);
           setChuteDimensions({ widthMm: 0, lengthM: 0, areaM2: 0 });
         }}
         chuteRollId={chuteRollId}
         chuteRollOptions={chuteRollOptions}
-        onRollChange={(value) => setChuteRollId(value)}
+        onRollChange={(value) => {
+          setChuteRollId(value);
+          setChutePlacementId('');
+        }}
         parentWastePieceId={parentWastePieceId}
         chuteParentOptions={chuteParentOptions}
-        onParentWasteChange={(value) => setParentWastePieceId(value)}
+        onParentWasteChange={(value) => {
+          setParentWastePieceId(value);
+          setChutePlacementId('');
+        }}
         parentWastePiecesLoading={parentWastePiecesLoading}
+        chutePlacementId={chutePlacementId}
+        chutePlacementOptions={chutePlacementOptions}
+        onPlacementChange={(value) => setChutePlacementId(value)}
+        chutePlacementsLoading={chutePlacementsLoading}
         renderRollOption={renderRollOption}
         chuteSource={chuteSource}
         chuteDimensions={chuteDimensions}

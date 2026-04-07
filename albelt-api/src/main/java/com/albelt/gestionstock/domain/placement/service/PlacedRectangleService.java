@@ -13,8 +13,6 @@ import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.waste.repository.WastePieceRepository;
-import com.albelt.gestionstock.shared.enums.RollStatus;
-import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,17 +56,8 @@ public class PlacedRectangleService {
 
         Color color = resolveColor(request, commandeItem, roll, wastePiece);
 
-        boolean firstPlacement = roll != null
-                ? placedRectangleRepository.countByRollId(roll.getId()) == 0
-                : placedRectangleRepository.countByWastePieceId(wastePiece.getId()) == 0;
-
         PlacedRectangle placedRectangle = placedRectangleMapper.toEntity(request, roll, wastePiece, color);
         PlacedRectangle saved = placedRectangleRepository.save(placedRectangle);
-
-        if (firstPlacement) {
-            updateSourceStatusOnFirstPlacement(roll, wastePiece);
-        }
-
         return saved;
     }
 
@@ -304,15 +293,4 @@ public class PlacedRectangleService {
             }
     }
 
-    private void updateSourceStatusOnFirstPlacement(Roll roll, WastePiece wastePiece) {
-        if (roll != null && !RollStatus.EXHAUSTED.equals(roll.getStatus())) {
-            roll.setStatus(RollStatus.EXHAUSTED);
-            rollRepository.save(roll);
-            return;
-        }
-        if (wastePiece != null && !WasteStatus.EXHAUSTED.equals(wastePiece.getStatus())) {
-            wastePiece.setStatus(WasteStatus.EXHAUSTED);
-            wastePieceRepository.save(wastePiece);
-        }
-    }
 }

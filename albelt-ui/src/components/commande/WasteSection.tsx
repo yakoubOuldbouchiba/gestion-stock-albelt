@@ -3,6 +3,7 @@ import { Card } from 'primereact/card';
 import { Message } from 'primereact/message';
 import { Tag } from 'primereact/tag';
 import { formatDate } from '../../utils/date';
+import { getRollChuteSummary } from '@utils/rollChuteLabel';
 import type { Translate } from './commandeTypes';
 
 type WasteSectionProps = {
@@ -48,9 +49,14 @@ export const WasteSection = ({ wasteForItem, onCreateChute, isBusy, t }: WasteSe
               }}
             >
               <Tag value={waste.wasteType} severity={waste.wasteType === 'DECHET' ? 'warning' : 'success'} />
-              <span>
-                {waste.lengthM}m x {waste.widthMm}mm ({waste.areaM2?.toFixed(2)}m2)
-              </span>
+              {(() => {
+                const summary = getRollChuteSummary(waste);
+                return (
+                  <span>
+                    Ref: {summary.reference} | Plis: {summary.nbPlis} | Thk: {summary.thickness} | Color: {summary.color}
+                  </span>
+                );
+              })()}
               {waste.weightKg ? <span>{waste.weightKg}kg</span> : null}
               <span>{formatDate(waste.createdAt)}</span>
             </div>

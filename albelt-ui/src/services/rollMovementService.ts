@@ -3,7 +3,8 @@ import type { ApiResponse, PagedResponse } from '../types/index';
 
 export interface RollMovement {
   id: string;
-  rollId: string;
+  rollId?: string;
+  wastePieceId?: string;
   transferBonId?: string;
   fromAltier: {
     id: string;
@@ -33,11 +34,12 @@ export interface RollMovement {
 }
 
 export interface RollMovementRequest {
-  rollId: string;
+  rollId?: string;
+  wastePieceId?: string;
   fromAltierID: string;  // Now required
   toAltierID: string;
   dateSortie: string;
-  dateEntree: string;
+  dateEntree?: string;
   transferBonId?: string;
   reason?: string;
   notes?: string;
@@ -49,13 +51,20 @@ class RollMovementService {
    */
   async recordMovement(request: RollMovementRequest & { operatorId: string }): Promise<ApiResponse<RollMovement>> {
     const params = new URLSearchParams();
-    params.append('rollId', request.rollId);
+    if (request.rollId) {
+      params.append('rollId', request.rollId);
+    }
+    if (request.wastePieceId) {
+      params.append('wastePieceId', request.wastePieceId);
+    }
     if (request.fromAltierID) {
       params.append('fromAltierID', request.fromAltierID);
     }
     params.append('toAltierID', request.toAltierID);
     params.append('dateSortie', request.dateSortie);
-    params.append('dateEntree', request.dateEntree);
+    if (request.dateEntree) {
+      params.append('dateEntree', request.dateEntree);
+    }
     if (request.transferBonId) {
       params.append('transferBonId', request.transferBonId);
     }
@@ -78,10 +87,24 @@ class RollMovementService {
   }
 
   /**
+   * Get movement history for a waste piece
+   */
+  async getWastePieceMovementHistory(wastePieceId: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/waste-piece/${wastePieceId}/history`, { page, size });
+  }
+
+  /**
    * Get current location of a roll
    */
   async getCurrentLocation(rollId: string): Promise<ApiResponse<RollMovement>> {
     return ApiService.get<RollMovement>(`/roll-movements/roll/${rollId}/current-location`);
+  }
+
+  /**
+   * Get current location of a waste piece
+   */
+  async getWastePieceCurrentLocation(wastePieceId: string): Promise<ApiResponse<RollMovement>> {
+    return ApiService.get<RollMovement>(`/roll-movements/waste-piece/${wastePieceId}/current-location`);
   }
 
   /**

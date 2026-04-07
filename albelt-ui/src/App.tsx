@@ -15,6 +15,8 @@ import {
 // Lazy load all other pages
 const RollDetailPage = lazy(() => import('./pages/RollDetailPage'));
 const RollMovementPage = lazy(() => import('./pages/RollMovementPage'));
+const ChuteDetailPage = lazy(() => import('./pages/ChuteDetailPage'));
+const ChuteMovementPage = lazy(() => import('./pages/ChuteMovementPage'));
 const MovementsListPage = lazy(() => import('./pages/MovementsListPage'));
 const SuppliersPage = lazy(() => import('./pages/SuppliersPage'));
 const UsersPage = lazy(() => import('./pages/UsersPage'));
@@ -29,6 +31,7 @@ const CommandesListPage = lazy(() => import('./pages/CommandesListPage'));
 const CommandeCreatePage = lazy(() => import('./pages/CommandeCreatePage'));
 const CommandeEditPage = lazy(() => import('./pages/CommandeEditPage'));
 const CommandeDetailPage = lazy(() => import('./pages/CommandeDetailPage'));
+const CommandeReturnPage = lazy(() => import('./pages/CommandeReturnPage'));
 import './App.css';
 
 export function App() {
@@ -93,6 +96,32 @@ export function App() {
               <Layout>
                 <Suspense fallback={<LazyLoadingFallback />}>
                   <RollMovementPage />
+                </Suspense>
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/chute/:wasteId/movements"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <ChuteMovementPage />
+                </Suspense>
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/chute/:wasteId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <ChuteDetailPage />
                 </Suspense>
               </Layout>
             </ProtectedRoute>
@@ -212,6 +241,19 @@ export function App() {
               <Layout>
                 <Suspense fallback={<LazyLoadingFallback />}>
                   <CommandeDetailPage />
+                </Suspense>
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/commandes/:id/returns"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <CommandeReturnPage />
                 </Suspense>
               </Layout>
             </ProtectedRoute>

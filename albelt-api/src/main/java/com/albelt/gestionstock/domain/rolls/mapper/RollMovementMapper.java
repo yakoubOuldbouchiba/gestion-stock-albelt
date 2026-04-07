@@ -28,6 +28,7 @@ public class RollMovementMapper {
         return RollMovementDTO.builder()
                 .id(entity.getId())
                 .rollId(entity.getRoll() != null ? entity.getRoll().getId() : null)
+            .wastePieceId(entity.getWastePiece() != null ? entity.getWastePiece().getId() : null)
             .transferBonId(entity.getTransferBon() != null ? entity.getTransferBon().getId() : null)
                 .fromAltier(entity.getFromAltier() != null ? altierMapper.toDTO(entity.getFromAltier()) : null)
                 .toAltier(entity.getToAltier() != null ? altierMapper.toDTO(entity.getToAltier()) : null)

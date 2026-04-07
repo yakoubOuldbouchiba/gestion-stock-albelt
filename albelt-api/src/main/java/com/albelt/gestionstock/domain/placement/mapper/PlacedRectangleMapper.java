@@ -76,8 +76,17 @@ public class PlacedRectangleMapper {
         if (entities == null) {
             return List.of();
         }
+        if (commandeItemsById == null) {
+            return entities.stream().map(this::toResponse).toList();
+        }
         return entities.stream()
-                .map(entity -> toResponse(entity, commandeItemsById.get(entity.getCommandeItemId())))
+                .map(entity -> {
+                    java.util.UUID commandeItemId = entity.getCommandeItemId();
+                    CommandeItem commandeItem = commandeItemId != null
+                            ? commandeItemsById.get(commandeItemId)
+                            : null;
+                    return toResponse(entity, commandeItem);
+                })
                 .toList();
     }
 
@@ -96,6 +105,8 @@ public class PlacedRectangleMapper {
                 .lengthM(roll.getLengthM())
                 .lengthRemainingM(roll.getLengthRemainingM())
                 .areaM2(roll.getAreaM2())
+                .usedAreaM2(roll.getUsedAreaM2())
+                .availableAreaM2(roll.getAvailableAreaM2())
                 .status(roll.getStatus())
                 .colorId(roll.getColor() != null ? roll.getColor().getId() : null)
                 .colorName(roll.getColor() != null ? roll.getColor().getName() : null)
@@ -122,6 +133,8 @@ public class PlacedRectangleMapper {
                 .lengthM(wastePiece.getLengthM())
                 .lengthRemainingM(wastePiece.getLengthRemainingM())
                 .areaM2(wastePiece.getAreaM2())
+                .usedAreaM2(wastePiece.getUsedAreaM2())
+                .availableAreaM2(wastePiece.getAvailableAreaM2())
                 .status(wastePiece.getStatus())
                 .wasteType(wastePiece.getWasteType())
                 .colorId(wastePiece.getColor() != null ? wastePiece.getColor().getId() : null)

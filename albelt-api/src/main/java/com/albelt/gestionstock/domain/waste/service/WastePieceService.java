@@ -118,14 +118,8 @@ public class WastePieceService {
         wastePiece.setCreatedBy(createdBy);
         wastePiece.setAltier(altier);
         
-        // Auto-categorize based on waste type
-        if (WasteType.CHUTE_EXPLOITABLE  == wastePiece.getWasteType()) {
-            wastePiece.setStatus(WasteStatus.AVAILABLE);
-            log.debug("Reusable waste piece marked as AVAILABLE: {}", wastePiece.getId());
-        } else {
-            wastePiece.setStatus(WasteStatus.SCRAP);
-            log.debug("Scrap waste piece marked as SCRAP: {}", wastePiece.getId());
-        }
+        // Default status starts as AVAILABLE; placement triggers manage OPENED/EXHAUSTED
+        wastePiece.setStatus(WasteStatus.AVAILABLE);
         
         wastePiece.setClassificationDate(java.time.LocalDateTime.now());
         WastePiece saved = wastePieceRepository.save(wastePiece);
@@ -177,7 +171,7 @@ public class WastePieceService {
     public Optional<WastePiece> findReuseCandidate(MaterialType materialType, BigDecimal requiredArea) {
         log.debug("Finding reuse candidate: material={}, required_area={}", materialType, requiredArea);
         
-        List<WasteStatus> reuseableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.RESERVED);
+        List<WasteStatus> reuseableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
         List<WastePiece> candidates = wastePieceRepository.findReuseCandidate(
                 materialType, 
                 requiredArea, 
@@ -199,23 +193,21 @@ public class WastePieceService {
      */
     @Transactional(readOnly = true)
     public List<WastePiece> findLargeAvailablePieces(int page, int size) {
-        return wastePieceRepository.findLargeAvailablePieces(
-                WasteStatus.AVAILABLE,
-                PageRequest.of(page, size)
-        );
+        List<WasteStatus> availableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
+        return wastePieceRepository.findLargeAvailablePieces(availableStatuses, PageRequest.of(page, size));
     }
 
     /**
-     * Mark waste piece as scrap
+      * Archive waste piece
      */
     public WastePiece markAsScrap(UUID wastePieceId) {
-        log.info("Marking waste piece as scrap: {}", wastePieceId);
+          log.info("Archiving waste piece: {}", wastePieceId);
         
         WastePiece wastePiece = getById(wastePieceId);
-        wastePiece.markAsScrap(LocalDate.now());
+        wastePiece.markAsArchived(LocalDate.now());
         WastePiece updated = wastePieceRepository.save(wastePiece);
-        
-        log.info("Waste piece marked as SCRAP: {}", wastePieceId);
+
+        log.info("Waste piece archived: {}", wastePieceId);
         return updated;
     }
 
@@ -233,10 +225,11 @@ public class WastePieceService {
      */
     @Transactional(readOnly = true)
     public List<WastePiece> getAvailableByMaterial(MaterialType materialType, int page, int size) {
+        List<WasteStatus> availableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
         return wastePieceRepository.findAvailableByMaterial(
-                materialType,
-                WasteStatus.AVAILABLE,
-                PageRequest.of(page, size)
+            materialType,
+            availableStatuses,
+            PageRequest.of(page, size)
         );
     }
 
@@ -269,7 +262,12 @@ public class WastePieceService {
      */
     @Transactional(readOnly = true)
     public List<Object[]> getTotalWasteAreaByMaterial() {
-        return wastePieceRepository.getTotalWasteAreaByMaterial(WasteStatus.AVAILABLE);
+        List<WasteStatus> availableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
+        return wastePieceRepository.getTotalWasteAreaByMaterial(availableStatuses);
+    }
+
+    public WastePiece save(WastePiece wastePiece) {
+        return wastePieceRepository.save(wastePiece);
     }
 
     private String normalize(String value) {

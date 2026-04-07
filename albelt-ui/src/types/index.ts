@@ -69,7 +69,7 @@ export type RollStatus = 'AVAILABLE' | 'OPENED' | 'EXHAUSTED' | 'ARCHIVED';
 export type WasteType = 'CHUTE_EXPLOITABLE' | 'DECHET';
 export type WasteClassification = 'DECHET' | 'CHUTE_EXPLOITABLE';
 export type CuttingOperationStatus = 'PREPARED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
-export type WasteItemStatus = 'AVAILABLE' | 'USED_IN_ORDER' | 'SCRAP' | 'RESERVED' | 'EXHAUSTED';
+export type WasteItemStatus = 'AVAILABLE' | 'OPENED' | 'EXHAUSTED' | 'ARCHIVED';
 export type WasteStatus = WasteItemStatus; // Alias for backend compatibility
 
 /**
@@ -116,6 +116,8 @@ export interface Roll {
   lengthM: number;
   lengthRemainingM?: number;
   areaM2: number;
+  usedAreaM2?: number;
+  availableAreaM2?: number;
   
   status: RollStatus;
   qrCode?: string;
@@ -148,6 +150,8 @@ export interface RollSummary {
   lengthM?: number;
   lengthRemainingM?: number;
   areaM2?: number;
+  usedAreaM2?: number;
+  availableAreaM2?: number;
   status?: RollStatus;
   colorId?: string;
   colorName?: string;
@@ -232,6 +236,8 @@ export interface WastePiece {
   lengthM: number;
   lengthRemainingM?: number;
   areaM2: number;
+  usedAreaM2?: number;
+  availableAreaM2?: number;
   status: WasteItemStatus;
   wasteType?: WasteType;
   altierId?: string;
@@ -261,6 +267,8 @@ export interface WastePieceSummary {
   lengthM?: number;
   lengthRemainingM?: number;
   areaM2?: number;
+  usedAreaM2?: number;
+  availableAreaM2?: number;
   status?: WasteStatus;
   wasteType?: WasteType;
   colorId?: string;
@@ -280,7 +288,7 @@ export interface WastePieceRequest {
   quantityPieces?: number;
   weightKg?: number;
   notes?: string;
-  status?: 'AVAILABLE';
+  status?: 'AVAILABLE' | 'OPENED' | 'EXHAUSTED' | 'ARCHIVED';
 }
 
 /**
@@ -399,7 +407,8 @@ export interface OperatorMetrics {
  */
 export interface RollMovement {
   id: string;
-  rollId: string;
+  rollId?: string;
+  wastePieceId?: string;
   transferBonId?: string;
   fromAltier: Altier;
   toAltier: Altier;
@@ -421,11 +430,12 @@ export interface RollMovement {
 }
 
 export interface RollMovementRequest {
-  rollId: string;
+  rollId?: string;
+  wastePieceId?: string;
   fromAltierID: string;  // Now required
   toAltierID: string;
   dateSortie: string;
-  dateEntree: string;
+  dateEntree?: string;
   transferBonId?: string;
   reason?: string;
   notes?: string;
@@ -452,6 +462,62 @@ export interface TransferBon {
   createdAt: string;
   updatedAt: string;
   movementCount?: number;
+}
+
+export type ReturnMode = 'TOTAL' | 'PARTIAL';
+export type ReturnType = 'MATIERE' | 'MESURE';
+export type ReturnMeasureAction = 'AJUST' | 'DECHET';
+
+export interface ReturnBonItem {
+  id: string;
+  returnBonId: string;
+  commandeItemId: string;
+  productionItemId: string;
+  quantity: number;
+  returnType: ReturnType;
+  measureAction?: ReturnMeasureAction | null;
+  adjustedWidthMm?: number | null;
+  adjustedLengthM?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReturnBon {
+  id: string;
+  commandeId: string;
+  returnMode: ReturnMode;
+  reason: string;
+  reasonDetails?: string | null;
+  notes?: string | null;
+  createdBy?: {
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  itemCount?: number;
+  items?: ReturnBonItem[];
+}
+
+export interface ReturnBonItemRequest {
+  commandeItemId: string;
+  productionItemId: string;
+  quantity: number;
+  returnType: ReturnType;
+  measureAction?: ReturnMeasureAction;
+  adjustedWidthMm?: number;
+  adjustedLengthM?: number;
+}
+
+export interface ReturnBonRequest {
+  commandeId: string;
+  returnMode: ReturnMode;
+  reason: string;
+  reasonDetails?: string;
+  notes?: string;
+  items: ReturnBonItemRequest[];
 }
 
 /**
