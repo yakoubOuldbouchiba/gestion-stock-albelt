@@ -2,16 +2,18 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 28px;
-  background: linear-gradient(135deg, #CC3333 0%, #BB2222 50%, #AA1111 100%);
-  color: white;
-  box-shadow: 0 8px 24px rgba(204, 51, 51, 0.25);
+  padding: 14px 28px;
+  min-height: var(--navbar-height);
+  background: linear-gradient(120deg, #1b2430 0%, #272d36 55%, #3b1e1a 100%);
+  color: #f8fafc;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-wrap: wrap;
   gap: 20px;
   position: sticky;
   top: 0;
-  z-index: 100;
-  backdrop-filter: blur(10px);
+  z-index: 120;
+  backdrop-filter: blur(12px);
 }
 
 /* RTL Support */
@@ -26,7 +28,26 @@
 .navbar-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+}
+
+.sidebar-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.sidebar-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .navbar-brand {
@@ -42,8 +63,9 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
   transition: all 0.3s ease;
 }
 
@@ -54,27 +76,26 @@
 
 .navbar-brand h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  letter-spacing: -0.4px;
+  font-family: var(--font-display);
+  color: #f8fafc;
 }
 
 .navbar-title {
-  font-size: 14px;
-  opacity: 0.85;
+  font-size: 13px;
+  opacity: 0.8;
   white-space: nowrap;
   font-weight: 500;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
+  color: rgba(248, 250, 252, 0.8);
 }
 
 .navbar-right {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 18px;
   flex-wrap: wrap;
 }
 
@@ -84,8 +105,8 @@
   gap: 12px;
   background: rgba(255, 255, 255, 0.1);
   padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   transition: all 0.3s ease;
 }
 
@@ -126,20 +147,20 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   transition: all 0.3s ease;
 }
 
 .role-badge.role-admin {
-  background-color: rgba(255, 100, 100, 0.3);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(255, 143, 125, 0.22);
+  color: #ffe4dc;
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .role-badge.role-user {
-  background-color: rgba(100, 200, 255, 0.3);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(125, 200, 255, 0.22);
+  color: #e2f2ff;
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .logout-button {
@@ -147,10 +168,10 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -159,8 +180,8 @@
 }
 
 .logout-button:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -169,10 +190,14 @@
   transform: translateY(0);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .navbar {
     padding: 12px 16px;
     gap: 12px;
+  }
+
+  .sidebar-toggle {
+    display: inline-flex;
   }
 
   .navbar-brand h2 {
@@ -211,7 +236,7 @@
   }
 }
 
-@media (max-width: 500px) {
+@media (max-width: 600px) {
   .navbar {
     flex-direction: column;
     gap: 8px;
@@ -225,6 +250,10 @@
 
   .navbar-brand h2 {
     font-size: 18px;
+  }
+
+  .navbar-title {
+    display: none;
   }
 }
 

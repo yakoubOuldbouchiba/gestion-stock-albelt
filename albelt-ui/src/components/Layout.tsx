@@ -1,4 +1,5 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 import '../styles/Layout.css';
@@ -8,11 +9,27 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
   return (
-    <div className="layout">
-      <Navbar />
+    <div className={`layout ${isSidebarOpen ? 'layout--sidebar-open' : ''}`}>
+      <Navbar
+        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        isSidebarOpen={isSidebarOpen}
+      />
       <div className="layout-container">
-        <Sidebar />
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        <button
+          type="button"
+          className={`layout-overlay ${isSidebarOpen ? 'is-visible' : ''}`}
+          onClick={() => setIsSidebarOpen(false)}
+          aria-label="Close navigation"
+        />
         <main className="layout-main">
           {children}
         </main>

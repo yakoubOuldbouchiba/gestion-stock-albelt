@@ -66,6 +66,7 @@ export function CommandeEditPage() {
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
   const [isMobile, setIsMobile] = useState(false);
+  const useWrappedItems = true;
   const [originalItems, setOriginalItems] = useState<EditableCommandeItem[]>([]);
 
   // Form state
@@ -662,14 +663,14 @@ export function CommandeEditPage() {
             </div>
           )}
 
-          {isMobile ? (
-            <div style={{ display: 'grid', gap: '1rem' }}>
+          {useWrappedItems ? (
+            <div className="order-items-grid">
               {items.map((item, index) => (
                 <Card key={`${item.lineNumber}-${index}`}>
                   <div style={{ fontWeight: 600, marginBottom: '0.75rem' }}>
                     {t('commandes.line')} {item.lineNumber}
                   </div>
-                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                  <div className="order-item-fields">
                     <div>
                       <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
                         {t('commandes.material')}

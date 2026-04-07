@@ -1,11 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Package, User } from 'lucide-react';
+import { LogOut, Menu, Package, User, X } from 'lucide-react';
 import { useAuthStore } from '@hooks/useAuth';
 import { useI18n } from '@hooks/useI18n';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import '../styles/Navbar.css';
 
-export function Navbar() {
+type NavbarProps = {
+  onToggleSidebar?: () => void;
+  isSidebarOpen?: boolean;
+};
+
+export function Navbar({ onToggleSidebar, isSidebarOpen }: NavbarProps) {
   const { user, logout } = useAuthStore();
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -18,6 +23,14 @@ export function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-left">
+        <button
+          type="button"
+          className="sidebar-toggle"
+          onClick={onToggleSidebar}
+          aria-label={isSidebarOpen ? 'Close navigation' : 'Open navigation'}
+        >
+          {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
         <div className="navbar-brand">
           <div className="brand-icon">
             <Package size={28} />
