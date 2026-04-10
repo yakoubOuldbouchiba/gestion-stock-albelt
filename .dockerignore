@@ -1,0 +1,18 @@
+.git
+.gitignore
+.vscode
+.idea
+*.iml
+*.log
+
+# Frontend build artifacts
+albelt-ui/node_modules
+albelt-ui/dist
+albelt-ui/dist-ssr
+
+# Backend build artifacts
+albelt-api/target
+
+# OS junk
+.DS_Store
+Thumbs.db
