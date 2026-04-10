@@ -157,6 +157,24 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
            "WHERE r.status IN (:statuses) " +
            "GROUP BY r.materialType")
     List<Object[]> getStatsByMaterial(@Param("statuses") List<RollStatus> statuses);
+
+    /**
+     * Get inventory stats for a set of altiers (scoped for user permissions).
+     * Returns: materialType, count, totalArea
+     */
+    @Query("SELECT r.materialType, COUNT(r), SUM(r.areaM2) FROM Roll r " +
+           "WHERE r.altier.id IN (:altierIds) " +
+           "AND r.status IN (:statuses) " +
+           "GROUP BY r.materialType")
+    List<Object[]> getStatsByMaterialForAltiers(
+            @Param("altierIds") List<UUID> altierIds,
+            @Param("statuses") List<RollStatus> statuses);
+
+    /**
+     * Fetch recent rolls for a set of altiers (LIMIT via Pageable).
+     */
+    @Query("SELECT r FROM Roll r WHERE r.altier.id IN (:altierIds) ORDER BY r.receivedDate DESC")
+    List<Roll> findRecentByAltierIds(@Param("altierIds") List<UUID> altierIds, Pageable pageable);
        /**
         * Group by color, nbPlis, thicknessMm, materialType, altierId, status
         */

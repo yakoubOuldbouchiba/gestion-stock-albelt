@@ -47,7 +47,6 @@ public class ProductionItemService {
         BigDecimal totalArea = calculateTotalArea(areaPerPiece, request.getQuantity());
 
         validatePlacementFit(placedRectangle, request.getPieceWidthMm(), request.getPieceLengthM());
-        validateQuantity(commandeItem, request.getQuantity(), null);
         validateArea(placedRectangle, totalArea, null);
 
         ProductionMatchResult matchResult = evaluateProductionMatch(
@@ -89,7 +88,6 @@ public class ProductionItemService {
         BigDecimal totalArea = calculateTotalArea(areaPerPiece, request.getQuantity());
 
         validatePlacementFit(placedRectangle, request.getPieceWidthMm(), request.getPieceLengthM());
-        validateQuantity(commandeItem, request.getQuantity(), existing.getId());
         validateArea(placedRectangle, totalArea, existing.getId());
 
         ProductionMatchResult matchResult = evaluateProductionMatch(
@@ -167,18 +165,6 @@ public class ProductionItemService {
         return areaPerPiece.multiply(BigDecimal.valueOf(quantity)).setScale(4, RoundingMode.HALF_UP);
     }
 
-    private void validateQuantity(CommandeItem commandeItem, Integer quantity, UUID excludeId) {
-        Long existingQuantity = productionItemRepository
-                .sumQuantityByCommandeItemIdExcludingId(commandeItem.getId(), excludeId);
-        long current = existingQuantity != null ? existingQuantity : 0L;
-        long maxAllowed = commandeItem.getQuantite() != null ? commandeItem.getQuantite() : 0L;
-
-        if (current + quantity > maxAllowed) {
-            throw new IllegalArgumentException(
-                    "Total production quantity exceeds commande item quantity"
-            );
-        }
-    }
 
     private void validateArea(PlacedRectangle placedRectangle, BigDecimal totalArea, UUID excludeId) {
         if (placedRectangle == null) {
@@ -346,6 +332,7 @@ public class ProductionItemService {
         UUID id = color.getId();
         return id != null ? id.toString() : "null";
     }
+
 
     private record ProductionMatchResult(boolean goodProduction, String productionMiss) {
     }

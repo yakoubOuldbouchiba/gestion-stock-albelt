@@ -4,6 +4,7 @@ import type {
   CommandeRequest,
   CommandeItem,
   CommandeItemRequest,
+  OptimizationComparison,
   ApiResponse,
   PagedResponse
 } from '../types/index';
@@ -141,6 +142,20 @@ export const CommandeService = {
    */
   async deleteItem(itemId: string): Promise<ApiResponse<void>> {
     return ApiService.delete<void>(`/commandes/items/${itemId}`);
+  },
+
+  /**
+   * Get optimization comparison (actual vs suggested)
+   */
+  async getOptimizationComparison(itemId: string): Promise<ApiResponse<OptimizationComparison>> {
+    return ApiService.get<OptimizationComparison>(`/commandes/items/${itemId}/optimization`);
+  },
+
+  /**
+   * Regenerate optimization suggestion
+   */
+  async regenerateOptimization(itemId: string): Promise<ApiResponse<OptimizationComparison>> {
+    return ApiService.post<OptimizationComparison>(`/commandes/items/${itemId}/optimization/regenerate`, {});
   },
 };
 

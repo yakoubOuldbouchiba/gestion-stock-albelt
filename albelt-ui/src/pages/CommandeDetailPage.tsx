@@ -31,6 +31,7 @@ import type {
   Commande,
   CommandeItem,
   ItemStatus,
+  OptimizationComparison,
   PlacedRectangle,
   ProductionItem,
   Roll,
@@ -53,6 +54,10 @@ export function CommandeDetailPage() {
   const [wasteForItem, setWasteForItem] = useState<any[]>([]);
   const [productionForItem, setProductionForItem] = useState<ProductionItem[]>([]);
   const [placementsForItem, setPlacementsForItem] = useState<PlacedRectangle[]>([]);
+  const [optimizationComparison, setOptimizationComparison] = useState<OptimizationComparison | null>(null);
+  const [optimizationItemId, setOptimizationItemId] = useState<string | null>(null);
+  const [optimizationLoading, setOptimizationLoading] = useState(false);
+  const [optimizationError, setOptimizationError] = useState<string | null>(null);
   const [creatingPlacement, setCreatingPlacement] = useState(false);
   const [placementForm, setPlacementForm] = useState({
     sourceType: 'ROLL' as 'ROLL' | 'WASTE_PIECE',
@@ -211,24 +216,64 @@ export function CommandeDetailPage() {
     });
   };
 
+  const showWarning = (detail: string) => {
+    toastRef.current?.show({
+      severity: 'warn',
+      summary: t('common.warning'),
+      detail,
+      life: 3000,
+    });
+  };
+
+  const hasProductionQuantityMismatch = (order: Commande) => {
+    const items = order.items ?? [];
+    return items.some((item) => {
+      const totalConforme = item.totalItemsConforme ?? 0;
+      const totalNonConforme = item.totalItemsNonConforme ?? 0;
+      const totalProduced = totalConforme + totalNonConforme;
+      const ordered = item.quantite ?? 0;
+      return totalProduced !== ordered;
+    });
+  };
+
   const handleStatusUpdate = async () => {
     if (!commande || !id) return;
 
-    try {
-      setUpdating(true);
-      const res = await CommandeService.updateStatus(id, selectedStatus);
-      if (res.data) {
-        setCommande(res.data);
-        setError(null);
-        showSuccess(t('commandes.updateStatus'));
+    const submitStatusUpdate = async () => {
+      try {
+        setUpdating(true);
+        const res = await CommandeService.updateStatus(id, selectedStatus);
+        if (res.data) {
+          setCommande(res.data);
+          setError(null);
+          showSuccess(t('commandes.updateStatus'));
+        }
+      } catch (err) {
+        console.error('Error updating status:', err);
+        setError(t('commandes.errorLoadingOrders'));
+        showError(t('commandes.errorLoadingOrders'));
+      } finally {
+        setUpdating(false);
       }
-    } catch (err) {
-      console.error('Error updating status:', err);
-      setError(t('commandes.errorLoadingOrders'));
-      showError(t('commandes.errorLoadingOrders'));
-    } finally {
-      setUpdating(false);
+    };
+
+    if (selectedStatus === 'COMPLETED' && commande.status !== 'COMPLETED') {
+      if (hasProductionQuantityMismatch(commande)) {
+        showWarning(t('commandes.completeQuantityWarning'));
+      }
     }
+
+    if (selectedStatus === 'CANCELLED' && commande.status !== 'CANCELLED') {
+      confirmDialog({
+        message: t('commandes.cancelCreatesChuteWarning'),
+        header: t('common.confirm'),
+        icon: 'pi pi-exclamation-triangle',
+        accept: submitStatusUpdate,
+      });
+      return;
+    }
+
+    await submitStatusUpdate();
   };
 
   const handleItemStatusUpdate = async (itemId: string, newStatus: ItemStatus) => {
@@ -439,6 +484,30 @@ export function CommandeDetailPage() {
     }
   };
 
+  const loadOptimizationForItem = async (itemId: string, forceRegenerate = false) => {
+    if (optimizationLoading) return;
+    setOptimizationLoading(true);
+    setOptimizationError(null);
+    setOptimizationItemId(itemId);
+    try {
+      const response = forceRegenerate
+        ? await CommandeService.regenerateOptimization(itemId)
+        : await CommandeService.getOptimizationComparison(itemId);
+
+      if (response.data) {
+        setOptimizationComparison(response.data);
+      } else {
+        setOptimizationComparison(null);
+      }
+    } catch (err) {
+      console.error('Error loading optimization comparison:', err);
+      setOptimizationError(t('messages.failedToLoad'));
+      setOptimizationComparison(null);
+    } finally {
+      setOptimizationLoading(false);
+    }
+  };
+
   const resetPlacementForm = () => {
     setPlacementForm({
       sourceType: 'ROLL',
@@ -545,6 +614,7 @@ export function CommandeDetailPage() {
         });
       }
       await loadPlacementsForItem(item.id);
+      await loadOptimizationForItem(item.id);
       setPlacementForm((prev) => ({
         ...prev,
         xMm: '',
@@ -634,6 +704,7 @@ export function CommandeDetailPage() {
         try {
           await PlacedRectangleService.delete(placementId);
           await loadPlacementsForItem(itemId);
+          await loadOptimizationForItem(itemId);
           if (editingPlacementId === placementId) {
             resetPlacementForm();
           }
@@ -740,6 +811,9 @@ export function CommandeDetailPage() {
     if (expandedItemId === item.id) {
       setExpandedItemId(null);
       setPlacementsForItem([]);
+      setOptimizationComparison(null);
+      setOptimizationItemId(null);
+      setOptimizationError(null);
       resetPlacementForm();
       return;
     }
@@ -747,6 +821,7 @@ export function CommandeDetailPage() {
     loadWasteForItem(item.id);
     loadProductionForItem(item.id);
     loadPlacementsForItem(item.id);
+    loadOptimizationForItem(item.id);
     resetPlacementForm();
   };
 
@@ -941,6 +1016,7 @@ export function CommandeDetailPage() {
         });
 
         await loadProductionForItem(productionTargetItem.id);
+        await loadOptimizationForItem(productionTargetItem.id);
         showSuccess(t('commandes.productionItemCreated'));
         handleCloseProductionModal();
       } catch (err) {
@@ -1278,6 +1354,130 @@ export function CommandeDetailPage() {
     );
   };
 
+  const formatMetricValue = (value?: number, digits = 2) => {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+      return '-';
+    }
+    return Number(value).toFixed(digits);
+  };
+
+  const renderOptimizationSection = (item: CommandeItem) => {
+    const isCurrent = optimizationItemId === item.id;
+    const comparison = isCurrent ? optimizationComparison : null;
+    const isLoading = isCurrent && optimizationLoading;
+    const errorText = isCurrent ? optimizationError : null;
+
+    const actual = comparison?.actualMetrics;
+    const suggested = comparison?.suggested?.metrics;
+    const actualConforme = item.totalItemsConforme ?? 0;
+    const actualNonConforme = item.totalItemsNonConforme ?? 0;
+
+    const renderSvgPanel = (title: string, svg?: string | null, emptyMessage?: string) => (
+      <Card title={title} style={{ minHeight: '280px' }}>
+        {svg ? (
+          <div
+            style={{ overflowX: 'auto', border: '1px solid var(--surface-border)', borderRadius: '6px' }}
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
+        ) : (
+          <Message severity="info" text={emptyMessage ?? t('messages.noDataAvailable')} />
+        )}
+      </Card>
+    );
+
+    return (
+      <div style={{ marginTop: '0.75rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+            marginBottom: '0.5rem',
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>Optimization comparison</div>
+          <Button
+            label="Regenerate suggestion"
+            icon="pi pi-refresh"
+            severity="secondary"
+            onClick={() => loadOptimizationForItem(item.id, true)}
+            disabled={isBusy || isLoading}
+            loading={isLoading}
+          />
+        </div>
+
+        {errorText && <Message severity="error" text={errorText} style={{ marginBottom: '0.5rem' }} />}
+
+        {isLoading && (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}>
+            <ProgressSpinner />
+          </div>
+        )}
+
+        {!isLoading && !comparison && (
+          <Message severity="info" text="No optimization suggestion available yet." />
+        )}
+
+        {!isLoading && comparison && (
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
+            <Card>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)',
+                  gap: '0.75rem',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Metric</div>
+                  <div>Used area (m2)</div>
+                  <div>Waste area (m2)</div>
+                  <div>Utilization (%)</div>
+                  <div>Sources</div>
+                  <div>Pieces</div>
+                  <div>Conforme pieces</div>
+                  <div>Non conforme pieces</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Actual</div>
+                  <div>{formatMetricValue(actual?.usedAreaM2)}</div>
+                  <div>{formatMetricValue(actual?.wasteAreaM2)}</div>
+                  <div>{formatMetricValue(actual?.utilizationPct)}</div>
+                  <div>{actual?.sourceCount ?? '-'}</div>
+                  <div>{actual?.placedPieces ?? '-'}/{actual?.totalPieces ?? '-'}</div>
+                  <div>{actualConforme}</div>
+                  <div>{actualNonConforme}</div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Suggested</div>
+                  <div>{formatMetricValue(suggested?.usedAreaM2)}</div>
+                  <div>{formatMetricValue(suggested?.wasteAreaM2)}</div>
+                  <div>{formatMetricValue(suggested?.utilizationPct)}</div>
+                  <div>{suggested?.sourceCount ?? '-'}</div>
+                  <div>{suggested?.placedPieces ?? '-'}/{suggested?.totalPieces ?? '-'}</div>
+                  <div>-</div>
+                  <div>-</div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '0.75rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <div>Waste saved (m2): {formatMetricValue(comparison.wasteSavedM2)}</div>
+                <div>Utilization gain (%): {formatMetricValue(comparison.utilizationGainPct)}</div>
+              </div>
+            </Card>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+              {renderSvgPanel('Actual layout', comparison.actualSvg, 'No actual SVG available.')}
+              {renderSvgPanel('Suggested layout', comparison.suggested?.svg, 'No suggestion SVG available.')}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const getContrastTextColor = (hexColor?: string) => {
     if (!hexColor) return 'inherit';
     const normalized = hexColor.replace('#', '').trim();
@@ -1445,6 +1645,8 @@ export function CommandeDetailPage() {
                       placementsForItem={placementsForItem}
                       t={t}
                     />
+
+                    {renderOptimizationSection(item)}
 
                     {renderPlacementSection(item)}
                   </div>

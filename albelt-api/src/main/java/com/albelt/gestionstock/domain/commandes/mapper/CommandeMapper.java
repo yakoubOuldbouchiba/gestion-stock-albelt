@@ -29,14 +29,19 @@ public class CommandeMapper {
             return null;
         }
 
+        String status = request.getStatus();
+        if (status == null || status.isBlank()) {
+            status = "PENDING";
+        }
+
         return Commande.builder()
-                .numeroCommande(request.getNumeroCommande())
-                .client(client)
-                .status(request.getStatus() != null ? request.getStatus() : "PENDING")
-                .description(request.getDescription())
-                .notes(request.getNotes())
-                .createdBy(createdBy)
-                .build();
+            .numeroCommande(request.getNumeroCommande())
+            .client(client)
+            .status(status)
+            .description(request.getDescription())
+            .notes(request.getNotes())
+            .createdBy(createdBy)
+            .build();
     }
 
     /**

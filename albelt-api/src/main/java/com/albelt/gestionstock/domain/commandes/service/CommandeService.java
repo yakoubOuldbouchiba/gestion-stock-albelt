@@ -6,15 +6,23 @@ import com.albelt.gestionstock.domain.commandes.entity.*;
 import com.albelt.gestionstock.domain.commandes.mapper.CommandeMapper;
 import com.albelt.gestionstock.domain.commandes.repository.*;
 import com.albelt.gestionstock.domain.clients.repository.ClientRepository;
+import com.albelt.gestionstock.domain.production.entity.ProductionItem;
+import com.albelt.gestionstock.domain.production.repository.ProductionItemRepository;
 import com.albelt.gestionstock.domain.users.repository.UserRepository;
+import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
+import com.albelt.gestionstock.domain.waste.entity.WastePiece;
+import com.albelt.gestionstock.domain.waste.service.WastePieceService;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,6 +42,11 @@ public class CommandeService {
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
     private final CommandeItemService itemService;
+    private final ProductionItemRepository productionItemRepository;
+    private final WastePieceService wastePieceService;
+
+    @Value("${waste.scrap-threshold-area-m2:3.0}")
+    private BigDecimal scrapThresholdAreaM2;
 
     // ==================== COMMANDE CRUD ====================
 
@@ -156,6 +169,7 @@ public class CommandeService {
         log.info("Updating order: {}", id);
 
         Commande commande = getById(id);
+        String previousStatus = commande.getStatus();
 
         // Update basic fields
         if (request.getDescription() != null) {
@@ -166,6 +180,12 @@ public class CommandeService {
         }
         if (request.getStatus() != null) {
             commande.setStatus(request.getStatus());
+            if (isCancellationTransition(previousStatus, request.getStatus())) {
+                createChutesFromProductionItems(commande, userId);
+            }
+            if (isCompletionTransition(previousStatus, request.getStatus())) {
+                createChutesFromCompletedCommande(commande, userId);
+            }
         }
 
         // Update user if provided
@@ -201,7 +221,15 @@ public class CommandeService {
         log.info("Updating order status: {} -> {}", id, newStatus);
 
         Commande commande = getById(id);
+        String previousStatus = commande.getStatus();
         commande.setStatus(newStatus);
+
+        if (isCancellationTransition(previousStatus, newStatus)) {
+            createChutesFromProductionItems(commande, userId);
+        }
+        if (isCompletionTransition(previousStatus, newStatus)) {
+            createChutesFromCompletedCommande(commande, userId);
+        }
 
         if (userId != null) {
             var updatedBy = userRepository.findById(userId)
@@ -210,6 +238,311 @@ public class CommandeService {
         }
 
         return commandeRepository.save(commande);
+    }
+
+    private boolean isCancellationTransition(String previousStatus, String nextStatus) {
+        if (nextStatus == null) {
+            return false;
+        }
+        boolean isCancelled = "CANCELLED".equalsIgnoreCase(nextStatus.trim());
+        boolean wasCancelled = previousStatus != null && "CANCELLED".equalsIgnoreCase(previousStatus.trim());
+        return isCancelled && !wasCancelled;
+    }
+
+    private boolean isCompletionTransition(String previousStatus, String nextStatus) {
+        if (nextStatus == null) {
+            return false;
+        }
+        boolean isCompleted = "COMPLETED".equalsIgnoreCase(nextStatus.trim());
+        boolean wasCompleted = previousStatus != null && "COMPLETED".equalsIgnoreCase(previousStatus.trim());
+        return isCompleted && !wasCompleted;
+    }
+
+    private void createChutesFromProductionItems(Commande commande, UUID userId) {
+        if (commande == null) {
+            return;
+        }
+
+        List<CommandeItem> items = commande.getItems();
+        if (items == null || items.isEmpty()) {
+            items = itemRepository.findByCommandeId(commande.getId());
+        }
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+
+        UUID effectiveUserId = resolveWasteUserId(commande, userId);
+        if (effectiveUserId == null) {
+            log.warn("Skipping chute creation: no user id available for commande {}", commande.getId());
+            return;
+        }
+
+        for (CommandeItem item : items) {
+            List<ProductionItem> productionItems = productionItemRepository.findByCommandeItemIdWithSources(item.getId());
+            if (productionItems == null || productionItems.isEmpty()) {
+                continue;
+            }
+
+            for (ProductionItem productionItem : productionItems) {
+                Integer quantity = productionItem.getQuantity();
+                if (quantity == null || quantity <= 0) {
+                    continue;
+                }
+
+                var placement = productionItem.getPlacedRectangle();
+                if (placement == null) {
+                    continue;
+                }
+
+                var sourceRoll = placement.getRoll();
+                WastePiece sourceWaste = placement.getWastePiece();
+                if (sourceRoll == null && sourceWaste == null) {
+                    continue;
+                }
+
+                var materialType = sourceWaste != null ? sourceWaste.getMaterialType() : sourceRoll.getMaterialType();
+                Integer nbPlis = sourceWaste != null ? sourceWaste.getNbPlis() : sourceRoll.getNbPlis();
+                var thicknessMm = sourceWaste != null ? sourceWaste.getThicknessMm() : sourceRoll.getThicknessMm();
+                UUID altierId = null;
+                UUID colorId = null;
+                String reference = null;
+
+                if (sourceWaste != null) {
+                    if (sourceWaste.getAltier() != null) {
+                        altierId = sourceWaste.getAltier().getId();
+                    }
+                    if (sourceWaste.getColor() != null) {
+                        colorId = sourceWaste.getColor().getId();
+                    }
+                    reference = sourceWaste.getReference();
+                } else if (sourceRoll != null) {
+                    if (sourceRoll.getAltier() != null) {
+                        altierId = sourceRoll.getAltier().getId();
+                    }
+                    if (sourceRoll.getColor() != null) {
+                        colorId = sourceRoll.getColor().getId();
+                    }
+                    reference = sourceRoll.getReference();
+                }
+
+                WastePieceRequest.WastePieceRequestBuilder requestBuilder = WastePieceRequest.builder()
+                        .materialType(materialType)
+                        .nbPlis(nbPlis)
+                        .thicknessMm(thicknessMm)
+                        .widthMm(productionItem.getPieceWidthMm())
+                        .lengthM(productionItem.getPieceLengthM())
+                        .areaM2(productionItem.getAreaPerPieceM2())
+                    .wasteType(classifyWasteType(productionItem))
+                        .altierID(altierId)
+                        .colorId(colorId)
+                        .reference(reference)
+                        .commandeItemId(item.getId());
+
+                if (sourceWaste != null) {
+                    requestBuilder.parentWastePieceId(sourceWaste.getId());
+                    if (sourceWaste.getRoll() != null) {
+                        requestBuilder.rollId(sourceWaste.getRoll().getId());
+                    }
+                } else {
+                    requestBuilder.rollId(sourceRoll.getId());
+                }
+
+                WastePieceRequest wasteRequest = requestBuilder.build();
+                for (int i = 0; i < quantity; i++) {
+                    wastePieceService.recordWaste(wasteRequest, effectiveUserId);
+                }
+            }
+        }
+    }
+
+    private void createChutesFromCompletedCommande(Commande commande, UUID userId) {
+        if (commande == null) {
+            return;
+        }
+
+        List<CommandeItem> items = commande.getItems();
+        if (items == null || items.isEmpty()) {
+            items = itemRepository.findByCommandeId(commande.getId());
+        }
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+
+        UUID effectiveUserId = resolveWasteUserId(commande, userId);
+        if (effectiveUserId == null) {
+            log.warn("Skipping chute creation: no user id available for commande {}", commande.getId());
+            return;
+        }
+
+        for (CommandeItem item : items) {
+            List<ProductionItem> productionItems = productionItemRepository.findByCommandeItemIdWithSources(item.getId());
+            if (productionItems == null || productionItems.isEmpty()) {
+                continue;
+            }
+
+            long totalProduced = 0L;
+            long nonConformingQty = 0L;
+            for (ProductionItem productionItem : productionItems) {
+                Integer quantity = productionItem.getQuantity();
+                if (quantity == null || quantity <= 0) {
+                    continue;
+                }
+                totalProduced += quantity;
+                if (Boolean.FALSE.equals(productionItem.getGoodProduction())) {
+                    nonConformingQty += quantity;
+                }
+            }
+
+            long ordered = item.getQuantite() != null ? item.getQuantite() : 0L;
+            long extraOver = Math.max(0L, totalProduced - ordered);
+            long remainingExtra = Math.max(0L, extraOver - nonConformingQty);
+
+            for (ProductionItem productionItem : productionItems) {
+                if (!Boolean.FALSE.equals(productionItem.getGoodProduction())) {
+                    continue;
+                }
+                Integer quantity = productionItem.getQuantity();
+                if (quantity == null || quantity <= 0) {
+                    continue;
+                }
+                createChutesFromProductionItem(productionItem, item, effectiveUserId, quantity);
+            }
+
+            if (remainingExtra > 0) {
+                for (ProductionItem productionItem : productionItems) {
+                    if (Boolean.FALSE.equals(productionItem.getGoodProduction())) {
+                        continue;
+                    }
+                    Integer quantity = productionItem.getQuantity();
+                    if (quantity == null || quantity <= 0) {
+                        continue;
+                    }
+                    long toCreate = Math.min(remainingExtra, quantity.longValue());
+                    if (toCreate > 0) {
+                        createChutesFromProductionItem(productionItem, item, effectiveUserId, toCreate);
+                        remainingExtra -= toCreate;
+                        if (remainingExtra <= 0) {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void createChutesFromProductionItem(
+            ProductionItem productionItem,
+            CommandeItem item,
+            UUID effectiveUserId,
+            long quantityOverride
+    ) {
+        if (productionItem == null || item == null || effectiveUserId == null) {
+            return;
+        }
+        if (quantityOverride <= 0) {
+            return;
+        }
+
+        var placement = productionItem.getPlacedRectangle();
+        if (placement == null) {
+            return;
+        }
+
+        var sourceRoll = placement.getRoll();
+        WastePiece sourceWaste = placement.getWastePiece();
+        if (sourceRoll == null && sourceWaste == null) {
+            return;
+        }
+
+        var materialType = sourceWaste != null ? sourceWaste.getMaterialType() : sourceRoll.getMaterialType();
+        Integer nbPlis = sourceWaste != null ? sourceWaste.getNbPlis() : sourceRoll.getNbPlis();
+        var thicknessMm = sourceWaste != null ? sourceWaste.getThicknessMm() : sourceRoll.getThicknessMm();
+        UUID altierId = null;
+        UUID colorId = null;
+        String reference = null;
+
+        if (sourceWaste != null) {
+            if (sourceWaste.getAltier() != null) {
+                altierId = sourceWaste.getAltier().getId();
+            }
+            if (sourceWaste.getColor() != null) {
+                colorId = sourceWaste.getColor().getId();
+            }
+            reference = sourceWaste.getReference();
+        } else if (sourceRoll != null) {
+            if (sourceRoll.getAltier() != null) {
+                altierId = sourceRoll.getAltier().getId();
+            }
+            if (sourceRoll.getColor() != null) {
+                colorId = sourceRoll.getColor().getId();
+            }
+            reference = sourceRoll.getReference();
+        }
+
+        WastePieceRequest.WastePieceRequestBuilder requestBuilder = WastePieceRequest.builder()
+                .materialType(materialType)
+                .nbPlis(nbPlis)
+                .thicknessMm(thicknessMm)
+                .widthMm(productionItem.getPieceWidthMm())
+                .lengthM(productionItem.getPieceLengthM())
+                .areaM2(productionItem.getAreaPerPieceM2())
+                .wasteType(classifyWasteType(productionItem))
+                .altierID(altierId)
+                .colorId(colorId)
+                .reference(reference)
+                .commandeItemId(item.getId());
+
+        if (sourceWaste != null) {
+            requestBuilder.parentWastePieceId(sourceWaste.getId());
+            if (sourceWaste.getRoll() != null) {
+                requestBuilder.rollId(sourceWaste.getRoll().getId());
+            }
+        } else {
+            requestBuilder.rollId(sourceRoll.getId());
+        }
+
+        WastePieceRequest wasteRequest = requestBuilder.build();
+        for (long i = 0; i < quantityOverride; i++) {
+            wastePieceService.recordWaste(wasteRequest, effectiveUserId);
+        }
+    }
+
+    private UUID resolveWasteUserId(Commande commande, UUID userId) {
+        if (userId != null) {
+            return userId;
+        }
+        if (commande.getUpdatedBy() != null) {
+            return commande.getUpdatedBy().getId();
+        }
+        if (commande.getCreatedBy() != null) {
+            return commande.getCreatedBy().getId();
+        }
+        return null;
+    }
+
+    private WasteType classifyWasteType(ProductionItem productionItem) {
+        if (productionItem == null) {
+            return WasteType.DECHET;
+        }
+
+        BigDecimal area = productionItem.getAreaPerPieceM2();
+        if (area == null) {
+            Integer widthMm = productionItem.getPieceWidthMm();
+            BigDecimal lengthM = productionItem.getPieceLengthM();
+            if (widthMm != null && lengthM != null) {
+                area = BigDecimal.valueOf(widthMm)
+                        .divide(BigDecimal.valueOf(1000), 6, java.math.RoundingMode.HALF_UP)
+                        .multiply(lengthM);
+            }
+        }
+
+        if (area == null || scrapThresholdAreaM2 == null) {
+            return WasteType.DECHET;
+        }
+
+        return area.compareTo(scrapThresholdAreaM2) >= 0
+                ? WasteType.CHUTE_EXPLOITABLE
+                : WasteType.DECHET;
     }
 
     private String normalizeNullable(String value) {

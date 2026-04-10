@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { InventoryMetrics, WasteMetrics, Roll } from '../types/index';
-import { RollService } from '@services/rollService';
+import { DashboardService } from '@services/dashboardService';
 import { useI18n } from '@hooks/useI18n';
 import { formatDate } from '../utils/date';
 import { Button } from 'primereact/button';
@@ -27,48 +27,14 @@ export function Dashboard() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await RollService.getAll();
+      const response = await DashboardService.getStats();
 
       if (response.success && response.data) {
-        const rolls = Array.isArray(response.data)
-          ? response.data
-          : response.data.items ?? (response.data as any).content ?? [];
-        setRecentRolls(rolls.slice(0, 5));
-
-        const totalRolls = rolls.length;
-        const totalArea = rolls.reduce((sum, roll) => sum + roll.areaM2, 0);
-
-        const byMaterial = [
-          { material: 'PU' as const, count: 0, area: 0 },
-          { material: 'PVC' as const, count: 0, area: 0 },
-          { material: 'CAOUTCHOUC' as const, count: 0, area: 0 },
-        ];
-
-        rolls.forEach((roll) => {
-          const material = byMaterial.find((m) => m.material === roll.materialType);
-          if (material) {
-            material.count++;
-            material.area += roll.areaM2;
-          }
-        });
-
-        setInventoryMetrics({
-          totalRolls,
-          totalArea,
-          byMaterial,
-        });
-
-        setWasteMetrics({
-          totalWaste: 0,
-          totalArea: 0,
-          reuseEfficiency: 0,
-          byStatus: [
-            { status: 'AVAILABLE', count: 0, area: 0 },
-            { status: 'OPENED', count: 0, area: 0 },
-            { status: 'EXHAUSTED', count: 0, area: 0 },
-            { status: 'ARCHIVED', count: 0, area: 0 },
-          ],
-        });
+        setInventoryMetrics(response.data.inventoryMetrics as InventoryMetrics);
+        setWasteMetrics(response.data.wasteMetrics as WasteMetrics);
+        setRecentRolls(response.data.recentRolls || []);
+      } else {
+        setError(response.message || t('messages.failedToLoad'));
       }
     } catch (err) {
       setError(t('messages.failedToLoad'));

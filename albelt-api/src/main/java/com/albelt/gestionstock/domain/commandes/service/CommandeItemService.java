@@ -7,6 +7,7 @@ import com.albelt.gestionstock.domain.commandes.mapper.CommandeItemMapper;
 import com.albelt.gestionstock.domain.commandes.repository.*;
 import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.colors.service.ColorService;
+import com.albelt.gestionstock.domain.optimization.service.OptimizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class CommandeItemService {
     private final CommandeItemRepository itemRepository;
     private final CommandeItemMapper itemMapper;
     private final ColorService colorService;
+    private final OptimizationService optimizationService;
 
     // ==================== ITEM CRUD ====================
 
@@ -45,6 +47,12 @@ public class CommandeItemService {
         }
 
         CommandeItem saved = itemRepository.save(item);
+
+        try {
+            optimizationService.generateAndSaveSuggestion(saved);
+        } catch (Exception e) {
+            log.warn("Optimization suggestion generation failed for item {}: {}", saved.getId(), e.getMessage());
+        }
 
         log.info("Order item created successfully: {}", saved.getId());
         return saved;
@@ -147,6 +155,11 @@ public class CommandeItemService {
         }
 
         CommandeItem updated = itemRepository.save(item);
+        try {
+            optimizationService.generateAndSaveSuggestion(updated);
+        } catch (Exception e) {
+            log.warn("Optimization suggestion generation failed for item {}: {}", updated.getId(), e.getMessage());
+        }
         log.info("Order item updated successfully: {}", id);
         return updated;
     }

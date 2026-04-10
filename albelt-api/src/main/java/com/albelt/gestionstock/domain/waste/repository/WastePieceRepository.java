@@ -113,6 +113,15 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     List<Object[]> getTotalWasteAreaByMaterial(@Param("statuses") List<WasteStatus> statuses);
 
     /**
+     * Dashboard stats: count/area grouped by status for a set of altiers.
+     * Returns: status, count, totalArea
+     */
+    @Query("SELECT wp.status, COUNT(wp), SUM(wp.areaM2) FROM WastePiece wp " +
+           "WHERE wp.altier.id IN (:altierIds) " +
+           "GROUP BY wp.status")
+    List<Object[]> getStatsByStatusForAltiers(@Param("altierIds") List<UUID> altierIds);
+
+    /**
      * Get waste reuse efficiency (total reused vs total generated)
      */
     @Query("SELECT COUNT(CASE WHEN wp.status = 'EXHAUSTED' THEN 1 END) as reused, " +

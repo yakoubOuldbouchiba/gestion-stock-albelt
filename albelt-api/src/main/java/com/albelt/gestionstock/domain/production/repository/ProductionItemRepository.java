@@ -28,6 +28,10 @@ public interface ProductionItemRepository extends JpaRepository<ProductionItem, 
     Long sumQuantityByCommandeItemIdExcludingId(@Param("commandeItemId") UUID commandeItemId,
                                                 @Param("excludeId") UUID excludeId);
 
+    @Query("SELECT COALESCE(SUM(pi.totalAreaM2), 0) FROM ProductionItem pi " +
+           "WHERE pi.placedRectangle.commandeItemId = :commandeItemId")
+    BigDecimal sumTotalAreaByCommandeItemId(@Param("commandeItemId") UUID commandeItemId);
+
     @Query("SELECT pi FROM ProductionItem pi WHERE pi.placedRectangle.commandeItemId = :commandeItemId")
     List<ProductionItem> findByCommandeItemId(@Param("commandeItemId") UUID commandeItemId);
 

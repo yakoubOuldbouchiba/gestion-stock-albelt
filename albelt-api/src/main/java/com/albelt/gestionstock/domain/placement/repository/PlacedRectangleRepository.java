@@ -86,4 +86,32 @@ public interface PlacedRectangleRepository extends JpaRepository<PlacedRectangle
             @Param("yMax") int yMax,
             @Param("excludeId") UUID excludeId
     );
+
+    @Query("""
+        select case when count(pr) > 0 then true else false end
+        from PlacedRectangle pr
+        where (
+            (:rollId is not null and pr.roll.id = :rollId)
+            or (:wastePieceId is not null and pr.wastePiece.id = :wastePieceId)
+        )
+        and pr.xMm < :xMax
+        and (pr.xMm + pr.widthMm) > :xMin
+        and pr.yMm < :yMax
+        and (pr.yMm + pr.heightMm) > :yMin
+        and pr.commandeItemId in (
+            select ci.id from CommandeItem ci
+            join ci.commande c
+            where c.id <> :commandeId
+        )
+        """)
+    boolean existsOverlapExcludingCommande(
+            @Param("rollId") UUID rollId,
+            @Param("wastePieceId") UUID wastePieceId,
+            @Param("xMin") int xMin,
+            @Param("xMax") int xMax,
+            @Param("yMin") int yMin,
+            @Param("yMax") int yMax,
+            @Param("commandeId") UUID commandeId
+    );
+
 }

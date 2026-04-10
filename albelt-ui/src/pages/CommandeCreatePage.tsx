@@ -16,7 +16,15 @@ import { ColorService } from '../services/colorService';
 import { ClientService } from '../services/clientService';
 import { useI18n } from '@hooks/useI18n';
 import { useAsyncLock } from '@hooks/useAsyncLock';
-import type { Client, Color, CommandeRequest, CommandeItemRequest, MaterialType, TypeMouvement } from '../types';
+import type {
+  Client,
+  Color,
+  CommandeRequest,
+  CommandeItemRequest,
+  CommandeStatus,
+  MaterialType,
+  TypeMouvement,
+} from '../types';
 
 interface ClientOption {
   label: string;
@@ -58,24 +66,10 @@ export function CommandeCreatePage() {
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState<CommandeStatus>('PENDING');
 
   // Items state
-  const [items, setItems] = useState<CommandeItemRequest[]>([
-    {
-      materialType: 'PU',
-      nbPlis: 1,
-      thicknessMm: 2.5,
-      longueurM: 5,
-      longueurToleranceM: 0,
-      largeurMm: 1000,
-      quantite: 1,
-      surfaceConsommeeM2: 5,
-      typeMouvement: 'COUPE',
-      reference: '',
-      colorId: undefined,
-      lineNumber: 1,
-    },
-  ]);
+  const [items, setItems] = useState<CommandeItemRequest[]>([]);
 
   const materials: MaterialOption[] = [
     { label: 'PU', value: 'PU' },
@@ -89,6 +83,7 @@ export function CommandeCreatePage() {
     { label: 'SORTIE', value: 'SORTIE' },
     { label: 'RETOUR', value: 'RETOUR' },
   ];
+
 
   // Fetch clients on mount
   useEffect(() => {
@@ -267,6 +262,7 @@ export function CommandeCreatePage() {
         const commandeRequest: CommandeRequest = {
           numeroCommande,
           clientId: selectedClient!,
+          status: selectedStatus,
           description,
           notes,
           items,
@@ -549,6 +545,7 @@ export function CommandeCreatePage() {
                 <small className="p-error">{formErrors.selectedClient}</small>
               )}
             </div>
+
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem' }}>

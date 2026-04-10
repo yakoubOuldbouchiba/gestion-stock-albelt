@@ -75,6 +75,7 @@ export function CommandeEditPage() {
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<CommandeStatus>('PENDING');
+  const [originalStatus, setOriginalStatus] = useState<CommandeStatus>('PENDING');
 
   // Items state
   const [items, setItems] = useState<EditableCommandeItem[]>([]);
@@ -131,6 +132,7 @@ export function CommandeEditPage() {
           setDescription(commandeData.description || '');
           setNotes(commandeData.notes || '');
           setSelectedStatus(commandeData.status || 'PENDING');
+          setOriginalStatus(commandeData.status || 'PENDING');
 
           const mappedItems = (commandeData.items || []).map((item: CommandeItem) => ({
             id: item.id,
@@ -286,75 +288,89 @@ export function CommandeEditPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isLocked('commande-update')) {
-      return;
-    }
+    const submitUpdate = async () => {
+      if (isLocked('commande-update')) {
+        return;
+      }
 
-    if (!id) {
-      setError(t('commandes.loadError'));
-      return;
-    }
+      if (!id) {
+        setError(t('commandes.loadError'));
+        return;
+      }
 
-    if (!validateForm()) {
-      setError(t('commandes.requiredFieldsError'));
-      toastRef.current?.show({
-        severity: 'error',
-        summary: t('common.error'),
-        detail: t('commandes.requiredFieldsError'),
-      });
-      return;
-    }
-
-    try {
-      await run(async () => {
-        const commandeRequest: CommandeRequest = {
-          numeroCommande,
-          clientId: selectedClient!,
-          status: selectedStatus,
-          description,
-          notes,
-        };
-
-        await CommandeService.update(id, commandeRequest);
-
-        const currentIds = new Set(items.map((item) => item.id).filter(Boolean) as string[]);
-        const removedIds = originalItems
-          .filter((item) => item.id && !currentIds.has(item.id))
-          .map((item) => item.id as string);
-
-        const itemRequests = items.map((item, index) => {
-          const payload = toItemRequest(item, index);
-          if (item.id) {
-            return CommandeService.updateItem(item.id, payload);
-          }
-          return CommandeService.createItem(id, payload);
-        });
-
-        const deleteRequests = removedIds.map((itemId) => CommandeService.deleteItem(itemId));
-
-        await Promise.all([...itemRequests, ...deleteRequests]);
-
+      if (!validateForm()) {
+        setError(t('commandes.requiredFieldsError'));
         toastRef.current?.show({
-          severity: 'success',
-          summary: t('common.success'),
-          detail: t('commandes.orderUpdatedSuccessfully'),
-          life: 3000,
+          severity: 'error',
+          summary: t('common.error'),
+          detail: t('commandes.requiredFieldsError'),
         });
+        return;
+      }
 
-        setTimeout(() => {
-          navigate(`/commandes/${id}`);
-        }, 1200);
-      }, 'commande-update');
-    } catch (err: any) {
-      console.error('Error updating order:', err);
-      const errorMsg = err.response?.data?.message || t('commandes.updateError');
-      setError(errorMsg);
-      toastRef.current?.show({
-        severity: 'error',
-        summary: t('common.error'),
-        detail: errorMsg,
+      try {
+        await run(async () => {
+          const commandeRequest: CommandeRequest = {
+            numeroCommande,
+            clientId: selectedClient!,
+            status: selectedStatus,
+            description,
+            notes,
+          };
+
+          await CommandeService.update(id, commandeRequest);
+
+          const currentIds = new Set(items.map((item) => item.id).filter(Boolean) as string[]);
+          const removedIds = originalItems
+            .filter((item) => item.id && !currentIds.has(item.id))
+            .map((item) => item.id as string);
+
+          const itemRequests = items.map((item, index) => {
+            const payload = toItemRequest(item, index);
+            if (item.id) {
+              return CommandeService.updateItem(item.id, payload);
+            }
+            return CommandeService.createItem(id, payload);
+          });
+
+          const deleteRequests = removedIds.map((itemId) => CommandeService.deleteItem(itemId));
+
+          await Promise.all([...itemRequests, ...deleteRequests]);
+
+          toastRef.current?.show({
+            severity: 'success',
+            summary: t('common.success'),
+            detail: t('commandes.orderUpdatedSuccessfully'),
+            life: 3000,
+          });
+
+          setTimeout(() => {
+            navigate(`/commandes/${id}`);
+          }, 1200);
+        }, 'commande-update');
+      } catch (err: any) {
+        console.error('Error updating order:', err);
+        const errorMsg = err.response?.data?.message || t('commandes.updateError');
+        setError(errorMsg);
+        toastRef.current?.show({
+          severity: 'error',
+          summary: t('common.error'),
+          detail: errorMsg,
+        });
+      }
+    };
+
+    if (selectedStatus === 'CANCELLED' && originalStatus !== 'CANCELLED') {
+      confirmDialog({
+        message: t('commandes.cancelCreatesChuteWarning'),
+        header: t('common.confirm'),
+        icon: 'pi pi-exclamation-triangle',
+        accept: submitUpdate,
       });
+      return;
     }
+
+    await submitUpdate();
   };
 
   const handleCancel = () => {

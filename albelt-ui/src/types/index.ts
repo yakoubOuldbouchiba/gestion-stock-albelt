@@ -791,6 +791,31 @@ export interface CommandeRequest {
   items?: CommandeItemRequest[];
 }
 
+export interface OptimizationMetrics {
+  totalPieces: number;
+  placedPieces: number;
+  sourceCount: number;
+  usedAreaM2: number;
+  wasteAreaM2: number;
+  utilizationPct: number;
+}
+
+export interface OptimizationPlan {
+  suggestionId: string;
+  status: string;
+  metrics: OptimizationMetrics;
+  svg?: string | null;
+}
+
+export interface OptimizationComparison {
+  commandeItemId: string;
+  actualMetrics: OptimizationMetrics;
+  suggested?: OptimizationPlan | null;
+  actualSvg?: string | null;
+  wasteSavedM2?: number;
+  utilizationGainPct?: number;
+}
+
 export interface ProductionItem {
   id: string;
   placedRectangleId: string;
