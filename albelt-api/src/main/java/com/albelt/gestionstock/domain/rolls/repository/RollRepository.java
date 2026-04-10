@@ -103,6 +103,18 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
                                        @Param("statuses") List<RollStatus> statuses);
 
     /**
+     * Find available rolls for a specific material in user's assigned altiers.
+     */
+    @Query("SELECT r FROM Roll r WHERE r.altier.id IN (:altierIds) " +
+           "AND r.materialType = :materialType " +
+           "AND r.status IN (:statuses) " +
+           "ORDER BY r.receivedDate ASC")
+    List<Roll> findAvailableByAltierIdsAndMaterial(
+           @Param("altierIds") List<UUID> altierIds,
+           @Param("materialType") MaterialType materialType,
+           @Param("statuses") List<RollStatus> statuses);
+
+    /**
      * Paged roll search with optional filters and altier restriction
      */
     @Query("SELECT r FROM Roll r " +
@@ -175,6 +187,27 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      */
     @Query("SELECT r FROM Roll r WHERE r.altier.id IN (:altierIds) ORDER BY r.receivedDate DESC")
     List<Roll> findRecentByAltierIds(@Param("altierIds") List<UUID> altierIds, Pageable pageable);
+
+    /**
+     * Transfer sources: rolls that are AVAILABLE/OPENED in a given altier and not already reserved
+     * by a pending transfer bon movement (transferBon != null AND dateEntree IS NULL).
+     */
+    @Query("SELECT r FROM Roll r " +
+           "WHERE r.altier.id IN (:accessibleAltierIds) " +
+           "AND r.altier.id = :fromAltierId " +
+           "AND r.status IN (:statuses) " +
+           "AND NOT EXISTS (" +
+           "  SELECT 1 FROM RollMovement rm " +
+           "  WHERE rm.roll = r " +
+           "  AND rm.fromAltier.id = :fromAltierId " +
+           "  AND rm.transferBon IS NOT NULL " +
+           "  AND rm.dateEntree IS NULL" +
+           ")")
+    Page<Roll> findTransferSources(
+           @Param("accessibleAltierIds") List<UUID> accessibleAltierIds,
+           @Param("fromAltierId") UUID fromAltierId,
+           @Param("statuses") List<RollStatus> statuses,
+           Pageable pageable);
        /**
         * Group by color, nbPlis, thicknessMm, materialType, altierId, status
         */

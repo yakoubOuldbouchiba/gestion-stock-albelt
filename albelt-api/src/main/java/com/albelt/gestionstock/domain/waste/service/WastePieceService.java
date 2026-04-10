@@ -15,6 +15,7 @@ import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;
+import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -141,6 +142,7 @@ public class WastePieceService {
     @Transactional(readOnly = true)
     public Page<WastePiece> getAllPaged(MaterialType materialType, WasteStatus status, UUID altierId,
                                         UUID colorId, Integer nbPlis, BigDecimal thicknessMm,
+                                        WasteType wasteType,
                                         java.time.LocalDateTime fromDate, java.time.LocalDateTime toDate,
                                         String search, int page, int size) {
         String normalizedSearch = normalize(search);
@@ -152,8 +154,32 @@ public class WastePieceService {
         java.time.LocalDateTime effectiveFromDate = fromDate != null ? fromDate : java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
         java.time.LocalDateTime effectiveToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return wastePieceRepository.findFiltered(materialType, status, altierId, colorId, nbPlis,
+        return wastePieceRepository.findFiltered(materialType, status, wasteType, altierId, colorId, nbPlis,
             thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
+    }
+
+    /**
+     * Transfer sources: reusable waste pieces (CHUTE_EXPLOITABLE) that are AVAILABLE/OPENED in the from-altier
+     * and not already reserved by a pending transfer bon movement.
+     */
+    @Transactional(readOnly = true)
+    public Page<WastePiece> getTransferSourcesPaged(
+            List<UUID> accessibleAltierIds,
+            UUID fromAltierId,
+            int page,
+            int size) {
+        if (accessibleAltierIds == null || accessibleAltierIds.isEmpty() || fromAltierId == null) {
+            return Page.empty();
+        }
+
+        List<WasteStatus> statuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return wastePieceRepository.findTransferSources(
+                accessibleAltierIds,
+                fromAltierId,
+                WasteType.CHUTE_EXPLOITABLE,
+                statuses,
+                pageable);
     }
 
     /**
@@ -163,6 +189,15 @@ public class WastePieceService {
     public List<WastePiece> getByRollId(UUID rollId) {
         log.debug("Fetching waste pieces for roll: {}", rollId);
         return wastePieceRepository.findByRollId(rollId);
+    }
+
+    /**
+     * Get waste pieces for a specific commande item.
+     */
+    @Transactional(readOnly = true)
+    public List<WastePiece> getByCommandeItem(UUID commandeItemId) {
+        log.debug("Fetching waste pieces for commande item: {}", commandeItemId);
+        return wastePieceRepository.findByCommandeItem(commandeItemId);
     }
 
     /**

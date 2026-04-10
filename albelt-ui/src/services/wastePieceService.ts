@@ -67,6 +67,13 @@ export const WastePieceService = {
     return ApiService.get<number>('/waste-pieces/stats/reuse-efficiency', { material });
   },
 
+  /**
+   * Count waste pieces by status
+   */
+  async countByStatus(status: WasteStatus): Promise<ApiResponse<number>> {
+    return ApiService.get<number>('/waste-pieces/stats/count', { status });
+  },
+
   async getTotalWasteAreaByMaterial(): Promise<ApiResponse<{ material: MaterialType; area: number }[]>> {
     return ApiService.get('/waste-pieces/stats/total-area');
   },
@@ -80,6 +87,7 @@ export const WastePieceService = {
     search?: string;
     materialType?: MaterialType;
     status?: WasteStatus;
+    wasteType?: WasteType;
     altierId?: string;
     colorId?: string;
     nbPlis?: number;
@@ -88,6 +96,18 @@ export const WastePieceService = {
     dateTo?: string;
   }): Promise<ApiResponse<PagedResponse<WastePiece>>> {
     return ApiService.get<PagedResponse<WastePiece>>('/waste-pieces', params);
+  },
+
+  /**
+   * Get transfer source waste pieces for a given from-altier.
+   * GET /api/waste-pieces/transfer-sources?fromAltierId={id}
+   */
+  async getTransferSources(params: {
+    fromAltierId: string;
+    page?: number;
+    size?: number;
+  }): Promise<ApiResponse<PagedResponse<WastePiece>>> {
+    return ApiService.get<PagedResponse<WastePiece>>('/waste-pieces/transfer-sources', params);
   },
 
   /**
@@ -102,6 +122,13 @@ export const WastePieceService = {
    */
   async getByRoll(rollId: string): Promise<ApiResponse<WastePiece[]>> {
     return ApiService.get<WastePiece[]>(`/waste-pieces/by-roll/${rollId}`);
+  },
+
+  /**
+   * Get waste pieces by commande item
+   */
+  async getByCommandeItem(commandeItemId: string): Promise<ApiResponse<WastePiece[]>> {
+    return ApiService.get<WastePiece[]>(`/waste-pieces/by-commande-item/${commandeItemId}`);
   },
 
   /**

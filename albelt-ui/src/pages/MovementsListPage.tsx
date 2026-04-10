@@ -59,7 +59,7 @@ export function MovementsListPage() {
       // (My Created Movements = all movements FROM any of user's altiers)
       let allCreatedMovements: RollMovement[] = [];
       for (const altierID of user.altierIds) {
-        const response = await rollMovementService.getMovementsFromAltier(altierID);
+        const response = await rollMovementService.getMovementsFromAltier(altierID, 0, 20, { excludeBon: true });
         console.log(`Created movements response for altier ${altierID}:`, response);
         if (response.success && response.data) {
           const items = Array.isArray(response.data)
@@ -71,15 +71,13 @@ export function MovementsListPage() {
           console.error(`Failed to fetch created movements for altier ${altierID}:`, response.message);
         }
       }
-      // Movements page should show only standalone movements (not linked to a bon)
-      const createdWithoutBon = allCreatedMovements.filter((m) => !m.transferBonId);
-      setCreatedMovements(createdWithoutBon);
-      console.log('Total created movements (without bon):', createdWithoutBon.length);
+      setCreatedMovements(allCreatedMovements);
+      console.log('Total created movements:', allCreatedMovements.length);
       
       // Fetch pending receipts for each altier (movements TO the altier that haven't been received)
       let allPendingMovements: RollMovement[] = [];
       for (const altierID of user.altierIds) {
-        const response = await rollMovementService.getPendingReceiptsByAltier(altierID);
+        const response = await rollMovementService.getPendingReceiptsByAltier(altierID, 0, 20, { excludeBon: true });
         console.log(`Pending receipts response for altier ${altierID}:`, response);
         if (response.success && response.data) {
           const items = Array.isArray(response.data)
@@ -91,9 +89,8 @@ export function MovementsListPage() {
           console.error(`Failed to fetch pending receipts for altier ${altierID}:`, response.message);
         }
       }
-      const pendingWithoutBon = allPendingMovements.filter((m) => !m.transferBonId);
-      setPendingMovements(pendingWithoutBon);
-      console.log('Total pending movements (without bon):', pendingWithoutBon.length);
+      setPendingMovements(allPendingMovements);
+      console.log('Total pending movements:', allPendingMovements.length);
     } catch (err) {
       setError(t('movementsList.failedToLoad'));
       setCreatedMovements([]);

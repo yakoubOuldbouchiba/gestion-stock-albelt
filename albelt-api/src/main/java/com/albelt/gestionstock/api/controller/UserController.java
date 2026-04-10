@@ -51,6 +51,24 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(paged));
     }
 
+    /**
+     * Count users with optional filters
+     * GET /api/users/stats/count
+     */
+    @GetMapping("/stats/count")
+    public ResponseEntity<ApiResponse<Long>> count(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) UserRole role,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo) {
+        Boolean isActive = parseStatus(status);
+        var fromDate = parseDateStart(dateFrom);
+        var toDate = parseDateEnd(dateTo);
+        long count = userService.countFiltered(search, role, isActive, fromDate, toDate);
+        return ResponseEntity.ok(ApiResponse.success(count));
+    }
+
 
     private final UserService userService;
 

@@ -75,6 +75,15 @@ public class UserService {
         return userRepository.findFiltered(normalizedSearch, role, isActive, safeFromDate, safeToDate, pageable);
     }
 
+    @Transactional(readOnly = true)
+    public long countFiltered(String search, UserRole role, Boolean isActive,
+                              LocalDateTime fromDate, LocalDateTime toDate) {
+        String normalizedSearch = normalize(search);
+        LocalDateTime safeFromDate = fromDate != null ? fromDate : LocalDateTime.of(1970, 1, 1, 0, 0);
+        LocalDateTime safeToDate = toDate != null ? toDate : LocalDateTime.of(2100, 1, 1, 0, 0);
+        return userRepository.countFiltered(normalizedSearch, role, isActive, safeFromDate, safeToDate);
+    }
+
     /**
      * Get users by role
      */

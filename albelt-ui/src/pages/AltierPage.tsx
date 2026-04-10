@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Altier, AltierRequest } from '../types/index';
 import { AltierService } from '@services/altierService';
 import { useI18n } from '@hooks/useI18n';
@@ -20,6 +20,9 @@ export function AltierPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
   const { run, isLocked } = useAsyncLock();
   const [formData, setFormData] = useState<AltierRequest>({
     libelle: '',
@@ -28,20 +31,24 @@ export function AltierPage() {
 
   useEffect(() => {
     loadAltiers();
-  }, []);
-
-  const toArray = <T,>(data: any): T[] => {
-    if (Array.isArray(data)) return data;
-    return data?.items ?? data?.content ?? [];
-  };
+  }, [page, pageSize, searchTerm]);
 
   const loadAltiers = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await AltierService.getAll();
-      if (response.success && response.data) {
-        setAltiers(toArray<Altier>(response.data));
+      const response = await AltierService.getAll({
+        page,
+        size: pageSize,
+        search: searchTerm.trim() ? searchTerm.trim() : undefined,
+      });
+      const data = response.data;
+      if (response.success && data) {
+        setAltiers(data.items || []);
+        setTotalRecords(data.totalElements || 0);
+      } else {
+        setAltiers([]);
+        setTotalRecords(0);
       }
     } catch (err) {
       setError(t('altier.failedToLoad'));
@@ -71,13 +78,14 @@ export function AltierPage() {
         if (editingId) {
           const response = await AltierService.update(editingId, formData);
           if (response.success) {
-            setAltiers(altiers.map(a => a.id === editingId ? response.data! : a));
             setEditingId(null);
+            await loadAltiers();
           }
         } else {
           const response = await AltierService.create(formData);
           if (response.success) {
-            setAltiers([...altiers, response.data!]);
+            setPage(0);
+            await loadAltiers();
           }
         }
         resetForm();
@@ -110,7 +118,11 @@ export function AltierPage() {
       await run(async () => {
         const response = await AltierService.delete(id);
         if (response.success) {
-          setAltiers(altiers.filter(a => a.id !== id));
+          if (altiers.length === 1 && page > 0) {
+            setPage(page - 1);
+          } else {
+            await loadAltiers();
+          }
         }
       }, `altier-delete-${id}`);
     } catch (err) {
@@ -131,16 +143,6 @@ export function AltierPage() {
     resetForm();
     setShowForm(false);
   };
-
-  const safeAltiers = toArray<Altier>(altiers);
-  const filteredAltiers = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return safeAltiers;
-    return safeAltiers.filter((altier) =>
-      altier.libelle.toLowerCase().includes(query) ||
-      altier.adresse.toLowerCase().includes(query)
-    );
-  }, [safeAltiers, searchTerm]);
 
   const isSaving = isLocked('altier-save');
   const isBusy = isLocked();
@@ -177,7 +179,7 @@ export function AltierPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
         <div>
           <h1 style={{ margin: 0 }}>{t('altier.title')}</h1>
-          <div style={{ color: 'var(--text-color-secondary)' }}>{t('altier.totalWorkshops')}: {altiers.length}</div>
+          <div style={{ color: 'var(--text-color-secondary)' }}>{t('altier.totalWorkshops')}: {totalRecords}</div>
         </div>
         <Button icon="pi pi-plus" label={t('altier.addNew')} onClick={() => setShowForm(true)} disabled={isBusy} />
       </div>
@@ -189,7 +191,10 @@ export function AltierPage() {
           <i className="pi pi-search" />
           <InputText
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(0);
+            }}
             placeholder={t('altier.searchPlaceholder')}
             style={{ width: '100%' }}
           />
@@ -197,11 +202,20 @@ export function AltierPage() {
       </div>
 
       <DataTable
-        value={filteredAltiers}
+        value={altiers}
         dataKey="id"
         paginator
-        rows={10}
+        lazy
+        first={page * pageSize}
+        rows={pageSize}
         rowsPerPageOptions={[10, 25, 50]}
+        totalRecords={totalRecords}
+        onPage={(e) => {
+          setPage(e.page ?? 0);
+          if (e.rows && e.rows !== pageSize) {
+            setPageSize(e.rows);
+          }
+        }}
         emptyMessage={t('altier.notFound')}
         size="small"
       >

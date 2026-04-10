@@ -7,6 +7,7 @@ import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceResponse;
 import com.albelt.gestionstock.domain.waste.service.WastePieceService;
 import com.albelt.gestionstock.domain.waste.mapper.WastePieceMapper;
+import com.albelt.gestionstock.domain.users.service.UserAltierService;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;
@@ -44,6 +45,7 @@ public class WastePieceController {
 
     private final WastePieceService wastePieceService;
     private final WastePieceMapper wastePieceMapper;
+    private final UserAltierService userAltierService;
 
     /**
      * Get all waste pieces (paginated)
@@ -57,6 +59,7 @@ public class WastePieceController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) MaterialType materialType,
             @RequestParam(required = false) WasteStatus status,
+            @RequestParam(required = false) WasteType wasteType,
             @RequestParam(required = false) UUID altierId,
             @RequestParam(required = false) UUID colorId,
             @RequestParam(required = false) Integer nbPlis,
@@ -67,7 +70,7 @@ public class WastePieceController {
         var fromDate = parseDateStart(dateFrom);
         var toDate = parseDateEnd(dateTo);
         var wastePieces = wastePieceService.getAllPaged(materialType, status, altierId, colorId, nbPlis,
-            thicknessMm, fromDate, toDate, search, page, size);
+            thicknessMm, wasteType, fromDate, toDate, search, page, size);
         var responses = wastePieceMapper.toResponseList(wastePieces.getContent());
         var paged = PagedResponse.<WastePieceResponse>builder()
                 .items(responses)
@@ -77,6 +80,48 @@ public class WastePieceController {
                 .totalPages(wastePieces.getTotalPages())
                 .build();
         return ResponseEntity.ok(ApiResponse.success(paged));
+    }
+
+    /**
+     * Get transfer source waste pieces for a given from-altier.
+     * Returns only CHUTE_EXPLOITABLE waste pieces in AVAILABLE/OPENED status and excludes items
+     * already reserved by a pending transfer bon.
+     * GET /api/waste-pieces/transfer-sources?fromAltierId={id}&page={page}&size={size}
+     */
+    @GetMapping("/transfer-sources")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<PagedResponse<WastePieceResponse>>> getTransferSources(
+            @RequestParam UUID fromAltierId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "200") int size) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new IllegalStateException("User not authenticated");
+        }
+        UUID currentUser = (UUID) authentication.getPrincipal();
+        var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
+
+        if (accessibleAltierIds.isEmpty() || !accessibleAltierIds.contains(fromAltierId)) {
+            var empty = PagedResponse.<WastePieceResponse>builder()
+                    .items(List.of())
+                    .page(page)
+                    .size(size)
+                    .totalElements(0)
+                    .totalPages(0)
+                    .build();
+            return ResponseEntity.ok(ApiResponse.success(empty, "No accessible waste pieces"));
+        }
+
+        var wastePieces = wastePieceService.getTransferSourcesPaged(accessibleAltierIds, fromAltierId, page, size);
+        var responses = wastePieceMapper.toResponseList(wastePieces.getContent());
+        var paged = PagedResponse.<WastePieceResponse>builder()
+                .items(responses)
+                .page(wastePieces.getNumber())
+                .size(wastePieces.getSize())
+                .totalElements(wastePieces.getTotalElements())
+                .totalPages(wastePieces.getTotalPages())
+                .build();
+        return ResponseEntity.ok(ApiResponse.success(paged, "Transfer source waste pieces retrieved"));
     }
 
     /**
@@ -126,6 +171,20 @@ public class WastePieceController {
     public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getByRollId(@PathVariable UUID rollId) {
         log.debug("Fetching waste pieces for roll: {}", rollId);
         var wastePieces = wastePieceService.getByRollId(rollId);
+        var responses = wastePieceMapper.toResponseList(wastePieces);
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    /**
+     * Get waste pieces by commande item ID
+     * GET /api/waste-pieces/by-commande-item/{commandeItemId}
+     */
+    @GetMapping("/by-commande-item/{commandeItemId}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getByCommandeItem(
+            @PathVariable UUID commandeItemId) {
+        log.debug("Fetching waste pieces for commande item: {}", commandeItemId);
+        var wastePieces = wastePieceService.getByCommandeItem(commandeItemId);
         var responses = wastePieceMapper.toResponseList(wastePieces);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }

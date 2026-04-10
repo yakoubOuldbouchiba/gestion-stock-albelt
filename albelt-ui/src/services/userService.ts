@@ -42,6 +42,19 @@ export const UserService = {
   },
 
   /**
+   * Count users with optional filters
+   */
+  async count(params?: {
+    search?: string;
+    role?: UserRole;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<ApiResponse<number>> {
+    return ApiService.get<number>('/users/stats/count', params);
+  },
+
+  /**
    * Get users by role
    */
   async getByRole(role: UserRole): Promise<ApiResponse<User[]>> {

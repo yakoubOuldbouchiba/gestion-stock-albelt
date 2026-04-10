@@ -207,10 +207,16 @@ public class RollMovementService {
                 .collect(Collectors.toList());
     }
 
-    public Page<RollMovementDTO> getMovementsToAltierPaged(UUID altierID, int page, int size) {
+    public Page<RollMovementDTO> getMovementsToAltierPaged(UUID altierID, int page, int size, boolean excludeBon) {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateEntree"));
-        return rollMovementRepository.findByToAltierIdOrderByDateEntreeDesc(altierID, pageable)
-                .map(rollMovementMapper::toDTO);
+        var result = excludeBon
+                ? rollMovementRepository.findByToAltierIdAndTransferBonIsNullOrderByDateEntreeDesc(altierID, pageable)
+                : rollMovementRepository.findByToAltierIdOrderByDateEntreeDesc(altierID, pageable);
+        return result.map(rollMovementMapper::toDTO);
+    }
+
+    public Page<RollMovementDTO> getMovementsToAltierPaged(UUID altierID, int page, int size) {
+        return getMovementsToAltierPaged(altierID, page, size, false);
     }
 
     /**
@@ -223,10 +229,16 @@ public class RollMovementService {
                 .collect(Collectors.toList());
     }
 
-    public Page<RollMovementDTO> getMovementsFromAltierPaged(UUID altierID, int page, int size) {
+    public Page<RollMovementDTO> getMovementsFromAltierPaged(UUID altierID, int page, int size, boolean excludeBon) {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateSortie"));
-        return rollMovementRepository.findByFromAltierIdOrderByDateSortieDesc(altierID, pageable)
-                .map(rollMovementMapper::toDTO);
+        var result = excludeBon
+                ? rollMovementRepository.findByFromAltierIdAndTransferBonIsNullOrderByDateSortieDesc(altierID, pageable)
+                : rollMovementRepository.findByFromAltierIdOrderByDateSortieDesc(altierID, pageable);
+        return result.map(rollMovementMapper::toDTO);
+    }
+
+    public Page<RollMovementDTO> getMovementsFromAltierPaged(UUID altierID, int page, int size) {
+        return getMovementsFromAltierPaged(altierID, page, size, false);
     }
 
     /**
@@ -326,10 +338,16 @@ public class RollMovementService {
                 .collect(Collectors.toList());
     }
 
-    public Page<RollMovementDTO> getPendingReceiptsByAltierPaged(UUID altierID, int page, int size) {
+    public Page<RollMovementDTO> getPendingReceiptsByAltierPaged(UUID altierID, int page, int size, boolean excludeBon) {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateSortie"));
-        return rollMovementRepository.findPendingReceiptsByAltier(altierID, pageable)
-                .map(rollMovementMapper::toDTO);
+        var result = excludeBon
+                ? rollMovementRepository.findPendingReceiptsByAltierExcludeBon(altierID, pageable)
+                : rollMovementRepository.findPendingReceiptsByAltier(altierID, pageable);
+        return result.map(rollMovementMapper::toDTO);
+    }
+
+    public Page<RollMovementDTO> getPendingReceiptsByAltierPaged(UUID altierID, int page, int size) {
+        return getPendingReceiptsByAltierPaged(altierID, page, size, false);
     }
 
     /**

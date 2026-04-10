@@ -77,4 +77,20 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             @Param("fromDate") java.time.LocalDateTime fromDate,
             @Param("toDate") java.time.LocalDateTime toDate,
             Pageable pageable);
+
+    @Query("SELECT COUNT(u) FROM User u " +
+           "WHERE (:search = '' OR " +
+           "LOWER(u.username) LIKE CONCAT('%', :search, '%') OR " +
+           "LOWER(u.email) LIKE CONCAT('%', :search, '%') OR " +
+           "LOWER(u.fullName) LIKE CONCAT('%', :search, '%')) " +
+           "AND (u.role = COALESCE(:role, u.role)) " +
+           "AND (u.isActive = COALESCE(:isActive, u.isActive)) " +
+           "AND (u.createdAt >= COALESCE(:fromDate, u.createdAt)) " +
+           "AND (u.createdAt <= COALESCE(:toDate, u.createdAt))")
+    long countFiltered(
+            @Param("search") String search,
+            @Param("role") UserRole role,
+            @Param("isActive") Boolean isActive,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate);
 }

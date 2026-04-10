@@ -110,22 +110,45 @@ class RollMovementService {
   /**
    * Get incoming movements for an altier
    */
-  async getIncomingMovements(altierID: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
-    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/altier/${altierID}/incoming`, { page, size });
+  async getIncomingMovements(
+    altierID: string,
+    page = 0,
+    size = 20,
+    options?: { excludeBon?: boolean }
+  ): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/altier/${altierID}/incoming`, {
+      page,
+      size,
+      excludeBon: options?.excludeBon,
+    });
   }
 
   /**
    * Get outgoing movements for an altier
    */
-  async getOutgoingMovements(altierID: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
-    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/altier/${altierID}/outgoing`, { page, size });
+  async getOutgoingMovements(
+    altierID: string,
+    page = 0,
+    size = 20,
+    options?: { excludeBon?: boolean }
+  ): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/altier/${altierID}/outgoing`, {
+      page,
+      size,
+      excludeBon: options?.excludeBon,
+    });
   }
 
   /**
    * Get movements from an altier (alias for outgoing movements)
    */
-  async getMovementsFromAltier(altierID: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
-    return this.getOutgoingMovements(altierID, page, size);
+  async getMovementsFromAltier(
+    altierID: string,
+    page = 0,
+    size = 20,
+    options?: { excludeBon?: boolean }
+  ): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return this.getOutgoingMovements(altierID, page, size, options);
   }
 
   /**
@@ -161,8 +184,17 @@ class RollMovementService {
   /**
    * Get pending receipts for a specific altier
    */
-  async getPendingReceiptsByAltier(altierID: string, page = 0, size = 20): Promise<ApiResponse<PagedResponse<RollMovement>>> {
-    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/altier/${altierID}/pending-receipts`, { page, size });
+  async getPendingReceiptsByAltier(
+    altierID: string,
+    page = 0,
+    size = 20,
+    options?: { excludeBon?: boolean }
+  ): Promise<ApiResponse<PagedResponse<RollMovement>>> {
+    return ApiService.get<PagedResponse<RollMovement>>(`/roll-movements/altier/${altierID}/pending-receipts`, {
+      page,
+      size,
+      excludeBon: options?.excludeBon,
+    });
   }
 
   /**

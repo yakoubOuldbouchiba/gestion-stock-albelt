@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
+import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.colors.dto.ColorRequest;
 import com.albelt.gestionstock.domain.colors.dto.ColorResponse;
 import com.albelt.gestionstock.domain.colors.mapper.ColorMapper;
@@ -50,6 +51,28 @@ public class ColorController {
         var colors = colorService.getAll();
         var responses = colorMapper.toResponseList(colors);
         return ResponseEntity.ok(ApiResponse.success(responses, "Colors retrieved"));
+    }
+
+    /**
+     * Get colors with pagination and optional filters
+     * GET /api/colors/paged?page={page}&size={size}&search={search}&isActive={true|false}
+     */
+    @GetMapping("/paged")
+    public ResponseEntity<ApiResponse<PagedResponse<ColorResponse>>> getAllPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean isActive) {
+        var colors = colorService.getAllPaged(search, isActive, page, size);
+        var responses = colorMapper.toResponseList(colors.getContent());
+        var paged = PagedResponse.<ColorResponse>builder()
+                .items(responses)
+                .page(colors.getNumber())
+                .size(colors.getSize())
+                .totalElements(colors.getTotalElements())
+                .totalPages(colors.getTotalPages())
+                .build();
+        return ResponseEntity.ok(ApiResponse.success(paged, "Colors retrieved"));
     }
 
     /**

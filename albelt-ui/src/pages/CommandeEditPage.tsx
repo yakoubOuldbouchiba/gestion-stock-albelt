@@ -65,7 +65,6 @@ export function CommandeEditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
-  const [isMobile, setIsMobile] = useState(false);
   const useWrappedItems = true;
   const [originalItems, setOriginalItems] = useState<EditableCommandeItem[]>([]);
 
@@ -94,20 +93,6 @@ export function CommandeEditPage() {
   ];
 
   const statuses: CommandeStatus[] = ['PENDING', 'ENCOURS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
-
-  useEffect(() => {
-    const media = window.matchMedia('(max-width: 960px)');
-    const handleChange = () => setIsMobile(media.matches);
-    handleChange();
-
-    if (media.addEventListener) {
-      media.addEventListener('change', handleChange);
-      return () => media.removeEventListener('change', handleChange);
-    }
-
-    media.addListener(handleChange);
-    return () => media.removeListener(handleChange);
-  }, []);
 
   useEffect(() => {
     if (!id) {

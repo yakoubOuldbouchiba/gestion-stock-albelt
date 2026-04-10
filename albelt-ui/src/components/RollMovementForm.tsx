@@ -38,7 +38,6 @@ export function RollMovementForm({
   const [availableRolls, setAvailableRolls] = useState<Roll[]>([]);
   const [availableWastePieces, setAvailableWastePieces] = useState<WastePiece[]>([]);
   const [loadingRolls, setLoadingRolls] = useState(false);
-  const [loadingWastePieces, setLoadingWastePieces] = useState(false);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -108,16 +107,13 @@ export function RollMovementForm({
   const loadRolls = async () => {
     try {
       setLoadingRolls(true);
-      const response = await RollService.getAll();
+      const response = await RollService.getTransferSources({
+        fromAltierId: formData.fromAltierID,
+        page: 0,
+        size: 200
+      });
       if (response.success && response.data) {
-        const items = response.data.items || [];
-        // Filter rolls that are at the selected fromAltier and available
-        const filteredRolls = items.filter(
-          (roll: Roll) =>
-            roll.altierId === formData.fromAltierID &&
-            (roll.status === 'AVAILABLE' || roll.status === 'OPENED')
-        );
-        setAvailableRolls(filteredRolls);
+        setAvailableRolls(response.data.items || []);
       } else {
         setError('Failed to load rolls');
       }
@@ -131,21 +127,13 @@ export function RollMovementForm({
 
   const loadWastePieces = async () => {
     try {
-      setLoadingWastePieces(true);
-      const response = await WastePieceService.getAll({
-        altierId: formData.fromAltierID,
+      const response = await WastePieceService.getTransferSources({
+        fromAltierId: formData.fromAltierID,
         page: 0,
         size: 200
       });
       if (response.success && response.data) {
-        const items = response.data.items || [];
-        const filtered = items.filter((piece: WastePiece) => {
-          const isAtFromAltier = piece.altierId === formData.fromAltierID;
-          const isAvailable = piece.status === 'AVAILABLE' || piece.status === 'OPENED';
-          const isReusable = piece.wasteType === 'CHUTE_EXPLOITABLE';
-          return isAtFromAltier && isAvailable && isReusable;
-        });
-        setAvailableWastePieces(filtered);
+        setAvailableWastePieces(response.data.items || []);
       } else {
         setError('Failed to load waste pieces');
       }
@@ -153,7 +141,6 @@ export function RollMovementForm({
       console.error('Failed to load waste pieces:', err);
       setError('Failed to load waste pieces');
     } finally {
-      setLoadingWastePieces(false);
     }
   };
 
@@ -172,23 +159,6 @@ export function RollMovementForm({
       ...prev,
       rollId,
       wastePieceId: ''
-    }));
-  };
-
-  const handleWastePieceSelect = (wastePieceId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      rollId: '',
-      wastePieceId
-    }));
-  };
-
-  const handleSourceTypeChange = (value: 'ROLL' | 'WASTE_PIECE') => {
-    setFormData((prev) => ({
-      ...prev,
-      sourceType: value,
-      rollId: value === 'ROLL' ? prev.rollId : '',
-      wastePieceId: value === 'WASTE_PIECE' ? prev.wastePieceId : ''
     }));
   };
 
@@ -283,11 +253,6 @@ export function RollMovementForm({
   const rollOptions = availableRolls.map((roll) => ({
     label: formatRollChuteLabel(roll),
     value: roll.id,
-  }));
-
-  const wastePieceOptions = availableWastePieces.map((piece) => ({
-    label: formatRollChuteLabel(piece),
-    value: piece.id,
   }));
 
   const altierOptions = userAvailableAltiers.map((altier) => ({

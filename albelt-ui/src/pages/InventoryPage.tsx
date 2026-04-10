@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@hooks/useI18n';
 
@@ -28,74 +28,52 @@ import { ReceiveRollDialog } from '../components/inventory/ReceiveRollDialog';
 import { CreateChuteDialog } from '../components/inventory/CreateChuteDialog';
 
 export function InventoryPage() {
-  // Per-tab grouped statistics state
-  const [showGroupedInventory, setShowGroupedInventory] = useState(false);
-  const [groupedStatsInventory, setGroupedStatsInventory] = useState<any[]>([]);
-  const [groupedLoadingInventory, setGroupedLoadingInventory] = useState(false);
+  type TabKey = 'inventory' | 'reusable' | 'waste';
+  type GroupedKey = TabKey;
+  type GroupedState = { show: boolean; rows: any[]; loading: boolean };
 
-  const [showGroupedReusable, setShowGroupedReusable] = useState(false);
-  const [groupedStatsReusable, setGroupedStatsReusable] = useState<any[]>([]);
-  const [groupedLoadingReusable, setGroupedLoadingReusable] = useState(false);
+  const [grouped, setGrouped] = useState<Record<GroupedKey, GroupedState>>({
+    inventory: { show: false, rows: [], loading: false },
+    reusable: { show: false, rows: [], loading: false },
+    waste: { show: false, rows: [], loading: false },
+  });
 
-  const [showGroupedWaste, setShowGroupedWaste] = useState(false);
-  const [groupedStatsWaste, setGroupedStatsWaste] = useState<any[]>([]);
-  const [groupedLoadingWaste, setGroupedLoadingWaste] = useState(false);
+  const loadGroupedStats = useCallback(async (key: GroupedKey) => {
+    setGrouped((prev) => ({ ...prev, [key]: { ...prev[key], loading: true } }));
+    try {
+      const res =
+        key === 'inventory'
+          ? await RollService.getGroupedByAllFields()
+          : await WastePieceService.getGroupedByAllFields(key === 'reusable' ? ('CHUTE_EXPLOITABLE' as WasteType) : ('DECHET' as WasteType));
 
-  // Fetch grouped stats for each tab
-  useEffect(() => {
-    if (showGroupedInventory) {
-      setGroupedLoadingInventory(true);
-      RollService.getGroupedByAllFields().then(res => {
-        if (res.success && res.data) {
-          setGroupedStatsInventory(res.data);
-        } else {
-          setGroupedStatsInventory([]);
-        }
-        setGroupedLoadingInventory(false);
-      }).catch(() => {
-        setGroupedStatsInventory([]);
-        setGroupedLoadingInventory(false);
-      });
+      setGrouped((prev) => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          rows: res.success && res.data ? res.data : [],
+          loading: false,
+        },
+      }));
+    } catch {
+      setGrouped((prev) => ({
+        ...prev,
+        [key]: { ...prev[key], rows: [], loading: false },
+      }));
     }
-  }, [showGroupedInventory]);
-
-  useEffect(() => {
-    if (showGroupedReusable) {
-      setGroupedLoadingReusable(true);
-      // For reusable, use WastePieceService and filter by CHUTE_EXPLOITABLE
-      const type: WasteType = "CHUTE_EXPLOITABLE";
-      WastePieceService.getGroupedByAllFields(type).then(res => {
-        if (res.success && res.data) {
-          setGroupedStatsReusable(res.data);
-        } else {
-          setGroupedStatsReusable([]);
-        }
-        setGroupedLoadingReusable(false);
-      }).catch(() => {
-        setGroupedStatsReusable([]);
-        setGroupedLoadingReusable(false);
-      });
-    }
-  }, [showGroupedReusable]);
+  }, []);
 
   useEffect(() => {
-    if (showGroupedWaste) {
-      setGroupedLoadingWaste(true);
-      // For waste, use WastePieceService and filter by DECHET
-      const type: WasteType = "DECHET";
-      WastePieceService.getGroupedByAllFields(type).then(res => {
-        if (res.success && res.data) {
-          setGroupedStatsWaste(res.data);
-        } else {
-          setGroupedStatsWaste([]);
-        }
-        setGroupedLoadingWaste(false);
-      }).catch(() => {
-        setGroupedStatsWaste([]);
-        setGroupedLoadingWaste(false);
-      });
-    }
-  }, [showGroupedWaste]);
+    if (grouped.inventory.show) loadGroupedStats('inventory');
+  }, [grouped.inventory.show, loadGroupedStats]);
+
+  useEffect(() => {
+    if (grouped.reusable.show) loadGroupedStats('reusable');
+  }, [grouped.reusable.show, loadGroupedStats]);
+
+  useEffect(() => {
+    if (grouped.waste.show) loadGroupedStats('waste');
+  }, [grouped.waste.show, loadGroupedStats]);
+
   const navigate = useNavigate();
   const { t } = useI18n();
   const [rolls, setRolls] = useState<Roll[]>([]);
@@ -105,25 +83,31 @@ export function InventoryPage() {
   const [colors, setColors] = useState<Color[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [materialFilter, setMaterialFilter] = useState<MaterialType | 'ALL'>('ALL');
-  const [statusFilter, setStatusFilter] = useState<RollStatus | 'ALL'>('ALL');
-  const [altierFilter, setAltierFilter] = useState<string>('ALL');
-  const [colorFilter, setColorFilter] = useState<string>('ALL');
-  const [nbPlisFilter, setNbPlisFilter] = useState<string>('');
-  const [thicknessFilter, setThicknessFilter] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'inventory' | 'reusable' | 'waste'>('inventory');
-  const [showChuteForm, setShowChuteForm] = useState(false);
-  const [rollPage, setRollPage] = useState(0);
-  const [rollTotalElements, setRollTotalElements] = useState(0);
-  const [wastePage, setWastePage] = useState(0);
-  const [wasteTotalElements, setWasteTotalElements] = useState(0);
+  const [activeTab, setActiveTab] = useState<TabKey>('inventory');
+  const [dialogs, setDialogs] = useState({ receiveRoll: false, createChute: false });
+
+  const [filters, setFilters] = useState({
+    searchTerm: '',
+    materialFilter: 'ALL' as MaterialType | 'ALL',
+    statusFilter: 'ALL' as RollStatus | 'ALL',
+    altierFilter: 'ALL',
+    colorFilter: 'ALL',
+    nbPlisFilter: '',
+    thicknessFilter: '',
+  });
+
+  const [pagination, setPagination] = useState({ rollPage: 0, wastePage: 0 });
+  const [totals, setTotals] = useState({ rollTotalElements: 0, wasteTotalElements: 0 });
+
   const { run, isLocked } = useAsyncLock();
   const pageSize = 10;
 
-  const materials: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
-  const statuses: RollStatus[] = ['AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED'];
+  const materials = useMemo<MaterialType[]>(() => ['PU', 'PVC', 'CAOUTCHOUC'], []);
+  const statuses = useMemo<RollStatus[]>(() => ['AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED'], []);
+
+  const [materialStats, setMaterialStats] = useState<Array<{ material: MaterialType; count: number; area: number }>>(
+    () => materials.map((material) => ({ material, count: 0, area: 0 }))
+  );
 
   const [formData, setFormData] = useState<RollRequest>({
     materialType: 'PU',
@@ -140,47 +124,139 @@ export function InventoryPage() {
     reference: '',
   });
 
-  const [chuteRollId, setChuteRollId] = useState<string>('');
-  const [filteredChuteRolls, setFilteredChuteRolls] = useState<Roll[]>([]);
-  const [chuteRollsLoading, setChuteRollsLoading] = useState(false);
-  const [chuteSourceType, setChuteSourceType] = useState<'ROLL' | 'WASTE_PIECE'>('ROLL');
-  const [parentWastePieceId, setParentWastePieceId] = useState<string>('');
-  const [parentWastePieces, setParentWastePieces] = useState<WastePiece[]>([]);
-  const [parentWastePiecesLoading, setParentWastePiecesLoading] = useState(false);
-  const [chutePlacementId, setChutePlacementId] = useState<string>('');
-  const [chutePlacements, setChutePlacements] = useState<PlacedRectangle[]>([]);
-  const [chutePlacementsLoading, setChutePlacementsLoading] = useState(false);
+  const [chute, setChute] = useState({
+    sourceType: 'ROLL' as 'ROLL' | 'WASTE_PIECE',
+    rollId: '',
+    filteredRolls: [] as Roll[],
+    filteredRollsLoading: false,
+    parentWastePieceId: '',
+    parentWastePieces: [] as WastePiece[],
+    parentWastePiecesLoading: false,
+    placementId: '',
+    placements: [] as PlacedRectangle[],
+    placementsLoading: false,
+  });
+
+  const resetChute = useCallback(() => {
+    setChute({
+      sourceType: 'ROLL',
+      rollId: '',
+      filteredRolls: [],
+      filteredRollsLoading: false,
+      parentWastePieceId: '',
+      parentWastePieces: [],
+      parentWastePiecesLoading: false,
+      placementId: '',
+      placements: [],
+      placementsLoading: false,
+    });
+  }, []);
 
   useEffect(() => {
     loadLookups();
   }, []);
 
+  const loadMaterialStats = useCallback(async () => {
+    try {
+      const res = await RollService.getStatsByMaterial();
+      const rows = res.success && res.data ? res.data : [];
+
+      const byMaterial = new Map<MaterialType, { count: number; totalArea: number }>();
+      for (const row of rows) {
+        if (row?.material) {
+          byMaterial.set(row.material, {
+            count: Number(row.count) || 0,
+            totalArea: Number(row.totalArea) || 0,
+          });
+        }
+      }
+
+      setMaterialStats(
+        materials.map((material) => {
+          const stat = byMaterial.get(material);
+          return {
+            material,
+            count: stat?.count ?? 0,
+            area: stat?.totalArea ?? 0,
+          };
+        })
+      );
+    } catch (err) {
+      console.error('Failed to load inventory material stats:', err);
+      setMaterialStats(materials.map((material) => ({ material, count: 0, area: 0 })));
+    }
+  }, [materials]);
+
   useEffect(() => {
-    loadRolls(rollPage, searchTerm, materialFilter, statusFilter, altierFilter, colorFilter, nbPlisFilter, thicknessFilter);
-  }, [rollPage, searchTerm, materialFilter, statusFilter, altierFilter, colorFilter, nbPlisFilter, thicknessFilter]);
+    loadMaterialStats();
+  }, [loadMaterialStats]);
+
+  useEffect(() => {
+    loadRolls(
+      pagination.rollPage,
+      filters.searchTerm,
+      filters.materialFilter,
+      filters.statusFilter,
+      filters.altierFilter,
+      filters.colorFilter,
+      filters.nbPlisFilter,
+      filters.thicknessFilter
+    );
+  }, [
+    pagination.rollPage,
+    filters.searchTerm,
+    filters.materialFilter,
+    filters.statusFilter,
+    filters.altierFilter,
+    filters.colorFilter,
+    filters.nbPlisFilter,
+    filters.thicknessFilter,
+  ]);
 
   useEffect(() => {
     if (activeTab !== 'inventory') {
-      loadWastePieces(wastePage, searchTerm, materialFilter, statusFilter, altierFilter, colorFilter, nbPlisFilter, thicknessFilter);
+      const wasteType: WasteType | undefined =
+        activeTab === 'reusable' ? 'CHUTE_EXPLOITABLE' : activeTab === 'waste' ? 'DECHET' : undefined;
+      loadWastePieces(
+        pagination.wastePage,
+        filters.searchTerm,
+        filters.materialFilter,
+        filters.statusFilter,
+        filters.altierFilter,
+        filters.colorFilter,
+        filters.nbPlisFilter,
+        filters.thicknessFilter,
+        wasteType
+      );
     }
-  }, [wastePage, searchTerm, materialFilter, statusFilter, altierFilter, colorFilter, nbPlisFilter, thicknessFilter, activeTab]);
+  }, [
+    pagination.wastePage,
+    filters.searchTerm,
+    filters.materialFilter,
+    filters.statusFilter,
+    filters.altierFilter,
+    filters.colorFilter,
+    filters.nbPlisFilter,
+    filters.thicknessFilter,
+    activeTab,
+  ]);
 
   // Load filtered rolls when supplier and material change for chute form
   useEffect(() => {
-    if (chuteSourceType === 'ROLL' && formData.supplierId && formData.materialType) {
+    if (chute.sourceType === 'ROLL' && formData.supplierId && formData.materialType) {
       loadFilteredChuteRolls();
     } else {
-      setFilteredChuteRolls([]);
+      setChute((prev) => ({ ...prev, filteredRolls: [] }));
     }
-  }, [formData.supplierId, formData.materialType, chuteSourceType]);
+  }, [formData.supplierId, formData.materialType, chute.sourceType]);
 
   // Auto-populate form fields when a roll is selected for chute creation
   useEffect(() => {
-    if (chuteSourceType !== 'ROLL') {
+    if (chute.sourceType !== 'ROLL') {
       return;
     }
-    if (chuteRollId) {
-      const selectedChute = filteredChuteRolls.find(r => r.id === chuteRollId);
+    if (chute.rollId) {
+      const selectedChute = chute.filteredRolls.find(r => r.id === chute.rollId);
       if (selectedChute) {
         setFormData((prev) => ({
           ...prev,
@@ -196,14 +272,14 @@ export function InventoryPage() {
         }));
       }
     }
-  }, [chuteRollId, filteredChuteRolls, chuteSourceType]);
+  }, [chute.rollId, chute.filteredRolls, chute.sourceType]);
 
   useEffect(() => {
-    if (chuteSourceType !== 'WASTE_PIECE') {
+    if (chute.sourceType !== 'WASTE_PIECE') {
       return;
     }
-    if (parentWastePieceId) {
-      const selectedParent = parentWastePieces.find(piece => piece.id === parentWastePieceId);
+    if (chute.parentWastePieceId) {
+      const selectedParent = chute.parentWastePieces.find(piece => piece.id === chute.parentWastePieceId);
       if (selectedParent) {
         setFormData((prev) => ({
           ...prev,
@@ -220,48 +296,46 @@ export function InventoryPage() {
         }));
       }
     }
-  }, [parentWastePieceId, parentWastePieces, chuteSourceType]);
+  }, [chute.parentWastePieceId, chute.parentWastePieces, chute.sourceType]);
 
   useEffect(() => {
-    if (showChuteForm && chuteSourceType === 'WASTE_PIECE') {
+    if (dialogs.createChute && chute.sourceType === 'WASTE_PIECE') {
       loadParentWastePieces();
     }
-  }, [showChuteForm, chuteSourceType]);
+  }, [dialogs.createChute, chute.sourceType]);
 
   useEffect(() => {
-    if (!showChuteForm) {
-      setChutePlacements([]);
-      setChutePlacementId('');
+    if (!dialogs.createChute) {
+      setChute((prev) => ({ ...prev, placements: [], placementId: '' }));
       return;
     }
-    const sourceId = chuteSourceType === 'ROLL' ? chuteRollId : parentWastePieceId;
+    const sourceId = chute.sourceType === 'ROLL' ? chute.rollId : chute.parentWastePieceId;
     if (!sourceId) {
-      setChutePlacements([]);
-      setChutePlacementId('');
+      setChute((prev) => ({ ...prev, placements: [], placementId: '' }));
       return;
     }
 
     const loadPlacements = async () => {
-      setChutePlacementsLoading(true);
+      setChute((prev) => ({ ...prev, placementsLoading: true }));
       try {
-        const response = chuteSourceType === 'ROLL'
+        const response = chute.sourceType === 'ROLL'
           ? await PlacedRectangleService.getByRoll(sourceId)
           : await PlacedRectangleService.getByWastePiece(sourceId);
         if (response.success && response.data) {
-          setChutePlacements(Array.isArray(response.data) ? response.data : []);
+          setChute((prev) => ({ ...prev, placements: Array.isArray(response.data) ? response.data : [] }));
         } else {
-          setChutePlacements([]);
+          setChute((prev) => ({ ...prev, placements: [] }));
         }
       } catch (err) {
         console.error('Failed to load placements:', err);
-        setChutePlacements([]);
+        setChute((prev) => ({ ...prev, placements: [] }));
       } finally {
-        setChutePlacementsLoading(false);
+        setChute((prev) => ({ ...prev, placementsLoading: false }));
       }
     };
 
     loadPlacements();
-  }, [showChuteForm, chuteSourceType, chuteRollId, parentWastePieceId]);
+  }, [dialogs.createChute, chute.sourceType, chute.rollId, chute.parentWastePieceId]);
 
   // Handle width/length changes and auto-calculate area
   const handleDimensionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -286,7 +360,7 @@ export function InventoryPage() {
       const [suppliersResponse, altiersResponse, colorsResponse] = await Promise.all([
         SupplierService.getAll({ page: 0, size: 200 }),
         AltierService.getAll({ page: 0, size: 200 }),
-        ColorService.getAll(),
+        ColorService.getPaged({ page: 0, size: 500, isActive: true }),
       ]);
 
       if (suppliersResponse.success && suppliersResponse.data) {
@@ -296,7 +370,7 @@ export function InventoryPage() {
         setAltiers(altiersResponse.data.items || []);
       }
       if (colorsResponse.success && colorsResponse.data) {
-        setColors(colorsResponse.data);
+        setColors(colorsResponse.data.items || []);
       }
     } catch (err) {
       setError(t('messages.failedToLoad'));
@@ -307,10 +381,10 @@ export function InventoryPage() {
   };
 
   const loadFilteredChuteRolls = async () => {
-    setChuteRollsLoading(true);
+    setChute((prev) => ({ ...prev, filteredRollsLoading: true }));
     try {
       if (!formData.supplierId || !formData.materialType) {
-        setFilteredChuteRolls([]);
+        setChute((prev) => ({ ...prev, filteredRolls: [] }));
         return;
       }
 
@@ -318,37 +392,38 @@ export function InventoryPage() {
         formData.supplierId,
         formData.materialType
       );
-      if (response.success && response.data) {
-        setFilteredChuteRolls(response.data);
+      if (response.success) {
+        setChute((prev) => ({ ...prev, filteredRolls: response.data || [] }));
       } else {
-        setFilteredChuteRolls([]);
+        setChute((prev) => ({ ...prev, filteredRolls: [] }));
       }
     } catch (err) {
       console.error('Failed to load filtered chute rolls:', err);
-      setFilteredChuteRolls([]);
+      setChute((prev) => ({ ...prev, filteredRolls: [] }));
     } finally {
-      setChuteRollsLoading(false);
+      setChute((prev) => ({ ...prev, filteredRollsLoading: false }));
     }
   };
 
   const loadParentWastePieces = async () => {
-    setParentWastePiecesLoading(true);
+    setChute((prev) => ({ ...prev, parentWastePiecesLoading: true }));
     try {
       const response = await WastePieceService.getAll({
         page: 0,
         size: 200,
         status: 'AVAILABLE',
       });
-      if (response.success && response.data) {
-        setParentWastePieces(response.data.items || []);
+      const data = response.data;
+      if (response.success && data) {
+        setChute((prev) => ({ ...prev, parentWastePieces: data.items || [] }));
       } else {
-        setParentWastePieces([]);
+        setChute((prev) => ({ ...prev, parentWastePieces: [] }));
       }
     } catch (err) {
       console.error('Failed to load parent waste pieces:', err);
-      setParentWastePieces([]);
+      setChute((prev) => ({ ...prev, parentWastePieces: [] }));
     } finally {
-      setParentWastePiecesLoading(false);
+      setChute((prev) => ({ ...prev, parentWastePiecesLoading: false }));
     }
   };
 
@@ -378,9 +453,10 @@ export function InventoryPage() {
         nbPlis: Number.isFinite(parsedNbPlis) ? parsedNbPlis : undefined,
         thicknessMm: Number.isFinite(parsedThickness) ? parsedThickness : undefined,
       });
-      if (response.success && response.data) {
-        setRolls(response.data.items || []);
-        setRollTotalElements(response.data.totalElements || 0);
+      const data = response.data;
+      if (response.success && data) {
+        setRolls(data.items || []);
+        setTotals((prev) => ({ ...prev, rollTotalElements: data.totalElements || 0 }));
       }
     } catch (err) {
       setError(t('messages.failedToLoad'));
@@ -398,7 +474,8 @@ export function InventoryPage() {
     altierId: string,
     colorId: string,
     nbPlis: string,
-    thickness: string
+    thickness: string,
+    wasteType?: WasteType
   ) => {
     setIsLoading(true);
     setError(null);
@@ -411,14 +488,16 @@ export function InventoryPage() {
         search: search || undefined,
         materialType: material === 'ALL' ? undefined : material,
         status: status === 'ALL' ? undefined : status,
+        wasteType,
         altierId: altierId === 'ALL' ? undefined : altierId,
         colorId: colorId === 'ALL' ? undefined : colorId,
         nbPlis: Number.isFinite(parsedNbPlis) ? parsedNbPlis : undefined,
         thicknessMm: Number.isFinite(parsedThickness) ? parsedThickness : undefined,
       });
-      if (response.success && response.data) {
-        setWastePieces(response.data.items || []);
-        setWasteTotalElements(response.data.totalElements || 0);
+      const data = response.data;
+      if (response.success && data) {
+        setWastePieces(data.items || []);
+        setTotals((prev) => ({ ...prev, wasteTotalElements: data.totalElements || 0 }));
       }
     } catch (err) {
       setError(t('messages.failedToLoad'));
@@ -464,10 +543,20 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
       await run(async () => {
         const response = await RollService.receive(formData);
         if (response.success) {
-          setRollPage(0);
-          await loadRolls(0, searchTerm, materialFilter, statusFilter, altierFilter, colorFilter, nbPlisFilter, thicknessFilter);
+          setPagination((prev) => ({ ...prev, rollPage: 0 }));
+          await loadRolls(
+            0,
+            filters.searchTerm,
+            filters.materialFilter,
+            filters.statusFilter,
+            filters.altierFilter,
+            filters.colorFilter,
+            filters.nbPlisFilter,
+            filters.thicknessFilter
+          );
+          await loadMaterialStats();
           resetForm();
-          setShowForm(false);
+          setDialogs((prev) => ({ ...prev, receiveRoll: false }));
         }
       }, 'inventory-roll');
     } catch (err) {
@@ -495,7 +584,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
 
   const handleCancel = () => {
     resetForm();
-    setShowForm(false);
+    setDialogs((prev) => ({ ...prev, receiveRoll: false }));
   };
 
   const handleChuteSubmit = async (e: React.FormEvent) => {
@@ -507,21 +596,21 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
     let selectedRoll: Roll | undefined;
     let selectedParent: WastePiece | undefined;
 
-    if (chuteSourceType === 'ROLL') {
-      selectedRoll = filteredChuteRolls.find(r => r.id === chuteRollId);
+    if (chute.sourceType === 'ROLL') {
+      selectedRoll = chute.filteredRolls.find(r => r.id === chute.rollId);
       if (!selectedRoll) {
         alert('Please select a roll');
         return;
       }
     } else {
-      selectedParent = parentWastePieces.find(piece => piece.id === parentWastePieceId);
+      selectedParent = chute.parentWastePieces.find(piece => piece.id === chute.parentWastePieceId);
       if (!selectedParent) {
         alert('Please select a parent waste piece');
         return;
       }
     }
 
-    const selectedPlacement = chutePlacements.find((placement) => placement.id === chutePlacementId);
+    const selectedPlacement = chute.placements.find((placement) => placement.id === chute.placementId);
     if (!selectedPlacement) {
       alert('Please select a placement');
       return;
@@ -550,13 +639,20 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
       await run(async () => {
         const response = await WastePieceService.create(wasteData);
         if (response.success) {
-          setWastePage(0);
-          await loadWastePieces(0, searchTerm, materialFilter, statusFilter, altierFilter, colorFilter, nbPlisFilter, thicknessFilter);
-          setShowChuteForm(false);
-          setChuteRollId('');
-          setParentWastePieceId('');
-          setChutePlacementId('');
-          setChuteSourceType('ROLL');
+          setPagination((prev) => ({ ...prev, wastePage: 0 }));
+          await loadWastePieces(
+            0,
+            filters.searchTerm,
+            filters.materialFilter,
+            filters.statusFilter,
+            filters.altierFilter,
+            filters.colorFilter,
+            filters.nbPlisFilter,
+            filters.thicknessFilter,
+            activeTab === 'reusable' ? 'CHUTE_EXPLOITABLE' : activeTab === 'waste' ? 'DECHET' : undefined
+          );
+          setDialogs((prev) => ({ ...prev, createChute: false }));
+          resetChute();
           resetForm();
           alert('Waste piece created successfully!');
         }
@@ -567,37 +663,8 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
     }
   };
 
-  const reusablePieces = wastePieces.filter(
-    (piece: WastePiece) => piece.wasteType === 'CHUTE_EXPLOITABLE'
-  );
-  const scrapPieces = wastePieces.filter(
-    (piece: WastePiece) => piece.wasteType === 'DECHET'
-  );
-
-  const stats = materials.map(material => ({
-    material,
-    count: rolls.filter((r: Roll) => r.materialType === material && (r.status === 'AVAILABLE' || r.status === 'OPENED')).length,
-    area: rolls
-      .filter((r: Roll) => r.materialType === material && (r.status === 'AVAILABLE' || r.status === 'OPENED'))
-      .reduce((sum: number, r: Roll) => sum + (r.availableAreaM2 ?? r.areaM2 ?? 0), 0),
-  }));
-
-  const statsReusable = materials.map(material => ({
-    material,
-    count: wastePieces.filter((p: WastePiece) => p.materialType === material && p.wasteType === 'CHUTE_EXPLOITABLE').length,
-    area: wastePieces
-      .filter((p: WastePiece) => p.materialType === material && p.wasteType === 'CHUTE_EXPLOITABLE')
-      .reduce((sum: number, p: WastePiece) => sum + (p.availableAreaM2 ?? p.areaM2 ?? 0), 0),
-  }));
-
-  const statsWaste = materials.map(material => ({
-    material,
-    count: wastePieces.filter((p: WastePiece) => p.materialType === material && p.wasteType === 'DECHET').length,
-    area: wastePieces
-      .filter((p: WastePiece) => p.materialType === material && p.wasteType === 'DECHET')
-      .reduce((sum: number, p: WastePiece) => sum + (p.availableAreaM2 ?? p.areaM2 ?? 0), 0),
-  }));
-
+  const reusablePieces = activeTab === 'reusable' ? wastePieces : [];
+  const scrapPieces = activeTab === 'waste' ? wastePieces : [];
 
   const tabIndex = activeTab === 'inventory' ? 0 : activeTab === 'reusable' ? 1 : 2;
 
@@ -703,125 +770,99 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
     ) : null
   );
 
-  const materialFilterOptions = [
-    { label: t('inventory.allMaterials'), value: 'ALL' },
-    ...materials.map((mat) => ({ label: mat, value: mat }))
-  ];
+  const materialFilterOptions = useMemo<{ label: string; value: MaterialType | 'ALL' }[]>(
+    () => [{ label: t('inventory.allMaterials'), value: 'ALL' }, ...materials.map((mat) => ({ label: mat, value: mat }))],
+    [t, materials]
+  );
 
-  const statusFilterOptions = [
-    { label: t('inventory.allStatus'), value: 'ALL' },
-    ...statuses.map((status) => ({ label: status, value: status }))
-  ];
+  const statusFilterOptions = useMemo<{ label: string; value: RollStatus | 'ALL' }[]>(
+    () => [{ label: t('inventory.allStatus'), value: 'ALL' }, ...statuses.map((status) => ({ label: status, value: status }))],
+    [t, statuses]
+  );
 
-  const altierFilterOptions = [
-    { label: t('inventory.allWorkshops'), value: 'ALL' },
-    ...altiers.map((altier) => ({ label: altier.libelle, value: altier.id }))
-  ];
+  const altierFilterOptions = useMemo(
+    () => [{ label: t('inventory.allWorkshops'), value: 'ALL' }, ...altiers.map((altier) => ({ label: altier.libelle, value: altier.id }))],
+    [t, altiers]
+  );
 
-  const supplierOptions = suppliers.map((supplier) => ({
-    label: supplier.name || 'N/A',
-    value: supplier.id,
-  }));
+  const supplierOptions = useMemo(
+    () => suppliers.map((supplier) => ({ label: supplier.name || 'N/A', value: supplier.id })),
+    [suppliers]
+  );
 
-  const colorOptions = colors
-    .filter((color) => color.isActive)
-    .map((color) => ({
-      label: `${color.name} (${color.hexCode})`,
-      value: color.id,
-    }));
+  const colorOptions = useMemo(
+    () =>
+      colors
+        .map((color) => ({ label: `${color.name} (${color.hexCode})`, value: color.id })),
+    [colors]
+  );
 
-  const colorFilterOptions = [
-    { label: t('inventory.allColors') || 'All colors', value: 'ALL' },
-    ...colorOptions,
-  ];
+  const colorFilterOptions = useMemo(
+    () => [{ label: t('inventory.allColors') || 'All colors', value: 'ALL' }, ...colorOptions],
+    [t, colorOptions]
+  );
 
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setRollPage(0);
-    setWastePage(0);
-  };
+  const applyFilterChange = useCallback(
+    (partial: Partial<typeof filters>) => {
+      setFilters((prev) => ({ ...prev, ...partial }));
+      setPagination({ rollPage: 0, wastePage: 0 });
+    },
+    []
+  );
 
-  const handleMaterialChange = (value: MaterialType | 'ALL') => {
-    setMaterialFilter(value);
-    setRollPage(0);
-    setWastePage(0);
-  };
-
-  const handleAltierChange = (value: string) => {
-    setAltierFilter(value);
-    setRollPage(0);
-    setWastePage(0);
-  };
-
-  const handleStatusChange = (value: RollStatus | 'ALL') => {
-    setStatusFilter(value);
-    setRollPage(0);
-    setWastePage(0);
-  };
-
-  const handleColorChange = (value: string) => {
-    setColorFilter(value);
-    setRollPage(0);
-    setWastePage(0);
-  };
-
-  const handleNbPlisChange = (value: string) => {
-    setNbPlisFilter(value);
-    setRollPage(0);
-    setWastePage(0);
-  };
-
-  const handleThicknessChange = (value: string) => {
-    setThicknessFilter(value);
-    setRollPage(0);
-    setWastePage(0);
-  };
+  const handleSearchChange = (value: string) => applyFilterChange({ searchTerm: value });
+  const handleMaterialChange = (value: MaterialType | 'ALL') => applyFilterChange({ materialFilter: value });
+  const handleAltierChange = (value: string) => applyFilterChange({ altierFilter: value });
+  const handleStatusChange = (value: RollStatus | 'ALL') => applyFilterChange({ statusFilter: value });
+  const handleColorChange = (value: string) => applyFilterChange({ colorFilter: value });
+  const handleNbPlisChange = (value: string) => applyFilterChange({ nbPlisFilter: value });
+  const handleThicknessChange = (value: string) => applyFilterChange({ thicknessFilter: value });
 
   const rollFilters = (
     <InventoryFilters
       t={t}
-      searchTerm={searchTerm}
+      searchTerm={filters.searchTerm}
       onSearchChange={handleSearchChange}
-      materialFilter={materialFilter}
+      materialFilter={filters.materialFilter}
       materialOptions={materialFilterOptions}
       onMaterialChange={handleMaterialChange}
-      altierFilter={altierFilter}
+      altierFilter={filters.altierFilter}
       altierOptions={altierFilterOptions}
       onAltierChange={handleAltierChange}
-      statusFilter={statusFilter}
+      statusFilter={filters.statusFilter}
       statusOptions={statusFilterOptions}
       onStatusChange={handleStatusChange}
-      colorFilter={colorFilter}
+      colorFilter={filters.colorFilter}
       colorOptions={colorFilterOptions}
       onColorChange={handleColorChange}
-      nbPlisFilter={nbPlisFilter}
+      nbPlisFilter={filters.nbPlisFilter}
       onNbPlisChange={handleNbPlisChange}
-      thicknessFilter={thicknessFilter}
+      thicknessFilter={filters.thicknessFilter}
       onThicknessChange={handleThicknessChange}
-      totalCount={rollTotalElements}
+      totalCount={totals.rollTotalElements}
     />
   );
 
   const wasteFilters = (
     <InventoryFilters
       t={t}
-      searchTerm={searchTerm}
+      searchTerm={filters.searchTerm}
       onSearchChange={handleSearchChange}
-      materialFilter={materialFilter}
+      materialFilter={filters.materialFilter}
       materialOptions={materialFilterOptions}
       onMaterialChange={handleMaterialChange}
-      altierFilter={altierFilter}
+      altierFilter={filters.altierFilter}
       altierOptions={altierFilterOptions}
       onAltierChange={handleAltierChange}
-      statusFilter={statusFilter}
+      statusFilter={filters.statusFilter}
       statusOptions={statusFilterOptions}
       onStatusChange={handleStatusChange}
-      colorFilter={colorFilter}
+      colorFilter={filters.colorFilter}
       colorOptions={colorFilterOptions}
       onColorChange={handleColorChange}
-      nbPlisFilter={nbPlisFilter}
+      nbPlisFilter={filters.nbPlisFilter}
       onNbPlisChange={handleNbPlisChange}
-      thicknessFilter={thicknessFilter}
+      thicknessFilter={filters.thicknessFilter}
       onThicknessChange={handleThicknessChange}
     />
   );
@@ -831,17 +872,17 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
     { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' },
   ];
 
-  const chuteRollOptions = filteredChuteRolls.map((roll) => ({
+  const chuteRollOptions = chute.filteredRolls.map((roll) => ({
     label: formatRollChuteLabel(roll),
     value: roll.id,
   }));
 
-  const parentWasteOptions = parentWastePieces.map((piece) => ({
+  const parentWasteOptions = chute.parentWastePieces.map((piece) => ({
     label: formatRollChuteLabel(piece),
     value: piece.id,
   }));
 
-  const chutePlacementOptions = chutePlacements.map((placement) => ({
+  const chutePlacementOptions = chute.placements.map((placement) => ({
     label: `Placement ${placement.id.substring(0, 8)} • ${placement.widthMm}x${placement.heightMm}mm • x:${placement.xMm} y:${placement.yMm}`,
     value: placement.id,
   }));
@@ -895,28 +936,28 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
           const nextTab = e.index === 0 ? 'inventory' : e.index === 1 ? 'reusable' : 'waste';
           setActiveTab(nextTab);
           if (nextTab === 'inventory') {
-            setRollPage(0);
+            setPagination((prev) => ({ ...prev, rollPage: 0 }));
           } else {
-            setWastePage(0);
+            setPagination((prev) => ({ ...prev, wastePage: 0 }));
           }
         }}
       >
         <TabPanel header={t('inventory.title') || 'Inventory'}>
           <InventoryTab
             t={t}
-            stats={stats}
+            stats={materialStats}
             getMaterialColor={getMaterialColor}
-            showGrouped={showGroupedInventory}
-            onToggleGrouped={setShowGroupedInventory}
-            groupedStats={groupedStatsInventory}
-            groupedLoading={groupedLoadingInventory}
+            showGrouped={grouped.inventory.show}
+            onToggleGrouped={(value) => setGrouped((prev) => ({ ...prev, inventory: { ...prev.inventory, show: value } }))}
+            groupedStats={grouped.inventory.rows}
+            groupedLoading={grouped.inventory.loading}
             renderGroupedStatsTable={renderGroupedStatsTable}
             rolls={rolls}
-            rollTotalElements={rollTotalElements}
-            rollPage={rollPage}
+            rollTotalElements={totals.rollTotalElements}
+            rollPage={pagination.rollPage}
             pageSize={pageSize}
-            onPageChange={setRollPage}
-            onOpenReceiveRoll={() => setShowForm(true)}
+            onPageChange={(page) => setPagination((prev) => ({ ...prev, rollPage: page }))}
+            onOpenReceiveRoll={() => setDialogs((prev) => ({ ...prev, receiveRoll: true }))}
             rollMaterialBody={rollMaterialBody}
             rollWastePercentBody={rollWastePercentBody}
             rollStatusBody={rollStatusBody}
@@ -929,20 +970,20 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
         <TabPanel header={t('inventory.chuteReusable') || 'Chute Reusable'}>
           <ReusableTab
             t={t}
-            showGrouped={showGroupedReusable}
-            onToggleGrouped={setShowGroupedReusable}
-            groupedStats={groupedStatsReusable}
-            groupedLoading={groupedLoadingReusable}
+            showGrouped={grouped.reusable.show}
+            onToggleGrouped={(value) => setGrouped((prev) => ({ ...prev, reusable: { ...prev.reusable, show: value } }))}
+            groupedStats={grouped.reusable.rows}
+            groupedLoading={grouped.reusable.loading}
             renderGroupedStatsTable={renderGroupedStatsTable}
             pieces={reusablePieces}
             wasteMaterialBody={wasteMaterialBody}
             wasteStatusBody={wasteStatusBody}
             wasteActionsBody={wasteActionsBody}
-            wastePage={wastePage}
-            wasteTotalElements={wasteTotalElements}
+            wastePage={pagination.wastePage}
+            wasteTotalElements={totals.wasteTotalElements}
             pageSize={pageSize}
-            onPageChange={setWastePage}
-            onOpenCreateChute={() => setShowChuteForm(true)}
+            onPageChange={(page) => setPagination((prev) => ({ ...prev, wastePage: page }))}
+            onOpenCreateChute={() => setDialogs((prev) => ({ ...prev, createChute: true }))}
             filters={wasteFilters}
             formatDate={formatDate}
           />
@@ -951,25 +992,25 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
         <TabPanel header={t('inventory.chuteDechet') || 'Chute Waste'}>
           <WasteTab
             t={t}
-            showGrouped={showGroupedWaste}
-            onToggleGrouped={setShowGroupedWaste}
-            groupedStats={groupedStatsWaste}
-            groupedLoading={groupedLoadingWaste}
+            showGrouped={grouped.waste.show}
+            onToggleGrouped={(value) => setGrouped((prev) => ({ ...prev, waste: { ...prev.waste, show: value } }))}
+            groupedStats={grouped.waste.rows}
+            groupedLoading={grouped.waste.loading}
             renderGroupedStatsTable={renderGroupedStatsTable}
             pieces={scrapPieces}
             wasteMaterialBody={wasteMaterialBody}
-            wastePage={wastePage}
-            wasteTotalElements={wasteTotalElements}
+            wastePage={pagination.wastePage}
+            wasteTotalElements={totals.wasteTotalElements}
             pageSize={pageSize}
-            onPageChange={setWastePage}
-            onOpenCreateChute={() => setShowChuteForm(true)}
+            onPageChange={(page) => setPagination((prev) => ({ ...prev, wastePage: page }))}
+            onOpenCreateChute={() => setDialogs((prev) => ({ ...prev, createChute: true }))}
             filters={wasteFilters}
             formatDate={formatDate}
           />
         </TabPanel>
       </TabView>
       <ReceiveRollDialog
-        visible={showForm}
+        visible={dialogs.receiveRoll}
         onHide={handleCancel}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
@@ -989,65 +1030,58 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
       />
 
       <CreateChuteDialog
-        visible={showChuteForm}
+        visible={dialogs.createChute}
         onHide={() => {
-          setShowChuteForm(false);
-          setChuteRollId('');
-          setParentWastePieceId('');
-          setChutePlacementId('');
-          setChutePlacements([]);
-          setChuteSourceType('ROLL');
+          setDialogs((prev) => ({ ...prev, createChute: false }));
+          resetChute();
         }}
         onSubmit={handleChuteSubmit}
         onCancel={() => {
-          setShowChuteForm(false);
-          setChuteRollId('');
-          setParentWastePieceId('');
-          setChutePlacementId('');
-          setChutePlacements([]);
-          setChuteSourceType('ROLL');
+          setDialogs((prev) => ({ ...prev, createChute: false }));
+          resetChute();
         }}
         isSubmitting={isLocked('inventory-chute')}
         t={t}
-        chuteSourceType={chuteSourceType}
+        chuteSourceType={chute.sourceType}
         chuteSourceOptions={chuteSourceOptions}
         onSourceTypeChange={(value) => {
-          setChuteSourceType(value);
-          setChuteRollId('');
-          setParentWastePieceId('');
-          setChutePlacementId('');
-          setChutePlacements([]);
+          setChute((prev) => ({
+            ...prev,
+            sourceType: value,
+            rollId: '',
+            parentWastePieceId: '',
+            placementId: '',
+            placements: [],
+          }));
         }}
-        chuteRollId={chuteRollId}
+        chuteRollId={chute.rollId}
         onChuteRollChange={(value) => {
-          setChuteRollId(value);
-          setChutePlacementId('');
+          setChute((prev) => ({ ...prev, rollId: value, placementId: '' }));
         }}
         chuteRollOptions={chuteRollOptions}
-        chuteRollsLoading={chuteRollsLoading}
+        chuteRollsLoading={chute.filteredRollsLoading}
         supplierOptions={supplierOptions}
         materialOptions={materials.map((mat) => ({ label: mat, value: mat }))}
         supplierId={formData.supplierId}
         materialType={formData.materialType}
         onSupplierChange={(value) => setFormData((prev) => ({ ...prev, supplierId: value }))}
         onMaterialChange={(value) => setFormData((prev) => ({ ...prev, materialType: value }))}
-        parentWastePieceId={parentWastePieceId}
+        parentWastePieceId={chute.parentWastePieceId}
         parentWasteOptions={parentWasteOptions}
-        parentWastePiecesLoading={parentWastePiecesLoading}
+        parentWastePiecesLoading={chute.parentWastePiecesLoading}
         onParentWasteChange={(value) => {
-          setParentWastePieceId(value);
-          setChutePlacementId('');
+          setChute((prev) => ({ ...prev, parentWastePieceId: value, placementId: '' }));
         }}
-        chutePlacementId={chutePlacementId}
+        chutePlacementId={chute.placementId}
         chutePlacementOptions={chutePlacementOptions}
-        chutePlacementsLoading={chutePlacementsLoading}
-        onPlacementChange={setChutePlacementId}
+        chutePlacementsLoading={chute.placementsLoading}
+        onPlacementChange={(value) => setChute((prev) => ({ ...prev, placementId: value }))}
         formData={formData}
         onFieldChange={handleInputChange}
         onDimensionChange={handleDimensionChange}
         altierOptions={altiers.map((altier) => ({ label: altier.libelle, value: altier.id }))}
         onAltierChange={(value) => setFormData((prev) => ({ ...prev, altierId: value }))}
-        disableAltier={chuteSourceType === 'WASTE_PIECE'}
+        disableAltier={chute.sourceType === 'WASTE_PIECE'}
       />
     </div>
   );

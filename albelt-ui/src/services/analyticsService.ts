@@ -1,10 +1,9 @@
 import ApiService from './api';
-import type { CuttingOperation, MaterialType } from '../types/index';
-import type { ApiResponse } from '../types/index';
+import type { ApiResponse, CuttingOperation, MaterialType } from '../types/index';
 
 /**
  * Analytics & Reporting API Service
- * 
+ *
  * NOTE: CuttingOperation-based analytics are DEPRECATED (v22+)
  * The cutting workflow has been simplified - use waste and roll statistics instead
  */
@@ -13,27 +12,50 @@ export const AnalyticsService = {
    * @deprecated Use waste piece statistics instead
    * Get high-efficiency cutting operations - NOT AVAILABLE
    */
-  async getHighEfficiencyOperations(page = 0, size = 20): Promise<ApiResponse<CuttingOperation[]>> {
+  async getHighEfficiencyOperations(
+    _page = 0,
+    _size = 20
+  ): Promise<ApiResponse<CuttingOperation[]>> {
     console.warn('[DEPRECATED] getHighEfficiencyOperations - cutting operations no longer tracked');
-    return { success: false, data: [], error: 'Cutting operations tracking deprecated' };
+    return {
+      success: false,
+      message: 'Cutting operations tracking deprecated',
+      data: [],
+      timestamp: new Date().toISOString(),
+    };
   },
 
   /**
    * @deprecated Use waste piece statistics instead
    * Get operations with significant waste - NOT AVAILABLE
    */
-  async getSignificantWasteOperations(page = 0, size = 20): Promise<ApiResponse<CuttingOperation[]>> {
+  async getSignificantWasteOperations(
+    _page = 0,
+    _size = 20
+  ): Promise<ApiResponse<CuttingOperation[]>> {
     console.warn('[DEPRECATED] getSignificantWasteOperations - cutting operations no longer tracked');
-    return { success: false, data: [], error: 'Cutting operations tracking deprecated' };
+    return {
+      success: false,
+      message: 'Cutting operations tracking deprecated',
+      data: [],
+      timestamp: new Date().toISOString(),
+    };
   },
 
   /**
    * @deprecated Use waste piece statistics instead
    * Get operator performance metrics - NOT AVAILABLE
    */
-  async getOperatorPerformance(): Promise<ApiResponse<{ operatorId: string; operatorName: string; avgUtilization: number }[]>> {
+  async getOperatorPerformance(): Promise<
+    ApiResponse<{ operatorId: string; operatorName: string; avgUtilization: number }[]>
+  > {
     console.warn('[DEPRECATED] getOperatorPerformance - cutting operations no longer tracked');
-    return { success: false, data: [], error: 'Operator performance tracking deprecated' };
+    return {
+      success: false,
+      message: 'Operator performance tracking deprecated',
+      data: [],
+      timestamp: new Date().toISOString(),
+    };
   },
 
   /**
@@ -42,7 +64,12 @@ export const AnalyticsService = {
    */
   async getTotalOperationsCount(): Promise<ApiResponse<number>> {
     console.warn('[DEPRECATED] getTotalOperationsCount - cutting operations no longer tracked');
-    return { success: false, data: 0, error: 'Cutting operations counting deprecated' };
+    return {
+      success: false,
+      message: 'Cutting operations counting deprecated',
+      data: 0,
+      timestamp: new Date().toISOString(),
+    };
   },
 
   /**
@@ -50,11 +77,16 @@ export const AnalyticsService = {
    * Get operations within date range - NOT AVAILABLE
    */
   async getOperationsByDateRange(
-    startDate: string,
-    endDate: string,
+    _startDate: string,
+    _endDate: string
   ): Promise<ApiResponse<CuttingOperation[]>> {
     console.warn('[DEPRECATED] getOperationsByDateRange - cutting operations no longer tracked');
-    return { success: false, data: [], error: 'Cutting operations tracking deprecated' };
+    return {
+      success: false,
+      message: 'Cutting operations tracking deprecated',
+      data: [],
+      timestamp: new Date().toISOString(),
+    };
   },
 
   /**
@@ -75,7 +107,7 @@ export const AnalyticsService = {
    * Get total waste area by material
    */
   async getTotalWasteAreaByMaterial(): Promise<ApiResponse<Record<MaterialType, number>>> {
-    return ApiService.get('/waste-pieces/stats/total-area');
+    return ApiService.get<Record<MaterialType, number>>('/waste-pieces/stats/total-area');
   },
 
   /**
@@ -96,12 +128,20 @@ export const AnalyticsService = {
    * Get all materials inventory status
    */
   async getAllMaterialsStatus(): Promise<
-    ApiResponse<{
-      material: MaterialType;
-      count: number;
-      area: number;
-    }[]>
+    ApiResponse<
+      {
+        material: MaterialType;
+        count: number;
+        area: number;
+      }[]
+    >
   > {
-    return ApiService.get('/rolls/stats/all-materials');
+    return ApiService.get<
+      {
+        material: MaterialType;
+        count: number;
+        area: number;
+      }[]
+    >('/rolls/stats/all-materials');
   },
 };

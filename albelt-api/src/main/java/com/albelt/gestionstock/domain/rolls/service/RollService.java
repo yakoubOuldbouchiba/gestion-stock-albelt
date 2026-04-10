@@ -208,6 +208,37 @@ public class RollService {
     }
 
     /**
+     * Get available rolls for a material in user's assigned altiers.
+     */
+    @Transactional(readOnly = true)
+    public List<Roll> getAvailableByUserAltiersAndMaterial(List<UUID> userAltierIds, MaterialType materialType) {
+        if (userAltierIds == null || userAltierIds.isEmpty() || materialType == null) {
+            return List.of();
+        }
+        List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
+        return rollRepository.findAvailableByAltierIdsAndMaterial(userAltierIds, materialType, availableStatuses);
+    }
+
+    /**
+     * Transfer sources: rolls that are AVAILABLE/OPENED in the from-altier and not already reserved
+     * by a pending transfer bon movement.
+     */
+    @Transactional(readOnly = true)
+    public Page<Roll> getTransferSourcesPaged(
+            List<UUID> accessibleAltierIds,
+            UUID fromAltierId,
+            int page,
+            int size) {
+        if (accessibleAltierIds == null || accessibleAltierIds.isEmpty() || fromAltierId == null) {
+            return Page.empty();
+        }
+
+        List<RollStatus> statuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "receivedDate"));
+        return rollRepository.findTransferSources(accessibleAltierIds, fromAltierId, statuses, pageable);
+    }
+
+    /**
      * Get roll by ID
      */
     @Transactional(readOnly = true)

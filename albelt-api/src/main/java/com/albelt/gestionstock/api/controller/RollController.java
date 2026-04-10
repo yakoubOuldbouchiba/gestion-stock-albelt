@@ -117,6 +117,61 @@ public class RollController {
     }
 
     /**
+     * Get available rolls for a material type, scoped to the current user's accessible altiers.
+     * Status is restricted to AVAILABLE/OPENED.
+     * GET /api/rolls/available?materialType={materialType}
+     */
+    @GetMapping("/available")
+    public ResponseEntity<ApiResponse<List<RollResponse>>> getAvailableByMaterial(
+            @RequestParam MaterialType materialType) {
+        UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
+        if (accessibleAltierIds.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.success(List.of(), "No accessible rolls"));
+        }
+
+        var rolls = rollService.getAvailableByUserAltiersAndMaterial(accessibleAltierIds, materialType);
+        var responses = rollMapper.toResponseList(rolls);
+        return ResponseEntity.ok(ApiResponse.success(responses, "Available rolls retrieved"));
+    }
+
+    /**
+     * Get transfer source rolls for a given from-altier.
+     * Returns only AVAILABLE/OPENED rolls and excludes items already reserved by a pending transfer bon.
+     * GET /api/rolls/transfer-sources?fromAltierId={id}&page={page}&size={size}
+     */
+    @GetMapping("/transfer-sources")
+    public ResponseEntity<ApiResponse<PagedResponse<RollResponse>>> getTransferSources(
+            @RequestParam UUID fromAltierId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "200") int size) {
+        UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
+
+        if (accessibleAltierIds.isEmpty() || !accessibleAltierIds.contains(fromAltierId)) {
+            var empty = PagedResponse.<RollResponse>builder()
+                    .items(List.of())
+                    .page(page)
+                    .size(size)
+                    .totalElements(0)
+                    .totalPages(0)
+                    .build();
+            return ResponseEntity.ok(ApiResponse.success(empty, "No accessible rolls"));
+        }
+
+        var rolls = rollService.getTransferSourcesPaged(accessibleAltierIds, fromAltierId, page, size);
+        var responses = rollMapper.toResponseList(rolls.getContent());
+        var paged = PagedResponse.<RollResponse>builder()
+                .items(responses)
+                .page(rolls.getNumber())
+                .size(rolls.getSize())
+                .totalElements(rolls.getTotalElements())
+                .totalPages(rolls.getTotalPages())
+                .build();
+        return ResponseEntity.ok(ApiResponse.success(paged, "Transfer source rolls retrieved"));
+    }
+
+    /**
      * Receive a new roll (stock in)
      * POST /api/rolls/receive
      */

@@ -7,6 +7,9 @@ import com.albelt.gestionstock.domain.colors.repository.ColorRepository;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,6 +71,13 @@ public class ColorService {
         return colorRepository.findAll().stream()
                 .sorted(Comparator.comparing(Color::getName))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Color> getAllPaged(String search, Boolean isActive, int page, int size) {
+        String normalized = search != null ? search.trim().toLowerCase() : "";
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name"));
+        return colorRepository.findFiltered(normalized, isActive, pageable);
     }
 
     public void delete(UUID id) {

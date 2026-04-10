@@ -34,8 +34,9 @@ export function UsersPage() {
   const [selectedAltiers, setSelectedAltiers] = useState<Set<string>>(new Set());
   const { run, isLocked } = useAsyncLock();
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [activeCount, setActiveCount] = useState(0);
+  const [inactiveCount, setInactiveCount] = useState(0);
   const pageSize = 20;
 
   const roles: UserRole[] = ['ADMIN', 'OPERATOR', 'READONLY'];
@@ -63,9 +64,23 @@ export function UsersPage() {
       });
       if (response.success && response.data) {
         setUsers(response.data.items || []);
-        setTotalPages(response.data.totalPages || 0);
         setTotalElements(response.data.totalElements || 0);
       }
+
+      const [activeRes, inactiveRes] = await Promise.all([
+        UserService.count({
+          search: search || undefined,
+          role: role === 'ALL' ? undefined : role,
+          status: 'ACTIVE',
+        }),
+        UserService.count({
+          search: search || undefined,
+          role: role === 'ALL' ? undefined : role,
+          status: 'INACTIVE',
+        }),
+      ]);
+      setActiveCount(activeRes.success && activeRes.data != null ? activeRes.data : 0);
+      setInactiveCount(inactiveRes.success && inactiveRes.data != null ? inactiveRes.data : 0);
     } catch (err) {
       setError(t('messages.failedToLoad'));
       console.error(err);
@@ -266,8 +281,8 @@ export function UsersPage() {
           <h1 style={{ margin: 0 }}>{t('users.title')}</h1>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
             <Tag value={`${totalElements} ${t('users.totalUsers')}`} severity="info" />
-            <Tag value={`${users.filter(u => u.isActive).length} ${t('users.active')}`} severity="success" />
-            <Tag value={`${users.filter(u => !u.isActive).length} ${t('users.inactive')}`} severity="secondary" />
+            <Tag value={`${activeCount} ${t('users.active')}`} severity="success" />
+            <Tag value={`${inactiveCount} ${t('users.inactive')}`} severity="secondary" />
           </div>
         </div>
       </div>

@@ -58,7 +58,6 @@ export function CommandeCreatePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
-  const [isMobile, setIsMobile] = useState(false);
   const useWrappedItems = true;
 
   // Form state
@@ -66,7 +65,7 @@ export function CommandeCreatePage() {
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<CommandeStatus>('PENDING');
+  const selectedStatus: CommandeStatus = 'PENDING';
 
   // Items state
   const [items, setItems] = useState<CommandeItemRequest[]>([]);
@@ -141,20 +140,6 @@ export function CommandeCreatePage() {
     };
 
     fetchColors();
-  }, []);
-
-  useEffect(() => {
-    const media = window.matchMedia('(max-width: 960px)');
-    const handleChange = () => setIsMobile(media.matches);
-    handleChange();
-
-    if (media.addEventListener) {
-      media.addEventListener('change', handleChange);
-      return () => media.removeEventListener('change', handleChange);
-    }
-
-    media.addListener(handleChange);
-    return () => media.removeListener(handleChange);
   }, []);
 
   // Generate order number

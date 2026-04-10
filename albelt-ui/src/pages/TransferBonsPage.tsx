@@ -145,27 +145,10 @@ export function TransferBonsPage() {
       }
 
       try {
-        const [rollsResponse, wasteResponse, outgoingResponse] = await Promise.all([
-          RollService.getAll(),
-          WastePieceService.getAll({ altierId: formData.fromAltierID, page: 0, size: 200 }),
-          rollMovementService.getMovementsFromAltier(formData.fromAltierID)
+        const [rollsResponse, wasteResponse] = await Promise.all([
+          RollService.getTransferSources({ fromAltierId: formData.fromAltierID, page: 0, size: 200 }),
+          WastePieceService.getTransferSources({ fromAltierId: formData.fromAltierID, page: 0, size: 200 })
         ]);
-
-        const excludedRollIds = new Set<string>();
-        const excludedWastePieceIds = new Set<string>();
-        if (outgoingResponse.success && outgoingResponse.data) {
-          const outgoingItems = toArray<RollMovement>(outgoingResponse.data);
-          for (const movement of outgoingItems) {
-            if (movement.transferBonId && !movement.dateEntree) {
-              if (movement.rollId) {
-                excludedRollIds.add(movement.rollId);
-              }
-              if (movement.wastePieceId) {
-                excludedWastePieceIds.add(movement.wastePieceId);
-              }
-            }
-          }
-        }
 
         if (rollsResponse.success && rollsResponse.data) {
           const rollItems = toArray<Roll>(rollsResponse.data);
@@ -175,26 +158,13 @@ export function TransferBonsPage() {
           }
           setRollDetailsById((prev) => ({ ...rollMap, ...prev }));
 
-          const filtered = rollItems.filter((roll) => {
-            const isAtFromAltier = roll.altierId === formData.fromAltierID;
-            const isAvailable = roll.status === 'AVAILABLE' || roll.status === 'OPENED';
-            const isExcluded = excludedRollIds.has(roll.id);
-            return isAtFromAltier && isAvailable && !isExcluded;
-          });
-          setAvailableRolls(filtered);
+          setAvailableRolls(rollItems);
           setSelectedRollIds([]);
         }
 
         if (wasteResponse.success && wasteResponse.data) {
           const wasteItems = toArray<WastePiece>(wasteResponse.data);
-          const filtered = wasteItems.filter((piece) => {
-            const isAtFromAltier = piece.altierId === formData.fromAltierID;
-            const isAvailable = piece.status === 'AVAILABLE' || piece.status === 'OPENED';
-            const isReusable = piece.wasteType === 'CHUTE_EXPLOITABLE';
-            const isExcluded = excludedWastePieceIds.has(piece.id);
-            return isAtFromAltier && isAvailable && isReusable && !isExcluded;
-          });
-          setAvailableWastePieces(filtered);
+          setAvailableWastePieces(wasteItems);
           setSelectedWastePieceIds([]);
         }
       } catch (e) {
@@ -492,49 +462,19 @@ export function TransferBonsPage() {
         // Refresh available rolls list so a removed roll can be selected again
         if (formData.fromAltierID) {
           try {
-            const [rollsResponse, wasteResponse, outgoingResponse] = await Promise.all([
-              RollService.getAll(),
-              WastePieceService.getAll({ altierId: formData.fromAltierID, page: 0, size: 200 }),
-              rollMovementService.getMovementsFromAltier(formData.fromAltierID)
+            const [rollsResponse, wasteResponse] = await Promise.all([
+              RollService.getTransferSources({ fromAltierId: formData.fromAltierID, page: 0, size: 200 }),
+              WastePieceService.getTransferSources({ fromAltierId: formData.fromAltierID, page: 0, size: 200 })
             ]);
-
-            const excludedRollIds = new Set<string>();
-            const excludedWastePieceIds = new Set<string>();
-            if (outgoingResponse.success && outgoingResponse.data) {
-              const outgoingItems = toArray<RollMovement>(outgoingResponse.data);
-              for (const movement of outgoingItems) {
-                if (movement.transferBonId && !movement.dateEntree) {
-                  if (movement.rollId) {
-                    excludedRollIds.add(movement.rollId);
-                  }
-                  if (movement.wastePieceId) {
-                    excludedWastePieceIds.add(movement.wastePieceId);
-                  }
-                }
-              }
-            }
 
             if (rollsResponse.success && rollsResponse.data) {
               const rollItems = toArray<Roll>(rollsResponse.data);
-              const filtered = rollItems.filter((roll) => {
-                const isAtFromAltier = roll.altierId === formData.fromAltierID;
-                const isAvailable = roll.status === 'AVAILABLE' || roll.status === 'OPENED';
-                const isExcluded = excludedRollIds.has(roll.id);
-                return isAtFromAltier && isAvailable && !isExcluded;
-              });
-              setAvailableRolls(filtered);
+              setAvailableRolls(rollItems);
             }
 
             if (wasteResponse.success && wasteResponse.data) {
               const wasteItems = toArray<WastePiece>(wasteResponse.data);
-              const filtered = wasteItems.filter((piece) => {
-                const isAtFromAltier = piece.altierId === formData.fromAltierID;
-                const isAvailable = piece.status === 'AVAILABLE' || piece.status === 'OPENED';
-                const isReusable = piece.wasteType === 'CHUTE_EXPLOITABLE';
-                const isExcluded = excludedWastePieceIds.has(piece.id);
-                return isAtFromAltier && isAvailable && isReusable && !isExcluded;
-              });
-              setAvailableWastePieces(filtered);
+              setAvailableWastePieces(wasteItems);
             }
           } catch (e) {
             console.warn('Failed to refresh available rolls after movement removal', e);
@@ -672,10 +612,13 @@ export function TransferBonsPage() {
                 <DataTable
                   value={availableRolls}
                   dataKey="id"
+                  selectionMode="multiple"
                   selection={selectedRolls}
-                  onSelectionChange={(e) =>
-                    setSelectedRollIds((e.value as Roll[]).map((roll) => roll.id))
-                  }
+                  onSelectionChange={(e) => {
+                    const value = e.value as Roll | Roll[] | null | undefined;
+                    const next = Array.isArray(value) ? value : value ? [value] : [];
+                    setSelectedRollIds(next.map((roll) => roll.id));
+                  }}
                   emptyMessage={t('transferBons.noAvailableRolls')}
                   size="small"
                 >
@@ -711,10 +654,13 @@ export function TransferBonsPage() {
                 <DataTable
                   value={availableWastePieces}
                   dataKey="id"
+                  selectionMode="multiple"
                   selection={selectedWastePieces}
-                  onSelectionChange={(e) =>
-                    setSelectedWastePieceIds((e.value as WastePiece[]).map((piece) => piece.id))
-                  }
+                  onSelectionChange={(e) => {
+                    const value = e.value as WastePiece | WastePiece[] | null | undefined;
+                    const next = Array.isArray(value) ? value : value ? [value] : [];
+                    setSelectedWastePieceIds(next.map((piece) => piece.id));
+                  }}
                   emptyMessage={t('transferBons.noAvailableChutes')}
                   size="small"
                 >

@@ -20,11 +20,9 @@ export const MATERIAL_NAMES: Record<string, string> = {
  * @param materialType Material type code (PU, PVC, CAOUTCHOUC)
  * @returns Hex color code or default gray if not found
  */
-export function getMaterialColor(_materialType: string, colorHexCode?: string): string {
-  if (colorHexCode) {
-    return colorHexCode;
-  }
-  return '#95A5A6';
+export function getMaterialColor(materialType: string, colorHexCode?: string | null): string {
+  if (colorHexCode) return colorHexCode;
+  return MATERIAL_COLORS[materialType] || '#95A5A6';
 }
 
 /**

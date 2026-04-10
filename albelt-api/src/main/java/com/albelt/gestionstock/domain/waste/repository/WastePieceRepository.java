@@ -47,6 +47,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     @Query("SELECT wp FROM WastePiece wp " +
            "WHERE (:materialType IS NULL OR wp.materialType = :materialType) " +
            "AND (:status IS NULL OR wp.status = :status) " +
+          "AND (:wasteType IS NULL OR wp.wasteType = :wasteType) " +
            "AND (:altierId IS NULL OR wp.altier.id = :altierId) " +
           "AND (:colorId IS NULL OR wp.color.id = :colorId) " +
           "AND (:nbPlis IS NULL OR wp.nbPlis = :nbPlis) " +
@@ -60,6 +61,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     Page<WastePiece> findFiltered(
             @Param("materialType") MaterialType materialType,
             @Param("status") WasteStatus status,
+           @Param("wasteType") WasteType wasteType,
             @Param("altierId") UUID altierId,
            @Param("colorId") UUID colorId,
            @Param("nbPlis") Integer nbPlis,
@@ -155,4 +157,27 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
                "         wp.altier.libelle "
        )
        List<Object[]> groupByAllFields(@Param("type") WasteType type);
+
+           /**
+            * Transfer sources: reusable waste pieces (CHUTE_EXPLOITABLE) that are AVAILABLE/OPENED in a given altier
+            * and not already reserved by a pending transfer bon movement (transferBon != null AND dateEntree IS NULL).
+            */
+           @Query("SELECT wp FROM WastePiece wp " +
+                  "WHERE wp.altier.id IN (:accessibleAltierIds) " +
+                  "AND wp.altier.id = :fromAltierId " +
+                  "AND wp.wasteType = :wasteType " +
+                  "AND wp.status IN (:statuses) " +
+                  "AND NOT EXISTS (" +
+                  "  SELECT 1 FROM RollMovement rm " +
+                  "  WHERE rm.wastePiece = wp " +
+                  "  AND rm.fromAltier.id = :fromAltierId " +
+                  "  AND rm.transferBon IS NOT NULL " +
+                  "  AND rm.dateEntree IS NULL" +
+                  ")")
+           Page<WastePiece> findTransferSources(
+                  @Param("accessibleAltierIds") List<UUID> accessibleAltierIds,
+                  @Param("fromAltierId") UUID fromAltierId,
+                  @Param("wasteType") WasteType wasteType,
+                  @Param("statuses") List<WasteStatus> statuses,
+                  Pageable pageable);
 }

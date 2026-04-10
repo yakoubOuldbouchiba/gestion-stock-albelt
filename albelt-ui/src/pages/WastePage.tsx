@@ -20,6 +20,7 @@ import { formatRollChuteLabel, getRollChuteSummary } from '@utils/rollChuteLabel
 export function WastePage() {
   const { t } = useI18n();
   const [wastePieces, setWastePieces] = useState<WastePiece[]>([]);
+  const [totalWasteElements, setTotalWasteElements] = useState(0);
   // Grouped stats state
   const [showGrouped, setShowGrouped] = useState(false);
   const [groupedStats, setGroupedStats] = useState<any[]>([]);
@@ -30,8 +31,7 @@ export function WastePage() {
         setGroupedLoading(true);
         WastePieceService.getGroupedByAllFields('DECHET').then(res => {
           if (res.success && res.data) {
-            // Only show DECHET (waste) rows
-            setGroupedStats(res.data.filter(row => row[5] === 'DECHET'));
+            setGroupedStats(res.data);
           } else {
             setGroupedStats([]);
           }
@@ -68,18 +68,53 @@ export function WastePage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (showGrouped) return;
+    loadWastePieces();
+  }, [searchTerm, statusFilter, materialFilter, showGrouped]);
+
+  const loadWastePieces = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await WastePieceService.getAll({
+        page: 0,
+        size: 200,
+        search: searchTerm || undefined,
+        materialType: materialFilter === 'ALL' ? undefined : materialFilter,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+      });
+      const data = response.data;
+      if (response.success && data) {
+        setWastePieces(data.items || []);
+        setTotalWasteElements(data.totalElements || 0);
+      } else {
+        setWastePieces([]);
+        setTotalWasteElements(0);
+      }
+    } catch (err) {
+      setError(t('waste.failedToLoadData'));
+      console.error(err);
+      setWastePieces([]);
+      setTotalWasteElements(0);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const loadData = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const [wasteResponse, operationsResponse, rollsResponse] = await Promise.all([
-        WastePieceService.getLargeAvailable(0, 100),
+        WastePieceService.getAll({ page: 0, size: 200 }),
         CuttingOperationService.getAll(),
         RollService.getAll(),
       ]);
 
       if (wasteResponse.success && wasteResponse.data) {
-        setWastePieces(wasteResponse.data);
+        setWastePieces(wasteResponse.data.items || []);
+        setTotalWasteElements(wasteResponse.data.totalElements || 0);
       }
       if (operationsResponse.success && operationsResponse.data) {
         setCuttingOperations(operationsResponse.data);
@@ -88,24 +123,28 @@ export function WastePage() {
         setRolls(rollsResponse.data.items || []);
       }
 
-      // Calculate statistics
-      if (wasteResponse.data) {
-        const available = wasteResponse.data.filter(w => w.status === 'AVAILABLE').length;
-        const opened = wasteResponse.data.filter(w => w.status === 'OPENED').length;
-        const archived = wasteResponse.data.filter(w => w.status === 'ARCHIVED').length;
-        const totalArea = wasteResponse.data.reduce(
-          (sum, w) => sum + (w.usedAreaM2 ?? w.totalWasteAreaM2 ?? w.areaM2 ?? 0),
-          0
-        );
+      // Calculate statistics (query-based counts)
+      const [availableRes, openedRes, archivedRes] = await Promise.all([
+        WastePieceService.countByStatus('AVAILABLE'),
+        WastePieceService.countByStatus('OPENED'),
+        WastePieceService.countByStatus('ARCHIVED'),
+      ]);
 
-        setStats({
-          totalAvailable: available,
-          totalUsed: opened,
-          totalScrap: archived,
-          totalWasteArea: totalArea,
-          reuseEfficiency: available + opened > 0 ? ((opened / (available + opened)) * 100) : 0,
-        });
-      }
+      const available = availableRes.success ? (availableRes.data || 0) : 0;
+      const opened = openedRes.success ? (openedRes.data || 0) : 0;
+      const archived = archivedRes.success ? (archivedRes.data || 0) : 0;
+      const totalArea = (wasteResponse.data?.items || []).reduce(
+        (sum, w) => sum + (w.usedAreaM2 ?? w.totalWasteAreaM2 ?? w.areaM2 ?? 0),
+        0
+      );
+
+      setStats({
+        totalAvailable: available,
+        totalUsed: opened,
+        totalScrap: archived,
+        totalWasteArea: totalArea,
+        reuseEfficiency: available + opened > 0 ? ((opened / (available + opened)) * 100) : 0,
+      });
     } catch (err) {
       setError(t('waste.failedToLoadData'));
       console.error(err);
@@ -148,17 +187,6 @@ export function WastePage() {
       console.error(err);
     }
   };
-
-  const filteredWastePieces = wastePieces.filter(waste => {
-    const matchesSearch =
-      (waste.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (waste.materialType || '').toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = statusFilter === 'ALL' || waste.status === statusFilter;
-    const matchesMaterial = materialFilter === 'ALL' || waste.materialType === materialFilter;
-
-    return matchesSearch && matchesStatus && matchesMaterial;
-  });
 
   const getStatusSeverity = (status: WasteStatus) => {
     switch (status) {
@@ -354,11 +382,11 @@ export function WastePage() {
               onChange={(e) => setMaterialFilter(e.value)}
               placeholder={t('waste.filterMaterial')}
             />
-            <span>{filteredWastePieces.length} {t('waste.pieces')}</span>
+            <span>{totalWasteElements} {t('waste.pieces')}</span>
           </div>
 
           <DataTable
-            value={filteredWastePieces}
+            value={wastePieces}
             dataKey="id"
             size="small"
             emptyMessage={t('waste.noPiecesFound')}

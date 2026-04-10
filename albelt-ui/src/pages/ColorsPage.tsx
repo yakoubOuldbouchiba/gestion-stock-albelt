@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useI18n } from '@hooks/useI18n';
 import { ColorService } from '@services/colorService';
 import type { Color } from '../types/index';
@@ -34,20 +34,31 @@ export function ColorsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [formData, setFormData] = useState<ColorFormData>(defaultForm);
   const { run, isLocked } = useAsyncLock();
 
   useEffect(() => {
     loadColors();
-  }, []);
+  }, [page, pageSize, searchTerm]);
 
   const loadColors = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await ColorService.getAll();
+      const response = await ColorService.getPaged({
+        page,
+        size: pageSize,
+        search: searchTerm.trim() ? searchTerm.trim() : undefined,
+      });
       if (response.success && response.data) {
-        setColors(response.data);
+        setColors(response.data.items || []);
+        setTotalRecords(response.data.totalElements || 0);
+      } else {
+        setColors([]);
+        setTotalRecords(0);
       }
     } catch (err) {
       setError(t('messages.failedToLoad'));
@@ -117,7 +128,11 @@ export function ColorsPage() {
       await run(async () => {
         const response = await ColorService.delete(id);
         if (response.success) {
-          setColors(colors.filter((c) => c.id !== id));
+          if (colors.length === 1 && page > 0) {
+            setPage(page - 1);
+          } else {
+            await loadColors();
+          }
         }
       }, `color-delete-${id}`);
     } catch (err) {
@@ -135,15 +150,6 @@ export function ColorsPage() {
     resetForm();
     setShowForm(false);
   };
-
-  const filteredColors = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return colors;
-    return colors.filter((color) =>
-      (color.name || '').toLowerCase().includes(query) ||
-      (color.hexCode || '').toLowerCase().includes(query)
-    );
-  }, [colors, searchTerm]);
 
   const isSaving = isLocked('color-save');
   const isBusy = isLocked();
@@ -168,7 +174,7 @@ export function ColorsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
         <div>
           <h1 style={{ margin: 0 }}>{t('navigation.colors') || 'Colors'}</h1>
-          <div style={{ color: 'var(--text-color-secondary)' }}>{filteredColors.length} {t('common.list') || 'items'}</div>
+          <div style={{ color: 'var(--text-color-secondary)' }}>{totalRecords} {t('common.list') || 'items'}</div>
         </div>
         <Button icon="pi pi-plus" label={t('common.add') || 'Add Color'} onClick={() => setShowForm(true)} disabled={isBusy} />
       </div>
@@ -180,14 +186,34 @@ export function ColorsPage() {
           <i className="pi pi-search" />
           <InputText
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(0);
+            }}
             placeholder={t('common.search') || 'Search'}
             style={{ width: '100%' }}
           />
         </span>
       </div>
 
-      <DataTable value={filteredColors} dataKey="id" paginator rows={10} rowsPerPageOptions={[10, 25, 50]} emptyMessage={t('messages.noData')} size="small">
+      <DataTable
+        value={colors}
+        dataKey="id"
+        paginator
+        lazy
+        first={page * pageSize}
+        rows={pageSize}
+        totalRecords={totalRecords}
+        rowsPerPageOptions={[10, 25, 50]}
+        onPage={(e) => {
+          setPage(e.page ?? 0);
+          if (e.rows && e.rows !== pageSize) {
+            setPageSize(e.rows);
+          }
+        }}
+        emptyMessage={t('messages.noData')}
+        size="small"
+      >
         <Column field="name" header={t('common.name') || 'Name'} />
         <Column
           header={t('common.color') || 'Color'}

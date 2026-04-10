@@ -28,26 +28,18 @@ export function CommandesListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedClient, setSelectedClient] = useState<string>('');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalRecords, setTotalRecords] = useState(0);
   const { run, isLocked } = useAsyncLock();
 
   const statuses: CommandeStatus[] = ['PENDING', 'ENCOURS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
   const statusOptions = statuses.map(s => ({ label: s, value: s }));
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchClients = async () => {
       try {
-        setLoading(true);
-        const [commandesRes, clientsRes] = await Promise.all([
-          CommandeService.getAll(),
-          ClientService.getAll(),
-        ]);
-        
-        if (commandesRes.data) {
-          const items = Array.isArray(commandesRes.data)
-            ? commandesRes.data
-            : commandesRes.data.items ?? (commandesRes.data as any).content ?? [];
-          setCommandes(items);
-        }
+        const clientsRes = await ClientService.getAll();
         if (clientsRes.data) {
           const items = Array.isArray(clientsRes.data)
             ? clientsRes.data
@@ -55,7 +47,35 @@ export function CommandesListPage() {
           setClients(items);
         }
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error('Error fetching clients:', err);
+      }
+    };
+
+    fetchClients();
+  }, []);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const res = await CommandeService.getAll({
+          page,
+          size: pageSize,
+          search: searchQuery.trim() ? searchQuery.trim() : undefined,
+          status: selectedStatus || undefined,
+          clientId: selectedClient || undefined,
+        });
+
+        const data = res.data;
+        if (res.success && data) {
+          setCommandes(data.items || []);
+          setTotalRecords(data.totalElements || 0);
+        } else {
+          setCommandes([]);
+          setTotalRecords(0);
+        }
+      } catch (err) {
+        console.error('Error fetching orders:', err);
         toast.current?.show({
           severity: 'error',
           summary: t('common.error'),
@@ -67,24 +87,8 @@ export function CommandesListPage() {
       }
     };
 
-    fetchData();
-  }, []);
-
-  const safeCommandes = Array.isArray(commandes)
-    ? commandes
-    : (commandes as any)?.items ?? (commandes as any)?.content ?? [];
-
-  // Filter orders based on search and filters
-  const filteredCommandes = safeCommandes.filter((commande: Commande) => {
-    const matchesSearch =
-      commande.numeroCommande.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      commande.clientName.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = !selectedStatus || commande.status === selectedStatus;
-    const matchesClient = !selectedClient || commande.clientId === selectedClient;
-
-    return matchesSearch && matchesStatus && matchesClient;
-  });
+    fetchOrders();
+  }, [page, pageSize, searchQuery, selectedStatus, selectedClient, t]);
 
   const handleCreateOrder = () => {
     navigate('/commandes/create');
@@ -102,7 +106,23 @@ export function CommandesListPage() {
       try {
         await run(async () => {
           await CommandeService.delete(id);
-          setCommandes(safeCommandes.filter((c: Commande) => c.id !== id));
+          // Re-fetch current page (or previous page if we deleted the last item)
+          if (commandes.length === 1 && page > 0) {
+            setPage(page - 1);
+          } else {
+            const res = await CommandeService.getAll({
+              page,
+              size: pageSize,
+              search: searchQuery.trim() ? searchQuery.trim() : undefined,
+              status: selectedStatus || undefined,
+              clientId: selectedClient || undefined,
+            });
+            const data = res.data;
+            if (res.success && data) {
+              setCommandes(data.items || []);
+              setTotalRecords(data.totalElements || 0);
+            }
+          }
           toast.current?.show({
             severity: 'success',
             summary: t('common.success'),
@@ -201,14 +221,20 @@ export function CommandesListPage() {
               type="text"
               placeholder={t('commandes.searchPlaceholder')}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(0);
+              }}
               style={{ width: '100%' ,  padding: '0.5rem 1rem' }}
             />
           </span>
 
           <Dropdown
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.value)}
+            onChange={(e) => {
+              setSelectedStatus(e.value);
+              setPage(0);
+            }}
             options={[{ label: t('commandes.allStatuses'), value: '' }, ...statusOptions]}
             optionLabel="label"
             optionValue="value"
@@ -218,7 +244,10 @@ export function CommandesListPage() {
 
           <Dropdown
             value={selectedClient}
-            onChange={(e) => setSelectedClient(e.value)}
+            onChange={(e) => {
+              setSelectedClient(e.value);
+              setPage(0);
+            }}
             options={[
               { label: t('commandes.allClients'), value: '' },
               ...clients.map(c => ({ label: c.name, value: c.id }))
@@ -230,7 +259,7 @@ export function CommandesListPage() {
           />
         </div>
 
-        {filteredCommandes.length === 0 ? (
+        {commandes.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem 0' }}>
             <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>{t('commandes.noOrdersFound')}</p>
             <Button
@@ -242,10 +271,19 @@ export function CommandesListPage() {
           </div>
         ) : (
           <DataTable
-            value={filteredCommandes}
+            value={commandes}
             paginator
-            rows={10}
+            lazy
+            first={page * pageSize}
+            rows={pageSize}
             rowsPerPageOptions={[5, 10, 20]}
+            totalRecords={totalRecords}
+            onPage={(e) => {
+              setPage(e.page ?? 0);
+              if (e.rows && e.rows !== pageSize) {
+                setPageSize(e.rows);
+              }
+            }}
             tableStyle={{ minWidth: '100%' }}
             stripedRows
             responsiveLayout="scroll"

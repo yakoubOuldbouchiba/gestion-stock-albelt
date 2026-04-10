@@ -44,12 +44,16 @@ public interface RollMovementRepository extends JpaRepository<RollMovement, UUID
 
     Page<RollMovement> findByToAltierIdOrderByDateEntreeDesc(UUID altierID, Pageable pageable);
 
+    Page<RollMovement> findByToAltierIdAndTransferBonIsNullOrderByDateEntreeDesc(UUID altierID, Pageable pageable);
+
     /**
      * Find all movements from a specific altier
      */
     List<RollMovement> findByFromAltierIdOrderByDateSortieDesc(UUID altierID);
 
     Page<RollMovement> findByFromAltierIdOrderByDateSortieDesc(UUID altierID, Pageable pageable);
+
+    Page<RollMovement> findByFromAltierIdAndTransferBonIsNullOrderByDateSortieDesc(UUID altierID, Pageable pageable);
 
     /**
      * Find the most recent movement for a roll (current location)
@@ -75,6 +79,9 @@ public interface RollMovementRepository extends JpaRepository<RollMovement, UUID
 
     @Query("SELECT rm FROM RollMovement rm WHERE rm.toAltier.id = :altierID AND rm.dateEntree IS NULL ORDER BY rm.dateSortie DESC")
     Page<RollMovement> findPendingReceiptsByAltier(@Param("altierID") UUID altierID, Pageable pageable);
+
+    @Query("SELECT rm FROM RollMovement rm WHERE rm.toAltier.id = :altierID AND rm.dateEntree IS NULL AND rm.transferBon IS NULL ORDER BY rm.dateSortie DESC")
+    Page<RollMovement> findPendingReceiptsByAltierExcludeBon(@Param("altierID") UUID altierID, Pageable pageable);
 
     /**
      * Find all movements pending receipt (dateEntree is null)

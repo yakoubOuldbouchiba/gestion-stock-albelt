@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
@@ -48,8 +48,8 @@ export function CommandeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [rolls, setRolls] = useState<Roll[]>([]);
-  const [rollsLoading, setRollsLoading] = useState(false);
+  const [rollsByMaterial, setRollsByMaterial] = useState<Record<string, Roll[]>>({});
+  const [rollsLoadingByMaterial, setRollsLoadingByMaterial] = useState<Record<string, boolean>>({});
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [wasteForItem, setWasteForItem] = useState<any[]>([]);
   const [productionForItem, setProductionForItem] = useState<ProductionItem[]>([]);
@@ -135,15 +135,29 @@ export function CommandeDetailPage() {
 
   useEffect(() => {
     if (showChuteForm && chuteSourceType === 'WASTE_PIECE') {
-      loadParentWastePieces();
+      loadParentWastePieces(chuteTargetItem?.materialType);
     }
-  }, [showChuteForm, chuteSourceType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showChuteForm, chuteSourceType, chuteTargetItem?.materialType]);
 
   useEffect(() => {
-    const needsRolls = showPlacementModal || (showChuteForm && chuteSourceType === 'ROLL');
-    if (!needsRolls || rolls.length > 0) return;
-    loadRolls();
-  }, [showPlacementModal, showChuteForm, chuteSourceType, rolls.length]);
+    const materialsToLoad: string[] = [];
+    if (showPlacementModal && placementTargetItem?.materialType) {
+      materialsToLoad.push(placementTargetItem.materialType);
+    }
+    if (showChuteForm && chuteSourceType === 'ROLL' && chuteTargetItem?.materialType) {
+      materialsToLoad.push(chuteTargetItem.materialType);
+    }
+    const unique = Array.from(new Set(materialsToLoad)).filter(Boolean);
+    if (unique.length === 0) return;
+
+    for (const materialType of unique) {
+      void ensureRollsForMaterial(materialType);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPlacementModal, placementTargetItem?.materialType, showChuteForm, chuteSourceType, chuteTargetItem?.materialType]);
+
+  const rolls = useMemo(() => Object.values(rollsByMaterial).flat(), [rollsByMaterial]);
 
   useEffect(() => {
     if (!showChuteForm || chuteSourceType !== 'ROLL' || !chuteRollId) return;
@@ -377,49 +391,46 @@ export function CommandeDetailPage() {
 
   const loadWasteForItem = async (itemId: string) => {
     try {
-      // Fetch waste for this specific commande item
-      const response = await WastePieceService.getAll();
+      const response = await WastePieceService.getByCommandeItem(itemId);
       if (response.data) {
-        const wastes = Array.isArray(response.data)
-          ? response.data
-          : (response.data as any).items || [];
-        const itemWaste = wastes.filter((w: any) => w.commandeItemId === itemId);
-        setWasteForItem(itemWaste);
+        setWasteForItem(response.data);
       }
     } catch (err) {
       console.error('Error loading waste:', err);
     }
   };
 
-  const loadRolls = async () => {
-    if (rollsLoading) return;
-    setRollsLoading(true);
+  const ensureRollsForMaterial = async (materialType?: string) => {
+    if (!materialType) return;
+    if ((rollsByMaterial[materialType] || []).length > 0) return;
+    if (rollsLoadingByMaterial[materialType]) return;
+
+    setRollsLoadingByMaterial((prev) => ({ ...prev, [materialType]: true }));
     try {
-      const rollsRes = await RollService.getAll();
-      if (rollsRes.data) {
-        const rollItems = Array.isArray(rollsRes.data)
-          ? rollsRes.data
-          : (rollsRes.data as any).items ?? (rollsRes.data as any).content ?? [];
-        setRolls(rollItems);
+      const response = await RollService.getAvailableByMaterial(materialType as any);
+      if (response.success && response.data) {
+        setRollsByMaterial((prev) => ({ ...prev, [materialType]: response.data || [] }));
+      } else {
+        setRollsByMaterial((prev) => ({ ...prev, [materialType]: [] }));
       }
     } catch (err) {
       console.error('Error loading rolls:', err);
+      setRollsByMaterial((prev) => ({ ...prev, [materialType]: [] }));
     } finally {
-      setRollsLoading(false);
+      setRollsLoadingByMaterial((prev) => ({ ...prev, [materialType]: false }));
     }
   };
 
-  const loadParentWastePieces = async () => {
+  const loadParentWastePieces = async (materialType?: string) => {
     setParentWastePiecesLoading(true);
     try {
-      const response = await WastePieceService.getAll({
-        page: 0,
-        size: 200,
-        status: 'AVAILABLE',
-      });
-      if (response.data) {
-        const items = Array.isArray(response.data) ? response.data : response.data.items || [];
-        setParentWastePieces(items);
+      if (!materialType) {
+        setParentWastePieces([]);
+        return;
+      }
+      const response = await WastePieceService.getAvailableByMaterial(materialType as any, 0, 200);
+      if (response.success && response.data) {
+        setParentWastePieces(response.data);
       } else {
         setParentWastePieces([]);
       }
@@ -1062,27 +1073,25 @@ export function CommandeDetailPage() {
     deletingItemId !== null ||
     updatingItemStatusId !== null;
 
-  const rollOptionsBase = rolls.map((roll) => {
-    const reference = roll.reference ?? (roll as any).referenceRouleau ?? t('commandes.notAvailable');
-    return {
-      label: formatRollChuteLabel({
-        reference,
+  const buildRollOptions = (rollItems: Roll[]) =>
+    rollItems.map((roll) => {
+      const reference = roll.reference ?? (roll as any).referenceRouleau ?? t('commandes.notAvailable');
+      return {
+        label: formatRollChuteLabel({
+          reference,
+          nbPlis: roll.nbPlis,
+          thicknessMm: roll.thicknessMm,
+          colorName: roll.colorName,
+          colorHexCode: roll.colorHexCode,
+        }),
+        value: roll.id,
+        materialType: roll.materialType,
         nbPlis: roll.nbPlis,
         thicknessMm: roll.thicknessMm,
-        colorName: roll.colorName,
         colorHexCode: roll.colorHexCode,
-      }),
-      value: roll.id,
-      materialType: roll.materialType,
-      nbPlis: roll.nbPlis,
-      thicknessMm: roll.thicknessMm,
-      colorHexCode: roll.colorHexCode,
-      colorName: roll.colorName,
-    };
-  });
-
-  const filterRollOptions = (materialType?: string) =>
-    rollOptionsBase.filter((option) => !materialType || option.materialType === materialType);
+        colorName: roll.colorName,
+      };
+    });
 
   const selectedProductionPlacement = placementsForItem.find(
     (placement) => placement.id === productionForm.placedRectangleId
@@ -1110,10 +1119,10 @@ export function CommandeDetailPage() {
     { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' },
   ];
 
-  const chuteRollOptions = filterRollOptions(chuteTargetItem?.materialType);
-  const chuteParentOptions = parentWastePieces
-    .filter((piece: any) => !chuteTargetItem || piece.materialType === chuteTargetItem.materialType)
-    .map((piece: any) => ({
+  const chuteRollOptions = buildRollOptions(
+    chuteTargetItem?.materialType ? (rollsByMaterial[chuteTargetItem.materialType] || []) : []
+  );
+  const chuteParentOptions = parentWastePieces.map((piece: any) => ({
       label: formatRollChuteLabel({
         reference: piece.reference ?? piece.id.slice(0, 8),
         nbPlis: piece.nbPlis,
@@ -1129,7 +1138,9 @@ export function CommandeDetailPage() {
     value: placement.id,
   }));
 
-  const placementRollOptionsDialog = filterRollOptions(placementTargetItem?.materialType);
+  const placementRollOptionsDialog = buildRollOptions(
+    placementTargetItem?.materialType ? (rollsByMaterial[placementTargetItem.materialType] || []) : []
+  );
   const placementWasteOptionsDialog = wasteForItem
     .filter((waste: any) => !placementTargetItem || waste.materialType === placementTargetItem.materialType)
     .map((waste: any) => ({

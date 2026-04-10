@@ -64,8 +64,8 @@ export interface AltierRequest {
 /**
  * Roll Types
  */
-export type MaterialType = 'PU' | 'PVC' | 'CAOUTCHOUC';
-export type RollStatus = 'AVAILABLE' | 'OPENED' | 'EXHAUSTED' | 'ARCHIVED';
+export type MaterialType = 'PU' | 'PVC' | 'CAOUTCHOUC' | 'ALL';
+export type RollStatus = 'AVAILABLE' | 'OPENED' | 'EXHAUSTED' | 'ARCHIVED' | 'ALL';
 export type WasteType = 'CHUTE_EXPLOITABLE' | 'DECHET';
 export type WasteClassification = 'DECHET' | 'CHUTE_EXPLOITABLE';
 export type CuttingOperationStatus = 'PREPARED' | 'IN_PROGRESS' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';

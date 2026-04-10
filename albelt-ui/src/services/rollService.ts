@@ -32,6 +32,18 @@ export const RollService = {
   },
 
   /**
+   * Get transfer source rolls for a given from-altier.
+   * GET /api/rolls/transfer-sources?fromAltierId={id}
+   */
+  async getTransferSources(params: {
+    fromAltierId: string;
+    page?: number;
+    size?: number;
+  }): Promise<ApiResponse<PagedResponse<Roll>>> {
+    return ApiService.get<PagedResponse<Roll>>('/rolls/transfer-sources', params);
+  },
+
+  /**
    * Get rolls filtered by altier (workshop)
    */
   async getByAltier(altierLabel: string): Promise<ApiResponse<Roll[]>> {
@@ -50,6 +62,13 @@ export const RollService = {
    */
   async getFifoQueue(material: MaterialType): Promise<ApiResponse<Roll[]>> {
     return ApiService.get<Roll[]>('/rolls/fifo/queue', { material });
+  },
+
+  /**
+   * Get available rolls for a material type (scoped to current user's accessible altiers)
+   */
+  async getAvailableByMaterial(materialType: MaterialType): Promise<ApiResponse<Roll[]>> {
+    return ApiService.get<Roll[]>('/rolls/available', { materialType });
   },
 
   /**
@@ -96,6 +115,18 @@ export const RollService = {
 
   async getTotalAreaByMaterial(material: MaterialType): Promise<ApiResponse<number>> {
     return ApiService.get<number>('/rolls/stats/area', { material });
+  },
+
+  /**
+   * Get inventory statistics grouped by material type
+   * GET /api/rolls/stats/by-material
+   */
+  async getStatsByMaterial(): Promise<
+    ApiResponse<Array<{ material: MaterialType; count: number; totalArea: number }>>
+  > {
+    return ApiService.get<Array<{ material: MaterialType; count: number; totalArea: number }>>(
+      '/rolls/stats/by-material'
+    );
   },
 
   /**

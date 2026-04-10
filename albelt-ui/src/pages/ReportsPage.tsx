@@ -47,6 +47,7 @@ export function ReportsPage() {
     PU: 0,
     PVC: 0,
     CAOUTCHOUC: 0,
+    ALL: 0,
   });
 
   const [materialStats, setMaterialStats] = useState<MaterialStats[]>([
@@ -102,30 +103,53 @@ export function ReportsPage() {
         });
       }
       if (wasteAreaRes.success && wasteAreaRes.data) {
-        setWasteAreaByMaterial(wasteAreaRes.data);
-        const totalArea = Object.values(wasteAreaRes.data).reduce((sum, area) => sum + area, 0);
-        setWasteStats((prev) => ({ ...prev, totalWasteArea: totalArea }));
+        const normalized: Record<MaterialType, number> = {
+          PU: 0,
+          PVC: 0,
+          CAOUTCHOUC: 0,
+          ALL: 0,
+        };
+
+        Object.entries(wasteAreaRes.data).forEach(([material, area]) => {
+          if (material in normalized) {
+            normalized[material as MaterialType] = Number(area) || 0;
+          }
+        });
+
+        normalized.ALL = normalized.PU + normalized.PVC + normalized.CAOUTCHOUC;
+        setWasteAreaByMaterial(normalized);
+        setWasteStats((prev) => ({ ...prev, totalWasteArea: normalized.ALL }));
       }
 
       const allRolls = await RollService.getAll();
       if (allRolls.success && allRolls.data) {
-        const stats = {
+        const stats: Record<MaterialType, { count: number; area: number }> = {
           PU: { count: 0, area: 0 },
           PVC: { count: 0, area: 0 },
           CAOUTCHOUC: { count: 0, area: 0 },
+          ALL: { count: 0, area: 0 },
         };
 
-        allRolls.data.forEach((roll) => {
-          if (!(roll.materialType in stats)) return;
-          stats[roll.materialType as MaterialType].count++;
-          stats[roll.materialType as MaterialType].area += roll.areaM2;
+        const rolls = allRolls.data.items || [];
+        rolls.forEach((roll) => {
+          const material = roll.materialType;
+          if (!material) return;
+          if (!(material in stats)) return;
+          if (material === 'ALL') return;
+          stats[material].count++;
+          stats[material].area += roll.areaM2 ?? 0;
         });
 
+        stats.ALL.count = stats.PU.count + stats.PVC.count + stats.CAOUTCHOUC.count;
+        stats.ALL.area = stats.PU.area + stats.PVC.area + stats.CAOUTCHOUC.area;
+
         setMaterialStats(
-          Object.entries(stats).map(([material, data]) => ({
-            material: material as MaterialType,
-            ...data,
-          }))
+          Object.entries(stats)
+            .filter(([material]) => material !== 'ALL')
+            .map(([material, data]) => ({
+              material: material as MaterialType,
+              ...data,
+            }))
         );
       }
 
@@ -302,7 +326,9 @@ export function ReportsPage() {
           <div style={{ display: 'grid', gap: '1rem' }}>
             <Card title={t('reports.wasteAreaByMaterial')}>
               <DataTable
-                value={Object.entries(wasteAreaByMaterial).map(([material, area]) => ({ material, area }))}
+                value={Object.entries(wasteAreaByMaterial)
+                  .filter(([material]) => material !== 'ALL')
+                  .map(([material, area]) => ({ material, area }))}
                 size="small"
               >
                 <Column field="material" header={t('reports.material')} />

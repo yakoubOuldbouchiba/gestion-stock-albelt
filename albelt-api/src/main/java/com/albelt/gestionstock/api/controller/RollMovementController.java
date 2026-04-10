@@ -195,12 +195,13 @@ public class RollMovementController {
         public ResponseEntity<ApiResponse<PagedResponse<RollMovementDTO>>> getMovementsToAltier(
             @PathVariable UUID altierID,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "false") boolean excludeBon
         ) {
         log.info("Fetching incoming movements for altier: {}", altierID);
         
         try {
-            var movements = rollMovementService.getMovementsToAltierPaged(altierID, page, size);
+            var movements = rollMovementService.getMovementsToAltierPaged(altierID, page, size, excludeBon);
             var paged = PagedResponse.<RollMovementDTO>builder()
                 .items(movements.getContent())
                 .page(movements.getNumber())
@@ -223,12 +224,13 @@ public class RollMovementController {
         public ResponseEntity<ApiResponse<PagedResponse<RollMovementDTO>>> getMovementsFromAltier(
             @PathVariable UUID altierID,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "false") boolean excludeBon
         ) {
         log.info("Fetching outgoing movements for altier: {}", altierID);
         
         try {
-            var movements = rollMovementService.getMovementsFromAltierPaged(altierID, page, size);
+            var movements = rollMovementService.getMovementsFromAltierPaged(altierID, page, size, excludeBon);
             var paged = PagedResponse.<RollMovementDTO>builder()
                 .items(movements.getContent())
                 .page(movements.getNumber())
@@ -322,12 +324,13 @@ public class RollMovementController {
         public ResponseEntity<ApiResponse<PagedResponse<RollMovementDTO>>> getPendingReceiptsByAltier(
             @PathVariable UUID altierID,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "false") boolean excludeBon
         ) {
         log.info("Fetching pending receipts for altier: {}", altierID);
         
         try {
-            var movements = rollMovementService.getPendingReceiptsByAltierPaged(altierID, page, size);
+            var movements = rollMovementService.getPendingReceiptsByAltierPaged(altierID, page, size, excludeBon);
             var paged = PagedResponse.<RollMovementDTO>builder()
                 .items(movements.getContent())
                 .page(movements.getNumber())

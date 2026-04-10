@@ -1,5 +1,5 @@
 import ApiService from './api';
-import type { Color, ApiResponse } from '../types/index';
+import type { Color, ApiResponse, PagedResponse } from '../types/index';
 
 /**
  * Color API Service - UI color configuration
@@ -7,6 +7,15 @@ import type { Color, ApiResponse } from '../types/index';
 export const ColorService = {
   async getAll(): Promise<ApiResponse<Color[]>> {
     return ApiService.get<Color[]>('/colors');
+  },
+
+  async getPaged(params?: {
+    page?: number;
+    size?: number;
+    search?: string;
+    isActive?: boolean;
+  }): Promise<ApiResponse<PagedResponse<Color>>> {
+    return ApiService.get<PagedResponse<Color>>('/colors/paged', params);
   },
 
   async getById(id: string): Promise<ApiResponse<Color>> {
