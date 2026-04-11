@@ -31,9 +31,11 @@ spring:
   
   # DataSource Configuration
   datasource:
-    url: jdbc:postgresql://localhost:5432/albelt_db
-    username: albelt_user
-    password: albelt_secure_password_123
+    # For local dev, defaults point to localhost.
+    # In Render/CI, prefer setting SPRING_DATASOURCE_URL/USERNAME/PASSWORD or DATABASE_URL.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/albelt_db}
+    username: ${SPRING_DATASOURCE_USERNAME:albelt_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:albelt_secure_password_123}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -63,7 +65,7 @@ spring:
 
 # Server Configuration
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /
     session:
