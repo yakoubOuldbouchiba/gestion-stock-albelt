@@ -444,24 +444,15 @@ ul, ol {
 }
 
 @media (min-width: 900px) {
-  .order-items-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 
   .order-item-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1200px) {
-  .order-item-fields {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1400px) {
   .order-items-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
