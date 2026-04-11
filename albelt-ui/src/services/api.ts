@@ -15,8 +15,25 @@ class ApiService {
       ? 'https://gestion-stock-albelt.onrender.com/api'
       : 'http://localhost:8080/api';
 
+    const normalizeBaseUrl = (baseUrl: string) => {
+      try {
+        const url = new URL(baseUrl);
+        const path = url.pathname || '/';
+        if (path === '/' || path === '') {
+          url.pathname = '/api';
+          return url.toString().replace(/\/$/, '');
+        }
+        return baseUrl.replace(/\/$/, '');
+      } catch {
+        return baseUrl;
+      }
+    };
+
+    const rawBaseUrl = env.VITE_API_BASE_URL || defaultBaseUrl;
+    const baseUrl = normalizeBaseUrl(rawBaseUrl);
+
     this.api = axios.create({
-      baseURL: env.VITE_API_BASE_URL || defaultBaseUrl,
+      baseURL: baseUrl,
       timeout: 15000,
       headers: {
         'Content-Type': 'application/json',
