@@ -10,8 +10,13 @@ class ApiService {
   constructor() {
     // @ts-ignore - import.meta.env is a Vite feature
     const env = import.meta.env;
+
+    const defaultBaseUrl = env.PROD
+      ? 'https://gestion-stock-albelt.onrender.com/api'
+      : 'http://localhost:8080/api';
+
     this.api = axios.create({
-      baseURL: env.VITE_API_BASE_URL || 'http://localhost:8080/api',
+      baseURL: env.VITE_API_BASE_URL || defaultBaseUrl,
       timeout: 15000,
       headers: {
         'Content-Type': 'application/json',
