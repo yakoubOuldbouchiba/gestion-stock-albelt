@@ -48,11 +48,18 @@ class ApiService {
     );
   }
 
+  private normalizeEndpoint(endpoint: string) {
+    if (!endpoint) return endpoint;
+    // If endpoint starts with '/', Axios treats it as an absolute path and ignores baseURL path.
+    // We want endpoints to be relative to baseURL (which already ends with '/api').
+    return endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  }
+
   /**
    * Generic GET request
    */
   async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<ApiResponse<T>> {
-    const response = await this.api.get<ApiResponse<T>>(endpoint, { params });
+    const response = await this.api.get<ApiResponse<T>>(this.normalizeEndpoint(endpoint), { params });
     return response.data;
   }
 
@@ -60,7 +67,7 @@ class ApiService {
    * Generic POST request
    */
   async post<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
-    const response = await this.api.post<ApiResponse<T>>(endpoint, data);
+    const response = await this.api.post<ApiResponse<T>>(this.normalizeEndpoint(endpoint), data);
     return response.data;
   }
 
@@ -68,7 +75,7 @@ class ApiService {
    * Generic PUT request
    */
   async put<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
-    const response = await this.api.put<ApiResponse<T>>(endpoint, data);
+    const response = await this.api.put<ApiResponse<T>>(this.normalizeEndpoint(endpoint), data);
     return response.data;
   }
 
@@ -76,7 +83,7 @@ class ApiService {
    * Generic PATCH request
    */
   async patch<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
-    const response = await this.api.patch<ApiResponse<T>>(endpoint, data);
+    const response = await this.api.patch<ApiResponse<T>>(this.normalizeEndpoint(endpoint), data);
     return response.data;
   }
 
@@ -84,7 +91,7 @@ class ApiService {
    * Generic DELETE request
    */
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
-    const response = await this.api.delete<ApiResponse<T>>(endpoint);
+    const response = await this.api.delete<ApiResponse<T>>(this.normalizeEndpoint(endpoint));
     return response.data;
   }
 }

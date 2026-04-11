@@ -31,7 +31,7 @@ export const useAuthStore = create<AuthState>((set) => {
       set({ isLoading: true, error: null });
       try {
         const response = await ApiService.post<{ token: string; user: User; altierIds: string[] }>(
-          '/auth/login',
+          'auth/login',
           { username, password }
         );
         
