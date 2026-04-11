@@ -1434,13 +1434,7 @@ export function CommandeDetailPage() {
         {!isLoading && comparison && (
           <div style={{ display: 'grid', gap: '0.75rem' }}>
             <Card>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr)',
-                  gap: '0.75rem',
-                }}
-              >
+              <div className="albel-compare-grid">
                 <div>
                   <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Metric</div>
                   <div>Used area (m2)</div>
@@ -1479,7 +1473,7 @@ export function CommandeDetailPage() {
               </div>
             </Card>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+            <div className="albel-grid albel-grid--min280" style={{ gap: '0.75rem' }}>
               {renderSvgPanel('Actual layout', comparison.actualSvg, 'No actual SVG available.')}
               {renderSvgPanel('Suggested layout', comparison.suggested?.svg, 'No suggestion SVG available.')}
             </div>
@@ -1562,7 +1556,7 @@ export function CommandeDetailPage() {
         {!commande.items || commande.items.length === 0 ? (
           <Message severity="info" text={t('commandes.noItems')} />
         ) : (
-          <div>
+          <div className="albel-compact-list">
             {commande.items.map((item: CommandeItem) => {
               const totalConforme = item.totalItemsConforme ?? 0;
               const totalNonConforme = item.totalItemsNonConforme ?? 0;
@@ -1571,7 +1565,7 @@ export function CommandeDetailPage() {
               const over = Math.max(0, totalProduced - item.quantite);
 
               return (
-                <Card key={item.id} style={{ marginBottom: '1rem' }}>
+                <div key={item.id} className="albel-compact-item">
                   <div
                     style={{
                       display: 'flex',
@@ -1642,27 +1636,27 @@ export function CommandeDetailPage() {
                     </div>
                   </div>
 
-                {expandedItemId === item.id && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <WasteSection
-                      wasteForItem={wasteForItem}
-                      onCreateChute={() => handleOpenChuteModal(item)}
-                      isBusy={isBusy}
-                      t={t}
-                    />
+                  {expandedItemId === item.id && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <WasteSection
+                        wasteForItem={wasteForItem}
+                        onCreateChute={() => handleOpenChuteModal(item)}
+                        isBusy={isBusy}
+                        t={t}
+                      />
 
-                    <ProductionSection
-                      productionForItem={productionForItem}
-                      placementsForItem={placementsForItem}
-                      t={t}
-                    />
+                      <ProductionSection
+                        productionForItem={productionForItem}
+                        placementsForItem={placementsForItem}
+                        t={t}
+                      />
 
-                    {renderOptimizationSection(item)}
+                      {renderOptimizationSection(item)}
 
-                    {renderPlacementSection(item)}
-                  </div>
-                )}
-                </Card>
+                      {renderPlacementSection(item)}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

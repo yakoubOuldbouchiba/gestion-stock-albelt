@@ -463,7 +463,7 @@ export function CommandeEditPage() {
       showClear
       style={{ width: '100%' }}
       itemTemplate={(option) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
           <span
             style={{
               width: '12px',
@@ -473,13 +473,15 @@ export function CommandeEditPage() {
               border: '1px solid var(--surface-border)',
             }}
           />
-          <span>{option.label}</span>
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {option.label}
+          </span>
         </div>
       )}
       valueTemplate={(option) => {
         if (!option) return <span>{t('inventory.selectColor')}</span>;
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
             <span
               style={{
                 width: '12px',
@@ -489,7 +491,9 @@ export function CommandeEditPage() {
                 border: '1px solid var(--surface-border)',
               }}
             />
-            <span>{option.label}</span>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {option.label}
+            </span>
           </div>
         );
       }}
@@ -560,9 +564,8 @@ export function CommandeEditPage() {
       >
         <Card title={t('commandes.orderHeader')}>
           <div
+            className="albel-grid albel-grid--min240"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
               gap: '1rem',
             }}
           >
@@ -635,9 +638,8 @@ export function CommandeEditPage() {
 
         <Card>
           <div
+            className="albel-grid albel-grid--min160"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
               gap: '1rem',
               textAlign: 'center',
             }}
@@ -667,7 +669,7 @@ export function CommandeEditPage() {
           {useWrappedItems ? (
             <div className="order-items-grid">
               {items.map((item, index) => (
-                <Card key={`${item.lineNumber}-${index}`}>
+                <div key={`${item.lineNumber}-${index}`} className="albel-compact-item" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 600, marginBottom: '0.75rem' }}>
                     {t('commandes.line')} {item.lineNumber}
                   </div>
@@ -856,7 +858,7 @@ export function CommandeEditPage() {
                       />
                     </div>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           ) : (

@@ -529,19 +529,17 @@ export function TransferBonsPage() {
       {error && <Message severity="error" text={error} />}
 
       <div
+        className="albel-grid albel-grid--min320"
         style={{
-          display: 'grid',
           gap: '1rem',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))'
         }}
       >
         <Card title={t('transferBons.createBon')}>
           <form className="p-fluid" onSubmit={handleCreateBon}>
             <div
+              className="albel-grid albel-grid--min220"
               style={{
-                display: 'grid',
                 gap: '1rem',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
               }}
             >
               <div>
@@ -571,10 +569,9 @@ export function TransferBonsPage() {
             </div>
 
             <div
+              className="albel-grid albel-grid--min220"
               style={{
-                display: 'grid',
                 gap: '1rem',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                 marginTop: '1rem'
               }}
             >
@@ -756,10 +753,9 @@ export function TransferBonsPage() {
           {bonDetails && (
             <Card title={t('transferBons.detailsTitle')} style={{ marginTop: '1rem' }}>
               <div
+                className="albel-grid albel-grid--min200"
                 style={{
-                  display: 'grid',
                   gap: '0.5rem',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
                 }}
               >
                 <div>
@@ -779,10 +775,9 @@ export function TransferBonsPage() {
               {!bonDetails.dateEntree && (
                 <form className="p-fluid" onSubmit={handleConfirmReceipt} style={{ marginTop: '1rem' }}>
                   <div
+                    className="albel-grid albel-grid--min220"
                     style={{
-                      display: 'grid',
                       gap: '1rem',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
                     }}
                   >
                     <div>

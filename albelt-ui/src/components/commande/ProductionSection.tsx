@@ -1,4 +1,3 @@
-import { Card } from 'primereact/card';
 import { Message } from 'primereact/message';
 import { Tag } from 'primereact/tag';
 import { formatDate } from '../../utils/date';
@@ -22,7 +21,7 @@ export const ProductionSection = ({
     {productionForItem.length === 0 ? (
       <Message severity="info" text={t('commandes.noProductionItems')} />
     ) : (
-      <div style={{ display: 'grid', gap: '0.5rem' }}>
+      <div className="albel-compact-list">
         {productionForItem.map((production) => {
           const placement = production.placedRectangle
             ?? placementsForItem.find((item) => item.id === production.placedRectangleId);
@@ -31,7 +30,7 @@ export const ProductionSection = ({
           const sourceSummary = source ? getRollChuteSummary(source) : null;
           const sourceLabel = sourceSummary ? `Ref: ${sourceSummary.reference}` : 'Placement';
           return (
-            <Card key={production.id} style={{ padding: '0.5rem' }}>
+            <div key={production.id} className="albel-compact-item">
               {production.goodProduction}
               <div
                 style={{
@@ -69,7 +68,7 @@ export const ProductionSection = ({
                   {t('commandes.productionMissLabel')}: {production.productionMiss}
                 </div>
               )}
-            </Card>
+            </div>
           );
         })}
       </div>

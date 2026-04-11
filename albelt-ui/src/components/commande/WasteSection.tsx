@@ -1,5 +1,4 @@
 import { Button } from 'primereact/button';
-import { Card } from 'primereact/card';
 import { Message } from 'primereact/message';
 import { Tag } from 'primereact/tag';
 import { formatDate } from '../../utils/date';
@@ -37,9 +36,9 @@ export const WasteSection = ({ wasteForItem, onCreateChute, isBusy, t }: WasteSe
     {wasteForItem.length === 0 ? (
       <Message severity="info" text={t('commandes.noWasteRecorded')} />
     ) : (
-      <div style={{ display: 'grid', gap: '0.5rem' }}>
+      <div className="albel-compact-list">
         {wasteForItem.map((waste: any) => (
-          <Card key={waste.id} style={{ padding: '0.5rem' }}>
+          <div key={waste.id} className="albel-compact-item">
             <div
               style={{
                 display: 'flex',
@@ -60,7 +59,7 @@ export const WasteSection = ({ wasteForItem, onCreateChute, isBusy, t }: WasteSe
               {waste.weightKg ? <span>{waste.weightKg}kg</span> : null}
               <span>{formatDate(waste.createdAt)}</span>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
     )}

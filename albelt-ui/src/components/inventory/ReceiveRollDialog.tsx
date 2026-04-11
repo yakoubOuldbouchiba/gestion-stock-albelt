@@ -54,7 +54,7 @@ export function ReceiveRollDialog({
     >
       <form onSubmit={onSubmit}>
         <div style={{ display: 'grid', gap: '1rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
               <label htmlFor="receivedDate">{t('inventory.receivedDate')} *</label>
               <InputText
@@ -80,7 +80,7 @@ export function ReceiveRollDialog({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
               <label htmlFor="altierId">{t('inventory.selectWorkshopLabel')} *</label>
               <Dropdown
@@ -129,7 +129,7 @@ export function ReceiveRollDialog({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
               <label htmlFor="nbPlis">{t('rolls.plies')} *</label>
               <InputText
@@ -156,7 +156,7 @@ export function ReceiveRollDialog({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
               <label htmlFor="widthMm">{t('rolls.width')}</label>
               <InputText
@@ -186,9 +186,7 @@ export function ReceiveRollDialog({
                 type="number"
                 id="areaM2"
                 name="areaM2"
-                value={String(formData.areaM2 ?? '')}
-                onChange={onFieldChange}
-                step="0.01"
+                value={typeof formData.areaM2 === 'number' ? formData.areaM2.toFixed(4) : ''}
                 readOnly
                 disabled
               />

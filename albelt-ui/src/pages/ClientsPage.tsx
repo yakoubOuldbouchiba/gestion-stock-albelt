@@ -482,7 +482,7 @@ export function ClientsPage() {
         <form style={{ display: 'grid', gap: '1.5rem' }}>
           <div style={{ display: 'grid', gap: '1rem' }}>
             <h3 style={{ margin: 0 }}>{t('clients.clientDetails')}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
               <div style={{ display: 'grid', gap: '0.5rem' }}>
                 <label>{t('clients.clientName')} *</label>
                 <InputText
@@ -512,7 +512,7 @@ export function ClientsPage() {
 
           <div style={{ display: 'grid', gap: '1rem' }}>
             <h3 style={{ margin: 0 }}>{t('clients.phones')}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+            <div className="albel-grid albel-grid--min180" style={{ gap: '1rem', alignItems: 'end' }}>
               <div style={{ display: 'grid', gap: '0.5rem' }}>
                 <label>{t('clients.phoneNumber')}</label>
                 <InputText value={tempPhone.phoneNumber} onChange={(e) => setTempPhone({ ...tempPhone, phoneNumber: e.target.value })} />
@@ -541,7 +541,7 @@ export function ClientsPage() {
 
           <div style={{ display: 'grid', gap: '1rem' }}>
             <h3 style={{ margin: 0 }}>{t('clients.emails')}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+            <div className="albel-grid albel-grid--min180" style={{ gap: '1rem', alignItems: 'end' }}>
               <div style={{ display: 'grid', gap: '0.5rem' }}>
                 <label>{t('clients.emailAddress')}</label>
                 <InputText value={tempEmail.emailAddress} onChange={(e) => setTempEmail({ ...tempEmail, emailAddress: e.target.value })} />
@@ -570,7 +570,7 @@ export function ClientsPage() {
 
           <div style={{ display: 'grid', gap: '1rem' }}>
             <h3 style={{ margin: 0 }}>{t('clients.addresses')}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+            <div className="albel-grid albel-grid--min180" style={{ gap: '1rem', alignItems: 'end' }}>
               <div style={{ display: 'grid', gap: '0.5rem' }}>
                 <label>{t('clients.streetAddress')}</label>
                 <InputText value={tempAddress.streetAddress} onChange={(e) => setTempAddress({ ...tempAddress, streetAddress: e.target.value })} />
@@ -614,7 +614,7 @@ export function ClientsPage() {
 
           <div style={{ display: 'grid', gap: '1rem' }}>
             <h3 style={{ margin: 0 }}>{t('clients.representatives')}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'end' }}>
+            <div className="albel-grid albel-grid--min180" style={{ gap: '1rem', alignItems: 'end' }}>
               <div style={{ display: 'grid', gap: '0.5rem' }}>
                 <label>{t('clients.representativeName')}</label>
                 <InputText value={tempRep.name} onChange={(e) => setTempRep({ ...tempRep, name: e.target.value })} />

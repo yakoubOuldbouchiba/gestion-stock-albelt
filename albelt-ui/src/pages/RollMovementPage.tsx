@@ -298,7 +298,7 @@ export function RollMovementPage() {
       >
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gap: '1rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
               <div>
                 <label htmlFor="fromAltierID">{t('rollMovement.fromAltier')} *</label>
                 <Dropdown
@@ -325,7 +325,7 @@ export function RollMovementPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
               <div>
                 <label htmlFor="dateSortie">{t('rollMovement.dateSortie')} *</label>
                 <InputText

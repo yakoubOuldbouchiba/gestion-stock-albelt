@@ -297,8 +297,8 @@ export function WastePage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <h1>{t('waste.title')}</h1>
+      <div className="albel-page-header" style={{ marginBottom: '1rem' }}>
+        <h1 className="albel-page-title">{t('waste.title')}</h1>
         <Button icon="pi pi-refresh" label={t('waste.refreshData')} onClick={loadData} />
       </div>
 
@@ -331,33 +331,33 @@ export function WastePage() {
 
       {!showGrouped && (
         <div style={{ display: 'grid', gap: '1rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-            <div style={{ padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '6px' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stats.totalAvailable}</div>
-              <div>{t('waste.availableForReuse')}</div>
-              <div>{stats.totalWasteArea.toFixed(2)} m²</div>
+          <div className="albel-dashboard__stats">
+            <div className="albel-stat">
+              <div className="albel-stat__label">{t('waste.availableForReuse')}</div>
+              <div className="albel-stat__value">{stats.totalAvailable}</div>
+              <div className="albel-stat__meta">{stats.totalWasteArea.toFixed(2)} m²</div>
             </div>
-            <div style={{ padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '6px' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stats.totalUsed}</div>
-              <div>{t('waste.successfullyReused')}</div>
-              <div>
+            <div className="albel-stat">
+              <div className="albel-stat__label">{t('waste.successfullyReused')}</div>
+              <div className="albel-stat__value">{stats.totalUsed}</div>
+              <div className="albel-stat__meta">
                 {stats.totalAvailable + stats.totalUsed > 0
                   ? ((stats.totalUsed / (stats.totalAvailable + stats.totalUsed)) * 100).toFixed(1)
                   : 0}%
               </div>
             </div>
-            <div style={{ padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '6px' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stats.totalScrap}</div>
-              <div>{t('waste.scrapDiscarded')}</div>
-              <div>
+            <div className="albel-stat">
+              <div className="albel-stat__label">{t('waste.scrapDiscarded')}</div>
+              <div className="albel-stat__value">{stats.totalScrap}</div>
+              <div className="albel-stat__meta">
                 {stats.totalAvailable + stats.totalScrap > 0
                   ? ((stats.totalScrap / (stats.totalAvailable + stats.totalScrap)) * 100).toFixed(1)
                   : 0}%
               </div>
             </div>
-            <div style={{ padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '6px' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stats.reuseEfficiency.toFixed(1)}%</div>
-              <div>{t('waste.reuseEfficiency')}</div>
+            <div className="albel-stat">
+              <div className="albel-stat__label">{t('waste.reuseEfficiency')}</div>
+              <div className="albel-stat__value">{stats.reuseEfficiency.toFixed(1)}%</div>
             </div>
           </div>
 

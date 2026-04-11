@@ -267,7 +267,7 @@ export function SuppliersPage() {
               required
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div style={{ display: 'grid', gap: '0.5rem' }}>
               <label htmlFor="email">{t('suppliers.email')} *</label>
               <InputText
@@ -300,7 +300,7 @@ export function SuppliersPage() {
               required
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div style={{ display: 'grid', gap: '0.5rem' }}>
               <label htmlFor="city">{t('suppliers.city')} *</label>
               <InputText

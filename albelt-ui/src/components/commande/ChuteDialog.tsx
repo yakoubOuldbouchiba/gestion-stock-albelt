@@ -149,7 +149,7 @@ export const ChuteDialog = ({
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+      <div className="albel-grid albel-grid--min180" style={{ gap: '1rem' }}>
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
             {t('inventory.reference') || 'Reference'}
@@ -176,7 +176,7 @@ export const ChuteDialog = ({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+      <div className="albel-grid albel-grid--min180" style={{ gap: '1rem' }}>
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
             {t('rolls.width')}

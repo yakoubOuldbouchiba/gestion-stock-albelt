@@ -357,9 +357,9 @@ export function RollMovementForm({
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
               <div>
-              disabled={formData.sourceType === 'ROLL' ? !formData.rollId : !formData.wastePieceId}
+                <label htmlFor="fromAltierDisplay">From Altier</label>
                 <InputText
                   id="fromAltierDisplay"
                   value={altiers.find((a) => a.id === formData.fromAltierID)?.libelle || ''}

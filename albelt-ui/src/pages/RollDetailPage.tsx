@@ -486,9 +486,9 @@ export function RollDetailPage() {
             {placements.length === 0 ? (
               <Message severity="info" text="No placements recorded for this roll." />
             ) : (
-              <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <div className="albel-compact-list">
                 {placements.map((placement) => (
-                  <Card key={placement.id} style={{ padding: '0.5rem' }}>
+                  <div key={placement.id} className="albel-compact-item">
                     <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
                       <span>x:{placement.xMm} y:{placement.yMm}</span>
                       <span>{placement.widthMm} x {placement.heightMm} mm</span>
@@ -526,14 +526,14 @@ export function RollDetailPage() {
                         />
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
             )}
 
             <div style={{ display: 'grid', gap: '0.75rem' }}>
               <div style={{ fontWeight: 600 }}>{editingPlacementId ? 'Update placement' : 'Add placement'}</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+              <div className="albel-grid albel-grid--min140" style={{ gap: '0.75rem' }}>
                 <div>
                   <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X (length mm)</label>
                   <InputText

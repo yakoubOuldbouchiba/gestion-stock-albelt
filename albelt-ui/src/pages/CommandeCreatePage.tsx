@@ -125,15 +125,14 @@ export function CommandeCreatePage() {
     const fetchColors = async () => {
       try {
         const res = await ColorService.getAll();
-        if (res && res.data) {
-          const dataArray = Array.isArray(res.data) ? res.data : [];
-          const colorOptions: ColorOption[] = dataArray.map((color: Color) => ({
-            label: color.name,
-            value: color.id,
-            hexCode: color.hexCode,
-          }));
-          setColors(colorOptions);
-        }
+        const colorData = res?.data;
+        const colorArray = Array.isArray(colorData) ? colorData : [];
+        const colorOptions = colorArray.map((color: Color) => ({
+          label: color.name,
+          value: color.id,
+          hexCode: color.hexCode,
+        }));
+        setColors(colorOptions);
       } catch (err) {
         console.error('Error fetching colors:', err);
       }
@@ -381,7 +380,7 @@ export function CommandeCreatePage() {
       showClear
       style={{ width: '100%' }}
       itemTemplate={(option) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
           <span
             style={{
               width: '12px',
@@ -391,13 +390,15 @@ export function CommandeCreatePage() {
               border: '1px solid var(--surface-border)',
             }}
           />
-          <span>{option.label}</span>
+          <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {option.label}
+          </span>
         </div>
       )}
       valueTemplate={(option) => {
         if (!option) return <span>{t('inventory.selectColor')}</span>;
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
             <span
               style={{
                 width: '12px',
@@ -407,7 +408,9 @@ export function CommandeCreatePage() {
                 border: '1px solid var(--surface-border)',
               }}
             />
-            <span>{option.label}</span>
+            <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {option.label}
+            </span>
           </div>
         );
       }}
@@ -452,7 +455,7 @@ export function CommandeCreatePage() {
   );
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1.5rem' }}>
+    <div style={{ maxWidth: 1200, padding: '1.5rem' }}>
       <Toast ref={toastRef} />
       <ConfirmDialog />
 
@@ -474,9 +477,8 @@ export function CommandeCreatePage() {
         {/* Order Header Card */}
         <Card title={t('commandes.orderHeader')}>
           <div
+            className="albel-grid albel-grid--min240"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
               gap: '1rem',
             }}
           >
@@ -559,9 +561,8 @@ export function CommandeCreatePage() {
         {/* Items Summary Card */}
         <Card>
           <div
+            className="albel-grid albel-grid--min160"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
               gap: '1rem',
               textAlign: 'center',
             }}
@@ -592,11 +593,11 @@ export function CommandeCreatePage() {
           {useWrappedItems ? (
             <div className="order-items-grid">
               {items.map((item, index) => (
-                <Card key={`${item.lineNumber}-${index}`}>
+                <div key={`${item.lineNumber}-${index}`} className="albel-compact-item" style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 600, marginBottom: '0.75rem' }}>
                     {t('commandes.line')} {item.lineNumber}
                   </div>
-                  <div className="order-item-fields">
+                  <div className="order-item-fields" style={{ width: 'max-content' }}>
                     <div>
                       <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>
                         {t('commandes.material')}
@@ -781,7 +782,7 @@ export function CommandeCreatePage() {
                       />
                     </div>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           ) : (

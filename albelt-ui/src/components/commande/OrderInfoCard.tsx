@@ -11,11 +11,8 @@ type OrderInfoCardProps = {
 export const OrderInfoCard = ({ commande, t }: OrderInfoCardProps) => (
   <Card title={t('commandes.orderInformation')} style={{ marginBottom: '1rem' }}>
     <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '1rem',
-      }}
+      className="albel-grid albel-grid--min220"
+      style={{ gap: '1rem' }}
     >
       <div>
         <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.orderNumber')}</div>

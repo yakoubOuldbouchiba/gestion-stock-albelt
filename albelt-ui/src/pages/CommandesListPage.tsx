@@ -207,9 +207,8 @@ export function CommandesListPage() {
         <Toolbar start={toolbarStart} end={toolbarEnd} />
 
         <div
+          className="albel-grid albel-grid--min220"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             gap: '1rem',
             marginTop: '1rem',
             marginBottom: '1rem',

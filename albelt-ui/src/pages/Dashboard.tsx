@@ -68,25 +68,27 @@ export function Dashboard() {
   }
 
   return (
-    <div style={{ display: 'grid', gap: '1.5rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ margin: 0 }}>{t('dashboard.title')}</h1>
+    <div className="albel-dashboard">
+      <div className="albel-dashboard__header">
+        <h1 className="albel-dashboard__title">{t('dashboard.title')}</h1>
         <Button icon="pi pi-refresh" label={t('common.refresh')} onClick={loadDashboardData} />
       </div>
 
       {error && <Message severity="error" text={error} />}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+      <div className="albel-dashboard__sections">
         <Card title={t('dashboard.overview')}>
           {inventoryMetrics && (
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-                <Card title={t('dashboard.totalRolls')}>
-                  <div style={{ fontSize: '1.5rem' }}>{inventoryMetrics.totalRolls}</div>
-                </Card>
-                <Card title={t('dashboard.totalArea')}>
-                  <div style={{ fontSize: '1.5rem' }}>{inventoryMetrics.totalArea.toFixed(2)}</div>
-                </Card>
+            <div className="albel-dashboard__sectionBody">
+              <div className="albel-dashboard__stats">
+                <div className="albel-stat">
+                  <div className="albel-stat__label">{t('dashboard.totalRolls')}</div>
+                  <div className="albel-stat__value">{inventoryMetrics.totalRolls}</div>
+                </div>
+                <div className="albel-stat">
+                  <div className="albel-stat__label">{t('dashboard.totalArea')}</div>
+                  <div className="albel-stat__value">{inventoryMetrics.totalArea.toFixed(2)}</div>
+                </div>
               </div>
 
               <DataTable value={inventoryMetrics.byMaterial} size="small" emptyMessage={t('messages.noDataAvailable')}>
@@ -100,14 +102,16 @@ export function Dashboard() {
 
         <Card title={t('navigation.waste')}>
           {wasteMetrics && (
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-                <Card title={t('navigation.waste')}>
-                  <div style={{ fontSize: '1.5rem' }}>{wasteMetrics.totalWaste}</div>
-                </Card>
-                <Card title={t('waste.reuseEfficiency')}>
-                  <div style={{ fontSize: '1.5rem' }}>{wasteMetrics.reuseEfficiency.toFixed(1)}%</div>
-                </Card>
+            <div className="albel-dashboard__sectionBody">
+              <div className="albel-dashboard__stats">
+                <div className="albel-stat">
+                  <div className="albel-stat__label">{t('rollDetail.totalWaste')}</div>
+                  <div className="albel-stat__value">{wasteMetrics.totalWaste}</div>
+                </div>
+                <div className="albel-stat">
+                  <div className="albel-stat__label">{t('waste.reuseEfficiency')}</div>
+                  <div className="albel-stat__value">{wasteMetrics.reuseEfficiency.toFixed(1)}%</div>
+                </div>
               </div>
 
               <DataTable value={wasteMetrics.byStatus} size="small" emptyMessage={t('messages.noDataAvailable')}>

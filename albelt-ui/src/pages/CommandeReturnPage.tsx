@@ -280,146 +280,150 @@ export function CommandeReturnPage() {
       return <Message severity="info" text={t('returns.noProductionItems')} />;
     }
 
-    return rowsWithRemaining.map((row) => {
-      const form = formItems[row.productionItem.id];
-      const productionItem = row.productionItem;
-      const commandeItem = row.commandeItem;
-      const baseItem: ReturnItemForm = form ?? {
-        commandeItemId: row.commandeItem.id,
-        productionItemId: productionItem.id,
-        quantity: 0,
-        returnType: 'MATIERE',
-      };
-      const isTotal = returnMode === 'TOTAL';
-      const source = productionItem.placedRectangle?.roll
-        ? formatRollChuteLabel(productionItem.placedRectangle.roll)
-        : productionItem.placedRectangle?.wastePiece
-        ? formatRollChuteLabel(productionItem.placedRectangle.wastePiece)
-        : t('returns.unknownSource');
+    return (
+      <div className="albel-compact-list">
+        {rowsWithRemaining.map((row) => {
+          const form = formItems[row.productionItem.id];
+          const productionItem = row.productionItem;
+          const commandeItem = row.commandeItem;
+          const baseItem: ReturnItemForm = form ?? {
+            commandeItemId: row.commandeItem.id,
+            productionItemId: productionItem.id,
+            quantity: 0,
+            returnType: 'MATIERE',
+          };
+          const isTotal = returnMode === 'TOTAL';
+          const source = productionItem.placedRectangle?.roll
+            ? formatRollChuteLabel(productionItem.placedRectangle.roll)
+            : productionItem.placedRectangle?.wastePiece
+            ? formatRollChuteLabel(productionItem.placedRectangle.wastePiece)
+            : t('returns.unknownSource');
 
-      return (
-        <Card key={productionItem.id} style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-              <span><strong>{t('returns.line')}</strong> {commandeItem.lineNumber}</span>
-              <span><strong>{t('returns.material')}</strong> {commandeItem.materialType}</span>
-              <span>
-                <strong>{t('returns.dimensions')}</strong> {productionItem.pieceWidthMm}mm x {productionItem.pieceLengthM}m
-              </span>
-              <span><strong>{t('returns.produced')}</strong> {productionItem.quantity}</span>
-              <span><strong>{t('returns.remaining')}</strong> {row.remaining}</span>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-              <span><strong>{t('returns.source')}</strong> {source}</span>
-            </div>
-            <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.quantity')}</label>
-                <InputNumber
-                  value={form?.quantity ?? 0}
-                  onValueChange={(e) =>
-                    setFormItems((prev) => ({
-                      ...prev,
-                      [productionItem.id]: {
-                        ...baseItem,
-                        quantity: e.value ? Number(e.value) : 0,
-                      },
-                    }))
-                  }
-                  min={0}
-                  max={row.remaining}
-                  disabled={isTotal || row.remaining === 0}
-                  style={{ width: '100%' }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.returnType')}</label>
-                <Dropdown
-                  value={form?.returnType ?? 'MATIERE'}
-                  options={returnTypeOptions}
-                  onChange={(e) =>
-                    setFormItems((prev) => ({
-                      ...prev,
-                      [productionItem.id]: {
-                        ...baseItem,
-                        returnType: e.value,
-                        measureAction: e.value === 'MESURE' ? baseItem.measureAction ?? 'DECHET' : undefined,
-                      },
-                    }))
-                  }
-                  style={{ width: '100%' }}
-                />
-              </div>
-              {form?.returnType === 'MESURE' && (
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.measureAction')}</label>
-                  <Dropdown
-                    value={form?.measureAction ?? 'DECHET'}
-                    options={measureActionOptions}
-                    onChange={(e) =>
-                      setFormItems((prev) => ({
-                        ...prev,
-                        [productionItem.id]: {
-                          ...baseItem,
-                          measureAction: e.value,
-                        },
-                      }))
-                    }
-                    style={{ width: '100%' }}
-                  />
+          return (
+            <div key={productionItem.id} className="albel-compact-item" style={{ padding: '1rem' }}>
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                  <span><strong>{t('returns.line')}</strong> {commandeItem.lineNumber}</span>
+                  <span><strong>{t('returns.material')}</strong> {commandeItem.materialType}</span>
+                  <span>
+                    <strong>{t('returns.dimensions')}</strong> {productionItem.pieceWidthMm}mm x {productionItem.pieceLengthM}m
+                  </span>
+                  <span><strong>{t('returns.produced')}</strong> {productionItem.quantity}</span>
+                  <span><strong>{t('returns.remaining')}</strong> {row.remaining}</span>
                 </div>
-              )}
-              {form?.returnType === 'MESURE' && form?.measureAction === 'AJUST' && (
-                <>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                  <span><strong>{t('returns.source')}</strong> {source}</span>
+                </div>
+                <div className="albel-grid albel-grid--min180" style={{ gap: '0.75rem' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.adjustedWidth')}</label>
+                    <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.quantity')}</label>
                     <InputNumber
-                      value={form?.adjustedWidthMm ?? undefined}
+                      value={form?.quantity ?? 0}
                       onValueChange={(e) =>
                         setFormItems((prev) => ({
                           ...prev,
                           [productionItem.id]: {
                             ...baseItem,
-                            adjustedWidthMm: e.value ? Number(e.value) : null,
-                          },
-                        }))
-                      }
-                      min={1}
-                      max={productionItem.pieceWidthMm}
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.adjustedLength')}</label>
-                    <InputNumber
-                      value={form?.adjustedLengthM ?? undefined}
-                      onValueChange={(e) =>
-                        setFormItems((prev) => ({
-                          ...prev,
-                          [productionItem.id]: {
-                            ...baseItem,
-                            adjustedLengthM: e.value ? Number(e.value) : null,
+                            quantity: e.value ? Number(e.value) : 0,
                           },
                         }))
                       }
                       min={0}
-                      max={productionItem.pieceLengthM}
-                      mode="decimal"
-                      minFractionDigits={1}
-                      maxFractionDigits={2}
+                      max={row.remaining}
+                      disabled={isTotal || row.remaining === 0}
                       style={{ width: '100%' }}
                     />
                   </div>
-                </>
-              )}
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.returnType')}</label>
+                    <Dropdown
+                      value={form?.returnType ?? 'MATIERE'}
+                      options={returnTypeOptions}
+                      onChange={(e) =>
+                        setFormItems((prev) => ({
+                          ...prev,
+                          [productionItem.id]: {
+                            ...baseItem,
+                            returnType: e.value,
+                            measureAction: e.value === 'MESURE' ? baseItem.measureAction ?? 'DECHET' : undefined,
+                          },
+                        }))
+                      }
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                  {form?.returnType === 'MESURE' && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.measureAction')}</label>
+                      <Dropdown
+                        value={form?.measureAction ?? 'DECHET'}
+                        options={measureActionOptions}
+                        onChange={(e) =>
+                          setFormItems((prev) => ({
+                            ...prev,
+                            [productionItem.id]: {
+                              ...baseItem,
+                              measureAction: e.value,
+                            },
+                          }))
+                        }
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  )}
+                  {form?.returnType === 'MESURE' && form?.measureAction === 'AJUST' && (
+                    <>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.adjustedWidth')}</label>
+                        <InputNumber
+                          value={form?.adjustedWidthMm ?? undefined}
+                          onValueChange={(e) =>
+                            setFormItems((prev) => ({
+                              ...prev,
+                              [productionItem.id]: {
+                                ...baseItem,
+                                adjustedWidthMm: e.value ? Number(e.value) : null,
+                              },
+                            }))
+                          }
+                          min={1}
+                          max={productionItem.pieceWidthMm}
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.adjustedLength')}</label>
+                        <InputNumber
+                          value={form?.adjustedLengthM ?? undefined}
+                          onValueChange={(e) =>
+                            setFormItems((prev) => ({
+                              ...prev,
+                              [productionItem.id]: {
+                                ...baseItem,
+                                adjustedLengthM: e.value ? Number(e.value) : null,
+                              },
+                            }))
+                          }
+                          min={0}
+                          max={productionItem.pieceLengthM}
+                          mode="decimal"
+                          minFractionDigits={1}
+                          maxFractionDigits={2}
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+                {row.remaining === 0 && (
+                  <Message severity="info" text={t('returns.noRemaining')} />
+                )}
+              </div>
             </div>
-            {row.remaining === 0 && (
-              <Message severity="info" text={t('returns.noRemaining')} />
-            )}
-          </div>
-        </Card>
-      );
-    });
+          );
+        })}
+      </div>
+    );
   };
 
   if (loading) {
@@ -461,7 +465,7 @@ export function CommandeReturnPage() {
       {error && <Message severity="error" text={error} style={{ margin: '1rem 0' }} />}
 
       <Card title={t('returns.detailsTitle')} style={{ marginTop: '1.5rem' }}>
-        <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '0.25rem' }}>{t('returns.mode')}</label>
             <Dropdown

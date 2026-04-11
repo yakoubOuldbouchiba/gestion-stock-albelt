@@ -291,19 +291,17 @@ export function PurchaseBonsPage() {
       {error && <Message severity="error" text={error} />}
 
       <div
+        className="albel-grid albel-grid--min320"
         style={{
-          display: 'grid',
           gap: '1rem',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))'
         }}
       >
         <Card title={t('purchaseBons.createTitle')}>
           <form className="p-fluid" onSubmit={handleCreateBon}>
             <div
+              className="albel-grid albel-grid--min220"
               style={{
-                display: 'grid',
                 gap: '1rem',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
               }}
             >
               <div>
@@ -328,10 +326,9 @@ export function PurchaseBonsPage() {
             </div>
 
             <div
+              className="albel-grid albel-grid--min220"
               style={{
-                display: 'grid',
                 gap: '1rem',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                 marginTop: '1rem'
               }}
             >
@@ -367,10 +364,9 @@ export function PurchaseBonsPage() {
               </div>
 
               <div
+                className="albel-grid albel-grid--min220"
                 style={{
-                  display: 'grid',
                   gap: '1rem',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                   marginTop: '0.75rem'
                 }}
               >
@@ -569,10 +565,9 @@ export function PurchaseBonsPage() {
               {selectedBon && (
                 <Card title={t('purchaseBons.details')} style={{ marginTop: '1rem' }}>
                   <div
+                    className="albel-grid albel-grid--min200"
                     style={{
-                      display: 'grid',
                       gap: '0.5rem',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))'
                     }}
                   >
                     <div>

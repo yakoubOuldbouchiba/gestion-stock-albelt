@@ -60,13 +60,15 @@ export function InventoryTab({
 }: InventoryTabProps) {
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+      <div className="albel-dashboard__stats">
         {stats.map((stat) => (
-          <div key={stat.material} style={{ padding: '1rem', border: '1px solid var(--surface-border)', borderRadius: '6px' }}>
-            <div style={{ color: getMaterialColor(stat.material) }}>{stat.material}</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{stat.count}</div>
-            <div>{t('inventory.availableRolls')}</div>
-            <div>{stat.area.toFixed(2)} m²</div>
+          <div key={stat.material} className="albel-stat">
+            <div className="albel-stat__label" style={{ color: getMaterialColor(stat.material) }}>
+              {stat.material}
+            </div>
+            <div className="albel-stat__value">{stat.count}</div>
+            <div className="albel-stat__meta">{t('inventory.availableRolls')}</div>
+            <div className="albel-stat__meta">{stat.area.toFixed(2)} m²</div>
           </div>
         ))}
       </div>

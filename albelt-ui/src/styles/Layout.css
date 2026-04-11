@@ -103,3 +103,10 @@
     padding: 14px;
   }
 }
+
+@media (max-width: 420px) {
+  .layout-main {
+    padding: 12px;
+    gap: 1rem;
+  }
+}

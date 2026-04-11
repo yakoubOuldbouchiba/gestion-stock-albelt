@@ -224,9 +224,9 @@ export function ReportsPage() {
 
   return (
     <div style={{ display: 'grid', gap: '1.5rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ margin: 0 }}>{t('reports.analyticsTitle')}</h1>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div className="albel-page-header">
+        <h1 className="albel-page-title">{t('reports.analyticsTitle')}</h1>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <Button icon="pi pi-refresh" label={t('common.refresh')} onClick={loadAnalytics} />
           <Button
             icon="pi pi-download"
@@ -242,22 +242,26 @@ export function ReportsPage() {
       <TabView>
         <TabPanel header={t('reports.overview')}>
           <div style={{ display: 'grid', gap: '1rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-              <Card title={t('reports.totalOperations')}>
-                <div style={{ fontSize: '1.5rem' }}>{totalOperations}</div>
-              </Card>
-              <Card title={t('reports.highEfficiency')}>
-                <div style={{ fontSize: '1.5rem' }}>{highEfficiencyOps.length}</div>
-                <small>{getEfficiencyPercentage()}% {t('reports.ofTotal')}</small>
-              </Card>
-              <Card title={t('reports.significantWaste')}>
-                <div style={{ fontSize: '1.5rem' }}>{wasteOps.length}</div>
-                <small>{getWastePercentage()}% {t('reports.ofTotal')}</small>
-              </Card>
-              <Card title={t('reports.wasteReused')}>
-                <div style={{ fontSize: '1.5rem' }}>{wasteStats.used}</div>
-                <small>{wasteStats.total ? Math.round((wasteStats.used / wasteStats.total) * 100) : 0}%</small>
-              </Card>
+            <div className="albel-dashboard__stats">
+              <div className="albel-stat">
+                <div className="albel-stat__label">{t('reports.totalOperations')}</div>
+                <div className="albel-stat__value">{totalOperations}</div>
+              </div>
+              <div className="albel-stat">
+                <div className="albel-stat__label">{t('reports.highEfficiency')}</div>
+                <div className="albel-stat__value">{highEfficiencyOps.length}</div>
+                <div className="albel-stat__meta">{getEfficiencyPercentage()}% {t('reports.ofTotal')}</div>
+              </div>
+              <div className="albel-stat">
+                <div className="albel-stat__label">{t('reports.significantWaste')}</div>
+                <div className="albel-stat__value">{wasteOps.length}</div>
+                <div className="albel-stat__meta">{getWastePercentage()}% {t('reports.ofTotal')}</div>
+              </div>
+              <div className="albel-stat">
+                <div className="albel-stat__label">{t('reports.wasteReused')}</div>
+                <div className="albel-stat__value">{wasteStats.used}</div>
+                <div className="albel-stat__meta">{wasteStats.total ? Math.round((wasteStats.used / wasteStats.total) * 100) : 0}%</div>
+              </div>
             </div>
 
             <Card title={t('reports.wasteSummary')}>

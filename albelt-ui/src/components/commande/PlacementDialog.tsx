@@ -73,7 +73,7 @@ export const PlacementDialog = ({
     }
   >
     <div style={{ display: 'grid', gap: '0.75rem' }}>
-      <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+      <div className="albel-grid albel-grid--min200" style={{ gap: '0.75rem' }}>
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Source</label>
           <Dropdown
@@ -168,7 +168,7 @@ export const PlacementDialog = ({
           </div>
         );
       })()}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+      <div className="albel-grid albel-grid--min140" style={{ gap: '0.75rem' }}>
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X (length mm)</label>
           <InputText
