@@ -3,6 +3,7 @@ package com.albelt.gestionstock.domain.commandes.mapper;
 import com.albelt.gestionstock.domain.commandes.dto.*;
 import com.albelt.gestionstock.domain.commandes.entity.*;
 import com.albelt.gestionstock.domain.clients.entity.Client;
+import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.users.entity.User;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +25,7 @@ public class CommandeMapper {
     /**
      * Convert CommandeRequest DTO to Commande entity
      */
-    public Commande toEntity(CommandeRequest request, Client client, User createdBy) {
+    public Commande toEntity(CommandeRequest request, Client client, Altier altier, User createdBy) {
         if (request == null) {
             return null;
         }
@@ -37,6 +38,7 @@ public class CommandeMapper {
         return Commande.builder()
             .numeroCommande(request.getNumeroCommande())
             .client(client)
+            .altier(altier)
             .status(status)
             .description(request.getDescription())
             .notes(request.getNotes())
@@ -63,6 +65,8 @@ public class CommandeMapper {
                 .numeroCommande(commande.getNumeroCommande())
                 .clientId(commande.getClient().getId())
                 .clientName(commande.getClient().getName())
+            .altierId(commande.getAltier() != null ? commande.getAltier().getId() : null)
+            .altierLibelle(commande.getAltier() != null ? commande.getAltier().getLibelle() : null)
                 .status(commande.getStatus())
                 .description(commande.getDescription())
                 .notes(commande.getNotes())

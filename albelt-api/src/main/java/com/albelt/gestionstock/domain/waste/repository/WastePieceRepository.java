@@ -33,6 +33,18 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
                                              Pageable pageable);
 
     /**
+     * Find available waste pieces for a specific material, optionally restricted to an altier.
+     */
+    @Query("SELECT wp FROM WastePiece wp WHERE wp.materialType = :materialType " +
+           "AND wp.status IN (:statuses) " +
+           "AND (:altierId IS NULL OR wp.altier.id = :altierId) " +
+           "ORDER BY wp.availableAreaM2 DESC")
+    List<WastePiece> findAvailableByMaterialAndAltier(@Param("materialType") MaterialType materialType,
+                                                      @Param("statuses") List<WasteStatus> statuses,
+                                                      @Param("altierId") UUID altierId,
+                                                      Pageable pageable);
+
+    /**
      * Find large waste pieces (> 3m²) ready for reuse
      * Critical for waste reuse workflow
      */

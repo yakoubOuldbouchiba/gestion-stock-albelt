@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import com.albelt.gestionstock.domain.clients.entity.Client;
+import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.users.entity.User;
 
 import java.math.BigDecimal;
@@ -19,6 +20,7 @@ import java.util.*;
         @Index(name = "idx_commandes_numero", columnList = "numero_commande"),
         @Index(name = "idx_commandes_client_id", columnList = "client_id"),
         @Index(name = "idx_commandes_status", columnList = "status"),
+    @Index(name = "idx_commandes_altier_id", columnList = "altier_id"),
         @Index(name = "idx_commandes_created_at", columnList = "created_at")
 })
 @Data
@@ -37,6 +39,10 @@ public class Commande {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "altier_id")
+    private Altier altier;
 
     @Column(name = "status", nullable = false, length = 20)
     @Builder.Default

@@ -770,6 +770,8 @@ export interface Commande {
   numeroCommande: string;
   clientId: string;
   clientName: string;
+  altierId?: string;
+  altierLibelle?: string;
   status: CommandeStatus;
   description?: string;
   notes?: string;
@@ -785,10 +787,21 @@ export interface Commande {
 export interface CommandeRequest {
   numeroCommande: string;
   clientId: string;
+  altierId?: string;
   status?: CommandeStatus;
   description?: string;
   notes?: string;
   items?: CommandeItemRequest[];
+}
+
+export interface AltierScore {
+  altierId: string;
+  altierLibelle: string;
+  score: number;
+  totalPieces: number;
+  placedPieces: number;
+  coveragePct: number;
+  canFulfill: boolean;
 }
 
 export interface OptimizationMetrics {

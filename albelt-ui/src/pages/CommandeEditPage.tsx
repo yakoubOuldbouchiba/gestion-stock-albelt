@@ -26,6 +26,7 @@ import type {
   CommandeStatus,
   MaterialType,
   TypeMouvement,
+  AltierScore,
 } from '../types';
 
 interface ClientOption {
@@ -75,6 +76,9 @@ export function CommandeEditPage() {
   const [notes, setNotes] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<CommandeStatus>('PENDING');
   const [originalStatus, setOriginalStatus] = useState<CommandeStatus>('PENDING');
+  const [selectedAltierId, setSelectedAltierId] = useState<string | null>(null);
+  const [altierScores, setAltierScores] = useState<AltierScore[]>([]);
+  const [altierScoresLoading, setAltierScoresLoading] = useState(false);
 
   // Items state
   const [items, setItems] = useState<EditableCommandeItem[]>([]);
@@ -118,6 +122,7 @@ export function CommandeEditPage() {
           setNotes(commandeData.notes || '');
           setSelectedStatus(commandeData.status || 'PENDING');
           setOriginalStatus(commandeData.status || 'PENDING');
+          setSelectedAltierId(commandeData.altierId || null);
 
           const mappedItems = (commandeData.items || []).map((item: CommandeItem) => ({
             id: item.id,
@@ -174,6 +179,25 @@ export function CommandeEditPage() {
 
     fetchData();
   }, [id, t]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchScores = async () => {
+      setAltierScoresLoading(true);
+      try {
+        const res = await CommandeService.getAltierScores(id);
+        setAltierScores(res.data || []);
+      } catch (err) {
+        console.error('Error fetching altier scores:', err);
+        setAltierScores([]);
+      } finally {
+        setAltierScoresLoading(false);
+      }
+    };
+
+    fetchScores();
+  }, [id]);
 
   const validateForm = (): boolean => {
     const errors: { [key: string]: string } = {};
@@ -298,6 +322,7 @@ export function CommandeEditPage() {
           const commandeRequest: CommandeRequest = {
             numeroCommande,
             clientId: selectedClient!,
+            altierId: selectedAltierId || undefined,
             status: selectedStatus,
             description,
             notes,
@@ -888,6 +913,51 @@ export function CommandeEditPage() {
               severity="success"
               disabled={isBusy}
             />
+          </div>
+
+          <div style={{ marginTop: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label>{t('rollDetail.workshop')}</label>
+              <Dropdown
+                options={altierScores.map((s) => ({
+                  label: `${s.altierLibelle} (${Number(s.coveragePct).toFixed(1)}%)`,
+                  value: s.altierId,
+                }))}
+                value={selectedAltierId}
+                onChange={(e) => setSelectedAltierId(e.value)}
+                placeholder={t('inventory.selectWorkshop')}
+                showClear
+                disabled={altierScoresLoading}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            {altierScores.length > 0 && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+                  {t('commandes.workshopsByScore')}
+                </div>
+                <div className="albel-compact-list">
+                  {altierScores.map((score) => (
+                    <div key={score.altierId} className="albel-compact-item">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+                        <div
+                          style={{
+                            minWidth: 0,
+                            fontWeight: score.altierId === selectedAltierId ? 700 : 500,
+                          }}
+                        >
+                          {score.altierLibelle}
+                        </div>
+                        <div style={{ whiteSpace: 'nowrap' }}>
+                          {Number(score.coveragePct).toFixed(1)}% ({score.placedPieces}/{score.totalPieces})
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </Card>
 

@@ -9,6 +9,7 @@ import com.albelt.gestionstock.domain.clients.repository.ClientRepository;
 import com.albelt.gestionstock.domain.production.entity.ProductionItem;
 import com.albelt.gestionstock.domain.production.repository.ProductionItemRepository;
 import com.albelt.gestionstock.domain.users.repository.UserRepository;
+import com.albelt.gestionstock.domain.altier.service.AltierService;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.waste.service.WastePieceService;
@@ -44,6 +45,7 @@ public class CommandeService {
     private final CommandeItemService itemService;
     private final ProductionItemRepository productionItemRepository;
     private final WastePieceService wastePieceService;
+    private final AltierService altierService;
 
     @Value("${waste.scrap-threshold-area-m2:3.0}")
     private BigDecimal scrapThresholdAreaM2;
@@ -68,8 +70,10 @@ public class CommandeService {
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
 
+        var altier = request.getAltierId() != null ? altierService.getById(request.getAltierId()) : null;
+
         // Create order
-        Commande commande = commandeMapper.toEntity(request, client, user);
+        Commande commande = commandeMapper.toEntity(request, client, altier, user);
 
         // Save order FIRST before adding items (items reference the order)
         Commande savedCommande = commandeRepository.save(commande);
@@ -172,6 +176,9 @@ public class CommandeService {
         String previousStatus = commande.getStatus();
 
         // Update basic fields
+        if (request.getAltierId() != null) {
+            commande.setAltier(altierService.getById(request.getAltierId()));
+        }
         if (request.getDescription() != null) {
             commande.setDescription(request.getDescription());
         }

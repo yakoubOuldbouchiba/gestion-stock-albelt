@@ -5,6 +5,7 @@ import type {
   CommandeItem,
   CommandeItemRequest,
   OptimizationComparison,
+  AltierScore,
   ApiResponse,
   PagedResponse
 } from '../types/index';
@@ -35,6 +36,13 @@ export const CommandeService = {
    */
   async getById(id: string): Promise<ApiResponse<Commande>> {
     return ApiService.get<Commande>(`/commandes/${id}`);
+  },
+
+  /**
+   * Get altiers ranked by score for fulfilling this order
+   */
+  async getAltierScores(commandeId: string): Promise<ApiResponse<AltierScore[]>> {
+    return ApiService.get<AltierScore[]>(`/commandes/${commandeId}/altier-scores`);
   },
 
   /**

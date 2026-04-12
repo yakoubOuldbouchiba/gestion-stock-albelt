@@ -23,6 +23,8 @@ public class CommandeRequest {
     
     @NotNull(message = "Client ID is required")
     private UUID clientId;
+
+    private UUID altierId;
     
     private String status = "PENDING";
     

@@ -22,6 +22,10 @@ public class CommandeResponse {
     private UUID clientId;
     
     private String clientName;
+
+    private UUID altierId;
+
+    private String altierLibelle;
     
     private String status;
     

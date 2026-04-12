@@ -8,6 +8,8 @@ import com.albelt.gestionstock.domain.commandes.mapper.CommandeMapper;
 import com.albelt.gestionstock.domain.commandes.mapper.CommandeItemMapper;
 import com.albelt.gestionstock.domain.commandes.service.*;
 import com.albelt.gestionstock.domain.users.entity.User;
+import com.albelt.gestionstock.domain.optimization.dto.AltierScoreResponse;
+import com.albelt.gestionstock.domain.optimization.service.OptimizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -35,6 +37,7 @@ public class CommandeController {
     private final CommandeItemService itemService;
     private final CommandeMapper commandeMapper;
     private final CommandeItemMapper itemMapper;
+    private final OptimizationService optimizationService;
 
     // ==================== ORDER ENDPOINTS ====================
 
@@ -95,6 +98,17 @@ public class CommandeController {
         CommandeResponse response = commandeMapper.toResponse(commande);
 
         return ResponseEntity.ok(ApiResponse.success(response, "Order retrieved successfully"));
+    }
+
+    /**
+     * Get altiers ranked by score for fulfilling this order.
+     * GET /api/commandes/{id}/altier-scores
+     */
+    @GetMapping("/{id}/altier-scores")
+    public ResponseEntity<ApiResponse<List<AltierScoreResponse>>> getAltierScores(@PathVariable UUID id) {
+        log.info("GET /api/commandes/{}/altier-scores - Rank workshops by fulfillment score", id);
+        var scores = optimizationService.scoreAltiersForCommande(id);
+        return ResponseEntity.ok(ApiResponse.success(scores, "Altier scores retrieved"));
     }
 
     /**

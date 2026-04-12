@@ -34,6 +34,10 @@ export const OrderInfoCard = ({ commande, t }: OrderInfoCardProps) => (
         <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.totalItems')}</div>
         <div>{commande.items?.length || 0}</div>
       </div>
+      <div>
+        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('rollDetail.workshop')}</div>
+        <div>{commande.altierLibelle || t('rollDetail.unassigned')}</div>
+      </div>
     </div>
 
     {commande.description && (

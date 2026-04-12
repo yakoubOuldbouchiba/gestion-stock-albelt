@@ -2,9 +2,14 @@ package com.albelt.gestionstock.domain.optimization.service;
 
 import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
 import com.albelt.gestionstock.domain.commandes.repository.CommandeItemRepository;
+import com.albelt.gestionstock.domain.commandes.entity.Commande;
+import com.albelt.gestionstock.domain.commandes.repository.CommandeRepository;
+import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.altier.repository.AltierRepository;
 import com.albelt.gestionstock.domain.optimization.dto.OptimizationComparisonResponse;
 import com.albelt.gestionstock.domain.optimization.dto.OptimizationMetricsResponse;
 import com.albelt.gestionstock.domain.optimization.dto.OptimizationPlanResponse;
+import com.albelt.gestionstock.domain.optimization.dto.AltierScoreResponse;
 import com.albelt.gestionstock.domain.optimization.entity.*;
 import com.albelt.gestionstock.domain.optimization.repository.OptimizationPlacementRepository;
 import com.albelt.gestionstock.domain.optimization.repository.OptimizationPlanRepository;
@@ -46,6 +51,8 @@ public class OptimizationService {
     private static final List<String> ACTIVE_COMMANDE_STATUSES = Arrays.asList("PENDING", "ENCOURS");
 
     private final CommandeItemRepository itemRepository;
+    private final CommandeRepository commandeRepository;
+    private final AltierRepository altierRepository;
     private final RollRepository rollRepository;
     private final WastePieceRepository wastePieceRepository;
     private final PlacedRectangleRepository placedRectangleRepository;
@@ -92,6 +99,12 @@ public class OptimizationService {
             plan = planRepository
                 .findFirstByCommandeItemIdAndStatusOrderByCreatedAtDesc(commandeItemId, OptimizationPlanStatus.ACTIVE)
                 .orElse(null);
+
+            // If the commande has an assigned altier, always regenerate to ensure
+            // the suggestion is constrained to that altier.
+            if (plan != null && item.getCommande() != null && item.getCommande().getAltier() != null) {
+                plan = null;
+            }
         }
 
         if (plan == null) {
@@ -170,6 +183,14 @@ public class OptimizationService {
     }
 
     private List<SourceCandidate> buildCandidates(CommandeItem item) {
+        UUID commandeAltierId = null;
+        if (item != null && item.getCommande() != null && item.getCommande().getAltier() != null) {
+            commandeAltierId = item.getCommande().getAltier().getId();
+        }
+        return buildCandidates(item, commandeAltierId);
+    }
+
+    private List<SourceCandidate> buildCandidates(CommandeItem item, UUID altierId) {
         MaterialType materialType = parseMaterialType(item.getMaterialType());
         Integer nbPlis = item.getNbPlis();
         BigDecimal thickness = item.getThicknessMm();
@@ -177,11 +198,18 @@ public class OptimizationService {
         String reference = normalize(item.getReference());
 
         List<WasteStatus> wasteStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
-        List<WastePiece> wastePieces = wastePieceRepository.findAvailableByMaterial(
-            materialType,
-            wasteStatuses,
-            PageRequest.of(0, MAX_WASTE_CANDIDATES)
-        );
+        List<WastePiece> wastePieces = altierId == null
+            ? wastePieceRepository.findAvailableByMaterial(
+                materialType,
+                wasteStatuses,
+                PageRequest.of(0, MAX_WASTE_CANDIDATES)
+            )
+            : wastePieceRepository.findAvailableByMaterialAndAltier(
+                materialType,
+                wasteStatuses,
+                altierId,
+                PageRequest.of(0, MAX_WASTE_CANDIDATES)
+            );
 
         List<SourceCandidate> wasteCandidates = wastePieces.stream()
             .filter(wp -> wp.getWasteType() == WasteType.CHUTE_EXPLOITABLE || wp.getWasteType() == null)
@@ -194,7 +222,9 @@ public class OptimizationService {
             .collect(Collectors.toList());
 
         List<RollStatus> rollStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
-        List<Roll> rolls = rollRepository.findFifoQueue(materialType, rollStatuses);
+        List<Roll> rolls = altierId == null
+            ? rollRepository.findFifoQueue(materialType, rollStatuses)
+            : rollRepository.findFifoQueueByAltier(materialType, rollStatuses, altierId);
 
         List<SourceCandidate> rollCandidates = rolls.stream()
             .filter(r -> matchesCommonFilters(materialType, nbPlis, thickness, colorId, reference,
@@ -209,6 +239,68 @@ public class OptimizationService {
         List<SourceCandidate> candidates = new ArrayList<>(wasteCandidates);
         candidates.addAll(rollCandidates);
         return candidates;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AltierScoreResponse> scoreAltiersForCommande(UUID commandeId) {
+        Commande commande = commandeRepository.findById(commandeId)
+            .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + commandeId));
+
+        List<CommandeItem> items = commande.getItems() != null ? commande.getItems() : List.of();
+        int totalPieces = items.stream()
+            .map(CommandeItem::getQuantite)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .sum();
+
+        List<Altier> altiers = altierRepository.findAll();
+        List<AltierScoreResponse> results = new ArrayList<>();
+
+        for (Altier altier : altiers) {
+            int placedPieces = 0;
+
+            for (CommandeItem item : items) {
+                List<Piece> pieces = buildPieces(item);
+                if (pieces.isEmpty()) {
+                    continue;
+                }
+
+                List<SourceCandidate> candidates = buildCandidates(item, altier.getId());
+                if (candidates.isEmpty()) {
+                    continue;
+                }
+
+                OptimizationRun run = optimizePieces(pieces, candidates, item.getId(), commandeId);
+                placedPieces += run.placedPieces;
+            }
+
+            BigDecimal coveragePct = BigDecimal.ZERO;
+            if (totalPieces > 0) {
+                coveragePct = BigDecimal.valueOf(placedPieces)
+                    .divide(BigDecimal.valueOf(totalPieces), 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+            }
+
+            boolean canFulfill = totalPieces == 0 || placedPieces >= totalPieces;
+            double score = (canFulfill ? 1_000_000.0 : 0.0) + coveragePct.doubleValue();
+
+            results.add(AltierScoreResponse.builder()
+                .altierId(altier.getId())
+                .altierLibelle(altier.getLibelle())
+                .score(score)
+                .totalPieces(totalPieces)
+                .placedPieces(Math.min(placedPieces, totalPieces))
+                .coveragePct(coveragePct)
+                .canFulfill(canFulfill)
+                .build());
+        }
+
+        results.sort(
+            Comparator.comparingDouble(AltierScoreResponse::getScore).reversed()
+                .thenComparing(r -> r.getAltierLibelle() != null ? r.getAltierLibelle() : "")
+        );
+
+        return results;
     }
 
     private OptimizationRun optimizePieces(List<Piece> pieces,

@@ -41,6 +41,16 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
                              @Param("statuses") List<RollStatus> statuses);
 
     /**
+     * Get available rolls for a material in FIFO order, optionally restricted to a specific altier.
+     */
+    @Query("SELECT r FROM Roll r WHERE r.materialType = :materialType AND r.status IN (:statuses) " +
+           "AND (:altierId IS NULL OR r.altier.id = :altierId) " +
+           "ORDER BY r.receivedDate ASC")
+    List<Roll> findFifoQueueByAltier(@Param("materialType") MaterialType materialType,
+                                     @Param("statuses") List<RollStatus> statuses,
+                                     @Param("altierId") UUID altierId);
+
+    /**
      * Find rolls with sufficient area for cutting
      */
     @Query("SELECT r FROM Roll r WHERE r.materialType = :materialType " +

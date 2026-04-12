@@ -31,6 +31,7 @@ import type {
   Commande,
   CommandeItem,
   ItemStatus,
+  AltierScore,
   OptimizationComparison,
   PlacedRectangle,
   ProductionItem,
@@ -48,6 +49,10 @@ export function CommandeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [selectedAltierId, setSelectedAltierId] = useState<string | null>(null);
+  const [altierScores, setAltierScores] = useState<AltierScore[]>([]);
+  const [altierScoresLoading, setAltierScoresLoading] = useState(false);
+  const [altierSaving, setAltierSaving] = useState(false);
   const [rollsByMaterial, setRollsByMaterial] = useState<Record<string, Roll[]>>({});
   const [rollsLoadingByMaterial, setRollsLoadingByMaterial] = useState<Record<string, boolean>>({});
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
@@ -119,6 +124,7 @@ export function CommandeDetailPage() {
         if (res.data) {
           setCommande(res.data);
           setSelectedStatus(res.data.status);
+          setSelectedAltierId(res.data.altierId ?? null);
         }
         
         setError(null);
@@ -132,6 +138,25 @@ export function CommandeDetailPage() {
 
     fetchData();
   }, [id, t]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchScores = async () => {
+      setAltierScoresLoading(true);
+      try {
+        const res = await CommandeService.getAltierScores(id);
+        setAltierScores(res.data || []);
+      } catch (err) {
+        console.error('Error fetching altier scores:', err);
+        setAltierScores([]);
+      } finally {
+        setAltierScoresLoading(false);
+      }
+    };
+
+    fetchScores();
+  }, [id]);
 
   useEffect(() => {
     if (showChuteForm && chuteSourceType === 'WASTE_PIECE') {
@@ -288,6 +313,34 @@ export function CommandeDetailPage() {
     }
 
     await submitStatusUpdate();
+  };
+
+  const handleAltierSave = async () => {
+    if (!commande || !id) return;
+    if (altierSaving) return;
+
+    try {
+      setAltierSaving(true);
+      const res = await CommandeService.update(id, {
+        numeroCommande: commande.numeroCommande,
+        clientId: commande.clientId,
+        altierId: selectedAltierId || undefined,
+        status: commande.status,
+        description: commande.description,
+        notes: commande.notes,
+      });
+
+      if (res.data) {
+        setCommande(res.data);
+        setSelectedAltierId(res.data.altierId ?? null);
+        showSuccess(t('common.updated'));
+      }
+    } catch (err) {
+      console.error('Error updating workshop:', err);
+      showError(t('commandes.updateError'));
+    } finally {
+      setAltierSaving(false);
+    }
   };
 
   const handleItemStatusUpdate = async (itemId: string, newStatus: ItemStatus) => {
@@ -1540,8 +1593,6 @@ export function CommandeDetailPage() {
 
       {error && <Message severity="error" text={error} style={{ marginBottom: '1rem' }} />}
 
-      <OrderInfoCard commande={commande} t={t} />
-
       <StatusUpdateCard
         selectedStatus={selectedStatus}
         statusOptions={statusOptions}
@@ -1662,6 +1713,34 @@ export function CommandeDetailPage() {
           </div>
         )}
       </Card>
+
+      <Card title={t('rollDetail.workshop')}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <Dropdown
+            options={altierScores.map((s) => ({
+              label: `${s.altierLibelle} (${Number(s.coveragePct).toFixed(1)}%)`,
+              value: s.altierId,
+            }))}
+            value={selectedAltierId}
+            onChange={(e) => setSelectedAltierId(e.value)}
+            placeholder={t('inventory.selectWorkshop')}
+            showClear
+            disabled={altierScoresLoading || altierSaving}
+            style={{ width: '100%' }}
+          />
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              label={altierSaving ? t('common.saving') : t('common.save')}
+              icon="pi pi-check"
+              onClick={handleAltierSave}
+              disabled={altierSaving}
+            />
+          </div>
+        </div>
+      </Card>
+
+      <OrderInfoCard commande={commande} t={t} />
 
       <ChuteDialog
         chuteTargetItem={chuteTargetItem}
