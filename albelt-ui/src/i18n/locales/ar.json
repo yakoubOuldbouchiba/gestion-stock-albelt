@@ -41,9 +41,7 @@
     "inactive": "غير نشط",
     "actions": "الإجراءات",
     "reason": "السبب",
-    "roll": "الرولا",
-    "edit": "تعديل",
-    "delete": "حذف"
+    "roll": "الرولا"
   },
   "navigation": {
     "dashboard": "لوحة التحكم",
@@ -117,7 +115,6 @@
     "selectColor": "اختر اللون",
     "noColors": "لا توجد ألوان مُكوّنة",
     "reference": "المرجع",
-    "showGroupedStats": "عرض الإحصائيات المجمعة",
     "noGroupedStats": "لم يتم العثور على إحصائيات مجمعة.",
     "sourceType": "نوع المصدر",
     "roll": "الملف",
@@ -295,22 +292,6 @@
     "movementList": "قائمة الحركات",
     "movementType": "نوع الحركة",
     "description": "الوصف"
-  },
-  "users": {
-    "title": "المستخدمون",
-    "fullName": "الاسم الكامل",
-    "email": "البريد الإلكتروني",
-    "role": "الدور",
-    "status": "الحالة",
-    "addUser": "إضافة مستخدم",
-    "editUser": "تعديل المستخدم",
-    "deleteUser": "حذف المستخدم",
-    "username": "اسم المستخدم",
-    "active": "نشط",
-    "inactive": "غير نشط",
-    "deactivate": "تعطيل",
-    "activate": "تفعيل",
-    "changeRole": "تغيير الدور"
   },
   "suppliers": {
     "title": "الموردون",
@@ -633,6 +614,14 @@
     "exportResults": "تصدير النتائج"
   },
   "users": {
+    "fullName": "الاسم الكامل",
+    "status": "الحالة",
+    "addUser": "إضافة مستخدم",
+    "editUser": "تعديل المستخدم",
+    "deleteUser": "حذف المستخدم",
+    "deactivate": "تعطيل",
+    "activate": "تفعيل",
+    "changeRole": "تغيير الدور",
     "title": "إدارة المستخدمين",
     "loading": "جاري تحميل المستخدمين...",
     "totalUsers": "إجمالي المستخدمين",
@@ -808,10 +797,7 @@
     "view": "عرض",
     "delete": "حذف",
     "confirmDelete": "هل أنت متأكد من رغبتك في حذف هذا الطلب؟",
-    "createOrder": "إنشاء طلب",
     "fillDetailsBelow": "ملء التفاصيل أدناه لإنشاء طلب جديد",
-    "totalQuantity": "إجمالي الكمية",
-    "totalSurface": "إجمالي السطح",
     "selectMaterial": "اختر المادة",
     "selectMouvement": "اختر الحركة",
     "lineNumber": "خط #",

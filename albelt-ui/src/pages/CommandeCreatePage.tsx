@@ -806,7 +806,7 @@ export function CommandeCreatePage() {
           <div style={{ marginTop: '1rem' }}>
             <Button
               type="button"
-              label={`+ ${t('commandes.addItem')}`}
+              label={`${t('commandes.addItem')}`}
               icon="pi pi-plus"
               onClick={handleAddItem}
               severity="success"
