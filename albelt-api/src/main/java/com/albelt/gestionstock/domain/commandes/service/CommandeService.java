@@ -230,9 +230,10 @@ public class CommandeService {
         log.info("Updating order status: {} -> {}", id, newStatus);
 
         Commande commande = getById(id);
+        System.out.println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT :"+commande.getStatus().toUpperCase());
         assertCommandeNotLocked(commande);
         String previousStatus = commande.getStatus();
-        commande.setStatus(newStatus);
+
 
         if (isCancellationTransition(previousStatus, newStatus)) {
             createChutesFromProductionItems(commande, userId);
@@ -246,7 +247,7 @@ public class CommandeService {
                     .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
             commande.setUpdatedBy(updatedBy);
         }
-
+        commande.setStatus(newStatus);
         return commandeRepository.save(commande);
     }
 
