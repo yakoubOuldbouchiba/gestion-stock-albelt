@@ -230,7 +230,6 @@ public class CommandeService {
         log.info("Updating order status: {} -> {}", id, newStatus);
 
         Commande commande = getById(id);
-        System.out.println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT :"+commande.getStatus().toUpperCase());
         assertCommandeNotLocked(commande);
         String previousStatus = commande.getStatus();
 

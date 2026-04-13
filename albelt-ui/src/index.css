@@ -164,6 +164,7 @@ ul, ol {
   background: #fff;
   transition: var(--transition-smooth);
   min-height: 40px;
+  width: stretch;
 }
 
 .p-inputtext:focus,
