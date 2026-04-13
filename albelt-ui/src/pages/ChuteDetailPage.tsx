@@ -33,6 +33,13 @@ export function ChuteDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const isCommandePlacement = (placement: PlacedRectangle) =>
+    Boolean((placement as any).commandeItemId || (placement as any).commandeItem?.id);
+
+  const setCommandePlacementError = () => {
+    setError('This placement is linked to an order. Edit/delete it from the commande page.');
+  };
+
   useEffect(() => {
     loadWastePiece();
   }, [wasteId]);
@@ -215,6 +222,10 @@ export function ChuteDetailPage() {
   };
 
   const startEditPlacement = (placement: PlacedRectangle) => {
+    if (isCommandePlacement(placement)) {
+      setCommandePlacementError();
+      return;
+    }
     setEditingPlacementId(placement.id);
     setPlacementForm({
       xMm: String(placement.xMm),
@@ -231,6 +242,11 @@ export function ChuteDetailPage() {
 
   const handleDeletePlacement = async (placementId: string) => {
     if (!wastePiece) return;
+    const placement = placements.find((p) => p.id === placementId);
+    if (placement && isCommandePlacement(placement)) {
+      setCommandePlacementError();
+      return;
+    }
     if (!window.confirm('Delete this placement?')) return;
     try {
       await PlacedRectangleService.delete(placementId);
@@ -249,6 +265,10 @@ export function ChuteDetailPage() {
 
   const handleClearPlacements = async () => {
     if (!wastePiece) return;
+    if (placements.some(isCommandePlacement)) {
+      setCommandePlacementError();
+      return;
+    }
     if (!window.confirm('Clear all placements for this chute?')) return;
     try {
       await PlacedRectangleService.clearByWastePiece(wastePiece.id);
@@ -522,6 +542,7 @@ export function ChuteDetailPage() {
                   severity="danger"
                   outlined
                   onClick={handleClearPlacements}
+                  disabled={placements.some(isCommandePlacement)}
                 />
               )}
             </div>
@@ -549,12 +570,19 @@ export function ChuteDetailPage() {
                           {placement.colorName || placement.colorHexCode}
                         </span>
                       )}
+                      {/* Display commande reference if exists */}
+                      {placement.commandeItem?.reference && (
+                        <span style={{ fontStyle: 'italic', color: '#3b82f6' }}>
+                          Ref commande: {placement.commandeItem.reference}
+                        </span>
+                      )}
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <Button
                           label="Edit"
                           icon="pi pi-pencil"
                           outlined
                           onClick={() => startEditPlacement(placement)}
+                          disabled={isCommandePlacement(placement)}
                         />
                         <Button
                           label="Delete"
@@ -562,6 +590,7 @@ export function ChuteDetailPage() {
                           severity="danger"
                           outlined
                           onClick={() => handleDeletePlacement(placement.id)}
+                          disabled={isCommandePlacement(placement)}
                         />
                       </div>
                     </div>

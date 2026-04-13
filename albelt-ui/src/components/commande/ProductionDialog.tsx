@@ -13,6 +13,7 @@ type ProductionDialogProps = {
   selectedProductionColorHex: string;
   selectedProductionColorName: string;
   selectedProductionLabel: string;
+  disabled?: boolean;
   productionForm: {
     pieceLengthM: string;
     pieceWidthMm: string;
@@ -32,6 +33,7 @@ export const ProductionDialog = ({
   selectedProductionColorHex,
   selectedProductionColorName,
   selectedProductionLabel,
+  disabled,
   productionForm,
   onFieldChange,
   onSave,
@@ -54,6 +56,7 @@ export const ProductionDialog = ({
           label={t('commandes.saveProductionItem')}
           onClick={onSave}
           loading={creatingProduction}
+          disabled={Boolean(disabled) || creatingProduction}
         />
       </div>
     }
@@ -103,6 +106,7 @@ export const ProductionDialog = ({
           placeholder="0.00"
           type="number"
           style={{ width: '100%' }}
+          disabled={Boolean(disabled) || creatingProduction}
         />
       </div>
 
@@ -116,6 +120,7 @@ export const ProductionDialog = ({
           placeholder="0"
           type="number"
           style={{ width: '100%' }}
+          disabled={Boolean(disabled) || creatingProduction}
         />
       </div>
 
@@ -129,6 +134,7 @@ export const ProductionDialog = ({
           placeholder="0"
           type="number"
           style={{ width: '100%' }}
+          disabled={Boolean(disabled) || creatingProduction}
         />
       </div>
 
@@ -142,6 +148,7 @@ export const ProductionDialog = ({
           placeholder={t('commandes.notesPlaceholder')}
           rows={3}
           style={{ width: '100%' }}
+          disabled={Boolean(disabled) || creatingProduction}
         />
       </div>
     </div>

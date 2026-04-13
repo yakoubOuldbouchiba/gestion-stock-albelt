@@ -11,6 +11,7 @@ import com.albelt.gestionstock.domain.production.repository.ProductionItemReposi
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
+import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class ProductionItemService {
 
         PlacedRectangle placedRectangle = getPlacedRectangle(request.getPlacedRectangleId());
         CommandeItem commandeItem = getCommandeItemFromPlacement(placedRectangle);
+        assertCommandeNotLocked(commandeItem);
         Roll roll = placedRectangle.getRoll();
         WastePiece wastePiece = placedRectangle.getWastePiece();
 
@@ -81,6 +83,7 @@ public class ProductionItemService {
         }
 
         CommandeItem commandeItem = getCommandeItemFromPlacement(placedRectangle);
+        assertCommandeNotLocked(commandeItem);
         Roll roll = placedRectangle.getRoll();
         WastePiece wastePiece = placedRectangle.getWastePiece();
 
@@ -134,7 +137,22 @@ public class ProductionItemService {
 
     public void delete(UUID id) {
         ProductionItem item = getById(id);
+        assertCommandeNotLocked(getCommandeItemFromPlacement(item.getPlacedRectangle()));
         productionItemRepository.delete(item);
+    }
+
+    private void assertCommandeNotLocked(CommandeItem commandeItem) {
+        if (commandeItem == null || commandeItem.getCommande() == null) {
+            return;
+        }
+        String status = commandeItem.getCommande().getStatus();
+        if (status == null) {
+            return;
+        }
+        String normalized = status.trim().toUpperCase();
+        if ("COMPLETED".equals(normalized) || "CANCELLED".equals(normalized)) {
+            throw new BusinessException("Order cannot be edited when it is COMPLETED or CANCELLED");
+        }
     }
 
     private CommandeItem getCommandeItem(UUID commandeItemId) {

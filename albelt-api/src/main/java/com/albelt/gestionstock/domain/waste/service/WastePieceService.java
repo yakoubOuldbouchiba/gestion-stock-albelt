@@ -3,6 +3,8 @@ package com.albelt.gestionstock.domain.waste.service;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.altier.service.AltierService;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
+import com.albelt.gestionstock.domain.commandes.entity.Commande;
+import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
 import com.albelt.gestionstock.domain.commandes.repository.CommandeItemRepository;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
@@ -16,6 +18,7 @@ import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.enums.WasteType;
+import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,9 +74,10 @@ public class WastePieceService {
         WastePiece parentWastePiece = null;
         Roll roll = null;
 
-        if (request.getCommandeItemId() != null
-                && !commandeItemRepository.existsById(request.getCommandeItemId())) {
-            throw new ResourceNotFoundException("Order item not found: " + request.getCommandeItemId());
+        if (request.getCommandeItemId() != null) {
+            CommandeItem item = commandeItemRepository.findById(request.getCommandeItemId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Order item not found: " + request.getCommandeItemId()));
+            assertCommandeNotLocked(item.getCommande());
         }
 
         if (request.getParentWastePieceId() != null) {
@@ -305,6 +309,17 @@ public class WastePieceService {
 
     public WastePiece save(WastePiece wastePiece) {
         return wastePieceRepository.save(wastePiece);
+    }
+
+    private void assertCommandeNotLocked(Commande commande) {
+        String normalizedStatus = Optional.ofNullable(commande)
+                .map(Commande::getStatus)
+                .map(String::trim)
+                .map(String::toUpperCase)
+                .orElse("");
+        if ("COMPLETED".equals(normalizedStatus) || "CANCELLED".equals(normalizedStatus)) {
+            throw new BusinessException("Commande is locked (COMPLETED/CANCELLED) and cannot be modified");
+        }
     }
 
     private String normalize(String value) {

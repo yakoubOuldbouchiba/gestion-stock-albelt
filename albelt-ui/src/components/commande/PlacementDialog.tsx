@@ -12,6 +12,7 @@ type PlacementDialogProps = {
   placementTargetItem: CommandeItem | null;
   onHide: () => void;
   t: Translate;
+  disabled?: boolean;
   placementForm: {
     sourceType: 'ROLL' | 'WASTE_PIECE';
     sourceId: string;
@@ -40,6 +41,7 @@ export const PlacementDialog = ({
   placementTargetItem,
   onHide,
   t,
+  disabled,
   placementForm,
   placementSourceOptionsDialog,
   onSourceTypeChange,
@@ -67,7 +69,7 @@ export const PlacementDialog = ({
           label={editingPlacementId ? 'Update placement' : 'Save placement'}
           onClick={onSave}
           loading={creatingPlacement}
-          disabled={creatingPlacement || !placementTargetItem}
+          disabled={Boolean(disabled) || creatingPlacement || !placementTargetItem}
         />
       </div>
     }
@@ -80,7 +82,7 @@ export const PlacementDialog = ({
             value={placementForm.sourceType}
             options={placementSourceOptionsDialog}
             onChange={(e) => onSourceTypeChange(e.value)}
-            disabled={editingPlacementId !== null}
+            disabled={Boolean(disabled) || editingPlacementId !== null}
             style={{ width: '100%' }}
           />
         </div>
@@ -93,7 +95,7 @@ export const PlacementDialog = ({
             valueTemplate={placementForm.sourceType === 'ROLL' ? (option) => renderRollOption(option) : undefined}
             onChange={(e) => onSourceIdChange(e.value as string)}
             placeholder={t('commandes.selectRollOption')}
-            disabled={editingPlacementId !== null}
+            disabled={Boolean(disabled) || editingPlacementId !== null}
             style={{ width: '100%' }}
           />
         </div>
@@ -176,6 +178,7 @@ export const PlacementDialog = ({
             onChange={(e) => onFieldChange('xMm', e.target.value)}
             type="number"
             min={0}
+            disabled={Boolean(disabled) || creatingPlacement}
           />
         </div>
         <div>
@@ -185,6 +188,7 @@ export const PlacementDialog = ({
             onChange={(e) => onFieldChange('yMm', e.target.value)}
             type="number"
             min={0}
+            disabled={Boolean(disabled) || creatingPlacement}
           />
         </div>
         <div>
@@ -194,6 +198,7 @@ export const PlacementDialog = ({
             onChange={(e) => onFieldChange('widthMm', e.target.value)}
             type="number"
             min={1}
+            disabled={Boolean(disabled) || creatingPlacement}
           />
         </div>
         <div>
@@ -203,6 +208,7 @@ export const PlacementDialog = ({
             onChange={(e) => onFieldChange('heightMm', e.target.value)}
             type="number"
             min={1}
+            disabled={Boolean(disabled) || creatingPlacement}
           />
         </div>
       </div>

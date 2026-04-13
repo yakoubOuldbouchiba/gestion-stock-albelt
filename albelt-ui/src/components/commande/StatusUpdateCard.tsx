@@ -8,6 +8,7 @@ type StatusUpdateCardProps = {
   statusOptions: { label: string; value: string }[];
   updating: boolean;
   currentStatus: string;
+  disabled?: boolean;
   onStatusChange: (nextStatus: string) => void;
   onUpdate: () => void;
   t: Translate;
@@ -18,6 +19,7 @@ export const StatusUpdateCard = ({
   statusOptions,
   updating,
   currentStatus,
+  disabled,
   onStatusChange,
   onUpdate,
   t,
@@ -30,11 +32,12 @@ export const StatusUpdateCard = ({
         onChange={(e) => onStatusChange(e.value)}
         placeholder={t('commandes.updateStatus')}
         style={{ minWidth: '220px' }}
+        disabled={Boolean(disabled) || updating}
       />
       <Button
         label={updating ? t('commandes.updating') : t('commandes.updateStatus')}
         onClick={onUpdate}
-        disabled={updating || selectedStatus === currentStatus}
+        disabled={Boolean(disabled) || updating || selectedStatus === currentStatus}
         loading={updating}
       />
     </div>

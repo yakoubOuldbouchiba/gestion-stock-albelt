@@ -40,6 +40,13 @@ export function RollDetailPage() {
 
   const statuses: RollStatus[] = ['AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED'];
 
+  const isCommandePlacement = (placement: PlacedRectangle) =>
+    Boolean(placement.commandeItemId || (placement as any).commandeItem?.id);
+
+  const setCommandePlacementError = () => {
+    setError('This placement is linked to an order. Edit/delete it from the commande page.');
+  };
+
   useEffect(() => {
     loadRollDetails();
   }, [rollId]);
@@ -214,6 +221,10 @@ export function RollDetailPage() {
   };
 
   const startEditPlacement = (placement: PlacedRectangle) => {
+    if (isCommandePlacement(placement)) {
+      setCommandePlacementError();
+      return;
+    }
     setEditingPlacementId(placement.id);
     setPlacementForm({
       xMm: String(placement.xMm),
@@ -237,6 +248,11 @@ export function RollDetailPage() {
 
   const handleDeletePlacement = async (placementId: string) => {
     if (!roll) return;
+    const placement = placements.find((p) => p.id === placementId);
+    if (placement && isCommandePlacement(placement)) {
+      setCommandePlacementError();
+      return;
+    }
     if (!window.confirm('Delete this placement?')) return;
     try {
       await PlacedRectangleService.delete(placementId);
@@ -255,6 +271,10 @@ export function RollDetailPage() {
 
   const handleClearPlacements = async () => {
     if (!roll) return;
+    if (placements.some(isCommandePlacement)) {
+      setCommandePlacementError();
+      return;
+    }
     if (!window.confirm('Clear all placements for this roll?')) return;
     try {
       await PlacedRectangleService.clearByRoll(roll.id);
@@ -479,6 +499,7 @@ export function RollDetailPage() {
                   severity="danger"
                   outlined
                   onClick={handleClearPlacements}
+                  disabled={placements.some(isCommandePlacement)}
                 />
               )}
             </div>
@@ -516,6 +537,7 @@ export function RollDetailPage() {
                           icon="pi pi-pencil"
                           outlined
                           onClick={() => startEditPlacement(placement)}
+                          disabled={isCommandePlacement(placement)}
                         />
                         <Button
                           label="Delete"
@@ -523,6 +545,7 @@ export function RollDetailPage() {
                           severity="danger"
                           outlined
                           onClick={() => handleDeletePlacement(placement.id)}
+                          disabled={isCommandePlacement(placement)}
                         />
                       </div>
                     </div>

@@ -116,6 +116,19 @@ export function CommandeEditPage() {
 
         const commandeData = commandeRes?.data;
         if (commandeData) {
+          const normalizedStatus = String(commandeData.status || '').trim().toUpperCase();
+          const isCommandeLocked = normalizedStatus === 'COMPLETED' || normalizedStatus === 'CANCELLED';
+          if (isCommandeLocked) {
+            toastRef.current?.show({
+              severity: 'warn',
+              summary: t('common.warning'),
+              detail: t('commandes.editLocked'),
+              life: 3000,
+            });
+            setTimeout(() => navigate(`/commandes/${id}`), 300);
+            return;
+          }
+
           setNumeroCommande(commandeData.numeroCommande);
           setSelectedClient(commandeData.clientId);
           setDescription(commandeData.description || '');

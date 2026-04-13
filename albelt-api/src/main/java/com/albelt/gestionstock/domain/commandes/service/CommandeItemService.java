@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.domain.commandes.service;
 
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
+import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.domain.commandes.dto.*;
 import com.albelt.gestionstock.domain.commandes.entity.*;
 import com.albelt.gestionstock.domain.commandes.mapper.CommandeItemMapper;
@@ -38,6 +39,8 @@ public class CommandeItemService {
      */
     public CommandeItem createItem(CommandeItemRequest request, Commande commande) {
         log.info("Creating new order item for order: {} with line: {}", commande.getId(), request.getLineNumber());
+
+        assertCommandeNotLocked(commande);
 
         CommandeItem item = itemMapper.toEntity(request, commande);
 
@@ -114,6 +117,7 @@ public class CommandeItemService {
         log.info("Updating order item: {}", id);
 
         CommandeItem item = getById(id);
+        assertCommandeNotLocked(item.getCommande());
 
         // Update fields
         if (request.getMaterialType() != null) {
@@ -171,6 +175,7 @@ public class CommandeItemService {
         log.info("Updating item status: {} -> {}", id, newStatus);
 
         CommandeItem item = getById(id);
+        assertCommandeNotLocked(item.getCommande());
         item.setStatus(newStatus);
 
         return itemRepository.save(item);
@@ -182,12 +187,24 @@ public class CommandeItemService {
     public void delete(UUID id) {
         log.info("Deleting order item: {}", id);
 
-        if (!itemRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Order item not found: " + id);
-        }
-
-        itemRepository.deleteById(id);
+        CommandeItem item = getById(id);
+        assertCommandeNotLocked(item.getCommande());
+        itemRepository.delete(item);
         log.info("Order item deleted successfully: {}", id);
+    }
+
+    private void assertCommandeNotLocked(Commande commande) {
+        if (commande == null) {
+            return;
+        }
+        String status = commande.getStatus();
+        if (status == null) {
+            return;
+        }
+        String normalized = status.trim().toUpperCase();
+        if ("COMPLETED".equals(normalized) || "CANCELLED".equals(normalized)) {
+            throw new BusinessException("Order cannot be edited when it is COMPLETED or CANCELLED");
+        }
     }
 
     /**

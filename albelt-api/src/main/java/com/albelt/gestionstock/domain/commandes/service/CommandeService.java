@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.domain.commandes.service;
 
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
+import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.domain.commandes.dto.*;
 import com.albelt.gestionstock.domain.commandes.entity.*;
 import com.albelt.gestionstock.domain.commandes.mapper.CommandeMapper;
@@ -173,6 +174,7 @@ public class CommandeService {
         log.info("Updating order: {}", id);
 
         Commande commande = getById(id);
+        assertCommandeNotLocked(commande);
         String previousStatus = commande.getStatus();
 
         // Update basic fields
@@ -228,6 +230,7 @@ public class CommandeService {
         log.info("Updating order status: {} -> {}", id, newStatus);
 
         Commande commande = getById(id);
+        assertCommandeNotLocked(commande);
         String previousStatus = commande.getStatus();
         commande.setStatus(newStatus);
 
@@ -245,6 +248,20 @@ public class CommandeService {
         }
 
         return commandeRepository.save(commande);
+    }
+
+    private void assertCommandeNotLocked(Commande commande) {
+        if (commande == null) {
+            return;
+        }
+        String status = commande.getStatus();
+        if (status == null) {
+            return;
+        }
+        String normalized = status.trim().toUpperCase();
+        if ("COMPLETED".equals(normalized) || "CANCELLED".equals(normalized)) {
+            throw new BusinessException("Order cannot be edited when it is COMPLETED or CANCELLED");
+        }
     }
 
     private boolean isCancellationTransition(String previousStatus, String nextStatus) {

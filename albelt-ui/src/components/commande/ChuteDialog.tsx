@@ -11,6 +11,7 @@ type ChuteDialogProps = {
   showChuteForm: boolean;
   onHide: () => void;
   t: Translate;
+  disabled?: boolean;
   chuteSourceType: 'ROLL' | 'WASTE_PIECE';
   chuteSourceOptions: { label: string; value: string }[];
   onSourceTypeChange: (value: string) => void;
@@ -38,6 +39,7 @@ export const ChuteDialog = ({
   showChuteForm,
   onHide,
   t,
+  disabled,
   chuteSourceType,
   chuteSourceOptions,
   onSourceTypeChange,
@@ -75,7 +77,12 @@ export const ChuteDialog = ({
     footer={
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
         <Button label={t('common.cancel')} severity="secondary" onClick={onHide} />
-        <Button label={t('inventory.createChute')} onClick={onCreate} loading={creatingChute} />
+        <Button
+          label={t('inventory.createChute')}
+          onClick={onCreate}
+          loading={creatingChute}
+          disabled={Boolean(disabled) || creatingChute}
+        />
       </div>
     }
   >
@@ -89,6 +96,7 @@ export const ChuteDialog = ({
           options={chuteSourceOptions}
           onChange={(e) => onSourceTypeChange(e.value)}
           style={{ width: '100%' }}
+          disabled={Boolean(disabled) || creatingChute}
         />
       </div>
 
@@ -105,6 +113,7 @@ export const ChuteDialog = ({
             onChange={(e) => onRollChange(e.value as string)}
             placeholder={t('commandes.selectRollOption')}
             style={{ width: '100%' }}
+            disabled={Boolean(disabled) || creatingChute}
           />
         </div>
       ) : (
@@ -122,6 +131,7 @@ export const ChuteDialog = ({
                 : t('inventory.selectWastePiece')
             }
             style={{ width: '100%' }}
+            disabled={Boolean(disabled) || creatingChute || parentWastePiecesLoading}
           />
         </div>
       )}
@@ -143,7 +153,7 @@ export const ChuteDialog = ({
                   : 'Select placement'
             }
             style={{ width: '100%' }}
-            disabled={chutePlacementsLoading || chutePlacementOptions.length === 0}
+            disabled={Boolean(disabled) || creatingChute || chutePlacementsLoading || chutePlacementOptions.length === 0}
             filter
           />
         </div>
@@ -185,6 +195,7 @@ export const ChuteDialog = ({
             value={chuteDimensions.widthMm ? String(chuteDimensions.widthMm) : ''}
             onChange={(e) => onDimensionChange('widthMm', e.target.value)}
             type="number"
+            disabled={Boolean(disabled) || creatingChute}
           />
         </div>
         <div>
@@ -195,6 +206,7 @@ export const ChuteDialog = ({
             value={chuteDimensions.lengthM ? String(chuteDimensions.lengthM) : ''}
             onChange={(e) => onDimensionChange('lengthM', e.target.value)}
             type="number"
+            disabled={Boolean(disabled) || creatingChute}
           />
         </div>
         <div>

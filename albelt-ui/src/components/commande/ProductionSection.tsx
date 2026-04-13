@@ -1,3 +1,4 @@
+import { Button } from 'primereact/button';
 import { Message } from 'primereact/message';
 import { Tag } from 'primereact/tag';
 import { formatDate } from '../../utils/date';
@@ -9,12 +10,16 @@ type ProductionSectionProps = {
   productionForItem: ProductionItem[];
   placementsForItem: PlacedRectangle[];
   t: Translate;
+  isBusy?: boolean;
+  onDeleteProduction?: (productionId: string) => void;
 };
 
 export const ProductionSection = ({
   productionForItem,
   placementsForItem,
   t,
+  isBusy,
+  onDeleteProduction,
 }: ProductionSectionProps) => (
   <div style={{ marginTop: '0.75rem' }}>
     <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{t('commandes.productionItems')}</div>
@@ -62,6 +67,16 @@ export const ProductionSection = ({
                   {' '}({production.totalAreaM2?.toFixed(2)}m2)
                 </span>
                 <span>{formatDate(production.createdAt)}</span>
+                {onDeleteProduction && (
+                  <Button
+                    label={t('common.delete')}
+                    icon="pi pi-trash"
+                    severity="danger"
+                    text
+                    onClick={() => onDeleteProduction(production.id)}
+                    disabled={isBusy}
+                  />
+                )}
               </div>
               {production.productionMiss && (
                 <div style={{ marginTop: '0.35rem', color: 'var(--text-color-secondary)', fontSize: '0.85rem' }}>

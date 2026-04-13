@@ -111,6 +111,11 @@ export function CommandeDetailPage() {
   const statuses = ['PENDING', 'ENCOURS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
   const itemStatuses: ItemStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
+  const isCommandeLocked = useMemo(() => {
+    const normalized = (commande?.status ?? '').trim().toUpperCase();
+    return normalized === 'COMPLETED' || normalized === 'CANCELLED';
+  }, [commande?.status]);
+
   useEffect(() => {
     if (!id) {
       setError(t('commandes.loadError'));
@@ -277,6 +282,10 @@ export function CommandeDetailPage() {
 
   const handleStatusUpdate = async () => {
     if (!commande || !id) return;
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
 
     const submitStatusUpdate = async () => {
       try {
@@ -318,6 +327,10 @@ export function CommandeDetailPage() {
   const handleAltierSave = async () => {
     if (!commande || !id) return;
     if (altierSaving) return;
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
 
     try {
       setAltierSaving(true);
@@ -345,6 +358,10 @@ export function CommandeDetailPage() {
 
   const handleItemStatusUpdate = async (itemId: string, newStatus: ItemStatus) => {
     if (!commande) return;
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
 
     try {
       if (updatingItemStatusId) return;
@@ -366,7 +383,38 @@ export function CommandeDetailPage() {
     }
   };
 
+  const handleDeleteProductionItem = (productionItemId: string, itemId: string) => {
+    if (!id) return;
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
+    confirmDialog({
+      message: 'Delete this production item?',
+      header: t('common.confirm'),
+      icon: 'pi pi-exclamation-triangle',
+      accept: async () => {
+        try {
+          await ProductionItemService.delete(productionItemId);
+          await loadProductionForItem(itemId);
+          const commandeRes = await CommandeService.getById(id);
+          if (commandeRes.data) {
+            setCommande(commandeRes.data);
+          }
+          showSuccess('Production item deleted.');
+        } catch (err) {
+          console.error('Error deleting production item:', err);
+          showError('Unable to delete production item.');
+        }
+      },
+    });
+  };
+
   const handleDeleteItem = (itemId: string) => {
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
     confirmDialog({
       message: t('commandes.confirmDeleteItem'),
       header: t('common.confirm'),
@@ -395,6 +443,10 @@ export function CommandeDetailPage() {
   };
 
   const handleDeleteOrder = () => {
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
     confirmDialog({
       message: t('commandes.confirmDeleteOrder'),
       header: t('common.confirm'),
@@ -419,12 +471,19 @@ export function CommandeDetailPage() {
   };
 
   const handleEditOrder = () => {
-    if (commande?.id) {
-      navigate(`/commandes/${commande.id}/edit`);
+    if (!commande?.id) return;
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
     }
+    navigate(`/commandes/${commande.id}/edit`);
   };
 
   const handleReturnOrder = () => {
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
     if (commande?.id) {
       navigate(`/commandes/${commande.id}/returns`);
     }
@@ -550,6 +609,10 @@ export function CommandeDetailPage() {
 
   const loadOptimizationForItem = async (itemId: string, forceRegenerate = false) => {
     if (optimizationLoading) return;
+    if (forceRegenerate && isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
     setOptimizationLoading(true);
     setOptimizationError(null);
     setOptimizationItemId(itemId);
@@ -592,6 +655,10 @@ export function CommandeDetailPage() {
   };
 
   const handleCreatePlacement = async (item: CommandeItem) => {
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return false;
+    }
     const isEditing = editingPlacementId !== null;
     const sourceId = placementForm.sourceId;
     const isRollSource = placementForm.sourceType === 'ROLL';
@@ -713,6 +780,10 @@ export function CommandeDetailPage() {
   };
 
   const handleOpenPlacementModal = (item: CommandeItem) => {
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
     setPlacementTargetItem(item);
     setEditingPlacementId(null);
     setPlacementForm((prev) => ({
@@ -726,6 +797,10 @@ export function CommandeDetailPage() {
   };
 
   const handleOpenEditPlacementModal = (item: CommandeItem, placement: PlacedRectangle) => {
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
     setPlacementTargetItem(item);
     startEditPlacement(placement);
     setShowPlacementModal(true);
@@ -738,6 +813,10 @@ export function CommandeDetailPage() {
   };
 
   const handleSavePlacement = async () => {
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
     if (!placementTargetItem) {
       showError('Placement item is required.');
       return;
@@ -760,19 +839,57 @@ export function CommandeDetailPage() {
   };
 
   const handleDeletePlacement = (placementId: string, itemId: string) => {
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
+    const performDelete = async () => {
+      await PlacedRectangleService.delete(placementId);
+      await loadPlacementsForItem(itemId);
+      await loadOptimizationForItem(itemId);
+      if (editingPlacementId === placementId) {
+        resetPlacementForm();
+      }
+      showSuccess('Placement deleted.');
+    };
+
     confirmDialog({
       message: 'Delete this placement?',
       header: t('common.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: async () => {
         try {
-          await PlacedRectangleService.delete(placementId);
-          await loadPlacementsForItem(itemId);
-          await loadOptimizationForItem(itemId);
-          if (editingPlacementId === placementId) {
-            resetPlacementForm();
+          const productionRes = await ProductionItemService.getByCommandeItemId(itemId);
+          const productionItems = Array.isArray(productionRes.data) ? productionRes.data : [];
+          const linked = productionItems.filter((p) => p.placedRectangleId === placementId);
+
+          if (linked.length > 0) {
+            confirmDialog({
+              message: `This placement has ${linked.length} production item(s). Delete them first?`,
+              header: t('common.confirm'),
+              icon: 'pi pi-exclamation-triangle',
+              accept: async () => {
+                try {
+                  await Promise.all(linked.map((p) => ProductionItemService.delete(p.id)));
+                  await loadProductionForItem(itemId);
+                  await performDelete();
+                  if (id) {
+                    const commandeRes = await CommandeService.getById(id);
+                    if (commandeRes.data) {
+                      setCommande(commandeRes.data);
+                    }
+                  }
+                  showSuccess('Production item(s) deleted.');
+                } catch (err) {
+                  console.error('Error deleting linked production items:', err);
+                  showError('Unable to delete linked production item(s).');
+                }
+              },
+            });
+            return;
           }
-          showSuccess('Placement deleted.');
+
+          await performDelete();
         } catch (err) {
           console.error('Error deleting placement:', err);
           showError('Unable to delete placement.');
@@ -791,6 +908,10 @@ export function CommandeDetailPage() {
   };
 
   const handleOpenChuteModal = (item: CommandeItem) => {
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
     setChuteTargetItem(item);
     resetChuteForm();
     setShowChuteForm(true);
@@ -811,6 +932,11 @@ export function CommandeDetailPage() {
 
   const handleCreateChute = async () => {
     if (!chuteTargetItem) return;
+
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
 
     if (creatingChute) return;
     setCreatingChute(true);
@@ -890,6 +1016,10 @@ export function CommandeDetailPage() {
   };
 
   const handleOpenProductionModal = (item: CommandeItem, placementId: string) => {
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
     if (!placementId) {
       showError(t('commandes.productionItemSourceRequired'));
       return;
@@ -1043,6 +1173,11 @@ export function CommandeDetailPage() {
 
   const handleCreateProductionItem = async () => {
     if (!productionTargetItem) return;
+
+    if (isCommandeLocked) {
+      showWarning(t('commandes.editLocked'));
+      return;
+    }
 
     const quantity = parseInt(productionForm.quantity, 10);
     const pieceLength = parseFloat(productionForm.pieceLengthM);
@@ -1293,12 +1428,14 @@ export function CommandeDetailPage() {
           icon="pi pi-plus"
           text
           onClick={() => handleOpenProductionModal(item, placement.id)}
+          disabled={isBusy || isCommandeLocked}
         />
         <Button
           label={t('common.edit')}
           icon="pi pi-pencil"
           text
           onClick={() => handleOpenEditPlacementModal(item, placement)}
+          disabled={isBusy || isCommandeLocked}
         />
         <Button
           label={t('common.delete')}
@@ -1306,6 +1443,7 @@ export function CommandeDetailPage() {
           severity="danger"
           text
           onClick={() => handleDeletePlacement(placement.id, item.id)}
+          disabled={isBusy || isCommandeLocked}
         />
       </div>
     );
@@ -1363,7 +1501,7 @@ export function CommandeDetailPage() {
                 icon="pi pi-plus"
                 severity="secondary"
                 onClick={() => handleOpenPlacementModal(item)}
-                disabled={isBusy}
+                disabled={isBusy || isCommandeLocked}
               />
             </div>
               <DataTable
@@ -1467,7 +1605,7 @@ export function CommandeDetailPage() {
             icon="pi pi-refresh"
             severity="secondary"
             onClick={() => loadOptimizationForItem(item.id, true)}
-            disabled={isBusy || isLoading}
+            disabled={isBusy || isCommandeLocked || isLoading}
             loading={isLoading}
           />
         </div>
@@ -1598,6 +1736,7 @@ export function CommandeDetailPage() {
         statusOptions={statusOptions}
         updating={updating}
         currentStatus={commande.status}
+        disabled={isCommandeLocked}
         onStatusChange={(nextStatus) => setSelectedStatus(nextStatus)}
         onUpdate={handleStatusUpdate}
         t={t}
@@ -1664,7 +1803,7 @@ export function CommandeDetailPage() {
                       options={itemStatusOptions}
                       onChange={(e) => handleItemStatusUpdate(item.id, e.value as ItemStatus)}
                       style={{ minWidth: '180px' }}
-                      disabled={isBusy}
+                      disabled={isBusy || isCommandeLocked}
                     />
                     <Tag value={item.typeMouvement} severity="info" />
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -1681,7 +1820,7 @@ export function CommandeDetailPage() {
                         severity="danger"
                         outlined
                         onClick={() => handleDeleteItem(item.id)}
-                        disabled={isBusy}
+                        disabled={isBusy || isCommandeLocked}
                         loading={deletingItemId === item.id}
                       />
                     </div>
@@ -1692,7 +1831,7 @@ export function CommandeDetailPage() {
                       <WasteSection
                         wasteForItem={wasteForItem}
                         onCreateChute={() => handleOpenChuteModal(item)}
-                        isBusy={isBusy}
+                        isBusy={isBusy || isCommandeLocked}
                         t={t}
                       />
 
@@ -1700,6 +1839,8 @@ export function CommandeDetailPage() {
                         productionForItem={productionForItem}
                         placementsForItem={placementsForItem}
                         t={t}
+                        isBusy={isBusy || isCommandeLocked}
+                        onDeleteProduction={(productionItemId) => handleDeleteProductionItem(productionItemId, item.id)}
                       />
 
                       {renderOptimizationSection(item)}
@@ -1725,7 +1866,7 @@ export function CommandeDetailPage() {
             onChange={(e) => setSelectedAltierId(e.value)}
             placeholder={t('inventory.selectWorkshop')}
             showClear
-            disabled={altierScoresLoading || altierSaving}
+            disabled={altierScoresLoading || altierSaving || isCommandeLocked}
             style={{ width: '100%' }}
           />
 
@@ -1734,7 +1875,7 @@ export function CommandeDetailPage() {
               label={altierSaving ? t('common.saving') : t('common.save')}
               icon="pi pi-check"
               onClick={handleAltierSave}
-              disabled={altierSaving}
+              disabled={altierSaving || isCommandeLocked}
             />
           </div>
         </div>
@@ -1747,6 +1888,7 @@ export function CommandeDetailPage() {
         showChuteForm={showChuteForm}
         onHide={handleCloseChuteModal}
         t={t}
+        disabled={isCommandeLocked}
         chuteSourceType={chuteSourceType}
         chuteSourceOptions={chuteSourceOptions}
         onSourceTypeChange={(value) => {
@@ -1788,6 +1930,7 @@ export function CommandeDetailPage() {
         placementTargetItem={placementTargetItem}
         onHide={handleClosePlacementModal}
         t={t}
+        disabled={isCommandeLocked}
         placementForm={placementForm}
         placementSourceOptionsDialog={placementSourceOptionsDialog}
         onSourceTypeChange={(value) => {
@@ -1821,6 +1964,7 @@ export function CommandeDetailPage() {
         showProductionModal={showProductionModal}
         onHide={handleCloseProductionModal}
         t={t}
+        disabled={isCommandeLocked}
         selectedProductionColorHex={selectedProductionColorHex}
         selectedProductionColorName={selectedProductionColorName}
         selectedProductionLabel={selectedProductionLabel}

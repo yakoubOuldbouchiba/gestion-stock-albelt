@@ -26,7 +26,11 @@ export const OrderHeaderCard = ({
   onReturn,
   onBack,
   t,
-}: OrderHeaderCardProps) => (
+}: OrderHeaderCardProps) => {
+  const normalizedStatus = (commande.status || '').trim().toUpperCase();
+  const isCommandeLocked = normalizedStatus === 'COMPLETED' || normalizedStatus === 'CANCELLED';
+
+  return (
   <Card style={{ marginBottom: '1rem' }}>
     <div
       style={{
@@ -42,14 +46,24 @@ export const OrderHeaderCard = ({
         <Tag value={commande.status} severity={getStatusSeverity(commande.status)} />
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <Button icon="pi pi-pencil" label={t('commandes.editOrder')} onClick={onEdit} disabled={isBusy} />
-        <Button icon="pi pi-undo" label={t('returns.createReturn')} onClick={onReturn} disabled={isBusy} />
+        <Button
+          icon="pi pi-pencil"
+          label={t('commandes.editOrder')}
+          onClick={onEdit}
+          disabled={isBusy || isCommandeLocked}
+        />
+        <Button
+          icon="pi pi-undo"
+          label={t('returns.createReturn')}
+          onClick={onReturn}
+          disabled={isBusy || isCommandeLocked}
+        />
         <Button
           icon="pi pi-trash"
           label={t('commandes.deleteOrder')}
           severity="danger"
           onClick={onDelete}
-          disabled={isBusy}
+          disabled={isBusy || isCommandeLocked}
           loading={deletingOrder}
         />
         <Button
@@ -63,4 +77,5 @@ export const OrderHeaderCard = ({
       </div>
     </div>
   </Card>
-);
+  );
+};

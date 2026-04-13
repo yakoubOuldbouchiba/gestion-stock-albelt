@@ -22,6 +22,7 @@ import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.waste.service.WastePieceService;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteType;
+import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,6 +53,7 @@ public class ReturnBonService {
         log.info("Creating return bon for commande {}", request.getCommandeId());
 
         Commande commande = commandeService.getById(request.getCommandeId());
+        assertCommandeNotLocked(commande);
         User createdBy = userService.getById(userId);
 
         ReturnBon bon = ReturnBon.builder()
@@ -80,6 +82,17 @@ public class ReturnBonService {
         }
 
         return returnBonMapper.toDetailsDTO(bon);
+    }
+
+    private void assertCommandeNotLocked(Commande commande) {
+        String normalizedStatus = Optional.ofNullable(commande)
+                .map(Commande::getStatus)
+                .map(String::trim)
+                .map(String::toUpperCase)
+                .orElse("");
+        if ("COMPLETED".equals(normalizedStatus) || "CANCELLED".equals(normalizedStatus)) {
+            throw new BusinessException("Commande is locked (COMPLETED/CANCELLED) and cannot be modified");
+        }
     }
 
     @Transactional(readOnly = true)

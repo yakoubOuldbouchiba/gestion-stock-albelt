@@ -838,6 +838,7 @@
     "confirmCancel": "Are you sure you want to cancel? Unsaved changes will be lost.",
     "cancelCreatesChuteWarning": "Cancelling this order will convert all production items into chute (waste). Continue?",
     "completeQuantityWarning": "Some production quantities do not match the ordered quantities. Continue anyway?",
+    "editLocked": "This order cannot be edited when it is completed or cancelled.",
     "workshopsByScore": "Workshops by score",
     "requiredFieldsError": "Please fill in all required fields",
     "createError": "Failed to create order. Please check your input and try again.",

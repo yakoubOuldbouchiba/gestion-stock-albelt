@@ -14,6 +14,7 @@ import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.waste.repository.WastePieceRepository;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
+import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,7 @@ public class PlacedRectangleService {
         Roll roll = getRollIfPresent(request.getRollId());
         WastePiece wastePiece = getWastePieceIfPresent(request.getWastePieceId());
         CommandeItem commandeItem = getCommandeItemIfPresent(request.getCommandeItemId());
+        assertCommandeNotLocked(commandeItem);
 
         Integer parentWidthMm = roll != null ? roll.getWidthMm() : wastePiece != null ? wastePiece.getWidthMm() : null;
         BigDecimal parentLengthM = roll != null ? roll.getLengthM() : wastePiece != null ? wastePiece.getLengthM() : null;
@@ -99,6 +101,7 @@ public class PlacedRectangleService {
 
     public PlacedRectangle update(UUID id, PlacedRectangleRequest request) {
         PlacedRectangle existing = getById(id);
+        assertCommandeNotLocked(getCommandeItemIfPresent(existing.getCommandeItemId()));
         Roll roll = existing.getRoll();
         WastePiece wastePiece = existing.getWastePiece();
 
@@ -124,7 +127,22 @@ public class PlacedRectangleService {
 
     public void delete(UUID id) {
         PlacedRectangle existing = getById(id);
+        assertCommandeNotLocked(getCommandeItemIfPresent(existing.getCommandeItemId()));
         placedRectangleRepository.delete(existing);
+    }
+
+    private void assertCommandeNotLocked(CommandeItem commandeItem) {
+        if (commandeItem == null || commandeItem.getCommande() == null) {
+            return;
+        }
+        String status = commandeItem.getCommande().getStatus();
+        if (status == null) {
+            return;
+        }
+        String normalized = status.trim().toUpperCase();
+        if ("COMPLETED".equals(normalized) || "CANCELLED".equals(normalized)) {
+            throw new BusinessException("Order cannot be edited when it is COMPLETED or CANCELLED");
+        }
     }
 
     public long clearByRollId(UUID rollId) {
