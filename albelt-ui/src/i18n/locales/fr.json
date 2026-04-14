@@ -560,7 +560,8 @@
     "confirmDelete": "Supprimer ce bon de transfert en attente? Cela supprimera également ses mouvements.",
     "confirmRemoveMovement": "Supprimer ce mouvement du bon?"
   },
-  "reports": {    "title": "Rapports",
+  "reports": {    
+    "title": "Rapports",
     "analyticsTitle": "Analytique et rapports",
     "generateReport": "Générer un rapport",
     "reportType": "Type de rapport",
@@ -806,8 +807,6 @@
     "updateOrder": "Mettre à jour la commande",
     "orderUpdatedSuccessfully": "Commande mise à jour avec succès",
     "updateError": "Échec de la mise à jour de la commande. Veuillez vérifier votre saisie et réessayer.",
-    "totalQuantity": "Quantité totale",
-    "totalSurface": "Surface totale",
     "selectMaterial": "Sélectionner le matériau",
     "selectMouvement": "Sélectionner le mouvement",
     "lineNumber": "Ligne #",
@@ -841,7 +840,6 @@
     "observations": "Observations",
     "observationsPlaceholder": "Notes sur l'article...",
     "creating": "Création...",
-    "createOrder": "Créer une commande",
     "cancel": "Annuler",
     "confirmCancel": "Êtes-vous sûr(e) de vouloir annuler ? Les modifications non enregistrées seront perdues.",
     "cancelCreatesChuteWarning": "Annuler cette commande transformera tous les articles de production en chutes. Continuer ?",
