@@ -1599,9 +1599,9 @@ export function CommandeDetailPage() {
             marginBottom: '0.5rem',
           }}
         >
-          <div style={{ fontWeight: 600 }}>Optimization comparison</div>
+          <div style={{ fontWeight: 600 }}>{t('commandes.optimizationComparison')}</div>
           <Button
-            label="Regenerate suggestion"
+            label={t('commandes.regenerateSuggestion')}
             icon="pi pi-refresh"
             severity="secondary"
             onClick={() => loadOptimizationForItem(item.id, true)}
@@ -1619,7 +1619,7 @@ export function CommandeDetailPage() {
         )}
 
         {!isLoading && !comparison && (
-          <Message severity="info" text="No optimization suggestion available yet." />
+          <Message severity="info" text={t('commandes.noOptimizationSuggestion')} />
         )}
 
         {!isLoading && comparison && (
@@ -1627,17 +1627,17 @@ export function CommandeDetailPage() {
             <Card>
               <div className="albel-compare-grid">
                 <div>
-                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Metric</div>
-                  <div>Used area (m2)</div>
-                  <div>Waste area (m2)</div>
-                  <div>Utilization (%)</div>
-                  <div>Sources</div>
-                  <div>Pieces</div>
-                  <div>Conforme pieces</div>
-                  <div>Non conforme pieces</div>
+                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('commandes.metric')}</div>
+                  <div>{t('commandes.usedAreaM2')}</div>
+                  <div>{t('commandes.wasteAreaM2')}</div>
+                  <div>{t('commandes.utilizationPct')}</div>
+                  <div>{t('commandes.sources')}</div>
+                  <div>{t('commandes.pieces')}</div>
+                  <div>{t('commandes.conformePieces')}</div>
+                  <div>{t('commandes.nonConformePieces')}</div>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Actual</div>
+                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('commandes.actual')}</div>
                   <div>{formatMetricValue(actual?.usedAreaM2)}</div>
                   <div>{formatMetricValue(actual?.wasteAreaM2)}</div>
                   <div>{formatMetricValue(actual?.utilizationPct)}</div>
@@ -1647,7 +1647,7 @@ export function CommandeDetailPage() {
                   <div>{actualNonConforme}</div>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Suggested</div>
+                  <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('commandes.suggested')}</div>
                   <div>{formatMetricValue(suggested?.usedAreaM2)}</div>
                   <div>{formatMetricValue(suggested?.wasteAreaM2)}</div>
                   <div>{formatMetricValue(suggested?.utilizationPct)}</div>
@@ -1659,14 +1659,14 @@ export function CommandeDetailPage() {
               </div>
 
               <div style={{ marginTop: '0.75rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                <div>Waste saved (m2): {formatMetricValue(comparison.wasteSavedM2)}</div>
-                <div>Utilization gain (%): {formatMetricValue(comparison.utilizationGainPct)}</div>
+                <div>{t('commandes.wasteSavedM2')}: {formatMetricValue(comparison.wasteSavedM2)}</div>
+                <div>{t('commandes.utilizationGainPct')}: {formatMetricValue(comparison.utilizationGainPct)}</div>
               </div>
             </Card>
 
             <div className="albel-grid albel-grid--min280" style={{ gap: '0.75rem' }}>
-              {renderSvgPanel('Actual layout', comparison.actualSvg, 'No actual SVG available.')}
-              {renderSvgPanel('Suggested layout', comparison.suggested?.svg, 'No suggestion SVG available.')}
+              {renderSvgPanel(t('commandes.actualLayout'), comparison.actualSvg, t('commandes.noActualSvg'))}
+              {renderSvgPanel(t('commandes.suggestedLayout'), comparison.suggested?.svg, t('commandes.noSuggestedSvg'))}
             </div>
           </div>
         )}
