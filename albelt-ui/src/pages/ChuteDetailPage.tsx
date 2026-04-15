@@ -398,10 +398,10 @@ export function ChuteDetailPage() {
 
         <Card title={t('rollDetail.statusTracking') || 'Status & Tracking'}>
           <div style={{ display: 'grid', gap: '0.5rem' }}>
-            <div><strong>{t('waste.detailStatus')}:</strong> {piece.status}</div>
-            <div><strong>{t('waste.tableType') || 'Type'}:</strong> {piece.wasteType || 'N/A'}</div>
+            <div><strong>{t('rollDetail.status')}:</strong> {t(`statuses.${piece.status}`)}</div>
+            <div><strong>{t('waste.tableType') || 'Type'}:</strong> {t(`waste.types.${piece.wasteType}`) || 'N/A'}</div>
             <div><strong>{t('rollDetail.qrCode') || 'QR Code'}:</strong> {piece.qrCode || 'N/A'}</div>
-            <div><strong>Classification date:</strong> {piece.classificationDate ? formatDate(piece.classificationDate) : 'N/A'}</div>
+            <div><strong>{t('rollDetail.classificationDate') || 'Classification date'}:</strong> {piece.classificationDate ? formatDate(piece.classificationDate) : 'N/A'}</div>
           </div>
         </Card>
       </div>
@@ -450,7 +450,7 @@ export function ChuteDetailPage() {
             <Tag value={wastePiece.wasteType} severity={getWasteTypeSeverity(wastePiece.wasteType)} />
           )}
           <Tag value={wastePiece.materialType} />
-          <Tag value={wastePiece.status} severity={getStatusSeverity(wastePiece.status)} />
+          <Tag value={t(`waste.status.${wastePiece.status}`)} severity={getStatusSeverity(wastePiece.status)} />
           <Button
             label={t('navigation.movements') || 'Movements'}
             icon="pi pi-share-alt"
@@ -471,7 +471,7 @@ export function ChuteDetailPage() {
       <div style={{ display: 'grid', gap: '1rem' }}>
         {renderChuteCards(wastePiece, undefined, false)}
 
-        <Card title="Placements (SVG)">
+        <Card title={` ${t('rollDetail.placements') || 'Placements'}`}>
           <div style={{ display: 'grid', gap: '0.75rem' }}>
             {error && <Message severity="error" text={error} />}
             {placementWidthMm > 0 && placementLengthMm > 0 ? (
@@ -526,18 +526,18 @@ export function ChuteDetailPage() {
                   ))}
                 </svg>
                 <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
-                  {placementLengthMm / 1000}m x {placementWidthMm}mm (length on X, width on Y)
+                  {placementLengthMm / 1000}m x {placementWidthMm}mm ( {t('rollDetail.lengthOnX') || 'length on X'}, {t('rollDetail.widthOnY') || 'width on Y'})
                 </div>
               </div>
             ) : (
-              <Message severity="info" text="Source dimensions are required for placement preview." />
+              <Message severity="info" text={t('rollDetail.sourceDimensionsRequired') || 'Source dimensions are required for placement preview.'} />
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <div style={{ fontWeight: 600 }}>Existing placements</div>
+              <div style={{ fontWeight: 600 }}>{t('rollDetail.existingPlacements') || 'Existing placements'}</div>
               {placements.length > 0 && (
                 <Button
-                  label="Clear chute"
+                  label={` ${t('rollDetail.clearChute') || 'Clear chute'}`}
                   icon="pi pi-trash"
                   severity="danger"
                   outlined
@@ -548,7 +548,7 @@ export function ChuteDetailPage() {
             </div>
 
             {placements.length === 0 ? (
-              <Message severity="info" text="No placements recorded for this chute." />
+              <Message severity="info" text={t('rollDetail.noPlacements') || 'No placements recorded for this chute.'} />
             ) : (
               <div className="albel-compact-list">
                 {placements.map((placement) => (
@@ -600,10 +600,10 @@ export function ChuteDetailPage() {
             )}
 
             <div style={{ display: 'grid', gap: '0.75rem' }}>
-              <div style={{ fontWeight: 600 }}>{editingPlacementId ? 'Update placement' : 'Add placement'}</div>
+              <div style={{ fontWeight: 600 }}>{editingPlacementId ? t('rollDetail.updatePlacement') || 'Update placement' : t('rollDetail.addPlacement') || 'Add placement'}</div>
               <div className="albel-grid albel-grid--min140" style={{ gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X (length mm)</label>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X ({t('rollDetail.lengthOnX') || 'Length on X'})</label>
                   <InputText
                     value={placementForm.xMm}
                     onChange={(e) => updatePlacementField('xMm', e.target.value)}
@@ -612,7 +612,7 @@ export function ChuteDetailPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Y (width mm)</label>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Y ({t('rollDetail.widthOnY') || 'Width on Y'})</label>
                   <InputText
                     value={placementForm.yMm}
                     onChange={(e) => updatePlacementField('yMm', e.target.value)}
@@ -630,7 +630,7 @@ export function ChuteDetailPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Height (mm)</label>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>{t('rollDetail.heightMm') || 'Height (mm)'}</label>
                   <InputText
                     value={placementForm.heightMm}
                     onChange={(e) => updatePlacementField('heightMm', e.target.value)}
@@ -642,14 +642,14 @@ export function ChuteDetailPage() {
               <div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <Button
-                    label={creatingPlacement ? 'Saving...' : (editingPlacementId ? 'Update placement' : 'Save placement')}
+                    label={creatingPlacement ? t('rollDetail.saving') || 'Saving...' : (editingPlacementId ? t('rollDetail.updatePlacement') || 'Update placement' : t('rollDetail.savePlacement') || 'Save placement')}
                     icon={editingPlacementId ? 'pi pi-check' : 'pi pi-plus'}
                     onClick={handleCreatePlacement}
                     loading={creatingPlacement}
                   />
                   {editingPlacementId && (
                     <Button
-                      label="Cancel"
+                      label={t('rollDetail.cancel') || 'Cancel'}
                       severity="secondary"
                       outlined
                       onClick={cancelEditPlacement}
@@ -665,7 +665,7 @@ export function ChuteDetailPage() {
         {wastePiece.parentWastePieceId && !parentWaste && (
           <Message
             severity="info"
-            text={`Parent chute not available (${wastePiece.parentWastePieceId}).`}
+            text={t('waste.parentChuteNotAvailable', { id: wastePiece.parentWastePieceId }) || `Parent chute not available (${wastePiece.parentWastePieceId}).`}
           />
         )}
 

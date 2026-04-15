@@ -137,7 +137,14 @@
     "rollCount": "Roll count",
     "waste": "Waste (m²)",
     "wastePercent": "Waste %",
-    "received": "Received"
+    "received": "Received",
+    "tableType": "Type",
+    "types": {
+      "REUSABLE": "Reusable",
+      "SCRAP": "Scrap",
+      "CHUTE_EXPLOITABLE": "Exploitable Chute",
+      "DECHET": "Waste"
+    }
   },
   "rolls": {
     "title": "Rolls",
@@ -421,7 +428,13 @@
     "view": "View",
     "reuse": "Reuse",
     "reuseTooltip": "Mark this waste piece as used in production",
-    "noPiecesFound": "No waste pieces found matching your filters."
+    "noPiecesFound": "No waste pieces found matching your filters.",
+    "status": {
+      "AVAILABLE": "Available",
+      "OPENED": "Opened",
+      "EXHAUSTED": "Exhausted",
+      "ARCHIVED": "Archived"
+    }
   },
   "altier": {
     "title": "Workshop Management (Altiers)",
@@ -486,7 +499,31 @@
     "remaining": "Remaining Area",
     "lengthRemaining": "Length Remaining",
     "chutesTitle": "Chutes for This Roll",
-    "chutesEmpty": "No chutes recorded for this roll."
+    "chutesEmpty": "No chutes recorded for this roll.",
+    "processing": "Processing",
+    "statusTracking": "Status Tracking",
+    "status": "Status",
+    "qrCode": "QR Code",
+    "available": "Available",
+    "placements": "Placements (SVG)",
+    "height": "Height",
+    "sourceDimensionsRequired": "Source dimensions are required for placement preview.",
+    "clearRoll": "Clear Roll",
+    "noPlacements": "No placements recorded for this roll.",
+    "addPlacement": "Add Placement",
+    "savePlacement": "Save Placement",
+    "hieghtMm": "Height (mm)",
+    "widthMm": "Width (mm)",
+    "lengthMm": "Length (mm)",
+    "saving": "Saving...",
+    "updatePlacement": "Update Placement",
+    "edit": "Edit",
+    "delete": "Delete",
+    "classificationDate": "Classification Date",
+    "lengthOnX": "Length on X",
+    "widthOnY": "Width on Y",
+    "existingPlacements" : "Existing placements for this roll",
+    "clearChute": "Clear chute"
   },
   "materialChuteThresholds": {
     "title": "Material Thresholds (Chute Classification)",
@@ -936,7 +973,15 @@
     "actualLayout": "Actual layout",
     "suggestedLayout": "Suggested layout",
     "noActualSvg": "No actual SVG available.",
-    "noSuggestedSvg": "No suggestion SVG available."
+    "noSuggestedSvg": "No suggestion SVG available.",
+    "statuses": {
+      "DRAFT": "Draft",
+      "VALIDATED": "Validated",
+      "IN_PROGRESS": "In Progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "PENDING": "Pending"
+    }
   },
   "returns": {
     "title": "Order Returns",
@@ -987,5 +1032,20 @@
     "createdAt": "Created At",
     "createdBy": "Created By",
     "noReturns": "No returns recorded yet"
+  },
+  "statuses": {
+    "DRAFT": "Draft",
+    "VALIDATED": "Validated",
+    "IN_PROGRESS": "In Progress",
+    "COMPLETED": "Completed",
+    "CANCELLED": "Cancelled",
+    "PENDING": "Pending",
+    "OPENED": "Open",
+    "EXHAUSTED": "Exhausted",
+    "ARCHIVED": "Archived",
+    "AVAILABLE": "Available",
+    "USED": "Used",
+    "SCRAP": "Scrap",
+    "DELIVERED": "Delivered"
   }
 }

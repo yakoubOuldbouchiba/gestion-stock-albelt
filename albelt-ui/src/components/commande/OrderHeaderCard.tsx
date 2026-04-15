@@ -43,7 +43,7 @@ export const OrderHeaderCard = ({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <span style={{ fontSize: '1.25rem', fontWeight: 600 }}>{commande.numeroCommande}</span>
-        <Tag value={commande.status} severity={getStatusSeverity(commande.status)} />
+        <Tag value={t('commandes.statuses.' + commande.status)} severity={getStatusSeverity(commande.status)} />
       </div>
       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <Button

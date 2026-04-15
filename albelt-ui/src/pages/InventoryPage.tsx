@@ -710,7 +710,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
   };
 
   const rollStatusBody = (roll: Roll) => (
-    <Tag value={roll.status} severity={statusSeverity(roll.status)} />
+    <Tag value={ t(`statuses.${roll.status}`) } severity={statusSeverity(roll.status)} />
   );
 
   const rollActionsBody = (roll: Roll) => (
@@ -756,7 +756,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
   };
 
   const wasteStatusBody = (piece: WastePiece) => (
-    <Tag value={piece.status} severity={statusSeverity(piece.status)} />
+    <Tag value={ t(`statuses.${piece.status}`) } severity={statusSeverity(piece.status)} />
   );
 
   const wasteActionsBody = (piece: WastePiece) => (
@@ -776,7 +776,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
   );
 
   const statusFilterOptions = useMemo<{ label: string; value: RollStatus | 'ALL' }[]>(
-    () => [{ label: t('inventory.allStatus'), value: 'ALL' }, ...statuses.map((status) => ({ label: status, value: status }))],
+    () => [{ label: t('inventory.allStatus'), value: 'ALL' }, ...statuses.map((status) => ({ label: t(`statuses.${status}`), value: status }))],
     [t, statuses]
   );
 

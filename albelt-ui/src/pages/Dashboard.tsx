@@ -115,7 +115,7 @@ export function Dashboard() {
               </div>
 
               <DataTable value={wasteMetrics.byStatus} size="small" emptyMessage={t('messages.noDataAvailable')}>
-                <Column field="status" header={t('users.status')} />
+                <Column field="status" header={t('users.status')} body={(row) => <Tag value={ t(`statuses.${row.status}`) } severity={statusSeverity(row.status)} />} />
                 <Column field="count" header={t('common.list')} />
               </DataTable>
             </div>
@@ -135,7 +135,7 @@ export function Dashboard() {
             <Column header={t('rolls.area')} body={(roll: Roll) => roll.areaM2.toFixed(2)} />
             <Column
               header={t('users.status')}
-              body={(roll: Roll) => <Tag value={roll.status} severity={statusSeverity(roll.status)} />}
+              body={(roll: Roll) => <Tag value={ t(`statuses.${roll.status}`) } severity={statusSeverity(roll.status)} />}
             />
             <Column header={t('movements.date')} body={(roll: Roll) => formatDate(roll.receivedDate)} />
           </DataTable>

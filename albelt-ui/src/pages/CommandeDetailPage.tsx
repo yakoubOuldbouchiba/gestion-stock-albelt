@@ -108,7 +108,8 @@ export function CommandeDetailPage() {
     notes: '',
   });
 
-  const statuses = ['PENDING', 'ENCOURS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
+  const statusKeys = ['PENDING', 'ENCOURS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
+  const statuses = statusKeys.map((key) => t(`commandes.status.${key}`));
   const itemStatuses: ItemStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
   const isCommandeLocked = useMemo(() => {

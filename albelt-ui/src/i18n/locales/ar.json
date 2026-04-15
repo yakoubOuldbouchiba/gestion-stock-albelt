@@ -425,7 +425,20 @@
     "view": "عرض",
     "reuse": "إعادة استخدام",
     "reuseTooltip": "حدد قطعة النفايات هذه كمستخدمة في الإنتاج",
-    "noPiecesFound": "لم يتم العثور على قطع نفايات تطابق مرشحاتك."
+    "noPiecesFound": "لم يتم العثور على قطع نفايات تطابق مرشحاتك.",
+    "status": {
+      "AVAILABLE": "متاح",
+      "OPENED": "مفتوح",
+      "EXHAUSTED": "مستنزف",
+      "ARCHIVED": "مؤرشف"
+    },
+    "tableType": "النوع",
+    "types": {
+      "REUSABLE": "قابل لإعادة الاستخدام",
+      "SCRAP": "خردة",
+      "CHUTE_EXPLOITABLE": "قابل للاستغلال",
+      "DECHET": "نفايات"
+    }
   },
   "altier": {
     "title": "إدارة الورش (Altiers)",
@@ -490,7 +503,32 @@
     "remaining": "المساحة المتبقية",
     "lengthRemaining": "الطول المتبقي",
     "chutesTitle": "الشطب لهذه اللفة",
-    "chutesEmpty": "لا توجد شطب مسجلة لهذه اللفة."
+    "chutesEmpty": "لا توجد شطب مسجلة لهذه اللفة.",
+    "processing": " معالجة",
+    "statusTracking": "تتبع الحالة",
+    "status": "الحالة",
+    "qrCode": "رمز الاستجابة السريعة",
+    "available": "متاح",
+    "placements": "التوزيعات SVG",
+    "height": "الارتفاع",
+    "sourceDimensionsRequired": "يجب أن تكون أبعاد المصدر محددة لتوليد التوزيعات",
+    "noPlacements": "لا توجد توزيعات متاحة لهذه اللفة",
+    "clearRoll": "مسح اللفة",
+    "addPlacement": "إضافة توزيع",
+    "savePlacements": "حفظ التوزيعات",
+    "heightMm": "الارتفاع (مم)",
+    "widthMm": "العرض (مم)",
+    "lengthM": "الطول (م)",
+    "saving" :"جاري الحفظ…",
+    "updatePlacement": "تحديث توزيع",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "savePlacement": "حفظ التوزيع",
+    "classificationDate": "تاريخ التصنيف",
+    "lengthOnX": "الطول على محور X",
+    "widthOnY": "العرض على محور Y",
+    "existingPlacements": "التوزيعات الموجودة",
+    "clearChute": "مسح الشطب"
   },
   "materialChuteThresholds": {
     "title": "حدود المادة (تصنيف الفتحة)",
@@ -854,6 +892,14 @@
     "editOrder": " تعديل",
     "deleteOrder": "حذف الطلب",
     "orderInformation": "معلومات الطلب",
+    "statuses": {
+      "DRAFT": "مسودة",
+      "VALIDATED": "معتمد",
+      "IN_PROGRESS": "قيد المعالجة",
+      "COMPLETED": "مكتمل",
+      "CANCELLED": "ملغى",
+      "PENDING": "معلق"
+    },
     "createdBy": "تم الإنشاء بواسطة",
     "totalItems": "إجمالي العناصر",
     "notAvailable": "غير متاح",
@@ -1007,5 +1053,20 @@
     "createdAt": "تاريخ الإنشاء",
     "createdBy": "أنشأ بواسطة",
     "noReturns": "لا توجد مرتجعات مسجلة بعد"
+  },
+  "statuses": {
+    "AVAILABLE": "متاح",
+    "OPENED": "مفتوح",
+    "EXHAUSTED": "مستنزف",
+    "ARCHIVED": "مؤرشف",
+    "DRAFT": "مسودة",
+    "VALIDATED": "معتمد",
+    "IN_PROGRESS": "قيد المعالجة",
+    "COMPLETED": "مكتمل",
+    "CANCELLED": "ملغى",
+    "PENDING": "معلق",
+    "ACTIVE": "نشط",
+    "INACTIVE": "غير نشط"
+
   }
 }

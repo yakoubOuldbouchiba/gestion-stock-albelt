@@ -424,7 +424,20 @@
     "view": "Afficher",
     "reuse": "Réutiliser",
     "reuseTooltip": "Marquer cette pièce de déchet comme utilisée en production",
-    "noPiecesFound": "Aucune pièce de déchet trouvée correspondant à vos filtres."
+    "noPiecesFound": "Aucune pièce de déchet trouvée correspondant à vos filtres.",
+    "status": {
+      "AVAILABLE": "Disponible",
+      "OPENED": "Ouvert",
+      "EXHAUSTED": "Épuisé",
+      "ARCHIVED": "Archivé"
+    },
+    "tableType": "Type",
+    "types": {
+      "REUSABLE": "Réutilisable",
+      "SCRAP": "Rebut",
+      "CHUTE_EXPLOITABLE": "Chute exploitable",
+      "DECHET": "Déchet"
+    }
   },
   "altier": {
     "title": "Gestion des ateliers (Altiers)",
@@ -489,7 +502,32 @@
     "remaining": "Surface restante",
     "lengthRemaining": "Longueur restante",
     "chutesTitle": "Chutes pour ce rouleau",
-    "chutesEmpty": "Aucune chute enregistrée pour ce rouleau."
+    "chutesEmpty": "Aucune chute enregistrée pour ce rouleau.",
+    "processing": "Traitement",
+    "statusTracking": "Suivi du statut",
+    "status": "Statut",
+    "qrCode": "Code QR",
+    "available": "Disponible",
+    "placements": "Placements (SVG)",
+    "height": "Hauteur (mm)",
+    "sourceDimensionsRequired": "Les dimensions source sont requises pour générer les placements",
+    "clearPlacements": "Effacer les placements",
+    "noPlacements": "Aucun placement généré pour ce rouleau",
+    "addPlacement": "Ajouter un placement",
+    "savePlacements": "Enregistrer les placements",
+    "heightMm": "Hauteur (mm)",
+    "widthMm": "Largeur (mm)",
+    "lengthM": "Longueur (m)",
+    "saving": "Enregistrement des placements...",
+    "updateSaving": "Mise à jour des placements...",
+    "edit":"Modifier",
+    "delete":"Supprimer",
+    "savePlacement":"Enregistrer le placement",
+    "classificationDate":"Date de classification",
+    "lengthOnX": "Length on X",
+    "widthOnY": "Width on Y",
+    "existingPlacements" : "Placements existants pour ce rouleau",
+    "clearChute": "Effacer les placements de chute"
   },
   "materialChuteThresholds": {
     "title": "Seuils de Matière (Classification de Chute)",
@@ -956,7 +994,15 @@
     "actualLayout": "Disposition réelle",
     "suggestedLayout": "Disposition suggérée",
     "noActualSvg": "Aucun SVG réel disponible.",
-    "noSuggestedSvg": "Aucun SVG de suggestion disponible."
+    "noSuggestedSvg": "Aucun SVG de suggestion disponible.",
+    "statuses": {
+      "DRAFT": "Brouillon",
+      "VALIDATED": "Validé",
+      "IN_PROGRESS": "En cours",
+      "COMPLETED": "Terminé",
+      "CANCELLED": "Annulé",
+      "PENDING": "En attente"
+    }
   },
   "returns": {
     "title": "Retours de commande",
@@ -1026,5 +1072,22 @@
   "actualLayout": "Disposition réelle",
   "suggestedLayout": "Disposition suggérée",
   "noActualSvg": "Aucun SVG réel disponible.",
-  "noSuggestedSvg": "Aucun SVG de suggestion disponible."
+  "noSuggestedSvg": "Aucun SVG de suggestion disponible.",
+  "statuses": {
+    "DRAFT": "Brouillon",
+    "VALIDATED": "Validé",
+    "IN_PROGRESS": "En cours",
+    "COMPLETED": "Terminé",
+    "CANCELLED": "Annulé",
+    "PENDING": "En attente",
+    "ACTIVE": "Actif",
+    "INACTIVE": "Inactif",
+    "AVAILABLE": "Disponible",
+    "OPENED": "Ouvert",
+    "EXHAUSTED": "Épuisé",
+    "ARCHIVED": "Archivé",
+    "RETURNED": "Retourné",
+    "RECEIVED": "Reçu",
+    "DELIVERED": "Livré"
+  }
 }

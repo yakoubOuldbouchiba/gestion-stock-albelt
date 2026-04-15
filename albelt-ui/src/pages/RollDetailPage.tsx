@@ -287,7 +287,7 @@ export function RollDetailPage() {
     }
   };
 
-  const statusOptions = statuses.map((status) => ({ label: status, value: status }));
+  const statusOptions = statuses.map((status) => ({ label: t(`statuses.${status}`), value: status }));
   const usedAreaM2 = roll?.usedAreaM2 ?? roll?.totalWasteAreaM2 ?? 0;
   const availableAreaM2 = roll?.availableAreaM2 ?? (roll?.areaM2 ? roll.areaM2 - usedAreaM2 : 0);
   const wastePercent = roll?.areaM2 ? (usedAreaM2 / roll.areaM2) * 100 : 0;
@@ -408,7 +408,7 @@ export function RollDetailPage() {
           </div>
           <div style={{ marginTop: '1rem' }}>
             <ProgressBar value={Math.max(0, 100 - wastePercent)} />
-            <div style={{ marginTop: '0.25rem' }}>{(100 - wastePercent).toFixed(1)}% Available</div>
+            <div style={{ marginTop: '0.25rem' }}>{(100 - wastePercent).toFixed(1)}% {t('rollDetail.available')}</div>
           </div>
         </Card>
 
@@ -427,7 +427,7 @@ export function RollDetailPage() {
           </div>
         </Card>
 
-        <Card title="Placements (SVG)">
+        <Card title={t('rollDetail.placements') || 'Placements (SVG)'}>
           <div style={{ display: 'grid', gap: '0.75rem' }}>
             {error && <Message severity="error" text={error} />}
             {placementWidthMm > 0 && placementLengthMm > 0 ? (
@@ -482,19 +482,19 @@ export function RollDetailPage() {
                   ))}
                 </svg>
                 <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
-                  {placementLengthMm / 1000}m x {placementWidthMm}mm (length on X, width on Y)
-                  {' '}• Width: {placementWidthMm}mm • Height: {placementLengthMm}mm
+                  {placementLengthMm / 1000}m x {placementWidthMm}mm ( {t('rollDetail.length')} on X, {t('rollDetail.width')} on Y)
+                  {' '}•  {t('rollDetail.width')}: {placementWidthMm}mm • {t('rollDetail.height')}: {placementLengthMm}mm
                 </div>
               </div>
             ) : (
-              <Message severity="info" text="Source dimensions are required for placement preview." />
+              <Message severity="info" text={t('rollDetail.sourceDimensionsRequired') || 'Source dimensions are required for placement preview.'} />
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <div style={{ fontWeight: 600 }}>Existing placements</div>
+              <div style={{ fontWeight: 600 }}> {t('rollDetail.placements')}</div>
               {placements.length > 0 && (
                 <Button
-                  label="Clear roll"
+                  label={t('rollDetail.clearRoll') || 'Clear roll'}
                   icon="pi pi-trash"
                   severity="danger"
                   outlined
@@ -505,7 +505,7 @@ export function RollDetailPage() {
             </div>
 
             {placements.length === 0 ? (
-              <Message severity="info" text="No placements recorded for this roll." />
+              <Message severity="info" text={t('rollDetail.noPlacements') || 'No placements recorded for this roll.'} />
             ) : (
               <div className="albel-compact-list">
                 {placements.map((placement) => (
@@ -533,14 +533,14 @@ export function RollDetailPage() {
                       )}
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <Button
-                          label="Edit"
+                          label={t('rollDetail.edit') || 'Edit'}
                           icon="pi pi-pencil"
                           outlined
                           onClick={() => startEditPlacement(placement)}
                           disabled={isCommandePlacement(placement)}
                         />
                         <Button
-                          label="Delete"
+                          label={t('rollDetail.delete') || 'Delete'}
                           icon="pi pi-trash"
                           severity="danger"
                           outlined
@@ -555,10 +555,10 @@ export function RollDetailPage() {
             )}
 
             <div style={{ display: 'grid', gap: '0.75rem' }}>
-              <div style={{ fontWeight: 600 }}>{editingPlacementId ? 'Update placement' : 'Add placement'}</div>
+              <div style={{ fontWeight: 600 }}>{editingPlacementId ? t('rollDetail.updatePlacement') || 'Update placement' : t('rollDetail.addPlacement') || 'Add placement'}</div>
               <div className="albel-grid albel-grid--min140" style={{ gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X (length mm)</label>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X ({t('rollDetail.lengthMm') || 'length mm'})</label>
                   <InputText
                     value={placementForm.xMm}
                     onChange={(e) => updatePlacementField('xMm', e.target.value)}
@@ -567,7 +567,7 @@ export function RollDetailPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Y (width mm)</label>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Y ({t('rollDetail.widthMm') || 'width mm'})</label>
                   <InputText
                     value={placementForm.yMm}
                     onChange={(e) => updatePlacementField('yMm', e.target.value)}
@@ -576,7 +576,7 @@ export function RollDetailPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Width (mm)</label>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}> ({t('rollDetail.widthMm') || 'width mm'})</label>
                   <InputText
                     value={placementForm.widthMm}
                     onChange={(e) => updatePlacementField('widthMm', e.target.value)}
@@ -585,7 +585,7 @@ export function RollDetailPage() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Height (mm)</label>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}> ({t('rollDetail.heightMm') || 'height mm'})</label>
                   <InputText
                     value={placementForm.heightMm}
                     onChange={(e) => updatePlacementField('heightMm', e.target.value)}
@@ -597,14 +597,14 @@ export function RollDetailPage() {
               <div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <Button
-                    label={creatingPlacement ? 'Saving...' : (editingPlacementId ? 'Update placement' : 'Save placement')}
+                    label={creatingPlacement ? t('rollDetail.saving') || 'Saving...' : (editingPlacementId ? t('rollDetail.updatePlacement') || 'Update placement' : t('rollDetail.savePlacement') || 'Save placement')}
                     icon={editingPlacementId ? 'pi pi-check' : 'pi pi-plus'}
                     onClick={handleCreatePlacement}
                     loading={creatingPlacement}
                   />
                   {editingPlacementId && (
                     <Button
-                      label="Cancel"
+                      label={t('rollDetail.cancel') || 'Cancel'}
                       severity="secondary"
                       outlined
                       onClick={cancelEditPlacement}
