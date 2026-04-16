@@ -527,7 +527,12 @@
     "lengthOnX": "Length on X",
     "widthOnY": "Width on Y",
     "existingPlacements" : "Placements existants pour ce rouleau",
-    "clearChute": "Effacer les placements de chute"
+    "clearChute": "Effacer les placements de chute",
+    "source":"Source",
+    "color":"Couleur",
+    "actions":"Actions",
+    "xMm":"X (mm)",
+    "yMm":"Y (mm)"
   },
   "materialChuteThresholds": {
     "title": "Seuils de Matière (Classification de Chute)",
@@ -1088,6 +1093,7 @@
     "ARCHIVED": "Archivé",
     "RETURNED": "Retourné",
     "RECEIVED": "Reçu",
-    "DELIVERED": "Livré"
+    "DELIVERED": "Livré",
+    "ENCOURS": "Encours"
   }
 }

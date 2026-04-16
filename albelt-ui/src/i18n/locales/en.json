@@ -523,7 +523,12 @@
     "lengthOnX": "Length on X",
     "widthOnY": "Width on Y",
     "existingPlacements" : "Existing placements for this roll",
-    "clearChute": "Clear chute"
+    "clearChute": "Clear chute",
+    "source":"Source",
+    "color":"Color",
+    "actions":"Actions",
+    "xMm":"X (mm)",
+    "yMm":"Y (mm)"
   },
   "materialChuteThresholds": {
     "title": "Material Thresholds (Chute Classification)",
@@ -1046,6 +1051,7 @@
     "AVAILABLE": "Available",
     "USED": "Used",
     "SCRAP": "Scrap",
-    "DELIVERED": "Delivered"
+    "DELIVERED": "Delivered",
+    "ENCOURS": "In Progress"
   }
 }

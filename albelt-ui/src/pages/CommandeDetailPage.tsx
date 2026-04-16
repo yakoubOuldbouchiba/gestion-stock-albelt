@@ -109,7 +109,7 @@ export function CommandeDetailPage() {
   });
 
   const statusKeys = ['PENDING', 'ENCOURS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
-  const statuses = statusKeys.map((key) => t(`commandes.status.${key}`));
+  const statuses = statusKeys.map((key) => t(`statuses.${key}`));
   const itemStatuses: ItemStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
   const isCommandeLocked = useMemo(() => {
@@ -1251,8 +1251,8 @@ export function CommandeDetailPage() {
     await saveProductionItem();
   };
 
-  const statusOptions = statuses.map((status) => ({ label: status, value: status }));
-  const itemStatusOptions = itemStatuses.map((status) => ({ label: status, value: status }));
+  const statusOptions = statuses.map((status) => ({ label:  t(`statuses.${status}`) , value: status }));
+  const itemStatusOptions = itemStatuses.map((status) => ({ label: t(`statuses.${status}`) , value: status }));
   const isBusy =
     updating ||
     creatingProduction ||
@@ -1484,7 +1484,7 @@ export function CommandeDetailPage() {
 
     return (
       <div style={{ marginTop: '0.75rem' }}>
-        <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Placements (SVG)</div>
+        <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{t('rollDetail.placements')}</div>
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           <div style={{ display: 'grid', gap: '0.75rem' }}>
             <div
@@ -1496,9 +1496,9 @@ export function CommandeDetailPage() {
                 flexWrap: 'wrap',
               }}
             >
-              <div style={{ fontWeight: 600 }}>Existing placements</div>
+              <div style={{ fontWeight: 600 }}>{t('rollDetail.existingPlacements')}</div>
               <Button
-                label="Add placement"
+                label={t('rollDetail.addPlacement')}
                 icon="pi pi-plus"
                 severity="secondary"
                 onClick={() => handleOpenPlacementModal(item)}
@@ -1508,7 +1508,7 @@ export function CommandeDetailPage() {
               <DataTable
                 value={placementRows}
                 dataKey="id"
-                emptyMessage="No placements recorded for this item."
+                emptyMessage={t('rollDetail.noPlacements') || "No placements recorded for this item." } 
                 size="small"
                 className="p-datatable-sm"
                 rowGroupMode="subheader"
@@ -1542,13 +1542,13 @@ export function CommandeDetailPage() {
                   </div>
                 )}
               >
-                <Column header="Source" body={renderPlacementSource} />
-                <Column field="xMm" header="X (mm)" />
-                <Column field="yMm" header="Y (mm)" />
-                <Column field="widthMm" header="Width (mm)" />
-                <Column field="heightMm" header="Height (mm)" />
-                <Column header="Color" body={renderPlacementColor} />
-                <Column header="Actions" body={renderPlacementActions} />
+                <Column header={t('rollDetail.source')} body={renderPlacementSource} />
+                <Column field="xMm" header={t('rollDetail.xMm')} />
+                <Column field="yMm" header={t('rollDetail.yMm')} />
+                <Column field="widthMm" header={t('rollDetail.widthMm')} />
+                <Column field="heightMm" header={t('rollDetail.heightMm')} />
+                <Column header={t('rollDetail.color')} body={renderPlacementColor} />
+                <Column header={t('rollDetail.actions')} body={renderPlacementActions} />
               </DataTable>
           </div>
 

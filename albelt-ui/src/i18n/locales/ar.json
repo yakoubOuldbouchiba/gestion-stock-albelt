@@ -528,7 +528,12 @@
     "lengthOnX": "الطول على محور X",
     "widthOnY": "العرض على محور Y",
     "existingPlacements": "التوزيعات الموجودة",
-    "clearChute": "مسح الشطب"
+    "clearChute": "مسح الشطب",
+    "source":"المصدر",
+    "color":"اللون",
+    "actions":"الإجراءات",
+    "xMm": "X (مم)",
+    "yMm": "Y (مم)"
   },
   "materialChuteThresholds": {
     "title": "حدود المادة (تصنيف الفتحة)",
@@ -1066,7 +1071,7 @@
     "CANCELLED": "ملغى",
     "PENDING": "معلق",
     "ACTIVE": "نشط",
-    "INACTIVE": "غير نشط"
-
+    "INACTIVE": "غير نشط", 
+    "ENCOURS": "قيد المعالجة"
   }
 }

@@ -149,7 +149,7 @@ export function CommandesListPage() {
       CANCELLED: 'danger',
       ON_HOLD: 'secondary',
     };
-    return <Tag value={rowData.status} severity={statusColors[rowData.status] || 'secondary'} />;
+    return <Tag value={t(`statuses.${rowData.status}`)} severity={statusColors[rowData.status] || 'secondary'} />;
   };
 
   const actionsBodyTemplate = (rowData: Commande) => {
