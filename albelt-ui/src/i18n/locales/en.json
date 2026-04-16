@@ -253,7 +253,20 @@
     "dateEntreeRequired": "Date Entree is required",
     "failedToLoadData": "Failed to load movement data",
     "failedToRecord": "Failed to record movement",
-    "failedToConfirm": "Failed to confirm receipt"
+    "failedToConfirm": "Failed to confirm receipt",
+    "createMovement": "Create Movement",
+    "editMovement": "Edit Movement",
+    "roll": "Roll",
+    "chute": "Chute",
+    "item": "Item",
+    "loadingRolls": "Loading rolls...",
+    "selectRoll": "Select Roll...",
+    "noAvailableRolls": "No available rolls for the selected From Altier.",
+    "selectedRoll": "Selected Roll",
+    "noRollSelected": "No roll selected",
+    "selectedWastePiece": "Selected Waste Piece",
+    "noWastePieceSelected": "No waste piece selected",
+    "cancel": "Cancel"
   },
   "movementsList": {
     "title": "Movements",
@@ -1053,5 +1066,11 @@
     "SCRAP": "Scrap",
     "DELIVERED": "Delivered",
     "ENCOURS": "In Progress"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page",
+    "of": "of"
   }
 }

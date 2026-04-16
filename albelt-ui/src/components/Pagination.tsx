@@ -1,3 +1,4 @@
+import { t } from 'i18next';
 import '../styles/Pagination.css';
 
 interface PaginationProps {
@@ -17,10 +18,10 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
   return (
     <div className="pagination">
       <button type="button" className="pagination-button" onClick={handlePrev} disabled={page <= 0}>
-        Previous
+        {t('pagination.previous')}
       </button>
       <span className="pagination-info">
-        Page {page + 1} of {totalPages}
+        {t('pagination.page')} {page + 1} {t('pagination.of')} {totalPages}
       </span>
       <button
         type="button"
@@ -28,7 +29,7 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
         onClick={handleNext}
         disabled={page >= totalPages - 1}
       >
-        Next
+        {t('pagination.next')}
       </button>
     </div>
   );

@@ -248,7 +248,18 @@
     "dateEntreeRequired": "تاريخ الدخول مطلوب",
     "failedToLoadData": "فشل تحميل بيانات الحركة",
     "failedToRecord": "فشل تسجيل الحركة",
-    "failedToConfirm": "فشل تأكيد الاستلام"
+    "failedToConfirm": "فشل تأكيد الاستلام",
+    "createMovement": "تسجيل حركة جديدة",
+    "editMovement": "تعديل الحركة",
+    "roll":"اللفة",
+    "loadingRolls":"جاري تحميل اللفات...",
+    "selectRoll": "اختر لفة...",
+    "noAvailableRolls":"لا توجد لفات متاحة للورشة المصدر المختارة.",
+    "selectedRoll": "اللفة المحددة",
+    "noRollSelected": "لم يتم اختيار لفة",
+    "selectedWastePiece": "قطعة النفايات المحددة",
+    "noWastePieceSelected": "لم يتم اختيار قطعة نفايات",
+    "cancel": "إلغاء"
   },
   "movementsList": {
     "title": "الحركات",
@@ -1073,5 +1084,11 @@
     "ACTIVE": "نشط",
     "INACTIVE": "غير نشط", 
     "ENCOURS": "قيد المعالجة"
+  }, 
+  "pagination" : {
+    "previous": "السابق",
+    "next": "التالي",
+    "page": "الصفحة",
+    "of": "من"
   }
 }

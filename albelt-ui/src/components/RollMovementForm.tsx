@@ -11,6 +11,7 @@ import { InputText } from 'primereact/inputtext';
 import { InputTextarea } from 'primereact/inputtextarea';
 import { Message } from 'primereact/message';
 import { formatRollChuteLabel, getRollChuteSummary } from '@utils/rollChuteLabel';
+import { t } from 'i18next';
 
 interface RollMovementFormProps {
   mode: 'create' | 'edit';
@@ -268,7 +269,7 @@ export function RollMovementForm({
   return (
     <Dialog
       visible
-      header={mode === 'create' ? 'Create Movement' : 'Edit Movement'}
+      header={mode === 'create' ? t('rollMovement.createMovement') : t('rollMovement.editMovement')}
       onHide={onCancel}
       style={{ width: 'min(800px, 95vw)' }}
     >
@@ -277,32 +278,32 @@ export function RollMovementForm({
       {mode === 'create' && step === 'source' && (
         <div style={{ display: 'grid', gap: '1rem' }}>
           <div>
-            <label htmlFor="fromAltierID">From Altier</label>
+            <label htmlFor="fromAltierID"> {t('rollMovement.fromAltier')}</label>
             <Dropdown
               id="fromAltierID"
               value={formData.fromAltierID}
               options={altierOptions}
               onChange={(e) => setFormData((prev) => ({ ...prev, fromAltierID: e.value }))}
-              placeholder="-- Select Source --"
+              placeholder={t('rollMovement.selectSource')}
               filter
               required
             />
           </div>
 
           <div>
-            <label htmlFor="rollId">Roll</label>
+            <label htmlFor="rollId"> {t('rollMovement.roll')}</label>
             <Dropdown
               id="rollId"
               value={formData.rollId}
               options={rollOptions}
               onChange={(e) => handleRollSelect(e.value)}
-              placeholder={loadingRolls ? 'Loading rolls...' : '-- Select Roll --'}
+              placeholder={loadingRolls ? t('rollMovement.loadingRolls') : t('rollMovement.selectRoll')}
               filter
               disabled={loadingRolls}
               required
             />
             {!loadingRolls && availableRolls.length === 0 && (
-              <Message severity="info" text={`No available rolls at ${userAvailableAltiers.find(a => a.id === formData.fromAltierID)?.libelle || ''}`} />
+              <Message severity="info" text={t('rollMovement.noAvailableRolls', { altier: userAvailableAltiers.find(a => a.id === formData.fromAltierID)?.libelle || '' })} />
             )}
           </div>
 
@@ -322,12 +323,12 @@ export function RollMovementForm({
           <div style={{ display: 'grid', gap: '1rem' }}>
             {mode === 'create' && (
               <div>
-                <label>{formData.sourceType === 'ROLL' ? 'Selected Roll' : 'Selected Waste Piece'}</label>
+                <label>{formData.sourceType === 'ROLL' ? t('rollMovement.selectedRoll') : t('rollMovement.selectedWastePiece')}</label>
                 <div>
                   {formData.sourceType === 'ROLL' ? (
                     selectedRoll ? (
                       <div>
-                        <strong>Selected roll</strong>
+                        <strong>{t('rollMovement.selectedRoll')}</strong>
                         <div>
                           {(() => {
                             const summary = getRollChuteSummary(selectedRoll);
@@ -336,12 +337,12 @@ export function RollMovementForm({
                         </div>
                       </div>
                     ) : (
-                      'No roll selected'
+                      t('rollMovement.noRollSelected')
                     )
                   ) : (
                     selectedWastePiece ? (
                       <div>
-                        <strong>Selected waste piece</strong>
+                        <strong>{t('rollMovement.selectedWastePiece')}</strong>
                         <div>
                           {(() => {
                             const summary = getRollChuteSummary(selectedWastePiece);
@@ -350,7 +351,7 @@ export function RollMovementForm({
                         </div>
                       </div>
                     ) : (
-                      'No waste piece selected'
+                       t('rollMovement.noWastePieceSelected')
                     )
                   )}
                 </div>
@@ -359,7 +360,7 @@ export function RollMovementForm({
 
             <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
               <div>
-                <label htmlFor="fromAltierDisplay">From Altier</label>
+                <label htmlFor="fromAltierDisplay">{t('rollMovement.fromAltier')}</label>
                 <InputText
                   id="fromAltierDisplay"
                   value={altiers.find((a) => a.id === formData.fromAltierID)?.libelle || ''}
@@ -367,19 +368,19 @@ export function RollMovementForm({
                 />
               </div>
               <div>
-                <label htmlFor="toAltierID">To Altier *</label>
+                <label htmlFor="toAltierID">{t('rollMovement.toAltier')} *</label>
                 <Dropdown
                   id="toAltierID"
                   value={formData.toAltierID}
                   options={destinationOptions}
                   onChange={(e) => setFormData((prev) => ({ ...prev, toAltierID: e.value }))}
-                  placeholder="-- Select Destination --"
+                  placeholder={t('rollMovement.selectDestination')}
                   filter
                   required
                 />
               </div>
               <div>
-                <label htmlFor="dateSortie">Date Sortie (Exit Date) *</label>
+                <label htmlFor="dateSortie">{t('rollMovement.dateSortie')} *</label>
                 <InputText
                   type="datetime-local"
                   id="dateSortie"
@@ -391,7 +392,7 @@ export function RollMovementForm({
               </div>
               {mode === 'edit' && (
                 <div>
-                  <label htmlFor="dateEntree">Date Entree (Entry Date)</label>
+                  <label htmlFor="dateEntree">{t('rollMovement.dateEntree')}</label>
                   <InputText
                     type="datetime-local"
                     id="dateEntree"
@@ -404,38 +405,38 @@ export function RollMovementForm({
             </div>
 
             <div>
-              <label htmlFor="reason">Movement Type / Reason</label>
+              <label htmlFor="reason">{t('rollMovement.reason')}</label>
               <InputText
                 id="reason"
                 name="reason"
                 value={formData.reason}
                 onChange={handleInputChange}
-                placeholder="e.g., INTERNAL_TRANSFER, DELIVERY..."
+                placeholder={t('rollMovement.reasonPlaceholder')}
               />
             </div>
 
             <div>
-              <label htmlFor="notes">Notes</label>
+              <label htmlFor="notes">{t('rollMovement.notes')}</label>
               <InputTextarea
                 id="notes"
                 name="notes"
                 value={formData.notes}
                 onChange={handleInputChange}
                 rows={3}
-                placeholder="Additional notes about this movement..."
+                placeholder={t('rollMovement.notesPlaceholder')}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               {mode === 'create' && step === 'details' && (
-                <Button type="button" label="Back" severity="secondary" onClick={() => setStep('source')} />
+                <Button type="button" label={t('rollMovement.back')} severity="secondary" onClick={() => setStep('source')} />
               )}
               <Button
                 type="submit"
-                label={loading ? 'Saving...' : mode === 'create' ? 'Create Movement' : 'Update Movement'}
+                label={loading ? t('rollMovement.saving') : mode === 'create' ? t('rollMovement.createMovement') : t('rollMovement.updateMovement')}
                 disabled={loading}
               />
-              <Button type="button" label="Cancel" severity="secondary" onClick={onCancel} />
+              <Button type="button" label={t('rollMovement.cancel')} severity="secondary" onClick={onCancel} />
             </div>
           </div>
         </form>

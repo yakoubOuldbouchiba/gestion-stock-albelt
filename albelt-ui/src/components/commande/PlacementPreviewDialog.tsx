@@ -2,6 +2,7 @@ import { Dialog } from 'primereact/dialog';
 import { Message } from 'primereact/message';
 import { formatRollChuteLabel } from '@utils/rollChuteLabel';
 import type { PlacedRectangle } from '../../types';
+import { t } from 'i18next';
 
 type PlacementPreviewDialogProps = {
   showPlacementPreview: boolean;
@@ -47,13 +48,13 @@ export const PlacementPreviewDialog = ({
       ));
 
       if (!sourceWidthMm || !sourceLengthMm) {
-        return <Message severity="info" text="Source dimensions are required for SVG preview." />;
+        return <Message severity="info" text={t('rollDetail.sourceDimensionsRequired')} />;
       }
 
       return (
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           <div style={{ fontWeight: 600 }}>
-            {isRoll ? 'Roll' : 'Waste'} {source ? formatRollChuteLabel(source) : previewPlacement.id.slice(0, 8)}
+            {isRoll ? t('rollDetail.roll') : t('rollDetail.waste')} {source ? formatRollChuteLabel(source) : previewPlacement.id.slice(0, 8)}
           </div>
           {itemLabel ? (
             <div style={{ color: 'var(--text-color-secondary)', fontSize: '0.9rem' }}>{itemLabel}</div>
@@ -105,7 +106,7 @@ export const PlacementPreviewDialog = ({
               })}
             </svg>
             <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
-              {(sourceLengthMm / 1000).toFixed(2)}m x {sourceWidthMm}mm (length on X, width on Y)
+              {(sourceLengthMm / 1000).toFixed(2)}m x {sourceWidthMm}mm ({t('rollDetail.lengthOnX')}, {t('rollDetail.widthOnY')})
             </div>
           </div>
         </div>

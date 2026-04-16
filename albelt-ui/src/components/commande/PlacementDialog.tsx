@@ -57,7 +57,7 @@ export const PlacementDialog = ({
   creatingPlacement,
 }: PlacementDialogProps) => (
   <Dialog
-    header={editingPlacementId ? 'Update placement' : 'Add placement'}
+    header={editingPlacementId ? t('rollDetail.updatePlacement') : t('rollDetail.addPlacement')}
     visible={showPlacementModal}
     onHide={onHide}
     position="right"
@@ -66,7 +66,7 @@ export const PlacementDialog = ({
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
         <Button label={t('commandes.cancel')} severity="secondary" onClick={onHide} />
         <Button
-          label={editingPlacementId ? 'Update placement' : 'Save placement'}
+          label={editingPlacementId ? t('rollDetail.updatePlacement') : t('rollDetail.addPlacement')}
           onClick={onSave}
           loading={creatingPlacement}
           disabled={Boolean(disabled) || creatingPlacement || !placementTargetItem}
@@ -77,7 +77,7 @@ export const PlacementDialog = ({
     <div style={{ display: 'grid', gap: '0.75rem' }}>
       <div className="albel-grid albel-grid--min200" style={{ gap: '0.75rem' }}>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Source</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>{t('rollDetail.source')}</label>
           <Dropdown
             value={placementForm.sourceType}
             options={placementSourceOptionsDialog}
@@ -87,7 +87,7 @@ export const PlacementDialog = ({
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Roll / Waste</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>{t('rollDetail.rollOrWaste')}</label>
           <Dropdown
             value={placementForm.sourceId}
             options={placementForm.sourceType === 'ROLL' ? placementRollOptionsDialog : placementWasteOptionsDialog}
@@ -101,7 +101,7 @@ export const PlacementDialog = ({
         </div>
       </div>
       {!placementForm.sourceId ? (
-        <Message severity="info" text="Select a source to preview placements." />
+        <Message severity="info" text={t('rollDetail.selectSourceToPreview')} />
       ) : (() => {
         const source = placementForm.sourceType === 'ROLL'
           ? rolls.find((roll) => roll.id === placementForm.sourceId)
@@ -109,7 +109,7 @@ export const PlacementDialog = ({
         const sourceWidthMm = Number(source?.widthMm) || 0;
         const sourceLengthMm = Math.round((Number(source?.lengthM) || 0) * 1000);
         if (!sourceWidthMm || !sourceLengthMm) {
-          return <Message severity="info" text="Source dimensions are required for SVG preview." />;
+          return <Message severity="info" text={t('rollDetail.sourceDimensionsRequired')} />;
         }
         const sourcePlacements = placementsForItem.filter((placement) => (
           placementForm.sourceType === 'ROLL'
@@ -165,14 +165,14 @@ export const PlacementDialog = ({
               })}
             </svg>
             <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
-              {(sourceLengthMm / 1000).toFixed(2)}m x {sourceWidthMm}mm (length on X, width on Y)
+              {(sourceLengthMm / 1000).toFixed(2)}m x {sourceWidthMm}mm ({t('rollDetail.lengthOnX')}, {t('rollDetail.widthOnY')})
             </div>
           </div>
         );
       })()}
       <div className="albel-grid albel-grid--min140" style={{ gap: '0.75rem' }}>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>X (length mm)</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>{t('rollDetail.xLengthMm')}</label>
           <InputText
             value={placementForm.xMm}
             onChange={(e) => onFieldChange('xMm', e.target.value)}
@@ -182,7 +182,7 @@ export const PlacementDialog = ({
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Y (width mm)</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>{t('rollDetail.yWidthMm')}</label>
           <InputText
             value={placementForm.yMm}
             onChange={(e) => onFieldChange('yMm', e.target.value)}
@@ -192,7 +192,7 @@ export const PlacementDialog = ({
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Width (mm)</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>{t('rollDetail.widthMm')}</label>
           <InputText
             value={placementForm.widthMm}
             onChange={(e) => onFieldChange('widthMm', e.target.value)}
@@ -202,7 +202,7 @@ export const PlacementDialog = ({
           />
         </div>
         <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>Height (mm)</label>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.35rem' }}>{t('rollDetail.heightMm')}</label>
           <InputText
             value={placementForm.heightMm}
             onChange={(e) => onFieldChange('heightMm', e.target.value)}

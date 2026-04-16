@@ -246,7 +246,20 @@
     "dateEntreeRequired": "La date d'entrée est obligatoire",
     "failedToLoadData": "Échec du chargement des données de mouvement",
     "failedToRecord": "Échec de l'enregistrement du mouvement",
-    "failedToConfirm": "Échec de la confirmation de la réception"
+    "failedToConfirm": "Échec de la confirmation de la réception",
+    "createMovement": "Créer un mouvement",
+    "editMovement": "Modifier le mouvement",
+    "roll": "Rouleau",  
+    "chute": "Chute",
+    "item": "Article",
+    "loadingRolls":"Chargement des rouleaux...",
+    "selectRoll": "Sélectionner un rouleau",
+    "noAvailableRolls": "Aucun rouleau disponible pour l'atelier de départ sélectionné.",
+    "selectedRoll": "Rouleau sélectionné",
+    "noRollSelected": "Aucun rouleau sélectionné",
+    "selectedWastePiece": "Pièce de déchets sélectionnée",
+    "noWastePieceSelected": "Aucune pièce de déchets sélectionnée",
+    "cancel": "Annuler"
   },
   "movementsList": {
     "title": "Mouvements",
@@ -1095,5 +1108,11 @@
     "RECEIVED": "Reçu",
     "DELIVERED": "Livré",
     "ENCOURS": "Encours"
+  },
+  "pagination": {
+    "previous": "Précédent",
+    "next": "Suivant",
+    "page": "Page",
+    "of": "de"
   }
 }
