@@ -654,12 +654,12 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
           setDialogs((prev) => ({ ...prev, createChute: false }));
           resetChute();
           resetForm();
-          alert('Waste piece created successfully!');
+          alert(t('inventory.wastePieceCreatedSuccessfully'));
         }
       }, 'inventory-chute');
     } catch (err) {
       console.error('Error creating waste piece:', err);
-      alert('Failed to create waste piece');
+      alert(t('inventory.failedToCreateWastePiece'));
     }
   };
 
@@ -693,8 +693,8 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
           value={roll.materialType}
           style={{ backgroundColor: getMaterialColor(roll.materialType, roll.colorHexCode) }}
         />
-        <div>Ref: {summary.reference}</div>
-        <div>Plis: {summary.nbPlis} | Thk: {summary.thickness} | Color: {summary.color}</div>
+        <div>{t('inventory.reference')}: {summary.reference}</div>
+        <div>{t('inventory.plis')}: {summary.nbPlis} | {t('inventory.thickness')}: {summary.thickness} | {t('inventory.color')}: {summary.color}</div>
         <div>{supplier?.name || 'N/A'}</div>
         <div>{altierLabel}</div>
       </div>
@@ -724,7 +724,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
 
   const groupedMaterialBody = (row: any) => {
     const altierLabel = row.altierName || 'Unassigned';
-    const materialDetails = `${row.thicknessMm ?? 'N/A'} mm • ${row.nbPlis ?? 'N/A'} plis`;
+    const materialDetails = `${row.thicknessMm ?? 'N/A'} mm • ${row.nbPlis ?? 'N/A'}  ${t('inventory.plis')}`;
     return (
       <div>
         <Tag
@@ -733,7 +733,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
         />
         <div>{materialDetails}</div>
         <div>{altierLabel}</div>
-        <div>{row.status || 'N/A'}</div>
+        <div>{t(`statuses.${row.status}`) || 'N/A'}</div>
       </div>
     );
   };
@@ -747,8 +747,8 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
           value={piece.materialType}
           style={{ backgroundColor: getMaterialColor(piece.materialType, piece.colorHexCode) }}
         />
-        <div>Ref: {summary.reference}</div>
-        <div>Plis: {summary.nbPlis} | Thk: {summary.thickness} | Color: {summary.color}</div>
+        <div>{t('inventory.reference')}: {summary.reference}</div>
+        <div>{t('inventory.plis')}: {summary.nbPlis} | {t('inventory.thickness')}: {summary.thickness} | {t('inventory.color')}: {summary.color}</div>
         <div>{piece.supplierName || 'N/A'}</div>
         <div>{altierLabel}</div>
       </div>
@@ -798,7 +798,7 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
   );
 
   const colorFilterOptions = useMemo(
-    () => [{ label: t('inventory.allColors') || 'All colors', value: 'ALL' }, ...colorOptions],
+    () => [{ label: t('inventory.allColors') || t('inventory.allColorsFallback'), value: 'ALL' }, ...colorOptions],
     [t, colorOptions]
   );
 

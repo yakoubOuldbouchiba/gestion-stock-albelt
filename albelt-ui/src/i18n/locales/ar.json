@@ -156,8 +156,12 @@
     "productionItemsDeleted": "تم حذف عنصر(عناصر) الإنتاج.",
     "unableToDeleteProductionItems": "فشل في حذف عنصر(عناصر) الإنتاج المرتبطة",
     "placementDeleteFailed": "فشل في حذف التوزيع",
-    "placementDimensionsExceeded": "أبعاد الساقط تتجاوز التوزيع المحدد"
-    
+    "placementDimensionsExceeded": "أبعاد الساقط تتجاوز التوزيع المحدد",
+    "wastePieceCreatedSuccessfully": "تم إنشاء قطعة النفايات بنجاح",
+    "failedToCreateWastePiece": "فشل في إنشاء قطعة النفايات",
+    "plis": "الطبقات",
+    "thickness": "السمك",
+    "allColorsFallback": "جميع الألوان"
   },
   "rolls": {
     "title": "لفائف",

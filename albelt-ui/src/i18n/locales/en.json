@@ -160,7 +160,12 @@
     "placementHasLinkedProductionItems": "This placement has {{count}} linked production item(s). Delete them first?",
     "productionItemsDeleted": "Linked production item(s) deleted.",
     "unableToDeleteProductionItems": "Unable to delete linked production item(s).",
-    "placementDimensionsExceeded": "Chute dimensions exceed the selected placement."
+    "placementDimensionsExceeded": "Chute dimensions exceed the selected placement.",
+    "wastePieceCreatedSuccessfully": "Waste piece created successfully!",
+    "failedToCreateWastePiece": "Failed to create waste piece",
+    "plis": "Plies",
+    "thickness": "Thickness",
+    "allColorsFallback": "All Colors"
   },
   "rolls": {
     "title": "Rolls",

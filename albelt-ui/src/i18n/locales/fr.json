@@ -154,7 +154,13 @@
     "placementItemRequired": "L'article de placement est requis",
     "unableToDeleteProductionItems": "Impossible de supprimer les articles de production liés",
     "placementDeleteFailed": "Impossible de supprimer le placement",
-    "placementDimensionsExceeded": "Les dimensions de la chute dépassent le placement sélectionné"
+    "placementDimensionsExceeded": "Les dimensions de la chute dépassent le placement sélectionné",
+    "productionMismatchMaterial": "Incompatibilité de matériau - attendu: {{expected}}, trouvé: {{actual}}",
+    "wastePieceCreatedSuccessfully": "Pièce de déchet créée avec succès",
+    "failedToCreateWastePiece": "Échec de la création de la pièce de déchet",
+    "plis": "Plis",
+    "thickness": "Épaisseur",
+    "allColorsFallback": "Toutes les couleurs"
   },
   "rolls": {
     "title": "Rouleaux",
