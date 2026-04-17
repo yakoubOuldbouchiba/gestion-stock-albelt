@@ -10,9 +10,12 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   flex-wrap: wrap;
   gap: 20px;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 120;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
   backdrop-filter: blur(12px);
 }
 
@@ -190,7 +193,7 @@
   transform: translateY(0);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .navbar {
     padding: 12px 16px;
     gap: 12px;
@@ -201,34 +204,15 @@
   }
 
   .navbar-brand h2 {
-    font-size: 20px;
-  }
-
-  .brand-icon {
-    width: 36px;
-    height: 36px;
+    font-size: 1.2rem;
   }
 
   .navbar-title {
-    font-size: 12px;
-  }
-
-  .navbar-right {
-    gap: 12px;
-  }
-
-  .user-info {
-    padding: 6px 12px;
-    gap: 8px;
+    display: none;
   }
 
   .username {
     display: none;
-  }
-
-  .logout-button {
-    padding: 6px 12px;
-    font-size: 13px;
   }
 
   .logout-button span {
@@ -236,24 +220,22 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .navbar {
-    flex-direction: column;
+    padding: 10px 12px;
+  }
+
+  .navbar-right {
     gap: 8px;
   }
 
-  .navbar-left,
-  .navbar-right {
-    width: 100%;
-    justify-content: space-between;
+  .user-info {
+    padding: 6px 10px;
   }
 
-  .navbar-brand h2 {
-    font-size: 18px;
-  }
-
-  .navbar-title {
-    display: none;
+  .role-badge {
+    padding: 4px 10px;
+    font-size: 10px;
   }
 }
 
@@ -267,35 +249,9 @@
   color: #99e6cc;
 }
 
-.logout-button {
-  padding: 8px 16px;
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  white-space: nowrap;
-}
-
 .logout-button:hover {
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-@media (max-width: 768px) {
-  .navbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .navbar-left {
-    width: 100%;
-  }
-
-  .navbar-right {
-    width: 100%;
-    justify-content: space-between;
-  }
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }

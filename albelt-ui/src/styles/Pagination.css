@@ -39,3 +39,21 @@
   font-size: 13px;
   color: var(--color-muted);
 }
+
+@media (max-width: 640px) {
+  .pagination {
+    gap: 6px;
+    padding: 8px 10px;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .pagination-button {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .pagination-info {
+    font-size: 12px;
+  }
+}

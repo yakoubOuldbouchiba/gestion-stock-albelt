@@ -40,8 +40,8 @@
 
 .inventory-filters__grid {
   display: grid;
-  gap: 0.85rem;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
 }
 
 .inventory-filters__field {
@@ -70,32 +70,19 @@
   width: 100%;
 }
 
-.inventory-filters .p-inputtext,
-.inventory-filters .p-dropdown {
-  width: 100%;
-  border-radius: var(--radius-md);
-}
-
-.inventory-filters .p-dropdown .p-dropdown-label {
-  padding-right: 2.25rem;
-}
-
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .inventory-filters__field--search {
-    grid-column: span 1;
-  }
-
-  .inventory-filters__field--compact {
-    max-width: none;
+    grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 640px) {
   .inventory-filters {
-    padding: 0.9rem;
+    padding: 1rem;
+    gap: 0.75rem;
   }
 
-  .inventory-filters__header {
-    align-items: flex-start;
+  .inventory-filters__field--compact {
+    max-width: none;
   }
 }

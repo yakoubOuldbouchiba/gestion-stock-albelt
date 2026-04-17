@@ -109,9 +109,10 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .primereact-dropdown-panel {
-    max-height: 300px;
+    max-height: 350px;
+    max-width: 95vw !important;
   }
 
   .primereact-dropdown-wrapper .dropdown-label {
@@ -120,5 +121,11 @@
 
   .primereact-dropdown-wrapper .p-dropdown {
     font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .primereact-dropdown-panel {
+    max-height: 280px;
   }
 }
