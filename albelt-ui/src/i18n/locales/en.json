@@ -144,7 +144,23 @@
       "SCRAP": "Scrap",
       "CHUTE_EXPLOITABLE": "Exploitable Chute",
       "DECHET": "Waste"
-    }
+    },
+    "placementSourceNotFound": "Placement source not found.",
+    "placementDimensionsRequired": "Placement dimensions are required.",
+    "sourceDimensionsRequired": "Source dimensions are required for placement.",
+    "placementValuesMustBePositive": "Placement values must be positive.",
+    "placementOutsideSourceBounds": "Placement is outside the source bounds.",
+    "placementOverlapsExistingRectangle": "Placement overlaps an existing rectangle.",
+    "placementSaved": "Placement saved.",
+    "placementUpdated": "Placement updated.",
+    "placementSaveFailed": "Unable to save placement.",
+    "placementItemRequired": "Placement item is required.",
+    "placementDeleted": "Placement deleted.",
+    "placementDeleteFailed": "Unable to delete placement.",
+    "placementHasLinkedProductionItems": "This placement has {{count}} linked production item(s). Delete them first?",
+    "productionItemsDeleted": "Linked production item(s) deleted.",
+    "unableToDeleteProductionItems": "Unable to delete linked production item(s).",
+    "placementDimensionsExceeded": "Chute dimensions exceed the selected placement."
   },
   "rolls": {
     "title": "Rolls",
@@ -541,7 +557,13 @@
     "color":"Color",
     "actions":"Actions",
     "xMm":"X (mm)",
-    "yMm":"Y (mm)"
+    "yMm":"Y (mm)",
+    "rollOrWaste":"Roll or Waste",
+    "yWidthMm":"Y (Width in mm)",
+    "xLengthM":"X (Length in m)",
+    "xLengthMm":"X (Length in mm)",
+    "yWidthM":"Y (Width in m)",
+    "selectSourceToPreview":"Select source dimensions to enable placement preview"
   },
   "materialChuteThresholds": {
     "title": "Material Thresholds (Chute Classification)",
@@ -999,7 +1021,8 @@
       "COMPLETED": "Completed",
       "CANCELLED": "Cancelled",
       "PENDING": "Pending"
-    }
+    },
+    "placement":  "Placement"
   },
   "returns": {
     "title": "Order Returns",

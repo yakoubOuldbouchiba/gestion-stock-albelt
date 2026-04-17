@@ -139,7 +139,25 @@
     "waste": "نفايات (م²)",
     "wastePercent": "نسبة النفايات %",
     "received": "استقبل",
-    "filters": "الفلاتر"
+    "filters": "الفلاتر",
+    "placementSourceNotFound": "لم يتم العثور على مصدر التوزيع",
+    "placementDimensionsRequired": "أبعاد التوزيع مطلوبة",
+    "sourceDimensionsRequired": "أبعاد المصدر مطلوبة للتوزيع",
+    "placementValuesMustBePositive": "يجب أن تكون قيم التوزيع موجبة",
+    "placementOutsideSourceBounds": "التوزيع خارج حدود المصدر",
+    "placementOverlapsExistingRectangle": "التوزيع يتداخل مع مستطيل موجود",
+    "placementUpdated": "تم تحديث التوزيع",
+    "placementSaved": "تم حفظ التوزيع",
+    "placementUpdateFailed": "فشل في تحديث التوزيع",
+    "placementItemRequired": "عنصر التوزيع مطلوب",
+    "placementDeleted": "تم حذف التوزيع",
+    "confirmDeletePlacement": "هل أنت متأكد من رغبتك في حذف هذا التوزيع؟",
+    "placementHasLinkedProductionItems":"هذا التوزيع مرتبط بـ {{count}} عنصر إنتاج. هل تريد حذفهم أولاً؟",
+    "productionItemsDeleted": "تم حذف عنصر(عناصر) الإنتاج.",
+    "unableToDeleteProductionItems": "فشل في حذف عنصر(عناصر) الإنتاج المرتبطة",
+    "placementDeleteFailed": "فشل في حذف التوزيع",
+    "placementDimensionsExceeded": "أبعاد الساقط تتجاوز التوزيع المحدد"
+    
   },
   "rolls": {
     "title": "لفائف",
@@ -544,7 +562,13 @@
     "color":"اللون",
     "actions":"الإجراءات",
     "xMm": "X (مم)",
-    "yMm": "Y (مم)"
+    "yMm": "Y (مم)",
+    "rollOrWaste":"لفة أو قطعة نفايات",
+    "yWidthMm": "Y (عرض بالملم)",
+    "xLengthM": "X (طول بالمتر)",
+    "xLengthMm": "X (طول بالملم)",
+    "yWidthM": "Y (عرض بالمتر)",
+    "selectSourceToPreview": "اختر مصدرًا لعرض معاينة التوزيعات"
   },
   "materialChuteThresholds": {
     "title": "حدود المادة (تصنيف الفتحة)",
@@ -1018,7 +1042,8 @@
     "actualLayout": "التخطيط الحالي",
     "suggestedLayout": "التخطيط المقترح",
     "noActualSvg": "لا يوجد تخطيط حالي متاح.",
-    "noSuggestedSvg": "لا يوجد تخطيط مقترح متاح."
+    "noSuggestedSvg": "لا يوجد تخطيط مقترح متاح.",
+    "commandes": "الطلبات"
   },
   "returns": {
     "title": "مرتجعات الطلب",

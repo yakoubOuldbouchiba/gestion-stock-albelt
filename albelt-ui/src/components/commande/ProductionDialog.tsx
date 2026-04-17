@@ -64,7 +64,7 @@ export const ProductionDialog = ({
     <div style={{ display: 'grid', gap: '1rem' }}>
       <div>
         <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-          Placement
+          {t('commandes.placement')}
         </label>
         <div
           style={{

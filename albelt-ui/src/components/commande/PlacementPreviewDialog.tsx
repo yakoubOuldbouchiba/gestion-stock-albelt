@@ -18,7 +18,7 @@ export const PlacementPreviewDialog = ({
   placementsForItem,
 }: PlacementPreviewDialogProps) => (
   <Dialog
-    header="Placement preview"
+    header={t('rollDetail.selectSourceToPreview')}
     visible={showPlacementPreview}
     onHide={onHide}
     position="right"

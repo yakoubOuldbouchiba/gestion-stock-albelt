@@ -109,7 +109,7 @@ export function CommandeDetailPage() {
   });
 
   const statusKeys = ['PENDING', 'ENCOURS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
-  const statuses = statusKeys.map((key) => t(`statuses.${key}`));
+  const statuses = statusKeys.map((key) => t(`${key}`));
   const itemStatuses: ItemStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
   const isCommandeLocked = useMemo(() => {
@@ -672,7 +672,7 @@ export function CommandeDetailPage() {
       ? rolls.find((roll) => roll.id === sourceId)
       : wasteForItem.find((waste: any) => waste.id === sourceId);
     if (!source) {
-      showError('Placement source not found.');
+      showError(t('inventory.placementSourceNotFound'));
       return false;
     }
 
@@ -682,24 +682,24 @@ export function CommandeDetailPage() {
     const heightMm = parseInt(placementForm.heightMm, 10);
 
     if ([xMm, yMm, widthMm, heightMm].some((value) => Number.isNaN(value))) {
-      showError('Placement dimensions are required.');
+      showError(t('inventory.placementDimensionsRequired'));
       return false;
     }
 
     const sourceWidth = Number(source.widthMm) || 0;
     const sourceLengthMm = Math.round((Number(source.lengthM) || 0) * 1000);
     if (sourceWidth <= 0 || sourceLengthMm <= 0) {
-      showError('Source dimensions are required for placement.');
+      showError(t('inventory.sourceDimensionsRequired'));
       return false;
     }
 
     if (xMm < 0 || yMm < 0 || widthMm <= 0 || heightMm <= 0) {
-      showError('Placement values must be positive.');
+      showError(t('inventory.placementValuesMustBePositive'));
       return false;
     }
 
     if (xMm >= sourceWidth || yMm >= sourceLengthMm || xMm + widthMm > sourceWidth || yMm + heightMm > sourceLengthMm) {
-      showError('Placement is outside the source bounds.');
+      showError(t('inventory.placementOutsideSourceBounds'));
       return false;
     }
 
@@ -719,7 +719,7 @@ export function CommandeDetailPage() {
       return xMm < exX + exW && xMm + widthMm > exX && yMm < exY + exH && yMm + heightMm > exY;
     });
     if (hasOverlap) {
-      showError('Placement overlaps an existing rectangle.');
+      showError(t('inventory.placementOverlapsExistingRectangle'));
       return false;
     }
 
@@ -755,11 +755,11 @@ export function CommandeDetailPage() {
         heightMm: '',
       }));
       setEditingPlacementId(null);
-      showSuccess(isEditing ? 'Placement updated.' : 'Placement saved.');
+      showSuccess(isEditing ?  t('inventory.placementUpdated') : t('inventory.placementSaved'));
       didSucceed = true;
     } catch (err) {
       console.error('Error creating placement:', err);
-      showError(isEditing ? 'Unable to update placement.' : 'Unable to save placement.');
+      showError(isEditing ? t('inventory.placementUpdateFailed') : t('inventory.placementSaveFailed'));
     } finally {
       setCreatingPlacement(false);
     }
@@ -819,7 +819,7 @@ export function CommandeDetailPage() {
       return;
     }
     if (!placementTargetItem) {
-      showError('Placement item is required.');
+      showError(t('inventory.placementItemRequired'));
       return;
     }
     const didSucceed = await handleCreatePlacement(placementTargetItem);
@@ -851,11 +851,11 @@ export function CommandeDetailPage() {
       if (editingPlacementId === placementId) {
         resetPlacementForm();
       }
-      showSuccess('Placement deleted.');
+      showSuccess(t('inventory.placementDeleted'));
     };
 
     confirmDialog({
-      message: 'Delete this placement?',
+      message: t('inventory.confirmDeletePlacement'),
       header: t('common.confirm'),
       icon: 'pi pi-exclamation-triangle',
       accept: async () => {
@@ -866,7 +866,7 @@ export function CommandeDetailPage() {
 
           if (linked.length > 0) {
             confirmDialog({
-              message: `This placement has ${linked.length} production item(s). Delete them first?`,
+              message: ` ${t('inventory.placementHasLinkedProductionItems', { count: linked.length })}`,
               header: t('common.confirm'),
               icon: 'pi pi-exclamation-triangle',
               accept: async () => {
@@ -880,10 +880,10 @@ export function CommandeDetailPage() {
                       setCommande(commandeRes.data);
                     }
                   }
-                  showSuccess('Production item(s) deleted.');
+                  showSuccess(t('inventory.productionItemsDeleted'));
                 } catch (err) {
                   console.error('Error deleting linked production items:', err);
-                  showError('Unable to delete linked production item(s).');
+                  showError(t('inventory.unableToDeleteProductionItems'));
                 }
               },
             });
@@ -893,7 +893,7 @@ export function CommandeDetailPage() {
           await performDelete();
         } catch (err) {
           console.error('Error deleting placement:', err);
-          showError('Unable to delete placement.');
+          showError(t('inventory.placementDeleteFailed'));
         }
       },
     });
@@ -959,12 +959,12 @@ export function CommandeDetailPage() {
 
     const selectedPlacement = chutePlacements.find((placement) => placement.id === chutePlacementId);
     if (!selectedPlacement) {
-      showError('Select a placement before creating a chute.');
+      showError(t('inventory.placementItemRequired'));
       return;
     }
     const chuteLengthMm = chuteDimensions.lengthM * 1000;
     if (chuteDimensions.widthMm > selectedPlacement.widthMm || chuteLengthMm > selectedPlacement.heightMm) {
-      showError('Chute dimensions exceed the selected placement.');
+      showError(t('inventory.placementDimensionsExceeded'));
       return;
     }
 
@@ -1088,10 +1088,10 @@ export function CommandeDetailPage() {
     const placementWidth = placement?.widthMm ?? null;
     const placementHeight = placement?.heightMm ?? null;
     if (placementWidth !== null && pieceWidth > placementWidth) {
-      warnings.push(`piece_width_mm exceeds placed rectangle width (${placementWidth} mm)`);
+      warnings.push(t('inventory.placementDimensionsExceeded'));
     }
     if (placementHeight !== null && pieceLength * 1000 > placementHeight) {
-      warnings.push(`piece_length_m exceeds placed rectangle length (${placementHeight} mm)`);
+      warnings.push(t('inventory.placementDimensionsExceeded'));
     }
 
     if (source?.materialType && source.materialType !== item.materialType) {

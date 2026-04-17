@@ -139,7 +139,7 @@ export const ChuteDialog = ({
       {((chuteSourceType === 'ROLL' && chuteRollId) || (chuteSourceType === 'WASTE_PIECE' && parentWastePieceId)) && (
         <div>
           <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-            Placement *
+            {t('inventory.selectPlacement')} *
           </label>
           <Dropdown
             value={chutePlacementId}
@@ -147,9 +147,9 @@ export const ChuteDialog = ({
             onChange={(e) => onPlacementChange(e.value as string)}
             placeholder={
               chutePlacementsLoading
-                ? 'Loading placements...'
+                ? t('inventory.loadingPlacements')
                 : chutePlacementOptions.length === 0
-                  ? 'No placements available'
+                  ? t('inventory.noPlacementsAvailable')
                   : 'Select placement'
             }
             style={{ width: '100%' }}

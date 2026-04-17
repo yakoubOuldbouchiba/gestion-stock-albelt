@@ -139,24 +139,24 @@ export function ChuteDetailPage() {
     const heightMm = parseInt(placementForm.heightMm, 10);
 
     if ([xMm, yMm, widthMm, heightMm].some((value) => Number.isNaN(value))) {
-      setError('Placement dimensions are required.');
+      setError(t('inventory.placementDimensionsRequired'));
       return;
     }
 
     const sourceWidthMm = Number(wastePiece.widthRemainingMm ?? wastePiece.widthMm ?? 0);
     const sourceLengthMm = Math.round(Number(wastePiece.lengthRemainingM ?? wastePiece.lengthM ?? 0) * 1000);
     if (sourceWidthMm <= 0 || sourceLengthMm <= 0) {
-      setError('Source dimensions are required for placement.');
+      setError(t('inventory.sourceDimensionsRequired'));
       return;
     }
 
     if (xMm < 0 || yMm < 0 || widthMm <= 0 || heightMm <= 0) {
-      setError('Placement values must be positive.');
+      setError(t('inventory.placementValuesMustBePositive'));
       return;
     }
 
     if (xMm >= sourceWidthMm || yMm >= sourceLengthMm || xMm + widthMm > sourceWidthMm || yMm + heightMm > sourceLengthMm) {
-      setError('Placement is outside the source bounds.');
+      setError(t('inventory.placementOutsideSourceBounds'));
       return;
     }
 
@@ -171,7 +171,7 @@ export function ChuteDetailPage() {
       return xMm < exX + exW && xMm + widthMm > exX && yMm < exY + exH && yMm + heightMm > exY;
     });
     if (hasOverlap) {
-      setError('Placement overlaps an existing rectangle.');
+      setError(t('inventory.placementOverlapsExisting'));
       return;
     }
 
