@@ -17,6 +17,7 @@ import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { InputText } from 'primereact/inputtext';
 import { getRollChuteSummary } from '@utils/rollChuteLabel';
+import { QrCodeCard } from '../components/QrCodeCard';
 
 export function RollDetailPage() {
   const { t } = useI18n();
@@ -36,6 +37,7 @@ export function RollDetailPage() {
   });
   const [editingPlacementId, setEditingPlacementId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRegeneratingQr, setIsRegeneratingQr] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const statuses: RollStatus[] = ['AVAILABLE', 'OPENED', 'EXHAUSTED', 'ARCHIVED'];
@@ -112,6 +114,25 @@ export function RollDetailPage() {
     } catch (err) {
       setError(t('rollDetail.failedToUpdate'));
       console.error(err);
+    }
+  };
+
+  const handleRegenerateQr = async () => {
+    if (!roll || isRegeneratingQr) return;
+
+    try {
+      setIsRegeneratingQr(true);
+      const response = await RollService.regenerateQrCode(roll.id);
+      if (response.success && response.data) {
+        setRoll(response.data);
+      } else {
+        setError(response.message || t('rollDetail.failedToUpdate'));
+      }
+    } catch (err) {
+      setError(t('rollDetail.failedToUpdate'));
+      console.error(err);
+    } finally {
+      setIsRegeneratingQr(false);
     }
   };
 
@@ -423,9 +444,16 @@ export function RollDetailPage() {
                 onChange={(e) => handleStatusChange(e.value)}
               />
             </div>
-            <div><strong>{t('rollDetail.qrCode') || 'QR Code'}:</strong> {roll.qrCode || 'N/A'}</div>
           </div>
         </Card>
+
+        <QrCodeCard
+          label={t('rollDetail.qrCode') || 'QR Code'}
+          qrCode={roll.qrCode}
+          onRegenerate={handleRegenerateQr}
+          regenerating={isRegeneratingQr}
+          regenerateLabel={t('commandes.regenerateSuggestion') || 'Regenerate QR'}
+        />
 
         <Card title={t('rollDetail.placements') || 'Placements (SVG)'}>
           <div style={{ display: 'grid', gap: '0.75rem' }}>

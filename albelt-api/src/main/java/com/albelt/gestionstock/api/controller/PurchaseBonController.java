@@ -5,15 +5,20 @@ import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.purchasebons.dto.PurchaseBonRequest;
 import com.albelt.gestionstock.domain.purchasebons.dto.PurchaseBonResponse;
 import com.albelt.gestionstock.domain.purchasebons.service.PurchaseBonService;
+import com.albelt.gestionstock.shared.pdf.PdfExportService;
 import com.albelt.gestionstock.shared.enums.PurchaseBonStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +33,7 @@ import java.util.UUID;
 public class PurchaseBonController {
 
     private final PurchaseBonService purchaseBonService;
+    private final PdfExportService pdfExportService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<PurchaseBonResponse>> create(@Valid @RequestBody PurchaseBonRequest request) {
@@ -79,6 +85,22 @@ public class PurchaseBonController {
         }
     }
 
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> downloadPdf(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "fr") String lang) {
+        PurchaseBonResponse bon = purchaseBonService.getDetails(id);
+        Locale locale = Locale.forLanguageTag(lang);
+        byte[] pdf = pdfExportService.generatePurchaseBonPdf(bon, locale);
+        String filename = "purchase-bon-" + safeFileName(bon.getReference() != null ? bon.getReference() : id.toString()) + ".pdf";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename*=UTF-8''" + java.net.URLEncoder.encode(filename, StandardCharsets.UTF_8))
+                .body(pdf);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PurchaseBonResponse>> update(
             @PathVariable UUID id,
@@ -118,5 +140,9 @@ public class PurchaseBonController {
     private java.time.LocalDate parseDate(String value) {
         if (value == null || value.trim().isEmpty()) return null;
         return java.time.LocalDate.parse(value.trim());
+    }
+
+    private String safeFileName(String raw) {
+        return raw.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 }

@@ -32,6 +32,10 @@ export const WastePieceService = {
     return ApiService.get<WastePiece>(`/waste-pieces/${id}`);
   },
 
+  async regenerateQrCode(id: string): Promise<ApiResponse<WastePiece>> {
+    return ApiService.post<WastePiece>(`/waste-pieces/${id}/qr-code/regenerate`, {});
+  },
+
   /**
    * Get available waste by material
    */

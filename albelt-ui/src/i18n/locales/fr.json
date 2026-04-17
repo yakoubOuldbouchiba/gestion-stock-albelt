@@ -223,7 +223,9 @@
     "failedToLoadDetails": "Échec du chargement des détails",
     "failedToCreate": "Échec de la création du bon d'achat",
     "failedToValidate": "Échec de la validation du bon d'achat",
-    "failedToDelete": "Échec de la suppression du bon d'achat"
+    "failedToDelete": "Échec de la suppression du bon d'achat",
+    "downloadPdf": "Télécharger PDF",
+    "failedToDownloadPdf": "Échec du téléchargement du PDF"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -643,7 +645,9 @@
     "failedToRemoveMovement": "Échec de la suppression du mouvement",
     "onlyPendingDelete": "Seuls les bons en attente peuvent être supprimés",
     "confirmDelete": "Supprimer ce bon de transfert en attente? Cela supprimera également ses mouvements.",
-    "confirmRemoveMovement": "Supprimer ce mouvement du bon?"
+    "confirmRemoveMovement": "Supprimer ce mouvement du bon?",
+    "downloadPdf": "Télécharger PDF",
+    "failedToDownloadPdf": "Échec du téléchargement du PDF"
   },
   "reports": {    
     "title": "Rapports",

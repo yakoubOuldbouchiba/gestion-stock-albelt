@@ -14,6 +14,7 @@ import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
 import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
+import com.albelt.gestionstock.shared.utils.QrCodeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -57,6 +58,7 @@ public class RollService {
     private final SupplierService supplierService;
     private final AltierService altierService;
     private final ColorService colorService;
+    private final QrCodeService qrCodeService;
 
     /**
      * Create a new roll from supplier delivery
@@ -88,6 +90,8 @@ public class RollService {
         
         Roll roll = rollMapper.toEntity(request, supplier, altier, color, createdBy);
         Roll saved = rollRepository.save(roll);
+        saved.setQrCode(qrCodeService.generateForRoll(saved));
+        saved = rollRepository.save(saved);
         
         log.info("Roll received successfully: id={}, material={}, area_m2={}, status=AVAILABLE, totalCuts=0, totalWaste=0m²", 
                  saved.getId(), saved.getMaterialType(), saved.getAreaM2());
@@ -245,6 +249,12 @@ public class RollService {
     public Roll getById(UUID id) {
         return rollRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.roll(id.toString()));
+    }
+
+    public Roll regenerateQrCode(UUID id) {
+        Roll roll = getById(id);
+        roll.setQrCode(qrCodeService.generateForRoll(roll));
+        return rollRepository.save(roll);
     }
 
     /**

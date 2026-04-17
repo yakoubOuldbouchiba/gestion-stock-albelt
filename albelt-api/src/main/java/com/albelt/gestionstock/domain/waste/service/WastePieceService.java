@@ -20,6 +20,7 @@ import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
+import com.albelt.gestionstock.shared.utils.QrCodeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -60,6 +61,7 @@ public class WastePieceService {
     private final ColorService colorService;
     private final AltierService altierService;
     private final CommandeItemRepository commandeItemRepository;
+    private final QrCodeService qrCodeService;
 
     /**
      * Record a waste piece from a commande item processing
@@ -128,6 +130,8 @@ public class WastePieceService {
         
         wastePiece.setClassificationDate(java.time.LocalDateTime.now());
         WastePiece saved = wastePieceRepository.save(wastePiece);
+        saved.setQrCode(qrCodeService.generateForWastePiece(saved));
+        saved = wastePieceRepository.save(saved);
         return saved;
     }
 
@@ -259,6 +263,12 @@ public class WastePieceService {
     public WastePiece getById(UUID id) {
         return wastePieceRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.supplier(id.toString()));
+    }
+
+    public WastePiece regenerateQrCode(UUID id) {
+        WastePiece wastePiece = getById(id);
+        wastePiece.setQrCode(qrCodeService.generateForWastePiece(wastePiece));
+        return wastePieceRepository.save(wastePiece);
     }
 
     /**

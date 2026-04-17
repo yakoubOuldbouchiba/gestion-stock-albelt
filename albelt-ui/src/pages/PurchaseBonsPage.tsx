@@ -29,7 +29,7 @@ import { Tag } from 'primereact/tag';
 import { useAsyncLock } from '@hooks/useAsyncLock';
 
 export function PurchaseBonsPage() {
-  const { t } = useI18n();
+  const { t, i18n } = useI18n();
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [altiers, setAltiers] = useState<Altier[]>([]);
@@ -278,6 +278,23 @@ export function PurchaseBonsPage() {
     } catch (err) {
       console.error(err);
       setError(t('purchaseBons.failedToDelete'));
+    }
+  };
+
+  const handleDownloadPdf = async (bon: PurchaseBon) => {
+    try {
+      const blob = await PurchaseBonService.downloadPdf(bon.id, i18n.language || 'fr');
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `purchase-bon-${bon.reference || bon.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      setError(t('purchaseBons.failedToDownloadPdf'));
     }
   };
 
@@ -582,6 +599,14 @@ export function PurchaseBonsPage() {
                     <div>
                       <strong>{t('purchaseBons.status')}:</strong> {selectedBon.status}
                     </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                    <Button
+                      label={t('purchaseBons.downloadPdf')}
+                      icon="pi pi-download"
+                      onClick={() => handleDownloadPdf(selectedBon)}
+                    />
                   </div>
 
                   <div style={{ marginTop: '1rem' }}>

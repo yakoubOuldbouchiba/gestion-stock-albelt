@@ -21,7 +21,7 @@ import { Tag } from 'primereact/tag';
 import { useAsyncLock } from '@hooks/useAsyncLock';
 
 export function TransferBonsPage() {
-  const { t } = useI18n();
+  const { t, i18n } = useI18n();
   const { user } = useAuthStore();
 
   const [altiers, setAltiers] = useState<Altier[]>([]);
@@ -519,6 +519,24 @@ export function TransferBonsPage() {
     );
   };
 
+  const handleDownloadTransferPdf = async () => {
+    if (!bonDetails) return;
+    try {
+      const blob = await transferBonService.downloadPdf(bonDetails.id, i18n.language || 'fr');
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `transfer-bon-${bonDetails.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      setError(t('transferBons.failedToDownloadPdf'));
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div>
@@ -770,6 +788,14 @@ export function TransferBonsPage() {
                 <div>
                   <strong>{t('transferBons.entry')}:</strong> {formatDate(bonDetails.dateEntree)}
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+                <Button
+                  label={t('transferBons.downloadPdf')}
+                  icon="pi pi-download"
+                  onClick={handleDownloadTransferPdf}
+                />
               </div>
 
               {!bonDetails.dateEntree && (

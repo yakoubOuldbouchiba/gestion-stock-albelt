@@ -16,6 +16,8 @@ type WasteTabProps = {
   renderGroupedStatsTable: (rows: any[], loading: boolean) => JSX.Element;
   pieces: WastePiece[];
   wasteMaterialBody: (piece: WastePiece) => JSX.Element;
+  wasteStatusBody: (piece: WastePiece) => JSX.Element;
+  wasteActionsBody: (piece: WastePiece) => JSX.Element | null;
   wastePage: number;
   wasteTotalElements: number;
   pageSize: number;
@@ -34,6 +36,8 @@ export function WasteTab({
   renderGroupedStatsTable,
   pieces,
   wasteMaterialBody,
+  wasteStatusBody,
+  wasteActionsBody,
   wastePage,
   wasteTotalElements,
   pageSize,
@@ -73,7 +77,9 @@ export function WasteTab({
         >
           <Column header={t('inventory.material')} body={wasteMaterialBody} />
           <Column header={t('inventory.area')} body={(piece: WastePiece) => piece.areaM2.toFixed(2)} />
+          <Column header={t('inventory.status')} body={wasteStatusBody} />
           <Column header={t('inventory.received')} body={(piece: WastePiece) => formatDate(piece.createdAt)} />
+          <Column header={t('waste.tableActions')} body={wasteActionsBody} />
         </DataTable>
       )}
 

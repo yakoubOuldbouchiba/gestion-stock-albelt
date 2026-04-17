@@ -12,6 +12,7 @@ import { Tag } from 'primereact/tag';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { InputText } from 'primereact/inputtext';
+import { QrCodeCard } from '../components/QrCodeCard';
 
 export function ChuteDetailPage() {
   const { t } = useI18n();
@@ -31,6 +32,7 @@ export function ChuteDetailPage() {
   });
   const [editingPlacementId, setEditingPlacementId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRegeneratingQr, setIsRegeneratingQr] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isCommandePlacement = (placement: PlacedRectangle) =>
@@ -281,6 +283,25 @@ export function ChuteDetailPage() {
     }
   };
 
+  const handleRegenerateQr = async () => {
+    if (!wastePiece || isRegeneratingQr) return;
+
+    try {
+      setIsRegeneratingQr(true);
+      const response = await WastePieceService.regenerateQrCode(wastePiece.id);
+      if (response.success && response.data) {
+        setWastePiece(response.data);
+      } else {
+        setError(response.message || t('rollDetail.failedToUpdate'));
+      }
+    } catch (err) {
+      console.error(err);
+      setError(t('rollDetail.failedToUpdate'));
+    } finally {
+      setIsRegeneratingQr(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
@@ -400,10 +421,17 @@ export function ChuteDetailPage() {
           <div style={{ display: 'grid', gap: '0.5rem' }}>
             <div><strong>{t('rollDetail.status')}:</strong> {t(`statuses.${piece.status}`)}</div>
             <div><strong>{t('waste.tableType') || 'Type'}:</strong> {t(`waste.types.${piece.wasteType}`) || 'N/A'}</div>
-            <div><strong>{t('rollDetail.qrCode') || 'QR Code'}:</strong> {piece.qrCode || 'N/A'}</div>
             <div><strong>{t('rollDetail.classificationDate') || 'Classification date'}:</strong> {piece.classificationDate ? formatDate(piece.classificationDate) : 'N/A'}</div>
           </div>
         </Card>
+
+        <QrCodeCard
+            label={t('rollDetail.qrCode') || 'QR Code'}
+            qrCode={piece.qrCode}
+            onRegenerate={piece.id === wastePiece?.id ? handleRegenerateQr : undefined}
+            regenerating={piece.id === wastePiece?.id ? isRegeneratingQr : false}
+            regenerateLabel={t('commandes.regenerateSuggestion') || 'Regenerate QR'}
+          />
       </div>
     );
   };

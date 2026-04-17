@@ -228,7 +228,9 @@
     "failedToLoadDetails": "Failed to load purchase bon details",
     "failedToCreate": "Failed to create purchase bon",
     "failedToValidate": "Failed to validate purchase bon",
-    "failedToDelete": "Failed to delete purchase bon"
+    "failedToDelete": "Failed to delete purchase bon",
+    "downloadPdf": "Download PDF",
+    "failedToDownloadPdf": "Failed to download PDF"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -637,7 +639,9 @@
     "failedToRemoveMovement": "Failed to remove movement",
     "onlyPendingDelete": "Only pending bons can be deleted",
     "confirmDelete": "Delete this pending transfer bon? This will also remove its linked movements.",
-    "confirmRemoveMovement": "Remove this movement from the bon?"
+    "confirmRemoveMovement": "Remove this movement from the bon?",
+    "downloadPdf": "Download PDF",
+    "failedToDownloadPdf": "Failed to download PDF"
   },
   "reports": {
     "title": "Reports",

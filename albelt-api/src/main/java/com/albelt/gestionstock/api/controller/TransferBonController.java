@@ -4,14 +4,19 @@ import com.albelt.gestionstock.api.response.ApiResponse;
 import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.rolls.dto.TransferBonDTO;
 import com.albelt.gestionstock.domain.rolls.service.TransferBonService;
+import com.albelt.gestionstock.shared.pdf.PdfExportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Locale;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +31,7 @@ import java.util.UUID;
 public class TransferBonController {
 
     private final TransferBonService transferBonService;
+    private final PdfExportService pdfExportService;
 
     @PostMapping
     public ResponseEntity<ApiResponse<TransferBonDTO>> createBon(
@@ -85,6 +91,22 @@ public class TransferBonController {
             log.error("Error getting transfer bon details", e);
             return ResponseEntity.ok(ApiResponse.error("Failed to get transfer bon: " + e.getMessage()));
         }
+    }
+
+    @GetMapping("/{bonId}/pdf")
+    public ResponseEntity<byte[]> downloadPdf(
+            @PathVariable UUID bonId,
+            @RequestParam(defaultValue = "fr") String lang) {
+        TransferBonDTO bon = transferBonService.getBonDetails(bonId);
+        Locale locale = Locale.forLanguageTag(lang);
+        byte[] pdf = pdfExportService.generateTransferBonPdf(bon, locale);
+        String filename = "transfer-bon-" + bonId + ".pdf";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename*=UTF-8''" + java.net.URLEncoder.encode(filename, StandardCharsets.UTF_8))
+                .body(pdf);
     }
 
     @PutMapping("/{bonId}")

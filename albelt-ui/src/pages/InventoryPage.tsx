@@ -19,6 +19,7 @@ import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Message } from 'primereact/message';
+import { Dialog } from 'primereact/dialog';
 import { useAsyncLock } from '@hooks/useAsyncLock';
 import { InventoryFilters } from '../components/inventory/InventoryFilters';
 import { InventoryTab } from '../components/inventory/InventoryTab';
@@ -26,6 +27,7 @@ import { ReusableTab } from '../components/inventory/ReusableTab';
 import { WasteTab } from '../components/inventory/WasteTab';
 import { ReceiveRollDialog } from '../components/inventory/ReceiveRollDialog';
 import { CreateChuteDialog } from '../components/inventory/CreateChuteDialog';
+import { QrCodeCard } from '../components/QrCodeCard';
 
 export function InventoryPage() {
   type TabKey = 'inventory' | 'reusable' | 'waste';
@@ -85,6 +87,12 @@ export function InventoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('inventory');
   const [dialogs, setDialogs] = useState({ receiveRoll: false, createChute: false });
+  const [selectedPreview, setSelectedPreview] = useState<
+    | { type: 'roll'; item: Roll }
+    | { type: 'waste'; item: WastePiece }
+    | null
+  >(null);
+  const [isRegeneratingPreviewQr, setIsRegeneratingPreviewQr] = useState(false);
 
   const [filters, setFilters] = useState({
     searchTerm: '',
@@ -714,12 +722,22 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
   );
 
   const rollActionsBody = (roll: Roll) => (
-    <Button
-      icon="pi pi-eye"
-      text
-      onClick={() => navigate(`/roll/${roll.id}`)}
-      aria-label={t('common.view')}
-    />
+    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+      <Button
+        icon="pi pi-eye"
+        text
+        onClick={() => setSelectedPreview({ type: 'roll', item: roll })}
+        aria-label={t('common.view')}
+        tooltip={t('common.view')}
+      />
+      <Button
+        icon="pi pi-external-link"
+        text
+        onClick={() => navigate(`/roll/${roll.id}`)}
+        aria-label={t('rollDetail.title')}
+        tooltip={t('rollDetail.title')}
+      />
+    </div>
   );
 
   const groupedMaterialBody = (row: any) => {
@@ -760,15 +778,136 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
   );
 
   const wasteActionsBody = (piece: WastePiece) => (
-    piece.wasteType !== 'DECHET' ? (
+    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
       <Button
         icon="pi pi-eye"
         text
-        onClick={() => navigate(`/chute/${piece.id}`)}
+        onClick={() => setSelectedPreview({ type: 'waste', item: piece })}
         aria-label={t('common.view')}
+        tooltip={t('common.view')}
       />
-    ) : null
+      {piece.wasteType !== 'DECHET' ? (
+        <Button
+          icon="pi pi-external-link"
+          text
+          onClick={() => navigate(`/chute/${piece.id}`)}
+          aria-label={t('waste.wasteDetailsTitle') || 'Chute Details'}
+          tooltip={t('waste.wasteDetailsTitle') || 'Chute Details'}
+        />
+      ) : null}
+    </div>
   );
+
+  const previewFooter = (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+      {selectedPreview ? (
+        <Button
+          label={selectedPreview.type === 'roll' ? (t('rollDetail.title') || 'Open Roll') : (t('waste.wasteDetailsTitle') || 'Open Chute')}
+          icon="pi pi-external-link"
+          onClick={() => {
+            if (selectedPreview.type === 'roll') {
+              navigate(`/roll/${selectedPreview.item.id}`);
+            } else if (selectedPreview.item.wasteType !== 'DECHET') {
+              navigate(`/chute/${selectedPreview.item.id}`);
+            }
+            setSelectedPreview(null);
+          }}
+        />
+      ) : <span />}
+      <Button
+        label={t('common.close') || 'Close'}
+        severity="secondary"
+        onClick={() => setSelectedPreview(null)}
+      />
+    </div>
+  );
+
+  const renderRollPreview = (roll: Roll) => {
+    const summary = getRollChuteSummary(roll);
+    const used = roll.usedAreaM2 ?? roll.totalWasteAreaM2 ?? 0;
+    const available = roll.availableAreaM2 ?? (roll.areaM2 || 0) - used;
+
+    return (
+      <div style={{ display: 'grid', gap: '1rem' }}>
+        <div style={{ display: 'grid', gap: '0.5rem' }}>
+          <div><strong>{t('rollDetail.rollId')}:</strong> {roll.id}</div>
+          <div><strong>{t('inventory.reference') || 'Reference'}:</strong> {summary.reference}</div>
+          <div><strong>{t('rollDetail.material')}:</strong> {roll.materialType}</div>
+          <div><strong>{t('inventory.color') || 'Color'}:</strong> {summary.color}</div>
+          <div><strong>{t('rollDetail.supplier')}:</strong> {roll.supplierName || 'N/A'}</div>
+          <div><strong>{t('rollDetail.workshop')}:</strong> {roll.altierLibelle || t('rollDetail.unassigned')}</div>
+          <div><strong>{t('rollDetail.receivedDate')}:</strong> {formatDate(roll.receivedDate)}</div>
+          <div><strong>{t('rollDetail.status')}:</strong> {t(`statuses.${roll.status}`)}</div>
+          <div><strong>{t('rollDetail.dimensions')}:</strong> {roll.widthMm} mm x {roll.lengthM} m</div>
+          <div><strong>{t('rollDetail.area')}:</strong> {roll.areaM2.toFixed(2)} m2</div>
+          <div><strong>{t('inventory.availableArea')}:</strong> {available.toFixed(2)} m2</div>
+        </div>
+        <QrCodeCard
+          label={t('rollDetail.qrCode') || 'QR Code'}
+          qrCode={roll.qrCode}
+          onRegenerate={async () => {
+            if (isRegeneratingPreviewQr) return;
+            try {
+              setIsRegeneratingPreviewQr(true);
+              const response = await RollService.regenerateQrCode(roll.id);
+              if (response.success && response.data) {
+                setRolls((prev) => prev.map((item) => (item.id === roll.id ? response.data! : item)));
+                setSelectedPreview({ type: 'roll', item: response.data });
+              }
+            } finally {
+              setIsRegeneratingPreviewQr(false);
+            }
+          }}
+          regenerating={isRegeneratingPreviewQr}
+          regenerateLabel={t('commandes.regenerateSuggestion') || 'Regenerate QR'}
+        />
+      </div>
+    );
+  };
+
+  const renderWastePreview = (piece: WastePiece) => {
+    const summary = getRollChuteSummary(piece);
+    const used = piece.usedAreaM2 ?? piece.totalWasteAreaM2 ?? 0;
+    const available = piece.availableAreaM2 ?? (piece.areaM2 || 0) - used;
+
+    return (
+      <div style={{ display: 'grid', gap: '1rem' }}>
+        <div style={{ display: 'grid', gap: '0.5rem' }}>
+          <div><strong>{t('waste.detailWasteId') || 'Waste ID'}:</strong> {piece.id}</div>
+          <div><strong>{t('inventory.reference') || 'Reference'}:</strong> {summary.reference}</div>
+          <div><strong>{t('rollDetail.material')}:</strong> {piece.materialType}</div>
+          <div><strong>{t('inventory.color') || 'Color'}:</strong> {summary.color}</div>
+          <div><strong>{t('rollDetail.supplier')}:</strong> {piece.supplierName || 'N/A'}</div>
+          <div><strong>{t('rollDetail.workshop')}:</strong> {piece.altierLibelle || t('rollDetail.unassigned')}</div>
+          <div><strong>{t('waste.tableType') || 'Type'}:</strong> {piece.wasteType || 'N/A'}</div>
+          <div><strong>{t('rollDetail.status')}:</strong> {t(`statuses.${piece.status}`)}</div>
+          <div><strong>{t('rollDetail.dimensions')}:</strong> {piece.widthMm} mm x {piece.lengthM} m</div>
+          <div><strong>{t('rollDetail.area')}:</strong> {piece.areaM2.toFixed(2)} m2</div>
+          <div><strong>{t('inventory.availableArea')}:</strong> {available.toFixed(2)} m2</div>
+          <div><strong>{t('waste.detailCreated') || 'Created'}:</strong> {formatDate(piece.createdAt)}</div>
+        </div>
+        <QrCodeCard
+          label={t('rollDetail.qrCode') || 'QR Code'}
+          qrCode={piece.qrCode}
+          onRegenerate={async () => {
+            if (isRegeneratingPreviewQr) return;
+            try {
+              setIsRegeneratingPreviewQr(true);
+              const response = await WastePieceService.regenerateQrCode(piece.id);
+              if (response.success && response.data) {
+                setWastePieces((prev) => prev.map((item) => (item.id === piece.id ? response.data! : item)));
+                setSelectedPreview({ type: 'waste', item: response.data });
+              }
+            } finally {
+              setIsRegeneratingPreviewQr(false);
+            }
+          }}
+          regenerating={isRegeneratingPreviewQr}
+          regenerateLabel={t('commandes.regenerateSuggestion') || 'Regenerate QR'}
+        />
+      </div>
+    );
+  };
 
   const materialFilterOptions = useMemo<{ label: string; value: MaterialType | 'ALL' }[]>(
     () => [{ label: t('inventory.allMaterials'), value: 'ALL' }, ...materials.map((mat) => ({ label: mat, value: mat }))],
@@ -999,6 +1138,8 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
             renderGroupedStatsTable={renderGroupedStatsTable}
             pieces={scrapPieces}
             wasteMaterialBody={wasteMaterialBody}
+            wasteStatusBody={wasteStatusBody}
+            wasteActionsBody={wasteActionsBody}
             wastePage={pagination.wastePage}
             wasteTotalElements={totals.wasteTotalElements}
             pageSize={pageSize}
@@ -1083,6 +1224,21 @@ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectEle
         onAltierChange={(value) => setFormData((prev) => ({ ...prev, altierId: value }))}
         disableAltier={chute.sourceType === 'WASTE_PIECE'}
       />
+
+      <Dialog
+        header={
+          selectedPreview?.type === 'roll'
+            ? (t('rollDetail.title') || 'Roll Details')
+            : (t('waste.wasteDetailsTitle') || 'Chute Details')
+        }
+        visible={!!selectedPreview}
+        onHide={() => setSelectedPreview(null)}
+        footer={previewFooter}
+        style={{ width: 'min(720px, 95vw)' }}
+      >
+        {selectedPreview?.type === 'roll' ? renderRollPreview(selectedPreview.item) : null}
+        {selectedPreview?.type === 'waste' ? renderWastePreview(selectedPreview.item) : null}
+      </Dialog>
     </div>
   );
 }

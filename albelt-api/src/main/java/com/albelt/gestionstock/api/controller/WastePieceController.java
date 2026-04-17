@@ -162,6 +162,15 @@ public class WastePieceController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PostMapping("/{id}/qr-code/regenerate")
+    @Transactional
+    public ResponseEntity<ApiResponse<WastePieceResponse>> regenerateQrCode(@PathVariable UUID id) {
+        log.info("Regenerating QR code for waste piece: {}", id);
+        var wastePiece = wastePieceService.regenerateQrCode(id);
+        var response = wastePieceMapper.toResponse(wastePiece);
+        return ResponseEntity.ok(ApiResponse.success(response, "QR code regenerated"));
+    }
+
     /**
      * Get waste pieces by roll ID
      * GET /api/waste-pieces/by-roll/{rollId}

@@ -252,6 +252,14 @@ public class RollController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PostMapping("/{id}/qr-code/regenerate")
+    public ResponseEntity<ApiResponse<RollResponse>> regenerateQrCode(@PathVariable UUID id) {
+        log.info("Regenerating QR code for roll: {}", id);
+        var roll = rollService.regenerateQrCode(id);
+        var response = rollMapper.toResponse(roll);
+        return ResponseEntity.ok(ApiResponse.success(response, "QR code regenerated"));
+    }
+
     /**
      * Get all rolls by supplier
      * GET /api/rolls/supplier/{supplierId}

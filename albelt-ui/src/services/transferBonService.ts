@@ -40,6 +40,10 @@ class TransferBonService {
     return ApiService.get<TransferBon>(`/transfer-bons/${bonId}`);
   }
 
+  async downloadPdf(bonId: string, lang: string): Promise<Blob> {
+    return ApiService.getBlob(`/transfer-bons/${bonId}/pdf`, { lang });
+  }
+
   async deleteBon(bonId: string): Promise<ApiResponse<void>> {
     return ApiService.delete<void>(`/transfer-bons/${bonId}`);
   }

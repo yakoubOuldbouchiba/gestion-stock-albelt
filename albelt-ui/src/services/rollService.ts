@@ -85,6 +85,10 @@ export const RollService = {
     return ApiService.get<Roll>(`/rolls/${id}`);
   },
 
+  async regenerateQrCode(id: string): Promise<ApiResponse<Roll>> {
+    return ApiService.post<Roll>(`/rolls/${id}/qr-code/regenerate`, {});
+  },
+
   /**
    * Find rolls by size
    */

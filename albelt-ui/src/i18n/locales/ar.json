@@ -224,7 +224,9 @@
     "failedToLoadDetails": "فشل تحميل تفاصيل الإيصال",
     "failedToCreate": "فشل إنشاء إيصال الشراء",
     "failedToValidate": "فشل اعتماد إيصال الشراء",
-    "failedToDelete": "فشل حذف إيصال الشراء"
+    "failedToDelete": "فشل حذف إيصال الشراء",
+    "downloadPdf": "تحميل PDF",
+    "failedToDownloadPdf": "فشل تحميل ملف PDF"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -637,7 +639,9 @@
     "failedToRemoveMovement": "فشل في إزالة الحركة",
     "onlyPendingDelete": "يمكن حذف الإيصالات المعلقة فقط",
     "confirmDelete": "حذف هذا الإيصال المعلق؟ سيؤدي هذا أيضاً إلى إزالة حركاته المرتبطة.",
-    "confirmRemoveMovement": "إزالة هذه الحركة من الإيصال؟"
+    "confirmRemoveMovement": "إزالة هذه الحركة من الإيصال؟",
+    "downloadPdf": "تحميل PDF",
+    "failedToDownloadPdf": "فشل تحميل ملف PDF"
   },
   "reports": {
     "title": "التقارير",

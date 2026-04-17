@@ -6,6 +6,7 @@ import type { ApiResponse } from '../types/index';
  */
 class ApiService {
   private api: AxiosInstance;
+  private baseUrl: string;
 
   constructor() {
     // @ts-ignore - import.meta.env is a Vite feature
@@ -31,6 +32,7 @@ class ApiService {
 
     const rawBaseUrl = env.VITE_API_BASE_URL || defaultBaseUrl;
     const baseUrl = normalizeBaseUrl(rawBaseUrl);
+    this.baseUrl = baseUrl;
 
     this.api = axios.create({
       baseURL: baseUrl,
@@ -110,6 +112,18 @@ class ApiService {
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     const response = await this.api.delete<ApiResponse<T>>(this.normalizeEndpoint(endpoint));
     return response.data;
+  }
+
+  async getBlob(endpoint: string, params?: Record<string, unknown>): Promise<Blob> {
+    const response = await this.api.get(this.normalizeEndpoint(endpoint), {
+      params,
+      responseType: 'blob',
+    });
+    return response.data as Blob;
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
   }
 }
 

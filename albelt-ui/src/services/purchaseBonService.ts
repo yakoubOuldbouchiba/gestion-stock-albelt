@@ -27,6 +27,10 @@ export const PurchaseBonService = {
     return ApiService.get<PurchaseBon>(`/purchase-bons/${id}`);
   },
 
+  async downloadPdf(id: string, lang: string): Promise<Blob> {
+    return ApiService.getBlob(`/purchase-bons/${id}/pdf`, { lang });
+  },
+
   /**
    * Create purchase bon
    */
