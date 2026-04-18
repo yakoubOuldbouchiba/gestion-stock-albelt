@@ -149,7 +149,13 @@ export const PlacementDialog = ({
             >
               <svg
                 viewBox={`0 0 ${Math.max(1, displayLength)} ${Math.max(1, displayWidth)}`}
-                style={{ height: 260, width: 'auto', display: 'block' }}
+                style={{
+                  height: 260,
+                  width: '100%',
+                  minWidth: 400,
+                  maxWidth: displayLength,
+                  display: 'block',
+                }}
                 preserveAspectRatio="xMinYMid meet"
               >
                 <rect
