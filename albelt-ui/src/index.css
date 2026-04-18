@@ -708,6 +708,19 @@ ol {
   gap: 0.75rem;
 }
 
+.albel-svg-viewer {
+  overflow: auto;
+  height: 340px;
+  max-height: 40vh;
+  max-width: 100%;
+}
+
+.albel-svg-viewer .albel-generated-svg {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+
 @media (min-width: 900px) {
   .albel-compare-grid {
     grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr);

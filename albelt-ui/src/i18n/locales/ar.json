@@ -1,5 +1,6 @@
 {
   "common": {
+    "details": "التفاصيل",
     "welcome": "مرحبا",
     "logout": "تسجيل الخروج",
     "language": "اللغة",
@@ -862,6 +863,7 @@
     }
   },
   "commandes": {
+    "common": "الطلب",
     "title": "الطلبات",
     "loading": "جاري تحميل الطلبات...",
     "errorLoadingOrders": "فشل تحميل الطلبات",

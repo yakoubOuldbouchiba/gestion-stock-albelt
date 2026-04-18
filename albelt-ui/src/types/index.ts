@@ -813,11 +813,43 @@ export interface OptimizationMetrics {
   utilizationPct: number;
 }
 
+export interface OptimizationSourceReport {
+  sourceType: 'ROLL' | 'WASTE_PIECE';
+  sourceId: string;
+  label: 'ROLL' | 'CHUTE';
+  reference?: string | null;
+  nbPlis?: number | null;
+  thicknessMm?: number | null;
+  widthMm?: number | null;
+  lengthM?: number | null;
+  colorName?: string | null;
+  colorHexCode?: string | null;
+  qrCode?: string | null;
+}
+
+export interface OptimizationPlacementReport {
+  sourceType: 'ROLL' | 'WASTE_PIECE';
+  sourceId?: string | null;
+  xMm: number;
+  yMm: number;
+  widthMm: number;
+  heightMm: number;
+  rotated?: boolean | null;
+  pieceWidthMm?: number | null;
+  pieceLengthM?: number | null;
+  areaM2?: number | null;
+  placementColorName?: string | null;
+  placementColorHexCode?: string | null;
+  qrCode?: string | null;
+}
+
 export interface OptimizationPlan {
   suggestionId: string;
   status: string;
   metrics: OptimizationMetrics;
   svg?: string | null;
+  sources?: OptimizationSourceReport[];
+  placements?: OptimizationPlacementReport[];
 }
 
 export interface OptimizationComparison {
@@ -825,6 +857,8 @@ export interface OptimizationComparison {
   actualMetrics: OptimizationMetrics;
   suggested?: OptimizationPlan | null;
   actualSvg?: string | null;
+  actualSources?: OptimizationSourceReport[];
+  actualPlacements?: OptimizationPlacementReport[];
   wasteSavedM2?: number;
   utilizationGainPct?: number;
 }

@@ -14,6 +14,17 @@ public interface OptimizationPlacementRepository extends JpaRepository<Optimizat
 
     List<OptimizationPlacement> findByPlanIdOrderByCreatedAtAsc(UUID planId);
 
+    @Query("""
+        select op from OptimizationPlacement op
+        left join fetch op.roll r
+        left join fetch r.color
+        left join fetch op.wastePiece w
+        left join fetch w.color
+        where op.plan.id = :planId
+        order by op.createdAt asc
+        """)
+    List<OptimizationPlacement> findByPlanIdWithSourcesOrderByCreatedAtAsc(@Param("planId") UUID planId);
+
     long deleteByPlanId(UUID planId);
 
     @Query("""

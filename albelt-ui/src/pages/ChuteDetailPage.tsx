@@ -376,22 +376,24 @@ export function ChuteDetailPage() {
                   background: 'var(--surface-card)',
                 }}
               >
-                <svg
-                  viewBox={`0 0 ${Math.max(1, previewLengthMm)} ${Math.max(1, previewWidthMm)}`}
-                  width="100%"
-                  height="240"
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  <rect
-                    x={0}
-                    y={0}
-                    width={previewLengthMm}
-                    height={previewWidthMm}
-                    fill={previewFill}
-                    stroke="#bdbdbd"
-                    strokeWidth={2}
-                  />
-                </svg>
+                <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
+                  <svg
+                    viewBox={`0 0 ${Math.max(1, previewLengthMm)} ${Math.max(1, previewWidthMm)}`}
+                    style={{ height: 240, width: 'auto', display: 'block' }}
+                    preserveAspectRatio="xMinYMid meet"
+                  >
+                    <rect
+                      x={0}
+                      y={0}
+                      width={previewLengthMm}
+                      height={previewWidthMm}
+                      fill={previewFill}
+                      stroke="#bdbdbd"
+                      strokeWidth={2}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  </svg>
+                </div>
                 <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
                   {previewLengthMm / 1000}m x {previewWidthMm}mm (length on X, width on Y)
                 </div>
@@ -511,48 +513,52 @@ export function ChuteDetailPage() {
                   background: 'var(--surface-card)',
                 }}
               >
-                <svg
-                  viewBox={`0 0 ${Math.max(1, placementLengthMm)} ${Math.max(1, placementWidthMm)}`}
-                  width="100%"
-                  height="240"
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  <rect
-                    x={0}
-                    y={0}
-                    width={placementLengthMm}
-                    height={placementWidthMm}
-                    fill={wastePiece.colorHexCode || '#f5f5f5'}
-                    stroke="#bdbdbd"
-                    strokeWidth={2}
-                  />
-                  {placements.map((placement) => (
-                    <g key={placement.id}>
-                      <rect
-                        x={placement.yMm}
-                        y={placement.xMm}
-                        width={placement.heightMm}
-                        height={placement.widthMm}
-                        fill={getPlacementFill(placement)}
-                        fillOpacity={0.35}
-                        stroke={getPlacementStroke(placement)}
-                        strokeWidth={1}
-                      />
-                      <text
-                        x={placement.yMm + 4}
-                        y={placement.xMm + 14}
-                        fontSize={12}
-                        fill="#111111"
-                        stroke="#ffffff"
-                        strokeWidth={2}
-                        paintOrder="stroke"
-                        pointerEvents="none"
-                      >
-                        {`${placement.widthMm}x${placement.heightMm}`}
-                      </text>
-                    </g>
-                  ))}
-                </svg>
+                <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
+                  <svg
+                    viewBox={`0 0 ${Math.max(1, placementLengthMm)} ${Math.max(1, placementWidthMm)}`}
+                    style={{ height: 240, width: 'auto', display: 'block' }}
+                    preserveAspectRatio="xMinYMid meet"
+                  >
+                    <rect
+                      x={0}
+                      y={0}
+                      width={placementLengthMm}
+                      height={placementWidthMm}
+                      fill={wastePiece.colorHexCode || '#f5f5f5'}
+                      stroke="#bdbdbd"
+                      strokeWidth={2}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    {placements.map((placement) => (
+                      <g key={placement.id}>
+                        <title>{`x:${placement.xMm} y:${placement.yMm} ${placement.widthMm}x${placement.heightMm}mm`}</title>
+                        <rect
+                          x={placement.yMm}
+                          y={placement.xMm}
+                          width={placement.heightMm}
+                          height={placement.widthMm}
+                          fill={getPlacementFill(placement)}
+                          fillOpacity={0.35}
+                          stroke={getPlacementStroke(placement)}
+                          strokeWidth={1}
+                          vectorEffect="non-scaling-stroke"
+                        />
+                        <text
+                          x={placement.yMm + 4}
+                          y={placement.xMm + 14}
+                          fontSize={12}
+                          fill="#111111"
+                          stroke="#ffffff"
+                          strokeWidth={2}
+                          paintOrder="stroke"
+                          pointerEvents="none"
+                        >
+                          {`${placement.widthMm}x${placement.heightMm}`}
+                        </text>
+                      </g>
+                    ))}
+                  </svg>
+                </div>
                 <div style={{ marginTop: '0.35rem', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
                   {placementLengthMm / 1000}m x {placementWidthMm}mm ( {t('rollDetail.lengthOnX') || 'length on X'}, {t('rollDetail.widthOnY') || 'width on Y'})
                 </div>

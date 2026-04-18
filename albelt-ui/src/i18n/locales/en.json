@@ -1,5 +1,6 @@
 {
   "common": {
+    "details": "Details",
     "welcome": "Welcome",
     "logout": "Logout",
     "language": "Language",
@@ -843,6 +844,7 @@
     "loading": "Loading..."
   },
   "commandes": {
+    "common": "Common",
     "title": "Orders (Commandes)",
     "loading": "Loading orders...",
     "errorLoadingOrders": "Failed to load orders",

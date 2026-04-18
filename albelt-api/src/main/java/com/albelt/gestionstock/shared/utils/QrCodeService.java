@@ -35,6 +35,35 @@ public class QrCodeService {
         return generateDataUrl(buildWastePayload(wastePiece));
     }
 
+    public String generateForPlacement(String sourceType,
+                                       Object sourceId,
+                                       Integer xMm,
+                                       Integer yMm,
+                                       Integer widthMm,
+                                       Integer heightMm,
+                                       Boolean rotated,
+                                       Integer pieceWidthMm,
+                                       BigDecimal pieceLengthM,
+                                       BigDecimal areaM2,
+                                       String colorName,
+                                       String colorHexCode) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("entityType", "PLACED_RECTANGLE");
+        values.put("sourceType", sourceType);
+        values.put("sourceId", sourceId);
+        values.put("xMm", xMm);
+        values.put("yMm", yMm);
+        values.put("widthMm", widthMm);
+        values.put("heightMm", heightMm);
+        values.put("rotated", rotated);
+        values.put("pieceWidthMm", pieceWidthMm);
+        values.put("pieceLengthM", normalizeDecimal(pieceLengthM));
+        values.put("areaM2", normalizeDecimal(areaM2));
+        values.put("color", colorName);
+        values.put("colorHexCode", colorHexCode);
+        return generateDataUrl(toPayload(values));
+    }
+
     private String generateDataUrl(String payload) {
         try {
             Map<EncodeHintType, Object> hints = Map.of(

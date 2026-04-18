@@ -165,6 +165,10 @@ export const CommandeService = {
   async regenerateOptimization(itemId: string): Promise<ApiResponse<OptimizationComparison>> {
     return ApiService.post<OptimizationComparison>(`/commandes/items/${itemId}/optimization/regenerate`, {});
   },
+
+  async printOptimization(itemId: string, variant: 'actual' | 'suggested', lang: string): Promise<Blob> {
+    return ApiService.getBlob(`/commandes/items/${itemId}/optimization/print`, { variant, lang });
+  },
 };
 
 export default CommandeService;

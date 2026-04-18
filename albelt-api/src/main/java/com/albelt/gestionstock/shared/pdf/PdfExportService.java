@@ -149,7 +149,7 @@ public class PdfExportService {
     private void applyViewerPreferences(PdfWriter writer, Locale locale) {
         // Table/cell run direction is applied below; no viewer preference needed here.
     }
-    
+
 
     /*private void addHeader(Document document, String title, String subtitle, Locale locale, FontSet fonts) throws DocumentException {
         Paragraph titleParagraph = new Paragraph(title, fonts.title());

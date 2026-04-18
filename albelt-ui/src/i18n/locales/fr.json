@@ -1,5 +1,6 @@
 {
   "common": {
+    "details": "Détails",
     "welcome": "Bienvenue",
     "logout": "Déconnexion",
     "language": "Langue",
@@ -570,7 +571,7 @@
     "classificationDate":"Date de classification",
     "lengthOnX": "Length on X",
     "widthOnY": "Width on Y",
-    "existingPlacements" : "Placements existants pour ce rouleau",
+    "existingPlacements" : "Placements existants",
     "clearChute": "Effacer les placements de chute",
     "source":"Source",
     "color":"Couleur",
@@ -868,6 +869,7 @@
     }
   },
   "commandes": {
+    "common": "Commun",
     "title": "Commandes",
     "loading": "Chargement des commandes...",
     "errorLoadingOrders": "Échec du chargement des commandes",

@@ -46,9 +46,11 @@ class ApiService {
     this.api.interceptors.request.use(
       (config) => {
         const token = localStorage.getItem('authToken');
+        const language = localStorage.getItem('language') || 'fr';
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
+        config.headers['Accept-Language'] = language;
         return config;
       },
       (error) => Promise.reject(error)

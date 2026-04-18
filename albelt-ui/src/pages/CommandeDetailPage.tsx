@@ -10,6 +10,7 @@ import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
+import { TabView, TabPanel } from 'primereact/tabview';
 import { CommandeService } from '../services/commandeService';
 import { WastePieceService } from '../services/wastePieceService';
 import { ProductionItemService } from '../services/productionItemService';
@@ -41,7 +42,7 @@ import type {
 export function CommandeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, i18n } = useI18n();
   const toastRef = useRef<Toast>(null);
 
   const [commande, setCommande] = useState<Commande | null>(null);
@@ -49,6 +50,8 @@ export function CommandeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [activeItemDetailTabIndex, setActiveItemDetailTabIndex] = useState(0);
   const [selectedAltierId, setSelectedAltierId] = useState<string | null>(null);
   const [altierScores, setAltierScores] = useState<AltierScore[]>([]);
   const [altierScoresLoading, setAltierScoresLoading] = useState(false);
@@ -132,7 +135,7 @@ export function CommandeDetailPage() {
           setSelectedStatus(res.data.status);
           setSelectedAltierId(res.data.altierId ?? null);
         }
-        
+
         setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -755,7 +758,7 @@ export function CommandeDetailPage() {
         heightMm: '',
       }));
       setEditingPlacementId(null);
-      showSuccess(isEditing ?  t('inventory.placementUpdated') : t('inventory.placementSaved'));
+      showSuccess(isEditing ? t('inventory.placementUpdated') : t('inventory.placementSaved'));
       didSucceed = true;
     } catch (err) {
       console.error('Error creating placement:', err);
@@ -1251,8 +1254,8 @@ export function CommandeDetailPage() {
     await saveProductionItem();
   };
 
-  const statusOptions = statuses.map((status) => ({ label:  t(`statuses.${status}`) , value: status }));
-  const itemStatusOptions = itemStatuses.map((status) => ({ label: t(`statuses.${status}`) , value: status }));
+  const statusOptions = statuses.map((status) => ({ label: t(`statuses.${status}`), value: status }));
+  const itemStatusOptions = itemStatuses.map((status) => ({ label: t(`statuses.${status}`), value: status }));
   const isBusy =
     updating ||
     creatingProduction ||
@@ -1295,8 +1298,8 @@ export function CommandeDetailPage() {
   const selectedProductionLabel = selectedProductionPlacement
     ? `${formatSourceLabel(selectedProductionSource, selectedProductionPlacement.id.slice(0, 8))} | x:${selectedProductionPlacement.xMm} y:${selectedProductionPlacement.yMm} ${selectedProductionPlacement.widthMm}x${selectedProductionPlacement.heightMm}mm`
     : productionForm.placedRectangleId
-    ? productionForm.placedRectangleId.slice(0, 8)
-    : t('commandes.notAvailable');
+      ? productionForm.placedRectangleId.slice(0, 8)
+      : t('commandes.notAvailable');
 
   const chuteSourceOptions = [
     { label: t('inventory.roll'), value: 'ROLL' },
@@ -1312,15 +1315,15 @@ export function CommandeDetailPage() {
     chuteTargetItem?.materialType ? (rollsByMaterial[chuteTargetItem.materialType] || []) : []
   );
   const chuteParentOptions = parentWastePieces.map((piece: any) => ({
-      label: formatRollChuteLabel({
-        reference: piece.reference ?? piece.id.slice(0, 8),
-        nbPlis: piece.nbPlis,
-        thicknessMm: piece.thicknessMm,
-        colorName: piece.colorName,
-        colorHexCode: piece.colorHexCode,
-      }),
-      value: piece.id,
-    }));
+    label: formatRollChuteLabel({
+      reference: piece.reference ?? piece.id.slice(0, 8),
+      nbPlis: piece.nbPlis,
+      thicknessMm: piece.thicknessMm,
+      colorName: piece.colorName,
+      colorHexCode: piece.colorHexCode,
+    }),
+    value: piece.id,
+  }));
 
   const chutePlacementOptions = chutePlacements.map((placement) => ({
     label: `Placement ${placement.id.substring(0, 8)} • ${placement.widthMm}x${placement.heightMm}mm • x:${placement.xMm} y:${placement.yMm}`,
@@ -1383,13 +1386,13 @@ export function CommandeDetailPage() {
       const typeLabel = isRollSource ? 'Roll' : isWasteSource ? 'Waste' : t('commandes.notAvailable');
       const itemLabel = placement.commandeItem
         ? [
-            placement.commandeItem.lineNumber
-              ? `Line ${placement.commandeItem.lineNumber}`
-              : null,
-            placement.commandeItem.reference ?? null,
-          ]
-            .filter(Boolean)
-            .join(' • ')
+          placement.commandeItem.lineNumber
+            ? `Line ${placement.commandeItem.lineNumber}`
+            : null,
+          placement.commandeItem.reference ?? null,
+        ]
+          .filter(Boolean)
+          .join(' • ')
         : null;
       const sourceLabel = formatSourceLabel(source, placement.id.slice(0, 8));
       const label = itemLabel ?? sourceLabel;
@@ -1460,19 +1463,19 @@ export function CommandeDetailPage() {
         const sourceLabel = formatSourceLabel(source, reference);
         const itemLabel = placement.commandeItem
           ? [
-              placement.commandeItem.lineNumber
-                ? `Line ${placement.commandeItem.lineNumber}`
-                : null,
-              placement.commandeItem.reference ?? null,
-            ]
-              .filter(Boolean)
-              .join(' • ')
+            placement.commandeItem.lineNumber
+              ? `Line ${placement.commandeItem.lineNumber}`
+              : null,
+            placement.commandeItem.reference ?? null,
+          ]
+            .filter(Boolean)
+            .join(' • ')
           : null;
         const groupLabel = type === 'ROLL'
           ? `Roll ${sourceLabel}`
           : type === 'WASTE_PIECE'
-          ? `Waste ${sourceLabel}`
-          : `Source ${sourceLabel}`;
+            ? `Waste ${sourceLabel}`
+            : `Source ${sourceLabel}`;
         return {
           ...placement,
           groupKey: `${type}:${sourceId}`,
@@ -1505,51 +1508,51 @@ export function CommandeDetailPage() {
                 disabled={isBusy || isCommandeLocked}
               />
             </div>
-              <DataTable
-                value={placementRows}
-                dataKey="id"
-                emptyMessage={t('rollDetail.noPlacements') || "No placements recorded for this item." } 
-                size="small"
-                className="p-datatable-sm"
-                rowGroupMode="subheader"
-                groupRowsBy="groupKey"
-                sortField="groupKey"
-                sortOrder={1}
-                rowGroupHeaderTemplate={(row) => (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '0.75rem',
-                      padding: '0.25rem 0',
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                      <span style={{ fontWeight: 600 }}>{row.groupLabel}</span>
-                      {row.groupItemLabel ? (
-                        <span style={{ color: 'var(--text-color-secondary)', fontSize: '0.9rem' }}>
-                          {row.groupItemLabel}
-                        </span>
-                      ) : null}
-                    </div>
-                    <Button
-                      label="Preview"
-                      icon="pi pi-eye"
-                      text
-                      onClick={() => handleOpenPlacementPreview(row)}
-                    />
+            <DataTable
+              value={placementRows}
+              dataKey="id"
+              emptyMessage={t('rollDetail.noPlacements') || "No placements recorded for this item."}
+              size="small"
+              className="p-datatable-sm"
+              rowGroupMode="subheader"
+              groupRowsBy="groupKey"
+              sortField="groupKey"
+              sortOrder={1}
+              rowGroupHeaderTemplate={(row) => (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem',
+                    padding: '0.25rem 0',
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <span style={{ fontWeight: 600 }}>{row.groupLabel}</span>
+                    {row.groupItemLabel ? (
+                      <span style={{ color: 'var(--text-color-secondary)', fontSize: '0.9rem' }}>
+                        {row.groupItemLabel}
+                      </span>
+                    ) : null}
                   </div>
-                )}
-              >
-                <Column header={t('rollDetail.source')} body={renderPlacementSource} />
-                <Column field="xMm" header={t('rollDetail.xMm')} />
-                <Column field="yMm" header={t('rollDetail.yMm')} />
-                <Column field="widthMm" header={t('rollDetail.widthMm')} />
-                <Column field="heightMm" header={t('rollDetail.heightMm')} />
-                <Column header={t('rollDetail.color')} body={renderPlacementColor} />
-                <Column header={t('rollDetail.actions')} body={renderPlacementActions} />
-              </DataTable>
+                  <Button
+                    label="Preview"
+                    icon="pi pi-eye"
+                    text
+                    onClick={() => handleOpenPlacementPreview(row)}
+                  />
+                </div>
+              )}
+            >
+              <Column header={t('rollDetail.source')} body={renderPlacementSource} />
+              <Column field="xMm" header={t('rollDetail.xMm')} />
+              <Column field="yMm" header={t('rollDetail.yMm')} />
+              <Column field="widthMm" header={t('rollDetail.widthMm')} />
+              <Column field="heightMm" header={t('rollDetail.heightMm')} />
+              <Column header={t('rollDetail.color')} body={renderPlacementColor} />
+              <Column header={t('rollDetail.actions')} body={renderPlacementActions} />
+            </DataTable>
           </div>
 
         </div>
@@ -1575,18 +1578,375 @@ export function CommandeDetailPage() {
     const actualConforme = item.totalItemsConforme ?? 0;
     const actualNonConforme = item.totalItemsNonConforme ?? 0;
 
-    const renderSvgPanel = (title: string, svg?: string | null, emptyMessage?: string) => (
-      <Card title={title} style={{ minHeight: '280px' }}>
-        {svg ? (
-          <div
-            style={{ overflowX: 'auto', border: '1px solid var(--surface-border)', borderRadius: '6px' }}
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
-        ) : (
-          <Message severity="info" text={emptyMessage ?? t('messages.noDataAvailable')} />
-        )}
-      </Card>
-    );
+    const normalizeSvg = (rawSvg: string) =>
+      rawSvg.replace(
+        /<svg([^>]*?)>/,
+        (_, attrs) => {
+          // Strip any existing width/height/preserveAspectRatio so we can control sizing via CSS.
+          const cleaned = attrs
+            .replace(/\s*width="[^"]*"/g, '')
+            .replace(/\s*height="[^"]*"/g, '')
+            .replace(/\s*preserveAspectRatio="[^"]*"/g, '')
+            .replace(/\s*class="[^"]*"/g, '');
+          return `<svg${cleaned} class="albel-generated-svg" preserveAspectRatio="xMinYMid meet">`;
+        }
+      );
+
+    type PrintInfo = {
+      leftRows: { label: string; value: string }[];
+      rightRows: { label: string; value: string }[];
+      sources?: any[];
+      placements?: any[];
+    };
+
+    const printSvg = (title: string, rawSvg: string, info?: PrintInfo) => {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+
+      const escapeHtml = (value: any) =>
+        String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+
+      // Strip width/height attrs so we can control sizing via CSS
+      const stripped = rawSvg.replace(
+        /<svg([^>]*?)>/,
+        (_, attrs) => {
+          const cleaned = attrs
+            .replace(/\s*width="[^"]*"/g, '')
+            .replace(/\s*height="[^"]*"/g, '')
+            .replace(/\s*preserveAspectRatio="[^"]*"/g, '');
+          return `<svg${cleaned} preserveAspectRatio="xMidYMid meet">`;
+        }
+      );
+
+      const margin = 5;
+      const printableW = 297 - margin * 2; // 287mm
+      const printableH = 210 - margin * 2; // 200mm
+      const titleH = 6;  // mm for h2 + gap
+      const infoH = info ? 22 : 0; // mm for info bar
+      const svgH = printableH - titleH - infoH;
+
+      const infoHtml = info ? `
+        <div class="info-bar">
+          <div class="info-col">
+            ${info.leftRows.map(r => `<div class="info-row"><span class="info-label">${r.label}</span><span class="info-value">${r.value}</span></div>`).join('')}
+          </div>
+          <div class="info-divider"></div>
+          <div class="info-col">
+            ${info.rightRows.map(r => `<div class="info-row"><span class="info-label">${r.label}</span><span class="info-value">${r.value}</span></div>`).join('')}
+          </div>
+        </div>
+      ` : '';
+
+      const sources = Array.isArray(info?.sources) ? info!.sources! : [];
+      const placements = Array.isArray(info?.placements) ? info!.placements! : [];
+
+      const sourcesHtml = sources.length > 0 ? `
+        <div class="section">
+          <h3>Sources</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Ref</th>
+                <th>Plis</th>
+                <th>Thk (mm)</th>
+                <th>Color</th>
+                <th>Width (mm)</th>
+                <th>Length (m)</th>
+                <th>QR</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sources.map((s: any) => {
+        const qr = s?.qrCode;
+        const qrHtml = (typeof qr === 'string' && qr.startsWith('data:image/'))
+          ? `<img class="qr" src="${qr}" alt="QR" />`
+          : `<span class="muted">${escapeHtml(qr || '-')}</span>`;
+        const colorLabel = [s?.colorName, s?.colorHexCode].filter(Boolean).join(' / ');
+        const typeLabel = s?.label || s?.sourceType || '-';
+        return `
+                  <tr>
+                    <td>${escapeHtml(typeLabel)}</td>
+                    <td>${escapeHtml(s?.reference || '-')}</td>
+                    <td>${escapeHtml(s?.nbPlis ?? '-')}</td>
+                    <td>${escapeHtml(s?.thicknessMm ?? '-')}</td>
+                    <td>${escapeHtml(colorLabel || '-')}</td>
+                    <td>${escapeHtml(s?.widthMm ?? '-')}</td>
+                    <td>${escapeHtml(s?.lengthM ?? '-')}</td>
+                    <td>${qrHtml}</td>
+                  </tr>
+                `;
+      }).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : '';
+
+      const placementsHtml = placements.length > 0 ? `
+        <div class="section">
+          <h3>Placements</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>x (mm)</th>
+                <th>y (mm)</th>
+                <th>w (mm)</th>
+                <th>h (mm)</th>
+                <th>Rot.</th>
+                <th>Piece</th>
+                <th>Area (m²)</th>
+                <th>Color</th>
+                <th>QR</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${placements.map((p: any) => {
+        const source = `${p?.sourceType || '-'} ${p?.sourceId ? String(p.sourceId).slice(0, 8) : ''}`.trim();
+        const piece = (p?.pieceWidthMm && p?.pieceLengthM)
+          ? `${p.pieceWidthMm}mm x ${p.pieceLengthM}m`
+          : '-';
+        const rot = (p?.rotated === true) ? 'Y' : (p?.rotated === false ? 'N' : '-');
+        const color = [p?.placementColorName, p?.placementColorHexCode].filter(Boolean).join(' / ') || '-';
+        const qr = p?.qrCode;
+        const qrHtml = (typeof qr === 'string' && qr.startsWith('data:image/'))
+          ? `<img class="qr" src="${qr}" alt="Placement QR" />`
+          : `<span class="muted">${escapeHtml(qr || '-')}</span>`;
+        return `
+                  <tr>
+                    <td>${escapeHtml(source)}</td>
+                    <td>${escapeHtml(p?.xMm ?? '-')}</td>
+                    <td>${escapeHtml(p?.yMm ?? '-')}</td>
+                    <td>${escapeHtml(p?.widthMm ?? '-')}</td>
+                    <td>${escapeHtml(p?.heightMm ?? '-')}</td>
+                    <td>${escapeHtml(rot)}</td>
+                    <td>${escapeHtml(piece)}</td>
+                    <td>${escapeHtml(p?.areaM2 ?? '-')}</td>
+                    <td>${escapeHtml(color)}</td>
+                    <td>${qrHtml}</td>
+                  </tr>
+                `;
+      }).join('')}
+            </tbody>
+          </table>
+        </div>
+      ` : '';
+
+      const extraPagesHtml = (sourcesHtml || placementsHtml) ? `
+        <div class="page page--tables">
+          ${sourcesHtml}
+          ${placementsHtml}
+        </div>
+      ` : '';
+
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${title}</title>
+            <style>
+              @page { size: A4 landscape; margin: ${margin}mm; }
+              *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+              html, body {
+                width: ${printableW}mm;
+                font-family: Arial, sans-serif;
+                background: #fff;
+              }
+              .page {
+                display: flex;
+                flex-direction: column;
+                width: ${printableW}mm;
+                min-height: ${printableH}mm;
+              }
+              .page + .page { page-break-before: always; }
+              h2 {
+                font-size: 9pt;
+                font-weight: 700;
+                color: #222;
+                margin-bottom: 2mm;
+                flex-shrink: 0;
+              }
+              h3 {
+                font-size: 8pt;
+                font-weight: 700;
+                color: #222;
+                margin: 0 0 1.5mm 0;
+              }
+              /* Info bar */
+              .info-bar {
+                display: flex;
+                gap: 4mm;
+                background: #f4f6f8;
+                border: 1px solid #dde1e7;
+                border-radius: 3px;
+                padding: 2mm 3mm;
+                margin-bottom: 2mm;
+                flex-shrink: 0;
+                height: ${infoH}mm;
+              }
+              .info-col {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 1.5mm;
+              }
+              .info-divider {
+                width: 1px;
+                background: #c8cdd6;
+                flex-shrink: 0;
+              }
+              .info-row {
+                display: flex;
+                align-items: center;
+                gap: 2mm;
+                font-size: 7pt;
+              }
+              .info-label {
+                color: #666;
+                white-space: nowrap;
+                min-width: 30mm;
+              }
+              .info-value {
+                font-weight: 600;
+                color: #111;
+              }
+              /* SVG area */
+              .svg-wrapper {
+                width: ${printableW}mm;
+                height: ${svgH}mm;
+                overflow: hidden;
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+              }
+              svg {
+                width: ${printableW}mm;
+                height: ${svgH}mm;
+                max-width: 100%;
+                max-height: 100%;
+                display: block;
+              }
+              .section {
+                margin-top: 3mm;
+              }
+              .table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 7pt;
+              }
+              .table th, .table td {
+                border: 1px solid #dde1e7;
+                padding: 1.2mm 1.5mm;
+                vertical-align: top;
+              }
+              .table th {
+                background: #f3f5f8;
+                text-align: left;
+                font-weight: 700;
+              }
+              .qr {
+                width: 16mm;
+                height: 16mm;
+                object-fit: contain;
+                border: 1px solid #dde1e7;
+                border-radius: 2px;
+                background: #fff;
+              }
+              .muted { color: #666; }
+            </style>
+          </head>
+          <body>
+            <div class="page">
+              <h2>${title}</h2>
+              ${infoHtml}
+              <div class="svg-wrapper">${stripped}</div>
+            </div>
+            ${extraPagesHtml}
+            <script>window.onload = () => { window.print(); window.close(); }<\/script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    };
+
+    void printSvg;
+
+
+    const printServerGeneratedLayout = async (variant: 'actual' | 'suggested') => {
+      if (!optimizationItemId) {
+        return;
+      }
+
+      try {
+        const blob = await CommandeService.printOptimization(optimizationItemId, variant, i18n.language || 'fr');
+        const url = URL.createObjectURL(blob);
+        const opened = window.open(url, '_blank');
+        if (!opened) {
+          window.location.href = url;
+        }
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } catch (err) {
+        console.error('Failed to generate server print document', err);
+        toastRef.current?.show({
+          severity: 'error',
+          summary: t('common.error') || 'Error',
+          detail: t('messages.operationFailed') || 'Failed to generate print document',
+        });
+      }
+    };
+
+    const renderSvgPanel = (
+      title: string,
+      variant: 'actual' | 'suggested',
+      svg?: string | null,
+      emptyMessage?: string,
+      info?: PrintInfo
+    ) => {
+      void info;
+      return (
+        <Card
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>{title}</span>
+              {svg && (
+                <Button
+                  icon="pi pi-print"
+                  text
+                  size="small"
+                  tooltip={t('common.print') || 'Print'}
+                  tooltipOptions={{ position: 'left' }}
+                  onClick={() => void printServerGeneratedLayout(variant)}
+                />
+              )}
+            </div>
+          }
+          className="albel-svg-card"
+          style={{ minHeight: '280px' }}
+        >
+          {svg ? (
+            <div
+              className="albel-svg-viewer"
+              style={{
+                border: '1px solid var(--surface-border)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--surface-card)',
+                padding: '0.5rem',
+              }}
+              dangerouslySetInnerHTML={{ __html: normalizeSvg(svg) }}
+            />
+          ) : (
+            <Message severity="info" text={emptyMessage ?? t('messages.noDataAvailable')} />
+          )}
+        </Card>
+      );
+    };
+
+
 
     return (
       <div style={{ marginTop: '0.75rem' }}>
@@ -1666,12 +2026,81 @@ export function CommandeDetailPage() {
             </Card>
 
             <div className="albel-grid albel-grid--min280" style={{ gap: '0.75rem' }}>
-              {renderSvgPanel(t('commandes.actualLayout'), comparison.actualSvg, t('commandes.noActualSvg'))}
-              {renderSvgPanel(t('commandes.suggestedLayout'), comparison.suggested?.svg, t('commandes.noSuggestedSvg'))}
+              {renderSvgPanel(t('commandes.actualLayout'), 'actual', comparison.actualSvg, t('commandes.noActualSvg'), {
+                leftRows: [
+                  { label: t('commandes.material') || 'Material', value: item.materialType },
+                  { label: t('commandes.plies') || 'Plies', value: String(item.nbPlis) },
+                  { label: t('commandes.thickness') || 'Thickness', value: `${item.thicknessMm} mm` },
+                ],
+                rightRows: [
+                  { label: t('commandes.cutting') || 'Cutting', value: `${item.longueurM} m × ${item.largeurMm} mm` },
+                  { label: t('commandes.qty') || 'Qty', value: String(item.quantite) },
+                  { label: t('commandes.usedAreaM2') || 'Used area', value: `${formatMetricValue(actual?.usedAreaM2)} m²` },
+                ],
+                sources: comparison.actualSources ?? [],
+                placements: comparison.actualPlacements ?? [],
+              })}
+              {renderSvgPanel(t('commandes.suggestedLayout'), 'suggested', comparison.suggested?.svg, t('commandes.noSuggestedSvg'), {
+                leftRows: [
+                  { label: t('commandes.material') || 'Material', value: item.materialType },
+                  { label: t('commandes.plies') || 'Plies', value: String(item.nbPlis) },
+                  { label: t('commandes.thickness') || 'Thickness', value: `${item.thicknessMm} mm` },
+                ],
+                rightRows: [
+                  { label: t('commandes.cutting') || 'Cutting', value: `${item.longueurM} m × ${item.largeurMm} mm` },
+                  { label: t('commandes.utilizationPct') || 'Utilization', value: `${formatMetricValue(suggested?.utilizationPct)} %` },
+                  { label: t('commandes.pieces') || 'Pieces', value: `${suggested?.placedPieces ?? '-'} / ${suggested?.totalPieces ?? '-'}` },
+                ],
+                sources: comparison.suggested?.sources ?? [],
+                placements: comparison.suggested?.placements ?? [],
+              })}
             </div>
           </div>
         )}
       </div>
+    );
+  };
+
+  const renderItemCommonSection = (item: CommandeItem) => {
+    const totalConforme = item.totalItemsConforme ?? 0;
+    const totalNonConforme = item.totalItemsNonConforme ?? 0;
+    const totalProduced = totalConforme + totalNonConforme;
+    const remaining = Math.max(0, item.quantite - totalProduced);
+    const over = Math.max(0, totalProduced - item.quantite);
+
+    return (
+      <Card title={t('commandes.common') || 'Common'}>
+        <div className="albel-compare-grid">
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('commandes.metric')}</div>
+            <div>{t('commandes.material') || 'Material'}</div>
+            <div>{t('commandes.plies') || 'Plies'}</div>
+            <div>{t('commandes.thickness') || 'Thickness'}</div>
+            <div>{t('commandes.lengthM') || 'Length'}</div>
+            <div>{t('commandes.widthMm') || 'Width'}</div>
+            <div>{t('commandes.qty') || 'Qty'}</div>
+            <div>{t('commandes.itemsConforme')}</div>
+            <div>{t('commandes.itemsNonConforme')}</div>
+            <div>{t('commandes.itemsRemaining')}</div>
+            <div>{t('commandes.itemsOver')}</div>
+            <div>{t('commandes.status') || 'Status'}</div>
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('common.details') || 'Details'}</div>
+            <div>{item.materialType || '-'}</div>
+            <div>{item.nbPlis ?? '-'}</div>
+            <div>{item.thicknessMm != null ? `${item.thicknessMm} mm` : '-'}</div>
+            <div>{item.longueurM != null ? `${item.longueurM} m` : '-'}</div>
+            <div>{item.largeurMm != null ? `${item.largeurMm} mm` : '-'}</div>
+            <div>{item.quantite ?? '-'}</div>
+            <div>{totalConforme}</div>
+            <div>{totalNonConforme}</div>
+            <div>{remaining}</div>
+            <div>{over}</div>
+            <div>{item.status || '-'}</div>
+          </div>
+        </div>
+      </Card>
     );
   };
 
@@ -1682,9 +2111,9 @@ export function CommandeDetailPage() {
 
     const fullHex = normalized.length === 3
       ? normalized
-          .split('')
-          .map((char) => `${char}${char}`)
-          .join('')
+        .split('')
+        .map((char) => `${char}${char}`)
+        .join('')
       : normalized;
 
     const r = parseInt(fullHex.slice(0, 2), 16) / 255;
@@ -1730,132 +2159,6 @@ export function CommandeDetailPage() {
         t={t}
       />
 
-      {error && <Message severity="error" text={error} style={{ marginBottom: '1rem' }} />}
-
-      <StatusUpdateCard
-        selectedStatus={selectedStatus}
-        statusOptions={statusOptions}
-        updating={updating}
-        currentStatus={commande.status}
-        disabled={isCommandeLocked}
-        onStatusChange={(nextStatus) => setSelectedStatus(nextStatus)}
-        onUpdate={handleStatusUpdate}
-        t={t}
-      />
-
-      <Card title={`${t('commandes.orderItems')} (${commande.items?.length || 0})`}>
-        {!commande.items || commande.items.length === 0 ? (
-          <Message severity="info" text={t('commandes.noItems')} />
-        ) : (
-          <div className="albel-compact-list">
-            {commande.items.map((item: CommandeItem) => {
-              const totalConforme = item.totalItemsConforme ?? 0;
-              const totalNonConforme = item.totalItemsNonConforme ?? 0;
-              const totalProduced = totalConforme + totalNonConforme;
-              const remaining = Math.max(0, item.quantite - totalProduced);
-              const over = Math.max(0, totalProduced - item.quantite);
-
-              return (
-                <div key={item.id} className="albel-compact-item">
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '1rem',
-                      alignItems: 'center',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    <div
-                      style={{
-                        flex: '1 1 240px',
-                        backgroundColor: item.colorHexCode ? item.colorHexCode : 'transparent',
-                        color: item.colorHexCode ? getContrastTextColor(item.colorHexCode) : 'inherit',
-                        padding: '0.5rem',
-                        borderRadius: '4px',
-                      }}
-                    >
-                      <div style={{ fontWeight: 600 }}>{item.materialType}</div>
-                      <div style={{ fontSize: '0.9rem' }}>
-                        {item.nbPlis}P | {item.thicknessMm}mm | {item.longueurM}m x {item.largeurMm}mm
-                      </div>
-                    </div>
-                    <div style={{ minWidth: '90px' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.qty')}</div>
-                      <div>{item.quantite}</div>
-                    </div>
-                    <div style={{ minWidth: '150px' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.itemsConforme')}</div>
-                      <div>{totalConforme}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.35rem' }}>
-                        {t('commandes.itemsNonConforme')}
-                      </div>
-                      <div>{totalNonConforme}</div>
-                    </div>
-                    <div style={{ minWidth: '140px' }}>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.itemsRemaining')}</div>
-                      <div>{remaining}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.35rem' }}>
-                        {t('commandes.itemsOver')}
-                      </div>
-                      <div>{over}</div>
-                    </div>
-                    <Dropdown
-                      value={item.status}
-                      options={itemStatusOptions}
-                      onChange={(e) => handleItemStatusUpdate(item.id, e.value as ItemStatus)}
-                      style={{ minWidth: '180px' }}
-                      disabled={isBusy || isCommandeLocked}
-                    />
-                    <Tag value={item.typeMouvement} severity="info" />
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <Button
-                        label={expandedItemId === item.id ? t('commandes.hide') : t('commandes.show')}
-                        icon={expandedItemId === item.id ? 'pi pi-chevron-up' : 'pi pi-chevron-down'}
-                        outlined
-                        onClick={() => toggleItemDetails(item)}
-                        disabled={isBusy}
-                      />
-                      <Button
-                        icon="pi pi-trash"
-                        label={t('commandes.delete')}
-                        severity="danger"
-                        outlined
-                        onClick={() => handleDeleteItem(item.id)}
-                        disabled={isBusy || isCommandeLocked}
-                        loading={deletingItemId === item.id}
-                      />
-                    </div>
-                  </div>
-
-                  {expandedItemId === item.id && (
-                    <div style={{ marginTop: '1rem' }}>
-                      <WasteSection
-                        wasteForItem={wasteForItem}
-                        onCreateChute={() => handleOpenChuteModal(item)}
-                        isBusy={isBusy || isCommandeLocked}
-                        t={t}
-                      />
-
-                      <ProductionSection
-                        productionForItem={productionForItem}
-                        placementsForItem={placementsForItem}
-                        t={t}
-                        isBusy={isBusy || isCommandeLocked}
-                        onDeleteProduction={(productionItemId) => handleDeleteProductionItem(productionItemId, item.id)}
-                      />
-
-                      {renderOptimizationSection(item)}
-
-                      {renderPlacementSection(item)}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Card>
-
       <Card title={t('rollDetail.workshop')}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <Dropdown
@@ -1883,6 +2186,153 @@ export function CommandeDetailPage() {
       </Card>
 
       <OrderInfoCard commande={commande} t={t} />
+
+      {error && <Message severity="error" text={error} style={{ marginBottom: '1rem' }} />}
+
+      <StatusUpdateCard
+        selectedStatus={selectedStatus}
+        statusOptions={statusOptions}
+        updating={updating}
+        currentStatus={commande.status}
+        disabled={isCommandeLocked}
+        onStatusChange={(nextStatus) => setSelectedStatus(nextStatus)}
+        onUpdate={handleStatusUpdate}
+        t={t}
+      />
+
+
+          <Card className="albel-section-card" title={`${t('commandes.orderItems')} (${commande.items?.length || 0})`}>
+            {!commande.items || commande.items.length === 0 ? (
+              <Message severity="info" text={t('commandes.noItems')} />
+            ) : (
+              <div className="albel-compact-list">
+                {commande.items.map((item: CommandeItem) => {
+                  const totalConforme = item.totalItemsConforme ?? 0;
+                  const totalNonConforme = item.totalItemsNonConforme ?? 0;
+                  const totalProduced = totalConforme + totalNonConforme;
+                  const remaining = Math.max(0, item.quantite - totalProduced);
+                  const over = Math.max(0, totalProduced - item.quantite);
+
+                  return (
+                    <div key={item.id} className="albel-compact-item albel-order-item">
+                      <div
+                        className="albel-order-item__summary"
+                        style={{
+                          display: 'flex',
+                          gap: '1rem',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div
+                          className="albel-order-item__material"
+                          style={{
+                            flex: '1 1 240px',
+                            backgroundColor: item.colorHexCode ? item.colorHexCode : 'transparent',
+                            color: item.colorHexCode ? getContrastTextColor(item.colorHexCode) : 'inherit',
+                            padding: '0.5rem',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          <div style={{ fontWeight: 600 }}>{item.materialType}</div>
+                          <div style={{ fontSize: '0.9rem' }}>
+                            {item.nbPlis}P | {item.thicknessMm}mm | {item.longueurM}m x {item.largeurMm}mm
+                          </div>
+                        </div>
+                        <div className="albel-order-item__metric" style={{ minWidth: '90px' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.qty')}</div>
+                          <div>{item.quantite}</div>
+                        </div>
+                        <div className="albel-order-item__metric" style={{ minWidth: '150px' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.itemsConforme')}</div>
+                          <div>{totalConforme}</div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.35rem' }}>
+                            {t('commandes.itemsNonConforme')}
+                          </div>
+                          <div>{totalNonConforme}</div>
+                        </div>
+                        <div className="albel-order-item__metric" style={{ minWidth: '140px' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.itemsRemaining')}</div>
+                          <div>{remaining}</div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.35rem' }}>
+                            {t('commandes.itemsOver')}
+                          </div>
+                          <div>{over}</div>
+                        </div>
+                        <Dropdown
+                          value={item.status}
+                          options={itemStatusOptions}
+                          onChange={(e) => handleItemStatusUpdate(item.id, e.value as ItemStatus)}
+                          style={{ minWidth: '180px' }}
+                          disabled={isBusy || isCommandeLocked}
+                        />
+                        <Tag value={item.typeMouvement} severity="info" />
+                        <div className="albel-order-item__actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <Button
+                            label={expandedItemId === item.id ? t('commandes.hide') : t('commandes.show')}
+                            icon={expandedItemId === item.id ? 'pi pi-chevron-up' : 'pi pi-chevron-down'}
+                            outlined
+                            onClick={() => {
+                              setActiveItemDetailTabIndex(0);
+                              toggleItemDetails(item);
+                            }}
+                            disabled={isBusy}
+                          />
+                          <Button
+                            icon="pi pi-trash"
+                            label={t('commandes.delete')}
+                            severity="danger"
+                            outlined
+                            onClick={() => handleDeleteItem(item.id)}
+                            disabled={isBusy || isCommandeLocked}
+                            loading={deletingItemId === item.id}
+                          />
+                        </div>
+                      </div>
+
+                      {expandedItemId === item.id && (
+                        <div className="albel-item-details">
+                          <TabView
+                            className="albel-item-detail-tabs"
+                            activeIndex={activeItemDetailTabIndex}
+                            onTabChange={(e) => setActiveItemDetailTabIndex(e.index)}
+                          >
+                            <TabPanel header={t('commandes.common') || 'Common'}>
+                              {renderItemCommonSection(item)}
+                            </TabPanel>
+                            <TabPanel header={t('commandes.optimizationComparison')}>
+                              {renderOptimizationSection(item)}
+                            </TabPanel>
+                            <TabPanel header={t('rollDetail.existingPlacements')}>
+                              {renderPlacementSection(item)}
+                            </TabPanel>
+                            <TabPanel header={t('commandes.productionItems')}>
+                              <ProductionSection
+                                productionForItem={productionForItem}
+                                placementsForItem={placementsForItem}
+                                t={t}
+                                isBusy={isBusy || isCommandeLocked}
+                                onDeleteProduction={(productionItemId) => handleDeleteProductionItem(productionItemId, item.id)}
+                              />
+                            </TabPanel>
+                            <TabPanel header={t('commandes.wasteCreated')}>
+                              <WasteSection
+                                wasteForItem={wasteForItem}
+                                onCreateChute={() => handleOpenChuteModal(item)}
+                                isBusy={isBusy || isCommandeLocked}
+                                t={t}
+                              />
+                            </TabPanel>
+                          </TabView>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+    
 
       <ChuteDialog
         chuteTargetItem={chuteTargetItem}

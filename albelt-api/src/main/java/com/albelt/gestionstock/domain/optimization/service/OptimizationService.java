@@ -10,6 +10,8 @@ import com.albelt.gestionstock.domain.optimization.dto.OptimizationComparisonRes
 import com.albelt.gestionstock.domain.optimization.dto.OptimizationMetricsResponse;
 import com.albelt.gestionstock.domain.optimization.dto.OptimizationPlanResponse;
 import com.albelt.gestionstock.domain.optimization.dto.AltierScoreResponse;
+import com.albelt.gestionstock.domain.optimization.dto.OptimizationPlacementReportResponse;
+import com.albelt.gestionstock.domain.optimization.dto.OptimizationSourceReportResponse;
 import com.albelt.gestionstock.domain.optimization.entity.*;
 import com.albelt.gestionstock.domain.optimization.repository.OptimizationPlacementRepository;
 import com.albelt.gestionstock.domain.optimization.repository.OptimizationPlanRepository;
@@ -27,6 +29,7 @@ import com.albelt.gestionstock.shared.enums.RollStatus;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
+import com.albelt.gestionstock.shared.utils.QrCodeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -60,6 +63,7 @@ public class OptimizationService {
     private final MaterialChuteThresholdRepository thresholdRepository;
     private final OptimizationPlanRepository planRepository;
     private final OptimizationPlacementRepository placementRepository;
+    private final QrCodeService qrCodeService;
 
     @Transactional
     public OptimizationPlan generateAndSaveSuggestion(CommandeItem item) {
@@ -114,9 +118,13 @@ public class OptimizationService {
         OptimizationMetrics actualMetrics = computeActualMetrics(item);
         OptimizationMetricsResponse actualResponse = toMetricsResponse(actualMetrics);
 
-        OptimizationPlanResponse suggestedResponse = plan != null ? toPlanResponse(plan) : null;
+        List<PlacedRectangle> actualPlacementsRaw = placedRectangleRepository.findByCommandeItemIdWithSources(commandeItemId);
+        List<OptimizationSourceReportResponse> actualSources = buildActualSources(actualPlacementsRaw);
+        List<OptimizationPlacementReportResponse> actualPlacements = buildActualPlacements(actualPlacementsRaw);
 
-        String actualSvg = buildActualSvg(commandeItemId);
+        String actualSvg = buildActualSvgFromPlacements(actualPlacementsRaw);
+
+        OptimizationPlanResponse suggestedResponse = plan != null ? toPlanResponse(plan) : null;
 
         BigDecimal wasteSaved = BigDecimal.ZERO;
         BigDecimal utilizationGain = BigDecimal.ZERO;
@@ -130,6 +138,8 @@ public class OptimizationService {
             .actualMetrics(actualResponse)
             .suggested(suggestedResponse)
             .actualSvg(actualSvg)
+            .actualSources(actualSources)
+            .actualPlacements(actualPlacements)
             .wasteSavedM2(wasteSaved)
             .utilizationGainPct(utilizationGain)
             .build();
@@ -711,11 +721,17 @@ public class OptimizationService {
             .utilizationPct(plan.getUtilizationPct())
             .build();
 
+        List<OptimizationPlacement> placementsRaw = placementRepository.findByPlanIdWithSourcesOrderByCreatedAtAsc(plan.getId());
+        List<OptimizationSourceReportResponse> sources = buildSuggestedSources(placementsRaw);
+        List<OptimizationPlacementReportResponse> placements = buildSuggestedPlacements(placementsRaw);
+
         return OptimizationPlanResponse.builder()
             .suggestionId(plan.getId())
             .status(plan.getStatus().name())
             .metrics(metrics)
             .svg(plan.getSvg())
+            .sources(sources)
+            .placements(placements)
             .build();
     }
 
@@ -732,7 +748,7 @@ public class OptimizationService {
         List<SvgGroup> groups = new ArrayList<>();
         for (SourcePlan plan : plans) {
             List<SvgRect> placements = plan.placements.stream()
-                .map(record -> new SvgRect(record.choice.rect.xMm, record.choice.rect.yMm,
+                .map(record -> SvgRect.fromPlacement(record.choice.rect.xMm, record.choice.rect.yMm,
                     record.choice.widthMm, record.choice.heightMm, "#8fd3ff", "#004d7a",
                     buildPlacementLabel(record.choice.rect.xMm, record.choice.rect.yMm,
                         record.choice.widthMm, record.choice.heightMm)))
@@ -742,15 +758,15 @@ public class OptimizationService {
                 .map(rect -> buildWasteRect(rect, spec))
                 .toList();
 
+            // Render length on X axis and width on Y axis (avoids extremely tall SVGs for long rolls).
             groups.add(new SvgGroup(plan.source.label(), plan.source.details(),
-                plan.source.widthMm, plan.source.heightMm, placements, wasteRects));
+                plan.source.heightMm, plan.source.widthMm, placements, wasteRects));
         }
 
         return renderSvg(groups, false);
     }
 
-    private String buildActualSvg(UUID commandeItemId) {
-        List<PlacedRectangle> placements = placedRectangleRepository.findByCommandeItemIdWithSources(commandeItemId);
+    private String buildActualSvgFromPlacements(List<PlacedRectangle> placements) {
         if (placements == null || placements.isEmpty()) {
             return null;
         }
@@ -760,13 +776,13 @@ public class OptimizationService {
             if (pr.getRoll() != null) {
                 String key = "ROLL-" + pr.getRoll().getId();
                 builders.computeIfAbsent(key, k -> SvgGroupBuilder.fromRoll(pr.getRoll()));
-                builders.get(key).placements.add(new SvgRect(pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm(),
+                builders.get(key).placements.add(SvgRect.fromPlacement(pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm(),
                     "#ffd39c", "#7a4a00", buildPlacementLabel(pr.getXMm(), pr.getYMm(),
                         pr.getWidthMm(), pr.getHeightMm())));
             } else if (pr.getWastePiece() != null) {
                 String key = "WASTE-" + pr.getWastePiece().getId();
                 builders.computeIfAbsent(key, k -> SvgGroupBuilder.fromWaste(pr.getWastePiece()));
-                builders.get(key).placements.add(new SvgRect(pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm(),
+                builders.get(key).placements.add(SvgRect.fromPlacement(pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm(),
                     "#ffd39c", "#7a4a00", buildPlacementLabel(pr.getXMm(), pr.getYMm(),
                         pr.getWidthMm(), pr.getHeightMm())));
             }
@@ -779,7 +795,200 @@ public class OptimizationService {
         return renderSvg(groups, false);
     }
 
+    private List<OptimizationSourceReportResponse> buildActualSources(List<PlacedRectangle> placements) {
+        if (placements == null || placements.isEmpty()) {
+            return List.of();
+        }
+        Map<String, OptimizationSourceReportResponse> sources = new LinkedHashMap<>();
+        for (PlacedRectangle pr : placements) {
+            if (pr.getRoll() != null) {
+                Roll r = pr.getRoll();
+                String id = r.getId().toString();
+                sources.putIfAbsent("ROLL-" + id, OptimizationSourceReportResponse.builder()
+                    .sourceType("ROLL")
+                    .sourceId(id)
+                    .label("ROLL")
+                    .reference(r.getReference())
+                    .nbPlis(r.getNbPlis())
+                    .thicknessMm(r.getThicknessMm())
+                    .widthMm(r.getWidthMm())
+                    .lengthM(r.getLengthM())
+                    .colorName(r.getColor() != null ? r.getColor().getName() : null)
+                    .colorHexCode(r.getColor() != null ? r.getColor().getHexCode() : null)
+                    .qrCode(r.getQrCode())
+                    .build());
+            } else if (pr.getWastePiece() != null) {
+                WastePiece w = pr.getWastePiece();
+                String id = w.getId().toString();
+                sources.putIfAbsent("WASTE-" + id, OptimizationSourceReportResponse.builder()
+                    .sourceType("WASTE_PIECE")
+                    .sourceId(id)
+                    .label("CHUTE")
+                    .reference(w.getReference())
+                    .nbPlis(w.getNbPlis())
+                    .thicknessMm(w.getThicknessMm())
+                    .widthMm(w.getWidthMm())
+                    .lengthM(w.getLengthM())
+                    .colorName(w.getColor() != null ? w.getColor().getName() : null)
+                    .colorHexCode(w.getColor() != null ? w.getColor().getHexCode() : null)
+                    .qrCode(w.getQrCode())
+                    .build());
+            }
+        }
+        return new ArrayList<>(sources.values());
+    }
+
+    private List<OptimizationPlacementReportResponse> buildActualPlacements(List<PlacedRectangle> placements) {
+        if (placements == null || placements.isEmpty()) {
+            return List.of();
+        }
+        List<OptimizationPlacementReportResponse> results = new ArrayList<>();
+        for (PlacedRectangle pr : placements) {
+            String sourceType = pr.getRoll() != null ? "ROLL" : "WASTE_PIECE";
+            String sourceId = pr.getRoll() != null
+                ? pr.getRoll().getId().toString()
+                : pr.getWastePiece() != null ? pr.getWastePiece().getId().toString() : null;
+            results.add(OptimizationPlacementReportResponse.builder()
+                .sourceType(sourceType)
+                .sourceId(sourceId)
+                .xMm(pr.getXMm())
+                .yMm(pr.getYMm())
+                .widthMm(pr.getWidthMm())
+                .heightMm(pr.getHeightMm())
+                .placementColorName(pr.getColor() != null ? pr.getColor().getName() : null)
+                .placementColorHexCode(pr.getColor() != null ? pr.getColor().getHexCode() : null)
+                .qrCode(buildPlacementQrCode(
+                    sourceType,
+                    sourceId,
+                    pr.getXMm(),
+                    pr.getYMm(),
+                    pr.getWidthMm(),
+                    pr.getHeightMm(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    pr.getColor() != null ? pr.getColor().getName() : null,
+                    pr.getColor() != null ? pr.getColor().getHexCode() : null
+                ))
+                .build());
+        }
+        return results;
+    }
+
+    private List<OptimizationSourceReportResponse> buildSuggestedSources(List<OptimizationPlacement> placements) {
+        if (placements == null || placements.isEmpty()) {
+            return List.of();
+        }
+        Map<String, OptimizationSourceReportResponse> sources = new LinkedHashMap<>();
+        for (OptimizationPlacement op : placements) {
+            if (op.getRoll() != null) {
+                Roll r = op.getRoll();
+                String id = r.getId().toString();
+                sources.putIfAbsent("ROLL-" + id, OptimizationSourceReportResponse.builder()
+                    .sourceType("ROLL")
+                    .sourceId(id)
+                    .label("ROLL")
+                    .reference(r.getReference())
+                    .nbPlis(r.getNbPlis())
+                    .thicknessMm(r.getThicknessMm())
+                    .widthMm(r.getWidthMm())
+                    .lengthM(r.getLengthM())
+                    .colorName(r.getColor() != null ? r.getColor().getName() : null)
+                    .colorHexCode(r.getColor() != null ? r.getColor().getHexCode() : null)
+                    .qrCode(r.getQrCode())
+                    .build());
+            } else if (op.getWastePiece() != null) {
+                WastePiece w = op.getWastePiece();
+                String id = w.getId().toString();
+                sources.putIfAbsent("WASTE-" + id, OptimizationSourceReportResponse.builder()
+                    .sourceType("WASTE_PIECE")
+                    .sourceId(id)
+                    .label("CHUTE")
+                    .reference(w.getReference())
+                    .nbPlis(w.getNbPlis())
+                    .thicknessMm(w.getThicknessMm())
+                    .widthMm(w.getWidthMm())
+                    .lengthM(w.getLengthM())
+                    .colorName(w.getColor() != null ? w.getColor().getName() : null)
+                    .colorHexCode(w.getColor() != null ? w.getColor().getHexCode() : null)
+                    .qrCode(w.getQrCode())
+                    .build());
+            }
+        }
+        return new ArrayList<>(sources.values());
+    }
+
+    private List<OptimizationPlacementReportResponse> buildSuggestedPlacements(List<OptimizationPlacement> placements) {
+        if (placements == null || placements.isEmpty()) {
+            return List.of();
+        }
+        List<OptimizationPlacementReportResponse> results = new ArrayList<>();
+        for (OptimizationPlacement op : placements) {
+            String sourceType = op.getRoll() != null ? "ROLL" : "WASTE_PIECE";
+            String sourceId = op.getRoll() != null
+                ? op.getRoll().getId().toString()
+                : op.getWastePiece() != null ? op.getWastePiece().getId().toString() : null;
+            results.add(OptimizationPlacementReportResponse.builder()
+                .sourceType(sourceType)
+                .sourceId(sourceId)
+                .xMm(op.getXMm())
+                .yMm(op.getYMm())
+                .widthMm(op.getWidthMm())
+                .heightMm(op.getHeightMm())
+                .rotated(op.getRotated())
+                .pieceWidthMm(op.getPieceWidthMm())
+                .pieceLengthM(op.getPieceLengthM())
+                .areaM2(op.getAreaM2())
+                .qrCode(buildPlacementQrCode(
+                    sourceType,
+                    sourceId,
+                    op.getXMm(),
+                    op.getYMm(),
+                    op.getWidthMm(),
+                    op.getHeightMm(),
+                    op.getRotated(),
+                    op.getPieceWidthMm(),
+                    op.getPieceLengthM(),
+                    op.getAreaM2(),
+                    null,
+                    null
+                ))
+                .build());
+        }
+        return results;
+    }
+
+    private String buildPlacementQrCode(String sourceType,
+                                        String sourceId,
+                                        Integer xMm,
+                                        Integer yMm,
+                                        Integer widthMm,
+                                        Integer heightMm,
+                                        Boolean rotated,
+                                        Integer pieceWidthMm,
+                                        BigDecimal pieceLengthM,
+                                        BigDecimal areaM2,
+                                        String colorName,
+                                        String colorHexCode) {
+        return qrCodeService.generateForPlacement(
+            sourceType,
+            sourceId,
+            xMm,
+            yMm,
+            widthMm,
+            heightMm,
+            rotated,
+            pieceWidthMm,
+            pieceLengthM,
+            areaM2,
+            colorName,
+            colorHexCode
+        );
+    }
+
     private String renderSvg(List<SvgGroup> groups, boolean includeWaste) {
+
         int totalHeight = groups.stream().mapToInt(g -> g.heightMm).sum();
         int maxWidth = groups.stream().mapToInt(g -> g.widthMm).max().orElse(0);
         int paddedHeight = totalHeight + Math.max(0, groups.size() - 1) * SVG_PADDING;
@@ -791,17 +1000,28 @@ public class OptimizationService {
         int offsetY = 0;
         int index = 1;
         for (SvgGroup group : groups) {
+            int headerHeight = Math.min(group.heightMm, Math.max(120, group.heightMm / 12));
+            int titleFont = Math.max(28, headerHeight / 2);
+            int detailsFont = Math.max(20, headerHeight / 3);
+            int titleY = Math.min(headerHeight - (detailsFont + 10), titleFont + 8);
+            int detailsY = Math.min(headerHeight - 8, titleY + detailsFont + 10);
+
             svg.append("<g transform=\"translate(0,").append(offsetY).append(")\">");
             svg.append("<rect x=\"0\" y=\"0\" width=\"")
                 .append(group.widthMm).append("\" height=\"")
                 .append(group.heightMm)
-                .append("\" fill=\"#f4f4f4\" stroke=\"#333\" stroke-width=\"2\"/>");
+                .append("\" fill=\"#f4f4f4\" stroke=\"#333\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/>");
             svg.append("<rect x=\"0\" y=\"0\" width=\"")
-                .append(group.widthMm).append("\" height=\"52\" fill=\"#ffffff\" opacity=\"0.8\"/>");
-            svg.append("<text x=\"4\" y=\"22\" font-size=\"18\" fill=\"#222\" font-weight=\"700\">")
+                .append(group.widthMm).append("\" height=\"").append(headerHeight)
+                .append("\" fill=\"#ffffff\" opacity=\"0.85\"/>");
+            svg.append("<text x=\"8\" y=\"").append(titleY)
+                .append("\" font-size=\"").append(titleFont)
+                .append("\" fill=\"#222\" font-weight=\"700\">")
                 .append(escape(group.label)).append(" #").append(index).append("</text>");
             if (group.details != null && !group.details.isBlank()) {
-                svg.append("<text x=\"4\" y=\"46\" font-size=\"14\" fill=\"#444\">")
+                svg.append("<text x=\"8\" y=\"").append(detailsY)
+                    .append("\" font-size=\"").append(detailsFont)
+                    .append("\" fill=\"#444\">")
                     .append(escape(group.details)).append("</text>");
             }
 
@@ -828,7 +1048,7 @@ public class OptimizationService {
         boolean reusable = rect.widthMm >= spec.minWidthMm && rect.heightMm >= spec.minLengthMm;
         String fill = reusable ? "#c8f7c5" : "#e0e0e0";
         String stroke = reusable ? "#2f7a2f" : "#9a9a9a";
-        return new SvgRect(rect.xMm, rect.yMm, rect.widthMm, rect.heightMm, fill, stroke, 0.3,
+        return SvgRect.fromPlacement(rect.xMm, rect.yMm, rect.widthMm, rect.heightMm, fill, stroke, 0.3,
             buildPlacementLabel(rect.xMm, rect.yMm, rect.widthMm, rect.heightMm));
     }
 
@@ -840,14 +1060,17 @@ public class OptimizationService {
     }
 
     private static String buildSourceDetails(String reference, Integer nbPlis, BigDecimal thicknessMm,
-                                             int widthMm, int heightMm) {
+                                             int widthMm, int lengthMm) {
         String refLabel = reference != null && !reference.isBlank() ? reference : "N/A";
         String plisLabel = nbPlis != null ? nbPlis.toString() : "-";
         String thicknessLabel = thicknessMm != null
             ? thicknessMm.stripTrailingZeros().toPlainString()
             : "-";
+        BigDecimal lengthM = BigDecimal.valueOf(lengthMm)
+            .divide(BigDecimal.valueOf(1000), 3, RoundingMode.HALF_UP)
+            .stripTrailingZeros();
         return "Ref: " + refLabel + " | Plis: " + plisLabel + " | Thk: " + thicknessLabel
-            + "mm | " + widthMm + "x" + heightMm + "mm";
+            + "mm | W: " + widthMm + "mm | L: " + lengthM + "m";
     }
 
     private MaterialType parseMaterialType(String materialType) {
@@ -917,7 +1140,7 @@ public class OptimizationService {
         return value != null ? value : BigDecimal.ZERO;
     }
 
-    private String escape(String value) {
+    private static String escape(String value) {
         if (value == null) {
             return "";
         }
@@ -1227,29 +1450,53 @@ public class OptimizationService {
             this.label = label;
         }
 
+        /**
+         * Placement coordinates are stored as (x along source width, y along source length).
+         * For visualization we render length on X axis and width on Y axis, so we swap axes.
+         */
+        private static SvgRect fromPlacement(int xMm, int yMm, int widthMm, int heightMm, String fill, String stroke, String label) {
+            return new SvgRect(yMm, xMm, heightMm, widthMm, fill, stroke, label);
+        }
+
+        private static SvgRect fromPlacement(int xMm, int yMm, int widthMm, int heightMm, String fill, String stroke, double opacity, String label) {
+            return new SvgRect(yMm, xMm, heightMm, widthMm, fill, stroke, opacity, label);
+        }
+
         private String toSvg() {
             StringBuilder output = new StringBuilder();
+            output.append("<g>");
+            if (label != null && !label.isBlank()) {
+                output.append("<title>").append(escape(label)).append("</title>");
+            }
             output.append("<rect x=\"").append(x).append("\" y=\"").append(y)
                 .append("\" width=\"").append(width).append("\" height=\"").append(height)
                 .append("\" fill=\"").append(fill).append("\" stroke=\"").append(stroke)
-                .append("\" stroke-width=\"1\" opacity=\"").append(opacity).append("\"/>");
+                .append("\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\" opacity=\"").append(opacity).append("\"/>");
 
             if (label != null && !label.isBlank()) {
-                int textX = x + 2;
-                int textY = y + 14;
-                int bgX = textX - 1;
-                int bgY = textY - 13;
-                int bgWidth = (label.length() * 8) + 6;
-                int bgHeight = 16;
+                // Only draw inline text when the rectangle is big enough; tooltip is always present.
+                int fontSize = Math.max(14, Math.min(60, Math.min(width, height) / 6));
+                int minTextWidth = Math.min(520, Math.max(140, (int) Math.ceil(label.length() * (fontSize * 0.55))));
+                if (width < minTextWidth || height < (fontSize + 10)) {
+                    output.append("</g>");
+                    return output.toString();
+                }
+                int textX = x + Math.max(4, fontSize / 4);
+                int textY = y + fontSize + Math.max(4, fontSize / 4);
+                int bgX = textX - Math.max(2, fontSize / 6);
+                int bgY = textY - (fontSize + Math.max(4, fontSize / 5));
+                int bgWidth = minTextWidth;
+                int bgHeight = fontSize + Math.max(6, fontSize / 3);
                 output.append("<rect x=\"").append(bgX).append("\" y=\"").append(bgY)
                     .append("\" width=\"").append(bgWidth).append("\" height=\"").append(bgHeight)
                     .append("\" fill=\"#ffffff\" opacity=\"0.8\"/>" );
                 output.append("<text x=\"").append(textX).append("\" y=\"").append(textY)
-                    .append("\" font-size=\"14\" fill=\"#111\" opacity=\"0.95\" font-weight=\"700\">")
-                    .append(label)
+                    .append("\" font-size=\"").append(fontSize).append("\" fill=\"#111\" opacity=\"0.95\" font-weight=\"700\">")
+                    .append(escape(label))
                     .append("</text>");
             }
 
+            output.append("</g>");
             return output.toString();
         }
     }
@@ -1289,18 +1536,20 @@ public class OptimizationService {
 
         static SvgGroupBuilder fromRoll(Roll roll) {
             int width = roll.getWidthRemainingMm() != null ? roll.getWidthRemainingMm() : roll.getWidthMm();
-            int height = SourceCandidate.toLengthMmStatic(roll.getLengthRemainingM() != null ? roll.getLengthRemainingM() : roll.getLengthM());
+            int length = SourceCandidate.toLengthMmStatic(roll.getLengthRemainingM() != null ? roll.getLengthRemainingM() : roll.getLengthM());
             String reference = roll.getReference() != null ? roll.getReference() : roll.getId().toString();
-            String details = buildSourceDetails(reference, roll.getNbPlis(), roll.getThicknessMm(), width, height);
-            return new SvgGroupBuilder("ROLL", details, width, height);
+            String details = buildSourceDetails(reference, roll.getNbPlis(), roll.getThicknessMm(), width, length);
+            // Render length on X axis and width on Y axis.
+            return new SvgGroupBuilder("ROLL", details, length, width);
         }
 
         static SvgGroupBuilder fromWaste(WastePiece wastePiece) {
             int width = wastePiece.getWidthRemainingMm() != null ? wastePiece.getWidthRemainingMm() : wastePiece.getWidthMm();
-            int height = SourceCandidate.toLengthMmStatic(wastePiece.getLengthRemainingM() != null ? wastePiece.getLengthRemainingM() : wastePiece.getLengthM());
+            int length = SourceCandidate.toLengthMmStatic(wastePiece.getLengthRemainingM() != null ? wastePiece.getLengthRemainingM() : wastePiece.getLengthM());
             String reference = wastePiece.getReference() != null ? wastePiece.getReference() : wastePiece.getId().toString();
-            String details = buildSourceDetails(reference, wastePiece.getNbPlis(), wastePiece.getThicknessMm(), width, height);
-            return new SvgGroupBuilder("CHUTE", details, width, height);
+            String details = buildSourceDetails(reference, wastePiece.getNbPlis(), wastePiece.getThicknessMm(), width, length);
+            // Render length on X axis and width on Y axis.
+            return new SvgGroupBuilder("CHUTE", details, length, width);
         }
 
         SvgGroup build() {
