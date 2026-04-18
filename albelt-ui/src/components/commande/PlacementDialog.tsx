@@ -117,7 +117,18 @@ export const PlacementDialog = ({
             : placement.wastePieceId === placementForm.sourceId
         ));
 
+        const MAX_DISPLAY_LENGTH = 2000;
+
+        const scale =
+          sourceLengthMm > MAX_DISPLAY_LENGTH
+            ? MAX_DISPLAY_LENGTH / sourceLengthMm
+            : 1;
+
+        const displayLength = sourceLengthMm * scale;
+        const displayWidth = sourceWidthMm * scale;
+
         return (
+          
           <div
             style={{
               border: '1px solid var(--surface-border)',
@@ -128,15 +139,15 @@ export const PlacementDialog = ({
           >
             <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
               <svg
-                viewBox={`0 0 ${Math.max(1, sourceLengthMm)} ${Math.max(1, sourceWidthMm)}`}
+                viewBox={`0 0 ${Math.max(1, displayLength)} ${Math.max(1, displayWidth)}`}
                 style={{ height: 260, width: 'auto', display: 'block' }}
                 preserveAspectRatio="xMinYMid meet"
               >
                 <rect
                   x={0}
                   y={0}
-                  width={sourceLengthMm}
-                  height={sourceWidthMm}
+                  width={displayLength}
+                  height={displayWidth}
                   fill={source?.colorHexCode || '#f5f5f5'}
                   stroke="#bdbdbd"
                   strokeWidth={2}
@@ -154,10 +165,10 @@ export const PlacementDialog = ({
                     <g key={placement.id}>
                       <title>{`x:${placement.xMm} y:${placement.yMm} ${placement.widthMm}x${placement.heightMm}mm`}</title>
                       <rect
-                        x={placement.yMm}
-                        y={placement.xMm}
-                        width={placement.heightMm}
-                        height={placement.widthMm}
+                        x={placement.yMm * scale}
+                        y={placement.xMm * scale}
+                        width={placement.heightMm * scale}
+                        height={placement.widthMm * scale}
                         fill={fill}
                         fillOpacity={0.35}
                         stroke={stroke}
