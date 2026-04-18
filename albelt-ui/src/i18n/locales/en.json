@@ -37,6 +37,7 @@
     "view": "View",
     "list": "List",
     "refresh": "Refresh",
+    "enlarge": "Enlarge",
     "saving": "Saving…",
     "noData": "No data available",
     "loading_data": "Loading data...",

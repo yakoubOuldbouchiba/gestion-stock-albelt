@@ -11,6 +11,7 @@ import { ProgressSpinner } from 'primereact/progressspinner';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { TabView, TabPanel } from 'primereact/tabview';
+import { Dialog } from 'primereact/dialog';
 import { CommandeService } from '../services/commandeService';
 import { WastePieceService } from '../services/wastePieceService';
 import { ProductionItemService } from '../services/productionItemService';
@@ -50,7 +51,6 @@ export function CommandeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [activeItemDetailTabIndex, setActiveItemDetailTabIndex] = useState(0);
   const [selectedAltierId, setSelectedAltierId] = useState<string | null>(null);
   const [altierScores, setAltierScores] = useState<AltierScore[]>([]);
@@ -66,6 +66,7 @@ export function CommandeDetailPage() {
   const [optimizationItemId, setOptimizationItemId] = useState<string | null>(null);
   const [optimizationLoading, setOptimizationLoading] = useState(false);
   const [optimizationError, setOptimizationError] = useState<string | null>(null);
+  const [svgZoomPreview, setSvgZoomPreview] = useState<{ title: string; svg: string } | null>(null);
   const [creatingPlacement, setCreatingPlacement] = useState(false);
   const [placementForm, setPlacementForm] = useState({
     sourceType: 'ROLL' as 'ROLL' | 'WASTE_PIECE',
@@ -1567,6 +1568,74 @@ export function CommandeDetailPage() {
     return Number(value).toFixed(digits);
   };
 
+  const normalizeOptimizationSvg = (rawSvg: string) =>
+    rawSvg.replace(
+      /<svg([^>]*?)>/,
+      (_, attrs) => {
+        // Strip any existing width/height/preserveAspectRatio so we can control sizing via CSS.
+        const cleaned = attrs
+          .replace(/\s*width="[^"]*"/g, '')
+          .replace(/\s*height="[^"]*"/g, '')
+          .replace(/\s*preserveAspectRatio="[^"]*"/g, '')
+          .replace(/\s*class="[^"]*"/g, '');
+        return `<svg${cleaned} class="albel-generated-svg" preserveAspectRatio="xMinYMid meet">`;
+      }
+    );
+
+  const buildOptimizationSvgSlices = (rawSvg: string, maxAspectRatio = 6, maxSlices = 12) => {
+    try {
+      const parsed = new DOMParser().parseFromString(rawSvg, 'image/svg+xml');
+      const svgEl = parsed.querySelector('svg');
+      if (!svgEl) return null;
+
+      const viewBox = svgEl.getAttribute('viewBox');
+      if (!viewBox) return null;
+      const parts = viewBox.split(/[\s,]+/).filter(Boolean).map((v) => Number(v));
+      if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return null;
+      const [minX, minY, vbW, vbH] = parts;
+      if (vbW <= 0 || vbH <= 0) return null;
+
+      const inner = svgEl.innerHTML ?? '';
+      const ratioW = vbW / vbH;
+      const ratioH = vbH / vbW;
+
+      if (ratioW <= maxAspectRatio && ratioH <= maxAspectRatio) return null;
+
+      const sliceAlongX = ratioW >= ratioH;
+      const idealSlices = sliceAlongX
+        ? Math.ceil(ratioW / maxAspectRatio)
+        : Math.ceil(ratioH / maxAspectRatio);
+      const sliceCount = Math.min(Math.max(2, idealSlices), maxSlices);
+
+      if (sliceAlongX) {
+        const sliceW = vbW / sliceCount;
+        return Array.from({ length: sliceCount }, (_, idx) => {
+          const x = minX + idx * sliceW;
+          const sliceViewBox = `${x} ${minY} ${sliceW} ${vbH}`;
+          return normalizeOptimizationSvg(
+            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${sliceViewBox}">${inner}</svg>`
+          );
+        });
+      }
+
+      const sliceH = vbH / sliceCount;
+      return Array.from({ length: sliceCount }, (_, idx) => {
+        const y = minY + idx * sliceH;
+        const sliceViewBox = `${minX} ${y} ${vbW} ${sliceH}`;
+        return normalizeOptimizationSvg(
+          `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${sliceViewBox}">${inner}</svg>`
+        );
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  const zoomSvgSlices = useMemo(() => {
+    if (!svgZoomPreview?.svg) return null;
+    return buildOptimizationSvgSlices(svgZoomPreview.svg);
+  }, [svgZoomPreview?.svg]);
+
   const renderOptimizationSection = (item: CommandeItem) => {
     const isCurrent = optimizationItemId === item.id;
     const comparison = isCurrent ? optimizationComparison : null;
@@ -1578,304 +1647,12 @@ export function CommandeDetailPage() {
     const actualConforme = item.totalItemsConforme ?? 0;
     const actualNonConforme = item.totalItemsNonConforme ?? 0;
 
-    const normalizeSvg = (rawSvg: string) =>
-      rawSvg.replace(
-        /<svg([^>]*?)>/,
-        (_, attrs) => {
-          // Strip any existing width/height/preserveAspectRatio so we can control sizing via CSS.
-          const cleaned = attrs
-            .replace(/\s*width="[^"]*"/g, '')
-            .replace(/\s*height="[^"]*"/g, '')
-            .replace(/\s*preserveAspectRatio="[^"]*"/g, '')
-            .replace(/\s*class="[^"]*"/g, '');
-          return `<svg${cleaned} class="albel-generated-svg" preserveAspectRatio="xMinYMid meet">`;
-        }
-      );
-
     type PrintInfo = {
       leftRows: { label: string; value: string }[];
       rightRows: { label: string; value: string }[];
       sources?: any[];
       placements?: any[];
     };
-
-    const printSvg = (title: string, rawSvg: string, info?: PrintInfo) => {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) return;
-
-      const escapeHtml = (value: any) =>
-        String(value ?? '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#039;');
-
-      // Strip width/height attrs so we can control sizing via CSS
-      const stripped = rawSvg.replace(
-        /<svg([^>]*?)>/,
-        (_, attrs) => {
-          const cleaned = attrs
-            .replace(/\s*width="[^"]*"/g, '')
-            .replace(/\s*height="[^"]*"/g, '')
-            .replace(/\s*preserveAspectRatio="[^"]*"/g, '');
-          return `<svg${cleaned} preserveAspectRatio="xMidYMid meet">`;
-        }
-      );
-
-      const margin = 5;
-      const printableW = 297 - margin * 2; // 287mm
-      const printableH = 210 - margin * 2; // 200mm
-      const titleH = 6;  // mm for h2 + gap
-      const infoH = info ? 22 : 0; // mm for info bar
-      const svgH = printableH - titleH - infoH;
-
-      const infoHtml = info ? `
-        <div class="info-bar">
-          <div class="info-col">
-            ${info.leftRows.map(r => `<div class="info-row"><span class="info-label">${r.label}</span><span class="info-value">${r.value}</span></div>`).join('')}
-          </div>
-          <div class="info-divider"></div>
-          <div class="info-col">
-            ${info.rightRows.map(r => `<div class="info-row"><span class="info-label">${r.label}</span><span class="info-value">${r.value}</span></div>`).join('')}
-          </div>
-        </div>
-      ` : '';
-
-      const sources = Array.isArray(info?.sources) ? info!.sources! : [];
-      const placements = Array.isArray(info?.placements) ? info!.placements! : [];
-
-      const sourcesHtml = sources.length > 0 ? `
-        <div class="section">
-          <h3>Sources</h3>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Ref</th>
-                <th>Plis</th>
-                <th>Thk (mm)</th>
-                <th>Color</th>
-                <th>Width (mm)</th>
-                <th>Length (m)</th>
-                <th>QR</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sources.map((s: any) => {
-        const qr = s?.qrCode;
-        const qrHtml = (typeof qr === 'string' && qr.startsWith('data:image/'))
-          ? `<img class="qr" src="${qr}" alt="QR" />`
-          : `<span class="muted">${escapeHtml(qr || '-')}</span>`;
-        const colorLabel = [s?.colorName, s?.colorHexCode].filter(Boolean).join(' / ');
-        const typeLabel = s?.label || s?.sourceType || '-';
-        return `
-                  <tr>
-                    <td>${escapeHtml(typeLabel)}</td>
-                    <td>${escapeHtml(s?.reference || '-')}</td>
-                    <td>${escapeHtml(s?.nbPlis ?? '-')}</td>
-                    <td>${escapeHtml(s?.thicknessMm ?? '-')}</td>
-                    <td>${escapeHtml(colorLabel || '-')}</td>
-                    <td>${escapeHtml(s?.widthMm ?? '-')}</td>
-                    <td>${escapeHtml(s?.lengthM ?? '-')}</td>
-                    <td>${qrHtml}</td>
-                  </tr>
-                `;
-      }).join('')}
-            </tbody>
-          </table>
-        </div>
-      ` : '';
-
-      const placementsHtml = placements.length > 0 ? `
-        <div class="section">
-          <h3>Placements</h3>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Source</th>
-                <th>x (mm)</th>
-                <th>y (mm)</th>
-                <th>w (mm)</th>
-                <th>h (mm)</th>
-                <th>Rot.</th>
-                <th>Piece</th>
-                <th>Area (m²)</th>
-                <th>Color</th>
-                <th>QR</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${placements.map((p: any) => {
-        const source = `${p?.sourceType || '-'} ${p?.sourceId ? String(p.sourceId).slice(0, 8) : ''}`.trim();
-        const piece = (p?.pieceWidthMm && p?.pieceLengthM)
-          ? `${p.pieceWidthMm}mm x ${p.pieceLengthM}m`
-          : '-';
-        const rot = (p?.rotated === true) ? 'Y' : (p?.rotated === false ? 'N' : '-');
-        const color = [p?.placementColorName, p?.placementColorHexCode].filter(Boolean).join(' / ') || '-';
-        const qr = p?.qrCode;
-        const qrHtml = (typeof qr === 'string' && qr.startsWith('data:image/'))
-          ? `<img class="qr" src="${qr}" alt="Placement QR" />`
-          : `<span class="muted">${escapeHtml(qr || '-')}</span>`;
-        return `
-                  <tr>
-                    <td>${escapeHtml(source)}</td>
-                    <td>${escapeHtml(p?.xMm ?? '-')}</td>
-                    <td>${escapeHtml(p?.yMm ?? '-')}</td>
-                    <td>${escapeHtml(p?.widthMm ?? '-')}</td>
-                    <td>${escapeHtml(p?.heightMm ?? '-')}</td>
-                    <td>${escapeHtml(rot)}</td>
-                    <td>${escapeHtml(piece)}</td>
-                    <td>${escapeHtml(p?.areaM2 ?? '-')}</td>
-                    <td>${escapeHtml(color)}</td>
-                    <td>${qrHtml}</td>
-                  </tr>
-                `;
-      }).join('')}
-            </tbody>
-          </table>
-        </div>
-      ` : '';
-
-      const extraPagesHtml = (sourcesHtml || placementsHtml) ? `
-        <div class="page page--tables">
-          ${sourcesHtml}
-          ${placementsHtml}
-        </div>
-      ` : '';
-
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>${title}</title>
-            <style>
-              @page { size: A4 landscape; margin: ${margin}mm; }
-              *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-              html, body {
-                width: ${printableW}mm;
-                font-family: Arial, sans-serif;
-                background: #fff;
-              }
-              .page {
-                display: flex;
-                flex-direction: column;
-                width: ${printableW}mm;
-                min-height: ${printableH}mm;
-              }
-              .page + .page { page-break-before: always; }
-              h2 {
-                font-size: 9pt;
-                font-weight: 700;
-                color: #222;
-                margin-bottom: 2mm;
-                flex-shrink: 0;
-              }
-              h3 {
-                font-size: 8pt;
-                font-weight: 700;
-                color: #222;
-                margin: 0 0 1.5mm 0;
-              }
-              /* Info bar */
-              .info-bar {
-                display: flex;
-                gap: 4mm;
-                background: #f4f6f8;
-                border: 1px solid #dde1e7;
-                border-radius: 3px;
-                padding: 2mm 3mm;
-                margin-bottom: 2mm;
-                flex-shrink: 0;
-                height: ${infoH}mm;
-              }
-              .info-col {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                gap: 1.5mm;
-              }
-              .info-divider {
-                width: 1px;
-                background: #c8cdd6;
-                flex-shrink: 0;
-              }
-              .info-row {
-                display: flex;
-                align-items: center;
-                gap: 2mm;
-                font-size: 7pt;
-              }
-              .info-label {
-                color: #666;
-                white-space: nowrap;
-                min-width: 30mm;
-              }
-              .info-value {
-                font-weight: 600;
-                color: #111;
-              }
-              /* SVG area */
-              .svg-wrapper {
-                width: ${printableW}mm;
-                height: ${svgH}mm;
-                overflow: hidden;
-                display: flex;
-                align-items: flex-start;
-                justify-content: center;
-              }
-              svg {
-                width: ${printableW}mm;
-                height: ${svgH}mm;
-                max-width: 100%;
-                max-height: 100%;
-                display: block;
-              }
-              .section {
-                margin-top: 3mm;
-              }
-              .table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 7pt;
-              }
-              .table th, .table td {
-                border: 1px solid #dde1e7;
-                padding: 1.2mm 1.5mm;
-                vertical-align: top;
-              }
-              .table th {
-                background: #f3f5f8;
-                text-align: left;
-                font-weight: 700;
-              }
-              .qr {
-                width: 16mm;
-                height: 16mm;
-                object-fit: contain;
-                border: 1px solid #dde1e7;
-                border-radius: 2px;
-                background: #fff;
-              }
-              .muted { color: #666; }
-            </style>
-          </head>
-          <body>
-            <div class="page">
-              <h2>${title}</h2>
-              ${infoHtml}
-              <div class="svg-wrapper">${stripped}</div>
-            </div>
-            ${extraPagesHtml}
-            <script>window.onload = () => { window.print(); window.close(); }<\/script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    };
-
-    void printSvg;
-
 
     const printServerGeneratedLayout = async (variant: 'actual' | 'suggested') => {
       if (!optimizationItemId) {
@@ -1900,6 +1677,8 @@ export function CommandeDetailPage() {
       }
     };
 
+
+
     const renderSvgPanel = (
       title: string,
       variant: 'actual' | 'suggested',
@@ -1908,20 +1687,32 @@ export function CommandeDetailPage() {
       info?: PrintInfo
     ) => {
       void info;
+      const svgSlices = svg ? buildOptimizationSvgSlices(svg) : null;
+      const isSliced = Array.isArray(svgSlices) && svgSlices.length > 1;
       return (
         <Card
           title={
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span>{title}</span>
               {svg && (
-                <Button
-                  icon="pi pi-print"
-                  text
-                  size="small"
-                  tooltip={t('common.print') || 'Print'}
-                  tooltipOptions={{ position: 'left' }}
-                  onClick={() => void printServerGeneratedLayout(variant)}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Button
+                    icon="pi pi-search-plus"
+                    text
+                    size="small"
+                    tooltip={t('common.enlarge') || 'Enlarge'}
+                    tooltipOptions={{ position: 'left' }}
+                    onClick={() => setSvgZoomPreview({ title, svg })}
+                  />
+                  <Button
+                    icon="pi pi-print"
+                    text
+                    size="small"
+                    tooltip={t('common.print') || 'Print'}
+                    tooltipOptions={{ position: 'left' }}
+                    onClick={() => void printServerGeneratedLayout(variant)}
+                  />
+                </div>
               )}
             </div>
           }
@@ -1930,15 +1721,28 @@ export function CommandeDetailPage() {
         >
           {svg ? (
             <div
-              className="albel-svg-viewer"
+              className={`albel-svg-viewer${isSliced ? ' albel-svg-viewer--sliced' : ''}`}
               style={{
                 border: '1px solid var(--surface-border)',
                 borderRadius: '8px',
                 backgroundColor: 'var(--surface-card)',
                 padding: '0.5rem',
               }}
-              dangerouslySetInnerHTML={{ __html: normalizeSvg(svg) }}
-            />
+            >
+              {isSliced ? (
+                <div className="albel-svg-slices">
+                  {svgSlices!.map((slice, idx) => (
+                    <div
+                      key={`${variant}-slice-${idx}`}
+                      className="albel-svg-slice"
+                      dangerouslySetInnerHTML={{ __html: slice }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div dangerouslySetInnerHTML={{ __html: normalizeOptimizationSvg(svg) }} />
+              )}
+            </div>
           ) : (
             <Message severity="info" text={emptyMessage ?? t('messages.noDataAvailable')} />
           )}
@@ -2424,6 +2228,44 @@ export function CommandeDetailPage() {
         onSave={handleCreateProductionItem}
         creatingProduction={creatingProduction}
       />
+
+      <Dialog
+        header={svgZoomPreview?.title ?? ''}
+        visible={!!svgZoomPreview}
+        modal
+        dismissableMask
+        maximizable
+        style={{ width: 'min(1100px, 95vw)' }}
+        onHide={() => setSvgZoomPreview(null)}
+      >
+        {svgZoomPreview?.svg && (
+          <div
+            className={`albel-svg-viewer albel-svg-viewer--zoom${
+              zoomSvgSlices && zoomSvgSlices.length > 1 ? ' albel-svg-viewer--sliced' : ''
+            }`}
+            style={{
+              border: '1px solid var(--surface-border)',
+              borderRadius: '8px',
+              backgroundColor: 'var(--surface-card)',
+              padding: '0.5rem',
+            }}
+          >
+            {zoomSvgSlices && zoomSvgSlices.length > 1 ? (
+              <div className="albel-svg-slices">
+                {zoomSvgSlices.map((slice, idx) => (
+                  <div
+                    key={`zoom-slice-${idx}`}
+                    className="albel-svg-slice"
+                    dangerouslySetInnerHTML={{ __html: slice }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div dangerouslySetInnerHTML={{ __html: normalizeOptimizationSvg(svgZoomPreview.svg) }} />
+            )}
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 }

@@ -45,20 +45,50 @@ public class OptimizationPrintService {
     }
 
     private String buildHtml(String title,
-                             String svg,
-                             List<OptimizationSourceReportResponse> sources,
-                             List<OptimizationPlacementReportResponse> placements,
-                             OptimizationMetricsResponse metrics,
-                             Locale locale) {
+                              String svg,
+                              List<OptimizationSourceReportResponse> sources,
+                              List<OptimizationPlacementReportResponse> placements,
+                              OptimizationMetricsResponse metrics,
+                              Locale locale) {
         String dir = isArabic(locale) ? "rtl" : "ltr";
         String align = isArabic(locale) ? "right" : "left";
-        String printableSvg = normalizeSvg(svg);
+        List<String> printableSvgSlices = sliceSvgForPrint(svg);
         String metricsHtml = buildMetricsHtml(metrics, locale);
         String sourcesHtml = buildSourcesTable(sources, locale);
         String placementsHtml = buildPlacementsTable(sources, placements, locale);
-        String emptyHtml = printableSvg == null
-            ? "<div class=\"empty\">" + escape(msg("pdf.optimization.noLayout", locale)) + "</div>"
-            : "<div class=\"svg-wrapper\">" + printableSvg + "</div>";
+        boolean hasLayout = printableSvgSlices != null && !printableSvgSlices.isEmpty();
+        boolean hasSources = sources != null && !sources.isEmpty();
+        boolean hasPlacements = placements != null && !placements.isEmpty();
+
+        String layoutPagesHtml = hasLayout
+            ? buildLayoutPagesHtml(title, metricsHtml, printableSvgSlices)
+            : """
+                <div class="page layout-page">
+                  <h1>%s</h1>
+                  %s
+                  <div class="empty">%s</div>
+                </div>
+                """.formatted(
+                escape(title),
+                metricsHtml,
+                escape(msg("pdf.optimization.noLayout", locale))
+            );
+
+        String reportPagesHtml = (hasSources || hasPlacements)
+            ? """
+                <div class="page report-page">
+                  <h2>%s</h2>
+                  %s
+                  <h2>%s</h2>
+                  %s
+                </div>
+                """.formatted(
+                escape(msg("pdf.optimization.sources", locale)),
+                sourcesHtml,
+                escape(msg("pdf.optimization.placements", locale)),
+                placementsHtml
+            )
+            : "";
 
         return """
             <!DOCTYPE html>
@@ -77,18 +107,27 @@ public class OptimizationPrintService {
                     font-family: Arial, sans-serif;
                     direction: %s;
                   }
-                  body { padding: 5mm; }
                   .page {
-                    min-height: 200mm;
                     width: 287mm;
+                    page-break-after: always;
+                    break-after: page;
                   }
-                  .page + .page { page-break-before: always; }
+                  .page:last-child {
+                    page-break-after: auto;
+                    break-after: auto;
+                  }
                   h1, h2 {
                     margin: 0 0 3mm 0;
                     text-align: %s;
                   }
                   h1 { font-size: 16pt; }
                   h2 { font-size: 11pt; margin-top: 4mm; }
+                  .layout-page {
+                    height: 200mm;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0;
+                  }
                   .metrics {
                     display: grid;
                     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -116,12 +155,14 @@ public class OptimizationPrintService {
                   }
                   .svg-wrapper {
                     width: 100%%;
-                    height: 150mm;
+                    flex: 1;
                     border: 1px solid #dbe1e8;
+                    direction: ltr;
                     display: flex;
                     align-items: flex-start;
                     justify-content: center;
                     overflow: hidden;
+                    min-height: 0;
                   }
                   .svg-wrapper svg {
                     width: 100%%;
@@ -161,17 +202,7 @@ public class OptimizationPrintService {
                 </style>
               </head>
               <body>
-                <div class="page">
-                  <h1>%s</h1>
-                  %s
-                  %s
-                </div>
-                <div class="page">
-                  <h2>%s</h2>
-                  %s
-                  <h2>%s</h2>
-                  %s
-                </div>
+                %s%s
                 <script>window.onload = () => { window.print(); };</script>
               </body>
             </html>
@@ -184,14 +215,24 @@ public class OptimizationPrintService {
             align,
             align,
             align,
-            escape(title),
-            metricsHtml,
-            emptyHtml,
-            escape(msg("pdf.optimization.sources", locale)),
-            sourcesHtml,
-            escape(msg("pdf.optimization.placements", locale)),
-            placementsHtml
+            layoutPagesHtml,
+            reportPagesHtml
         );
+    }
+
+    private String buildLayoutPagesHtml(String title, String metricsHtml, List<String> printableSvgSlices) {
+        StringBuilder html = new StringBuilder();
+        int total = printableSvgSlices.size();
+        for (int i = 0; i < total; i++) {
+            String pageTitle = total > 1 ? title + " (" + (i + 1) + "/" + total + ")" : title;
+            String metrics = i == 0 ? metricsHtml : "";
+            html.append("<div class=\"page\">")
+                .append("<h1>").append(escape(pageTitle)).append("</h1>")
+                .append(metrics)
+                .append("<div class=\"svg-wrapper\">").append(printableSvgSlices.get(i)).append("</div>")
+                .append("</div>");
+        }
+        return html.toString();
     }
 
     private String buildMetricsHtml(OptimizationMetricsResponse metrics, Locale locale) {
@@ -388,14 +429,122 @@ public class OptimizationPrintService {
         return "<th>" + escape(value) + "</th>";
     }
 
+    private List<String> sliceSvgForPrint(String rawSvg) {
+        int maxPages = 3;
+        if (rawSvg == null || rawSvg.isBlank()) {
+            return List.of();
+        }
+        ParsedSvg parsed = parseSvg(rawSvg);
+        if (parsed == null || parsed.viewBoxWidth <= 0 || parsed.viewBoxHeight <= 0) {
+            String normalized = normalizeSvg(rawSvg);
+            return normalized != null ? List.of(normalized) : List.of();
+        }
+
+        double ratioW = parsed.viewBoxWidth / parsed.viewBoxHeight;
+        double ratioH = parsed.viewBoxHeight / parsed.viewBoxWidth;
+        double maxAspectRatio = 12.0; // keep layout page count low by default
+
+        if (ratioW <= maxAspectRatio && ratioH <= maxAspectRatio) {
+            return List.of(buildSvg(parsed, parsed.minX, parsed.minY, parsed.viewBoxWidth, parsed.viewBoxHeight));
+        }
+
+        boolean sliceAlongX = ratioW >= ratioH;
+        double dominantRatio = sliceAlongX ? ratioW : ratioH;
+        int desiredSlices = (int) Math.ceil(dominantRatio / maxAspectRatio);
+        int slices = Math.min(Math.max(2, desiredSlices), Math.max(1, maxPages));
+
+        if (sliceAlongX) {
+            double sliceWidth = parsed.viewBoxWidth / slices;
+            return java.util.stream.IntStream.range(0, slices)
+                .mapToObj(i -> buildSvg(parsed, parsed.minX + i * sliceWidth, parsed.minY, sliceWidth, parsed.viewBoxHeight))
+                .toList();
+        }
+
+        double sliceHeight = parsed.viewBoxHeight / slices;
+        return java.util.stream.IntStream.range(0, slices)
+            .mapToObj(i -> buildSvg(parsed, parsed.minX, parsed.minY + i * sliceHeight, parsed.viewBoxWidth, sliceHeight))
+            .toList();
+    }
+
+    private static class ParsedSvg {
+        private final String svgAttributes;
+        private final String innerContent;
+        private final double minX;
+        private final double minY;
+        private final double viewBoxWidth;
+        private final double viewBoxHeight;
+
+        private ParsedSvg(String svgAttributes, String innerContent, double minX, double minY, double viewBoxWidth, double viewBoxHeight) {
+            this.svgAttributes = svgAttributes;
+            this.innerContent = innerContent;
+            this.minX = minX;
+            this.minY = minY;
+            this.viewBoxWidth = viewBoxWidth;
+            this.viewBoxHeight = viewBoxHeight;
+        }
+    }
+
+    private ParsedSvg parseSvg(String rawSvg) {
+        int svgStart = rawSvg.indexOf("<svg");
+        if (svgStart < 0) {
+            return null;
+        }
+        int openEnd = rawSvg.indexOf(">", svgStart);
+        if (openEnd < 0) {
+            return null;
+        }
+        int closeStart = rawSvg.lastIndexOf("</svg>");
+        if (closeStart < 0 || closeStart <= openEnd) {
+            return null;
+        }
+
+        String openTag = rawSvg.substring(svgStart, openEnd + 1);
+        String inner = rawSvg.substring(openEnd + 1, closeStart);
+        String attrs = openTag
+            .replaceFirst("^<svg", "")
+            .replaceFirst(">$", "");
+
+        String viewBox = extractAttribute(attrs, "viewBox");
+        if (viewBox == null) {
+            return null;
+        }
+        String[] parts = viewBox.trim().split("[,\\s]+");
+        if (parts.length != 4) {
+            return null;
+        }
+        try {
+            double minX = Double.parseDouble(parts[0]);
+            double minY = Double.parseDouble(parts[1]);
+            double w = Double.parseDouble(parts[2]);
+            double h = Double.parseDouble(parts[3]);
+            return new ParsedSvg(attrs, inner, minX, minY, w, h);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private String buildSvg(ParsedSvg parsed, double minX, double minY, double width, double height) {
+        String cleanedAttrs = parsed.svgAttributes
+            .replaceAll("\\s+width=\"[^\"]*\"", "")
+            .replaceAll("\\s+height=\"[^\"]*\"", "")
+            .replaceAll("\\s+preserveAspectRatio=\"[^\"]*\"", "");
+        String viewBox = " viewBox=\"" + minX + " " + minY + " " + width + " " + height + "\"";
+        return "<svg" + cleanedAttrs + viewBox + " preserveAspectRatio=\"xMidYMid meet\">" + parsed.innerContent + "</svg>";
+    }
+
+    private String extractAttribute(String attrs, String name) {
+        var matcher = java.util.regex.Pattern.compile(name + "\\s*=\\s*\"([^\"]+)\"").matcher(attrs);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
     private String normalizeSvg(String rawSvg) {
         if (rawSvg == null || rawSvg.isBlank()) {
             return null;
         }
-        return rawSvg.replaceFirst(
-            "<svg([^>]*?)>",
-            "<svg$1 preserveAspectRatio=\"xMidYMid meet\">"
-        );
+        return rawSvg
+            .replaceFirst("<svg([^>]*?)>", "<svg$1 preserveAspectRatio=\"xMidYMid meet\">")
+            .replaceAll("\\s+width=\"[^\"]*\"", "")
+            .replaceAll("\\s+height=\"[^\"]*\"", "");
     }
 
     private String normalizeVariant(String variant) {
