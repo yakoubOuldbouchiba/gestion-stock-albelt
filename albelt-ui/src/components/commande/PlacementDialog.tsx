@@ -137,7 +137,16 @@ export const PlacementDialog = ({
               background: 'var(--surface-card)',
             }}
           >
-            <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
+            <div
+              style={{
+                maxWidth: '100%',
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                whiteSpace: 'nowrap',
+                border: '1px solid #eee',
+                padding: '8px 0',
+              }}
+            >
               <svg
                 viewBox={`0 0 ${Math.max(1, displayLength)} ${Math.max(1, displayWidth)}`}
                 style={{ height: 260, width: 'auto', display: 'block' }}
