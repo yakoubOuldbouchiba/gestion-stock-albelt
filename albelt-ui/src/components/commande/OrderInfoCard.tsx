@@ -9,47 +9,47 @@ type OrderInfoCardProps = {
 };
 
 export const OrderInfoCard = ({ commande, t }: OrderInfoCardProps) => (
-  <Card title={t('commandes.orderInformation')} style={{ marginBottom: '1rem' }}>
+  <Card className="commande-info-card" title={t('commandes.orderInformation')}>
     <div
       className="albel-grid albel-grid--min220"
       style={{ gap: '1rem' }}
     >
       <div>
-        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.orderNumber')}</div>
+        <div className="commande-info-card__label">{t('commandes.orderNumber')}</div>
         <div>{commande.numeroCommande}</div>
       </div>
       <div>
-        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.client')}</div>
+        <div className="commande-info-card__label">{t('commandes.client')}</div>
         <div>{commande.clientName}</div>
       </div>
       <div>
-        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.createdBy')}</div>
+        <div className="commande-info-card__label">{t('commandes.createdBy')}</div>
         <div>{commande.createdByName || t('commandes.notAvailable')}</div>
       </div>
       <div>
-        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.createdDate')}</div>
+        <div className="commande-info-card__label">{t('commandes.createdDate')}</div>
         <div>{formatDateTime(commande.createdAt)}</div>
       </div>
       <div>
-        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.totalItems')}</div>
+        <div className="commande-info-card__label">{t('commandes.totalItems')}</div>
         <div>{commande.items?.length || 0}</div>
       </div>
       <div>
-        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('rollDetail.workshop')}</div>
+        <div className="commande-info-card__label">{t('rollDetail.workshop')}</div>
         <div>{commande.altierLibelle || t('rollDetail.unassigned')}</div>
       </div>
     </div>
 
     {commande.description && (
-      <div style={{ marginTop: '1rem' }}>
-        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.description')}</div>
+      <div className="commande-info-card__description">
+        <div className="commande-info-card__label">{t('commandes.description')}</div>
         <div>{commande.description}</div>
       </div>
     )}
 
     {commande.notes && (
-      <div style={{ marginTop: '0.75rem' }}>
-        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.notes')}</div>
+      <div className="commande-info-card__description">
+        <div className="commande-info-card__label">{t('commandes.notes')}</div>
         <div>{commande.notes}</div>
       </div>
     )}

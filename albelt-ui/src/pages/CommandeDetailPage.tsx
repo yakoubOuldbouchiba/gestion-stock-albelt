@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
+import { InputText } from 'primereact/inputtext';
 import { Tag } from 'primereact/tag';
 import { Card } from 'primereact/card';
 import { Message } from 'primereact/message';
@@ -29,6 +30,7 @@ import { StatusUpdateCard } from '../components/commande/StatusUpdateCard';
 import { WasteSection } from '../components/commande/WasteSection';
 import type { StatusSeverity } from '../components/commande/commandeTypes';
 import { formatRollChuteLabel } from '@utils/rollChuteLabel';
+import './CommandeDetailPage.css';
 import type {
   Commande,
   CommandeItem,
@@ -52,13 +54,14 @@ export function CommandeDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [activeItemDetailTabIndex, setActiveItemDetailTabIndex] = useState(0);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
   const [selectedAltierId, setSelectedAltierId] = useState<string | null>(null);
   const [altierScores, setAltierScores] = useState<AltierScore[]>([]);
   const [altierScoresLoading, setAltierScoresLoading] = useState(false);
   const [altierSaving, setAltierSaving] = useState(false);
   const [rollsByMaterial, setRollsByMaterial] = useState<Record<string, Roll[]>>({});
   const [rollsLoadingByMaterial, setRollsLoadingByMaterial] = useState<Record<string, boolean>>({});
-  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [wasteForItem, setWasteForItem] = useState<any[]>([]);
   const [productionForItem, setProductionForItem] = useState<ProductionItem[]>([]);
   const [placementsForItem, setPlacementsForItem] = useState<PlacedRectangle[]>([]);
@@ -103,6 +106,7 @@ export function CommandeDetailPage() {
   const [deletingOrder, setDeletingOrder] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [updatingItemStatusId, setUpdatingItemStatusId] = useState<string | null>(null);
+  const optimizationRequestRef = useRef(0);
 
   const [productionForm, setProductionForm] = useState({
     placedRectangleId: '',
@@ -167,6 +171,18 @@ export function CommandeDetailPage() {
 
     fetchScores();
   }, [id]);
+
+  useEffect(() => {
+    const items = commande?.items ?? [];
+    if (items.length === 0) {
+      setSelectedItemId(null);
+      return;
+    }
+
+    if (!selectedItemId || !items.some((item) => item.id === selectedItemId)) {
+      setSelectedItemId(items[0].id);
+    }
+  }, [commande?.items, selectedItemId]);
 
   useEffect(() => {
     if (showChuteForm && chuteSourceType === 'WASTE_PIECE') {
@@ -246,6 +262,25 @@ export function CommandeDetailPage() {
 
     loadPlacements();
   }, [showChuteForm, chuteSourceType, chuteRollId, parentWastePieceId]);
+
+  useEffect(() => {
+    if (!selectedItemId) {
+      setWasteForItem([]);
+      setProductionForItem([]);
+      setPlacementsForItem([]);
+      setOptimizationComparison(null);
+      setOptimizationItemId(null);
+      setOptimizationError(null);
+      return;
+    }
+
+    setActiveItemDetailTabIndex(0);
+    resetPlacementForm();
+    void loadWasteForItem(selectedItemId);
+    void loadProductionForItem(selectedItemId);
+    void loadPlacementsForItem(selectedItemId);
+    void loadOptimizationForItem(selectedItemId);
+  }, [selectedItemId]);
 
   const showError = (detail: string) => {
     toastRef.current?.show({
@@ -613,11 +648,12 @@ export function CommandeDetailPage() {
   };
 
   const loadOptimizationForItem = async (itemId: string, forceRegenerate = false) => {
-    if (optimizationLoading) return;
     if (forceRegenerate && isCommandeLocked) {
       showWarning(t('commandes.editLocked'));
       return;
     }
+    const requestId = optimizationRequestRef.current + 1;
+    optimizationRequestRef.current = requestId;
     setOptimizationLoading(true);
     setOptimizationError(null);
     setOptimizationItemId(itemId);
@@ -626,17 +662,26 @@ export function CommandeDetailPage() {
         ? await CommandeService.regenerateOptimization(itemId)
         : await CommandeService.getOptimizationComparison(itemId);
 
+      if (optimizationRequestRef.current !== requestId) {
+        return;
+      }
+
       if (response.data) {
         setOptimizationComparison(response.data);
       } else {
         setOptimizationComparison(null);
       }
     } catch (err) {
+      if (optimizationRequestRef.current !== requestId) {
+        return;
+      }
       console.error('Error loading optimization comparison:', err);
       setOptimizationError(t('messages.failedToLoad'));
       setOptimizationComparison(null);
     } finally {
-      setOptimizationLoading(false);
+      if (optimizationRequestRef.current === requestId) {
+        setOptimizationLoading(false);
+      }
     }
   };
 
@@ -1002,22 +1047,8 @@ export function CommandeDetailPage() {
     }
   };
 
-  const toggleItemDetails = (item: CommandeItem) => {
-    if (expandedItemId === item.id) {
-      setExpandedItemId(null);
-      setPlacementsForItem([]);
-      setOptimizationComparison(null);
-      setOptimizationItemId(null);
-      setOptimizationError(null);
-      resetPlacementForm();
-      return;
-    }
-    setExpandedItemId(item.id);
-    loadWasteForItem(item.id);
-    loadProductionForItem(item.id);
-    loadPlacementsForItem(item.id);
-    loadOptimizationForItem(item.id);
-    resetPlacementForm();
+  const handleSelectItem = (itemId: string) => {
+    setSelectedItemId(itemId);
   };
 
   const handleOpenProductionModal = (item: CommandeItem, placementId: string) => {
@@ -1077,6 +1108,42 @@ export function CommandeDetailPage() {
       colorName: source.colorName,
       colorHexCode: source.colorHexCode,
     });
+  };
+
+  const getItemDisplayLabel = (item: CommandeItem) => {
+    const parts = [
+      item.lineNumber ? `Line ${item.lineNumber}` : null,
+      item.reference ?? null,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(' • ') : item.materialType;
+  };
+
+  const getItemProgress = (item: CommandeItem) => {
+    const conforme = item.totalItemsConforme ?? 0;
+    const nonConforme = item.totalItemsNonConforme ?? 0;
+    const produced = conforme + nonConforme;
+    return {
+      conforme,
+      nonConforme,
+      produced,
+      remaining: Math.max(0, item.quantite - produced),
+      over: Math.max(0, produced - item.quantite),
+    };
+  };
+
+  const summarizeOptimizationSources = (sources?: Array<{ sourceType?: 'ROLL' | 'WASTE_PIECE' }>) => {
+    return (sources ?? []).reduce(
+      (summary, source) => {
+        if (source.sourceType === 'ROLL') {
+          summary.rolls += 1;
+        } else if (source.sourceType === 'WASTE_PIECE') {
+          summary.chutes += 1;
+        }
+
+        return summary;
+      },
+      { rolls: 0, chutes: 0 }
+    );
   };
 
   const getProductionWarnings = (
@@ -1929,9 +1996,54 @@ export function CommandeDetailPage() {
     return luminance > 0.6 ? '#000000' : '#ffffff';
   };
 
+  const orderItems = commande?.items ?? [];
+  const filteredItems = useMemo(() => {
+    const query = itemSearchQuery.trim().toLowerCase();
+    if (!query) return orderItems;
+
+    return orderItems.filter((item) => {
+      const haystack = [
+        item.lineNumber ? `line ${item.lineNumber}` : '',
+        item.reference ?? '',
+        item.materialType ?? '',
+        item.colorName ?? '',
+        item.typeMouvement ?? '',
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [orderItems, itemSearchQuery]);
+
+  const selectedItem = useMemo(
+    () => orderItems.find((item) => item.id === selectedItemId) ?? null,
+    [orderItems, selectedItemId]
+  );
+
+  const orderTotals = useMemo(
+    () =>
+      orderItems.reduce(
+        (summary, item) => {
+          const progress = getItemProgress(item);
+          summary.lines += 1;
+          summary.ordered += item.quantite ?? 0;
+          summary.produced += progress.produced;
+          summary.remaining += progress.remaining;
+          return summary;
+        },
+        { lines: 0, ordered: 0, produced: 0, remaining: 0 }
+      ),
+    [orderItems]
+  );
+
+  const selectedItemProgress = selectedItem ? getItemProgress(selectedItem) : null;
+  const selectedActualSources = summarizeOptimizationSources(optimizationComparison?.actualSources);
+  const selectedSuggestedSources = summarizeOptimizationSources(optimizationComparison?.suggested?.sources);
+
   if (loading) {
     return (
-      <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="commande-detail-page commande-detail-page--loading">
         <ProgressSpinner />
       </div>
     );
@@ -1939,7 +2051,7 @@ export function CommandeDetailPage() {
 
   if (!commande) {
     return (
-      <div style={{ padding: '1.5rem' }}>
+      <div className="commande-detail-page">
         <Message severity="warn" text={t('commandes.notFound')} style={{ marginBottom: '1rem' }} />
         <Button label={t('commandes.backToOrders')} onClick={() => navigate('/commandes')} />
       </div>
@@ -1947,196 +2059,293 @@ export function CommandeDetailPage() {
   }
 
   return (
-    <div style={{ padding: '1.5rem' }}>
+    <div className="commande-detail-page">
       <Toast ref={toastRef} />
       <ConfirmDialog />
 
-      <OrderHeaderCard
-        commande={commande}
-        isBusy={isBusy}
-        deletingOrder={deletingOrder}
-        getStatusSeverity={getStatusSeverity}
-        onEdit={handleEditOrder}
-        onDelete={handleDeleteOrder}
-        onReturn={handleReturnOrder}
-        onBack={() => navigate('/commandes')}
-        t={t}
-      />
+      <div className="commande-detail-shell">
+        <OrderHeaderCard
+          commande={commande}
+          isBusy={isBusy}
+          deletingOrder={deletingOrder}
+          getStatusSeverity={getStatusSeverity}
+          onEdit={handleEditOrder}
+          onDelete={handleDeleteOrder}
+          onReturn={handleReturnOrder}
+          onBack={() => navigate('/commandes')}
+          t={t}
+        />
 
-      <Card title={t('rollDetail.workshop')}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <Dropdown
-            options={altierScores.map((s) => ({
-              label: `${s.altierLibelle} (${Number(s.coveragePct).toFixed(1)}%)`,
-              value: s.altierId,
-            }))}
-            value={selectedAltierId}
-            onChange={(e) => setSelectedAltierId(e.value)}
-            placeholder={t('inventory.selectWorkshop')}
-            showClear
-            disabled={altierScoresLoading || altierSaving || isCommandeLocked}
-            style={{ width: '100%' }}
-          />
+        <div className="commande-detail-overview">
+          <div className="commande-detail-overview__main">
+            <OrderInfoCard commande={commande} t={t} />
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              label={altierSaving ? t('common.saving') : t('common.save')}
-              icon="pi pi-check"
-              onClick={handleAltierSave}
-              disabled={altierSaving || isCommandeLocked}
+            <div className="commande-detail-summary-grid">
+              <div className="commande-detail-summary-card">
+                <span className="commande-detail-summary-card__label">Order lines</span>
+                <strong>{orderTotals.lines}</strong>
+              </div>
+              <div className="commande-detail-summary-card">
+                <span className="commande-detail-summary-card__label">Pieces ordered</span>
+                <strong>{orderTotals.ordered}</strong>
+              </div>
+              <div className="commande-detail-summary-card">
+                <span className="commande-detail-summary-card__label">Produced</span>
+                <strong>{orderTotals.produced}</strong>
+              </div>
+              <div className="commande-detail-summary-card">
+                <span className="commande-detail-summary-card__label">Still to cut</span>
+                <strong>{orderTotals.remaining}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="commande-detail-overview__side">
+            <Card className="commande-detail-card" title={t('rollDetail.workshop')}>
+              <div className="commande-detail-form-stack">
+                <Dropdown
+                  options={altierScores.map((s) => ({
+                    label: `${s.altierLibelle} (${Number(s.coveragePct).toFixed(1)}%)`,
+                    value: s.altierId,
+                  }))}
+                  value={selectedAltierId}
+                  onChange={(e) => setSelectedAltierId(e.value)}
+                  placeholder={t('inventory.selectWorkshop')}
+                  showClear
+                  disabled={altierScoresLoading || altierSaving || isCommandeLocked}
+                  className="commande-detail-input-full"
+                />
+
+                <div className="commande-detail-actions-end">
+                  <Button
+                    label={altierSaving ? t('common.saving') : t('common.save')}
+                    icon="pi pi-check"
+                    onClick={handleAltierSave}
+                    disabled={altierSaving || isCommandeLocked}
+                  />
+                </div>
+              </div>
+            </Card>
+
+            <StatusUpdateCard
+              selectedStatus={selectedStatus}
+              statusOptions={statusOptions}
+              updating={updating}
+              currentStatus={commande.status}
+              disabled={isCommandeLocked}
+              onStatusChange={(nextStatus) => setSelectedStatus(nextStatus)}
+              onUpdate={handleStatusUpdate}
+              t={t}
             />
           </div>
         </div>
-      </Card>
 
-      <OrderInfoCard commande={commande} t={t} />
+        {error && <Message severity="error" text={error} style={{ marginBottom: '1rem' }} />}
 
-      {error && <Message severity="error" text={error} style={{ marginBottom: '1rem' }} />}
+        <Card className="commande-detail-workspace-card">
+          {!orderItems.length ? (
+            <Message severity="info" text={t('commandes.noItems')} />
+          ) : (
+            <div className="commande-detail-workspace">
+              <aside className="commande-detail-sidebar">
+                <div className="commande-detail-sidebar__header">
+                  <div>
+                    <h2 className="commande-detail-sidebar__title">Items to process</h2>
+                    <p className="commande-detail-sidebar__subtitle">
+                      Pick one item to see its cut plan, material source, production, and leftovers.
+                    </p>
+                  </div>
+                  <span className="commande-detail-sidebar__count">
+                    {filteredItems.length}/{orderItems.length}
+                  </span>
+                </div>
 
-      <StatusUpdateCard
-        selectedStatus={selectedStatus}
-        statusOptions={statusOptions}
-        updating={updating}
-        currentStatus={commande.status}
-        disabled={isCommandeLocked}
-        onStatusChange={(nextStatus) => setSelectedStatus(nextStatus)}
-        onUpdate={handleStatusUpdate}
-        t={t}
-      />
+                <span className="p-input-icon-left commande-detail-search">
+                  <i className="pi pi-search" />
+                  <InputText
+                    value={itemSearchQuery}
+                    onChange={(e) => setItemSearchQuery(e.target.value)}
+                    placeholder="Search line, ref, material"
+                  />
+                </span>
 
+                <div className="commande-detail-item-list">
+                  {filteredItems.length === 0 ? (
+                    <Message severity="info" text="No items match this search." />
+                  ) : (
+                    filteredItems.map((item: CommandeItem) => {
+                      const progress = getItemProgress(item);
+                      const isSelected = item.id === selectedItemId;
 
-          <Card className="albel-section-card" title={`${t('commandes.orderItems')} (${commande.items?.length || 0})`}>
-            {!commande.items || commande.items.length === 0 ? (
-              <Message severity="info" text={t('commandes.noItems')} />
-            ) : (
-              <div className="albel-compact-list">
-                {commande.items.map((item: CommandeItem) => {
-                  const totalConforme = item.totalItemsConforme ?? 0;
-                  const totalNonConforme = item.totalItemsNonConforme ?? 0;
-                  const totalProduced = totalConforme + totalNonConforme;
-                  const remaining = Math.max(0, item.quantite - totalProduced);
-                  const over = Math.max(0, totalProduced - item.quantite);
-
-                  return (
-                    <div key={item.id} className="albel-compact-item albel-order-item">
-                      <div
-                        className="albel-order-item__summary"
-                        style={{
-                          display: 'flex',
-                          gap: '1rem',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        <div
-                          className="albel-order-item__material"
-                          style={{
-                            flex: '1 1 240px',
-                            backgroundColor: item.colorHexCode ? item.colorHexCode : 'transparent',
-                            color: item.colorHexCode ? getContrastTextColor(item.colorHexCode) : 'inherit',
-                            padding: '0.5rem',
-                            borderRadius: '4px',
-                          }}
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={`commande-detail-item-card${isSelected ? ' is-selected' : ''}`}
+                          onClick={() => handleSelectItem(item.id)}
                         >
-                          <div style={{ fontWeight: 600 }}>{item.materialType}</div>
-                          <div style={{ fontSize: '0.9rem' }}>
-                            {item.nbPlis}P | {item.thicknessMm}mm | {item.longueurM}m x {item.largeurMm}mm
+                          <div className="commande-detail-item-card__topline">
+                            <span className="commande-detail-item-card__eyebrow">{getItemDisplayLabel(item)}</span>
+                            <Tag
+                              value={t(`statuses.${item.status}`)}
+                              severity={getStatusSeverity(item.status)}
+                            />
                           </div>
-                        </div>
-                        <div className="albel-order-item__metric" style={{ minWidth: '90px' }}>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.qty')}</div>
-                          <div>{item.quantite}</div>
-                        </div>
-                        <div className="albel-order-item__metric" style={{ minWidth: '150px' }}>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.itemsConforme')}</div>
-                          <div>{totalConforme}</div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.35rem' }}>
-                            {t('commandes.itemsNonConforme')}
-                          </div>
-                          <div>{totalNonConforme}</div>
-                        </div>
-                        <div className="albel-order-item__metric" style={{ minWidth: '140px' }}>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('commandes.itemsRemaining')}</div>
-                          <div>{remaining}</div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.35rem' }}>
-                            {t('commandes.itemsOver')}
-                          </div>
-                          <div>{over}</div>
-                        </div>
-                        <Dropdown
-                          value={item.status}
-                          options={itemStatusOptions}
-                          onChange={(e) => handleItemStatusUpdate(item.id, e.value as ItemStatus)}
-                          style={{ minWidth: '180px' }}
-                          disabled={isBusy || isCommandeLocked}
-                        />
-                        <Tag value={item.typeMouvement} severity="info" />
-                        <div className="albel-order-item__actions" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <Button
-                            label={expandedItemId === item.id ? t('commandes.hide') : t('commandes.show')}
-                            icon={expandedItemId === item.id ? 'pi pi-chevron-up' : 'pi pi-chevron-down'}
-                            outlined
-                            onClick={() => {
-                              setActiveItemDetailTabIndex(0);
-                              toggleItemDetails(item);
+
+                          <div
+                            className="commande-detail-item-card__material"
+                            style={{
+                              backgroundColor: item.colorHexCode || '#f4efe5',
+                              color: getContrastTextColor(item.colorHexCode),
                             }}
-                            disabled={isBusy}
-                          />
-                          <Button
-                            icon="pi pi-trash"
-                            label={t('commandes.delete')}
-                            severity="danger"
-                            outlined
-                            onClick={() => handleDeleteItem(item.id)}
-                            disabled={isBusy || isCommandeLocked}
-                            loading={deletingItemId === item.id}
-                          />
-                        </div>
+                          >
+                            <strong>{item.materialType}</strong>
+                            <span>
+                              {item.nbPlis}P • {item.thicknessMm} mm • {item.longueurM} m x {item.largeurMm} mm
+                            </span>
+                          </div>
+
+                          <div className="commande-detail-item-card__stats">
+                            <div>
+                              <span>Qty</span>
+                              <strong>{item.quantite}</strong>
+                            </div>
+                            <div>
+                              <span>Done</span>
+                              <strong>{progress.produced}</strong>
+                            </div>
+                            <div>
+                              <span>Left</span>
+                              <strong>{progress.remaining}</strong>
+                            </div>
+                          </div>
+
+                          <div className="commande-detail-item-card__footer">
+                            <Tag value={item.typeMouvement} severity="info" />
+                            {progress.over > 0 ? <Tag value={`Over ${progress.over}`} severity="danger" /> : null}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </aside>
+
+              <section className="commande-detail-main">
+                {selectedItem ? (
+                  <>
+                    <div className="commande-detail-main__hero">
+                      <div className="commande-detail-main__hero-copy">
+                        <span className="commande-detail-main__eyebrow">Selected item</span>
+                        <h2>{getItemDisplayLabel(selectedItem)}</h2>
+                        <p>
+                          Operators can verify the cut need, then move through placement, production, and leftover
+                          recording without changing screens.
+                        </p>
                       </div>
 
-                      {expandedItemId === item.id && (
-                        <div className="albel-item-details">
-                          <TabView
-                            className="albel-item-detail-tabs"
-                            activeIndex={activeItemDetailTabIndex}
-                            onTabChange={(e) => setActiveItemDetailTabIndex(e.index)}
-                          >
-                            <TabPanel header={t('commandes.common') || 'Common'}>
-                              {renderItemCommonSection(item)}
-                            </TabPanel>
-                            <TabPanel header={t('commandes.optimizationComparison')}>
-                              {renderOptimizationSection(item)}
-                            </TabPanel>
-                            <TabPanel header={t('rollDetail.existingPlacements')}>
-                              {renderPlacementSection(item)}
-                            </TabPanel>
-                            <TabPanel header={t('commandes.productionItems')}>
-                              <ProductionSection
-                                productionForItem={productionForItem}
-                                placementsForItem={placementsForItem}
-                                t={t}
-                                isBusy={isBusy || isCommandeLocked}
-                                onDeleteProduction={(productionItemId) => handleDeleteProductionItem(productionItemId, item.id)}
-                              />
-                            </TabPanel>
-                            <TabPanel header={t('commandes.wasteCreated')}>
-                              <WasteSection
-                                wasteForItem={wasteForItem}
-                                onCreateChute={() => handleOpenChuteModal(item)}
-                                isBusy={isBusy || isCommandeLocked}
-                                t={t}
-                              />
-                            </TabPanel>
-                          </TabView>
-                        </div>
-                      )}
+                      <div className="commande-detail-main__hero-actions">
+                        <Dropdown
+                          value={selectedItem.status}
+                          options={itemStatusOptions}
+                          onChange={(e) => handleItemStatusUpdate(selectedItem.id, e.value as ItemStatus)}
+                          className="commande-detail-main__status-dropdown"
+                          disabled={isBusy || isCommandeLocked}
+                        />
+                        <Button
+                          icon="pi pi-trash"
+                          label={t('commandes.delete')}
+                          severity="danger"
+                          outlined
+                          onClick={() => handleDeleteItem(selectedItem.id)}
+                          disabled={isBusy || isCommandeLocked}
+                          loading={deletingItemId === selectedItem.id}
+                        />
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
-    
+
+                    <div className="commande-detail-main__pills">
+                      <span
+                        className="commande-detail-main__material-pill"
+                        style={{
+                          backgroundColor: selectedItem.colorHexCode || '#f4efe5',
+                          color: getContrastTextColor(selectedItem.colorHexCode),
+                        }}
+                      >
+                        {selectedItem.materialType} • {selectedItem.nbPlis}P • {selectedItem.thicknessMm} mm
+                      </span>
+                      <Tag value={selectedItem.typeMouvement} severity="info" />
+                      <Tag value={t(`statuses.${selectedItem.status}`)} severity={getStatusSeverity(selectedItem.status)} />
+                    </div>
+
+                    <div className="commande-detail-main__stats-grid">
+                      <div className="commande-detail-kpi-card">
+                        <span>Pieces ordered</span>
+                        <strong>{selectedItem.quantite}</strong>
+                      </div>
+                      <div className="commande-detail-kpi-card">
+                        <span>Produced</span>
+                        <strong>{selectedItemProgress?.produced ?? 0}</strong>
+                      </div>
+                      <div className="commande-detail-kpi-card">
+                        <span>Still to cut</span>
+                        <strong>{selectedItemProgress?.remaining ?? 0}</strong>
+                      </div>
+                      <div className="commande-detail-kpi-card">
+                        <span>Current material use</span>
+                        <strong>{selectedActualSources.rolls} rolls / {selectedActualSources.chutes} chutes</strong>
+                      </div>
+                      <div className="commande-detail-kpi-card">
+                        <span>Suggested material use</span>
+                        <strong>{selectedSuggestedSources.rolls} rolls / {selectedSuggestedSources.chutes} chutes</strong>
+                      </div>
+                      <div className="commande-detail-kpi-card">
+                        <span>Cut size</span>
+                        <strong>{selectedItem.longueurM} m x {selectedItem.largeurMm} mm</strong>
+                      </div>
+                    </div>
+
+                    <TabView
+                      className="albel-item-detail-tabs commande-detail-tabs"
+                      activeIndex={activeItemDetailTabIndex}
+                      onTabChange={(e) => setActiveItemDetailTabIndex(e.index)}
+                    >
+                      <TabPanel header="Cut need">
+                        {renderItemCommonSection(selectedItem)}
+                      </TabPanel>
+                      <TabPanel header="Material plan">
+                        {renderOptimizationSection(selectedItem)}
+                      </TabPanel>
+                      <TabPanel header="Cut areas">
+                        {renderPlacementSection(selectedItem)}
+                      </TabPanel>
+                      <TabPanel header="Produced pieces">
+                        <ProductionSection
+                          productionForItem={productionForItem}
+                          placementsForItem={placementsForItem}
+                          t={t}
+                          isBusy={isBusy || isCommandeLocked}
+                          onDeleteProduction={(productionItemId) => handleDeleteProductionItem(productionItemId, selectedItem.id)}
+                        />
+                      </TabPanel>
+                      <TabPanel header="Reusable leftovers">
+                        <WasteSection
+                          wasteForItem={wasteForItem}
+                          onCreateChute={() => handleOpenChuteModal(selectedItem)}
+                          isBusy={isBusy || isCommandeLocked}
+                          t={t}
+                        />
+                      </TabPanel>
+                    </TabView>
+                  </>
+                ) : (
+                  <Message severity="info" text="Select an item to continue." />
+                )}
+              </section>
+            </div>
+          )}
+        </Card>
+      </div>
 
       <ChuteDialog
         chuteTargetItem={chuteTargetItem}

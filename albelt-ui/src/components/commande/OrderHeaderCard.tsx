@@ -31,51 +31,47 @@ export const OrderHeaderCard = ({
   const isCommandeLocked = normalizedStatus === 'COMPLETED' || normalizedStatus === 'CANCELLED';
 
   return (
-  <Card style={{ marginBottom: '1rem' }}>
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '0.75rem',
-        flexWrap: 'wrap',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <span style={{ fontSize: '1.25rem', fontWeight: 600 }}>{commande.numeroCommande}</span>
-        <Tag value={t('commandes.statuses.' + commande.status)} severity={getStatusSeverity(commande.status)} />
+    <Card className="commande-header-card">
+      <div className="commande-header-card__top">
+        <div className="commande-header-card__title">
+          <span className="commande-header-card__eyebrow">Manage order</span>
+          <span className="commande-header-card__number">{commande.numeroCommande}</span>
+          <div>
+            <Tag value={t('commandes.statuses.' + commande.status)} severity={getStatusSeverity(commande.status)} />
+          </div>
+        </div>
+
+        <div className="commande-header-card__actions">
+          <Button
+            icon="pi pi-pencil"
+            label={t('commandes.editOrder')}
+            onClick={onEdit}
+            disabled={isBusy || isCommandeLocked}
+          />
+          <Button
+            icon="pi pi-undo"
+            label={t('returns.createReturn')}
+            onClick={onReturn}
+            disabled={isBusy || isCommandeLocked}
+          />
+          <Button
+            icon="pi pi-trash"
+            label={t('commandes.deleteOrder')}
+            severity="danger"
+            onClick={onDelete}
+            disabled={isBusy || isCommandeLocked}
+            loading={deletingOrder}
+          />
+          <Button
+            icon="pi pi-arrow-left"
+            label={t('commandes.backButton')}
+            severity="secondary"
+            outlined
+            onClick={onBack}
+            disabled={isBusy}
+          />
+        </div>
       </div>
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <Button
-          icon="pi pi-pencil"
-          label={t('commandes.editOrder')}
-          onClick={onEdit}
-          disabled={isBusy || isCommandeLocked}
-        />
-        <Button
-          icon="pi pi-undo"
-          label={t('returns.createReturn')}
-          onClick={onReturn}
-          disabled={isBusy || isCommandeLocked}
-        />
-        <Button
-          icon="pi pi-trash"
-          label={t('commandes.deleteOrder')}
-          severity="danger"
-          onClick={onDelete}
-          disabled={isBusy || isCommandeLocked}
-          loading={deletingOrder}
-        />
-        <Button
-          icon="pi pi-arrow-left"
-          label={t('commandes.backButton')}
-          severity="secondary"
-          outlined
-          onClick={onBack}
-          disabled={isBusy}
-        />
-      </div>
-    </div>
-  </Card>
+    </Card>
   );
 };

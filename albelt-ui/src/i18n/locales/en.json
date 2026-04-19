@@ -551,6 +551,7 @@
     "addPlacement": "Add Placement",
     "savePlacement": "Save Placement",
     "hieghtMm": "Height (mm)",
+    "heightMm": "Height (mm)",
     "widthMm": "Width (mm)",
     "lengthMm": "Length (mm)",
     "saving": "Saving...",
@@ -560,7 +561,7 @@
     "classificationDate": "Classification Date",
     "lengthOnX": "Length on X",
     "widthOnY": "Width on Y",
-    "existingPlacements" : "Existing placements for this roll",
+    "existingPlacements" : "Existing placements",
     "clearChute": "Clear chute",
     "source":"Source",
     "color":"Color",
@@ -572,7 +573,7 @@
     "xLengthM":"X (Length in m)",
     "xLengthMm":"X (Length in mm)",
     "yWidthM":"Y (Width in m)",
-    "selectSourceToPreview":"Select source dimensions to enable placement preview"
+    "selectSourceToPreview":"Select a source to enable the placement preview"
   },
   "materialChuteThresholds": {
     "title": "Material Thresholds (Chute Classification)",

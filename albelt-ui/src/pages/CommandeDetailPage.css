@@ -1,0 +1,398 @@
+.commande-detail-page {
+  --commande-accent: #245c4a;
+  --commande-accent-soft: #e5f1eb;
+  --commande-ink: #1f2937;
+  --commande-muted: #667085;
+  --commande-panel: #fffdf8;
+  --commande-panel-strong: #fffaf0;
+  --commande-border: rgba(36, 92, 74, 0.14);
+  --commande-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at top left, rgba(36, 92, 74, 0.08), transparent 28%),
+    linear-gradient(180deg, #f7f3ea 0%, #f4efe5 100%);
+  min-height: 100%;
+}
+
+.commande-detail-page--loading {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.commande-detail-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.commande-detail-overview {
+  display: grid;
+  gap: 1rem;
+}
+
+.commande-detail-overview__main,
+.commande-detail-overview__side {
+  display: grid;
+  gap: 1rem;
+}
+
+.commande-detail-card,
+.commande-detail-workspace-card,
+.commande-header-card,
+.commande-info-card {
+  border: 1px solid var(--commande-border);
+  border-radius: 22px;
+  background: var(--commande-panel);
+  box-shadow: var(--commande-shadow);
+}
+
+.commande-detail-card .p-card-body,
+.commande-detail-workspace-card .p-card-body,
+.commande-header-card .p-card-body,
+.commande-info-card .p-card-body {
+  padding: 1.1rem 1.2rem;
+}
+
+.commande-detail-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.commande-detail-summary-card,
+.commande-detail-kpi-card {
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  border: 1px solid var(--commande-border);
+  background: linear-gradient(180deg, #ffffff 0%, #f8f4eb 100%);
+}
+
+.commande-detail-summary-card__label,
+.commande-detail-kpi-card span {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--commande-muted);
+}
+
+.commande-detail-summary-card strong,
+.commande-detail-kpi-card strong {
+  color: var(--commande-ink);
+  font-size: 1.25rem;
+}
+
+.commande-detail-form-stack {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.commande-detail-input-full,
+.commande-detail-search .p-inputtext,
+.commande-detail-main__status-dropdown {
+  width: 100%;
+}
+
+.commande-detail-actions-end {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.commande-detail-workspace .p-card-content {
+  padding: 0;
+}
+
+.commande-detail-workspace {
+  display: grid;
+  gap: 1rem;
+}
+
+.commande-detail-sidebar {
+  display: grid;
+  gap: 0.9rem;
+  padding-right: 0;
+}
+
+.commande-detail-sidebar__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.commande-detail-sidebar__title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--commande-ink);
+}
+
+.commande-detail-sidebar__subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--commande-muted);
+  font-size: 0.92rem;
+}
+
+.commande-detail-sidebar__count {
+  min-width: 64px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 999px;
+  background: var(--commande-accent-soft);
+  color: var(--commande-accent);
+  text-align: center;
+  font-weight: 700;
+}
+
+.commande-detail-search .p-inputtext {
+  border-radius: 999px;
+  background: #fff;
+}
+
+.commande-detail-item-list {
+  display: grid;
+  gap: 0.75rem;
+  max-height: 72vh;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.commande-detail-item-card {
+  display: grid;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.95rem;
+  border: 1px solid rgba(31, 41, 55, 0.08);
+  border-radius: 18px;
+  background: #fff;
+  color: var(--commande-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.commande-detail-item-card:hover,
+.commande-detail-item-card:focus-visible,
+.commande-detail-item-card.is-selected {
+  border-color: rgba(36, 92, 74, 0.35);
+  box-shadow: 0 14px 28px rgba(36, 92, 74, 0.14);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.commande-detail-item-card__topline,
+.commande-detail-item-card__footer,
+.commande-detail-main__hero,
+.commande-header-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.commande-detail-item-card__eyebrow,
+.commande-detail-main__eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--commande-muted);
+}
+
+.commande-detail-item-card__material,
+.commande-detail-main__material-pill {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 16px;
+  min-width: 0;
+}
+
+.commande-detail-item-card__material span {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.commande-detail-item-card__stats,
+.commande-detail-main__stats-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.commande-detail-item-card__stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.commande-detail-item-card__stats span {
+  display: block;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--commande-muted);
+}
+
+.commande-detail-item-card__stats strong {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.05rem;
+}
+
+.commande-detail-main {
+  display: grid;
+  gap: 1rem;
+}
+
+.commande-detail-main__hero {
+  padding: 1.2rem;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #1f4f41 0%, #3f7b69 100%);
+  color: #fff;
+}
+
+.commande-detail-main__hero-copy h2 {
+  margin: 0.25rem 0 0.4rem;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.commande-detail-main__hero-copy p {
+  margin: 0;
+  max-width: 58ch;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.commande-detail-main__hero-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.commande-detail-main__status-dropdown {
+  min-width: 220px;
+}
+
+.commande-detail-main__pills {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.commande-detail-main__stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.commande-detail-tabs {
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.commande-detail-tabs .p-tabview-nav {
+  border: none;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  background: transparent;
+}
+
+.commande-detail-tabs .p-tabview-nav li .p-tabview-nav-link {
+  border: none;
+  border-radius: 999px;
+  background: #f3eee5;
+}
+
+.commande-detail-tabs .p-tabview-panels {
+  border-radius: 0 0 20px 20px;
+  background: transparent;
+}
+
+.commande-header-card {
+  background:
+    linear-gradient(135deg, rgba(36, 92, 74, 0.96), rgba(60, 123, 105, 0.92)),
+    var(--commande-panel);
+  color: #fff;
+}
+
+.commande-header-card .p-card-body {
+  padding: 1.2rem;
+}
+
+.commande-header-card .p-button.p-button-outlined,
+.commande-header-card .p-button.p-button-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.commande-header-card__title {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.commande-header-card__eyebrow {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.commande-header-card__number {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  font-weight: 700;
+}
+
+.commande-header-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.commande-info-card__description {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--commande-border);
+}
+
+.commande-info-card__label {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--commande-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+@media (min-width: 960px) {
+  .commande-detail-overview {
+    grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.9fr);
+  }
+
+  .commande-detail-workspace {
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .commande-detail-sidebar {
+    position: sticky;
+    top: 1rem;
+    padding-right: 0.35rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .commande-detail-page {
+    padding: 1rem;
+  }
+
+  .commande-detail-main__hero,
+  .commande-header-card .p-card-body {
+    padding: 1rem;
+  }
+
+  .commande-detail-item-card__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
