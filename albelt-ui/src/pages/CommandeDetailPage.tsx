@@ -2082,19 +2082,19 @@ export function CommandeDetailPage() {
 
             <div className="commande-detail-summary-grid">
               <div className="commande-detail-summary-card">
-                <span className="commande-detail-summary-card__label">Order lines</span>
+                <span className="commande-detail-summary-card__label">{t('commandes.orderLines')}</span>
                 <strong>{orderTotals.lines}</strong>
               </div>
               <div className="commande-detail-summary-card">
-                <span className="commande-detail-summary-card__label">Pieces ordered</span>
+                <span className="commande-detail-summary-card__label">{t('commandes.piecesOrdered')}</span>
                 <strong>{orderTotals.ordered}</strong>
               </div>
               <div className="commande-detail-summary-card">
-                <span className="commande-detail-summary-card__label">Produced</span>
+                <span className="commande-detail-summary-card__label">{t('commandes.produced')}</span>
                 <strong>{orderTotals.produced}</strong>
               </div>
               <div className="commande-detail-summary-card">
-                <span className="commande-detail-summary-card__label">Still to cut</span>
+                <span className="commande-detail-summary-card__label">{t('commandes.stillToCut')}</span>
                 <strong>{orderTotals.remaining}</strong>
               </div>
             </div>
@@ -2150,9 +2150,9 @@ export function CommandeDetailPage() {
               <aside className="commande-detail-sidebar">
                 <div className="commande-detail-sidebar__header">
                   <div>
-                    <h2 className="commande-detail-sidebar__title">Items to process</h2>
+                    <h2 className="commande-detail-sidebar__title">{t('commandes.itemsToProcess')}</h2>
                     <p className="commande-detail-sidebar__subtitle">
-                      Pick one item to see its cut plan, material source, production, and leftovers.
+                      {t('commandes.itemsToProcessSubtitle')}
                     </p>
                   </div>
                   <span className="commande-detail-sidebar__count">
@@ -2165,13 +2165,13 @@ export function CommandeDetailPage() {
                   <InputText
                     value={itemSearchQuery}
                     onChange={(e) => setItemSearchQuery(e.target.value)}
-                    placeholder="Search line, ref, material"
+                    placeholder={t('commandes.searchPlaceholder')}
                   />
                 </span>
 
                 <div className="commande-detail-item-list">
                   {filteredItems.length === 0 ? (
-                    <Message severity="info" text="No items match this search." />
+                    <Message severity="info" text={t('commandes.noItemsMatchSearch')} />
                   ) : (
                     filteredItems.map((item: CommandeItem) => {
                       const progress = getItemProgress(item);
@@ -2201,21 +2201,21 @@ export function CommandeDetailPage() {
                           >
                             <strong>{item.materialType}</strong>
                             <span>
-                              {item.nbPlis}P • {item.thicknessMm} mm • {item.longueurM} m x {item.largeurMm} mm
+                              {item.nbPlis}P • {item.thicknessMm} {t('commandes.mm')} • {item.longueurM} {t('commandes.m')} x {item.largeurMm} {t('commandes.mm')}
                             </span>
                           </div>
 
                           <div className="commande-detail-item-card__stats">
                             <div>
-                              <span>Qty</span>
+                              <span>{t('commandes.quantity')}</span>
                               <strong>{item.quantite}</strong>
                             </div>
                             <div>
-                              <span>Done</span>
+                              <span>{t('commandes.done')}</span>
                               <strong>{progress.produced}</strong>
                             </div>
                             <div>
-                              <span>Left</span>
+                              <span>{t('commandes.left')}</span>
                               <strong>{progress.remaining}</strong>
                             </div>
                           </div>
@@ -2236,11 +2236,10 @@ export function CommandeDetailPage() {
                   <>
                     <div className="commande-detail-main__hero">
                       <div className="commande-detail-main__hero-copy">
-                        <span className="commande-detail-main__eyebrow">Selected item</span>
+                        <span className="commande-detail-main__eyebrow">{t('commandes.selectedItem')}</span>
                         <h2>{getItemDisplayLabel(selectedItem)}</h2>
                         <p>
-                          Operators can verify the cut need, then move through placement, production, and leftover
-                          recording without changing screens.
+                            {t('commandes.operatorsCanVerify')}
                         </p>
                       </div>
 
@@ -2272,7 +2271,7 @@ export function CommandeDetailPage() {
                           color: getContrastTextColor(selectedItem.colorHexCode),
                         }}
                       >
-                        {selectedItem.materialType} • {selectedItem.nbPlis}P • {selectedItem.thicknessMm} mm
+                        {selectedItem.materialType} • {selectedItem.nbPlis}P • {selectedItem.thicknessMm} {t('commandes.mm')}
                       </span>
                       <Tag value={selectedItem.typeMouvement} severity="info" />
                       <Tag value={t(`statuses.${selectedItem.status}`)} severity={getStatusSeverity(selectedItem.status)} />
@@ -2280,28 +2279,28 @@ export function CommandeDetailPage() {
 
                     <div className="commande-detail-main__stats-grid">
                       <div className="commande-detail-kpi-card">
-                        <span>Pieces ordered</span>
+                        <span>{t('commandes.piecesOrdered')}</span>
                         <strong>{selectedItem.quantite}</strong>
                       </div>
                       <div className="commande-detail-kpi-card">
-                        <span>Produced</span>
+                        <span>{t('commandes.produced')}</span>
                         <strong>{selectedItemProgress?.produced ?? 0}</strong>
                       </div>
                       <div className="commande-detail-kpi-card">
-                        <span>Still to cut</span>
+                        <span>{t('commandes.stillToCut')}</span>
                         <strong>{selectedItemProgress?.remaining ?? 0}</strong>
                       </div>
                       <div className="commande-detail-kpi-card">
-                        <span>Current material use</span>
-                        <strong>{selectedActualSources.rolls} rolls / {selectedActualSources.chutes} chutes</strong>
+                        <span>{t('commandes.currentMaterialUsed')}</span>
+                        <strong>{selectedActualSources.rolls} {t('commandes.rolls')} / {selectedActualSources.chutes} {t('commandes.chutes')}</strong>
                       </div>
                       <div className="commande-detail-kpi-card">
-                        <span>Suggested material use</span>
-                        <strong>{selectedSuggestedSources.rolls} rolls / {selectedSuggestedSources.chutes} chutes</strong>
+                        <span>{t('commandes.suggestedMaterialUse')}</span>
+                        <strong>{selectedSuggestedSources.rolls} {t('commandes.rolls')} / {selectedSuggestedSources.chutes} {t('commandes.chutes')}</strong>
                       </div>
                       <div className="commande-detail-kpi-card">
-                        <span>Cut size</span>
-                        <strong>{selectedItem.longueurM} m x {selectedItem.largeurMm} mm</strong>
+                        <span>{t('commandes.cutSize')}</span>
+                        <strong>{selectedItem.longueurM} {t('commandes.m')} x {selectedItem.largeurMm} {t('commandes.mm')}</strong>
                       </div>
                     </div>
 
@@ -2310,16 +2309,16 @@ export function CommandeDetailPage() {
                       activeIndex={activeItemDetailTabIndex}
                       onTabChange={(e) => setActiveItemDetailTabIndex(e.index)}
                     >
-                      <TabPanel header="Cut need">
+                      <TabPanel header={t('commandes.cutNeed')}>
                         {renderItemCommonSection(selectedItem)}
                       </TabPanel>
-                      <TabPanel header="Material plan">
+                      <TabPanel header={t('commandes.materialPlan')}>
                         {renderOptimizationSection(selectedItem)}
                       </TabPanel>
-                      <TabPanel header="Cut areas">
+                      <TabPanel header={t('commandes.cutAreas')}>
                         {renderPlacementSection(selectedItem)}
                       </TabPanel>
-                      <TabPanel header="Produced pieces">
+                      <TabPanel header={t('commandes.producedPieces')}>
                         <ProductionSection
                           productionForItem={productionForItem}
                           placementsForItem={placementsForItem}
@@ -2328,7 +2327,7 @@ export function CommandeDetailPage() {
                           onDeleteProduction={(productionItemId) => handleDeleteProductionItem(productionItemId, selectedItem.id)}
                         />
                       </TabPanel>
-                      <TabPanel header="Reusable leftovers">
+                      <TabPanel header={t('commandes.reusableLeftovers')}>
                         <WasteSection
                           wasteForItem={wasteForItem}
                           onCreateChute={() => handleOpenChuteModal(selectedItem)}
@@ -2339,7 +2338,7 @@ export function CommandeDetailPage() {
                     </TabView>
                   </>
                 ) : (
-                  <Message severity="info" text="Select an item to continue." />
+                  <Message severity="info" text={t('commandes.selectItemToContinue')} />
                 )}
               </section>
             </div>

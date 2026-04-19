@@ -88,7 +88,7 @@ const itemStatusSeverities: Record<CommandeItem['status'], Severity> = {
 };
 
 const fitStatusLabels: Record<'true' | 'false', string> = {
-  true: 'Fits item',
+  true:  'Fits item',
   false: 'Check size',
 };
 
@@ -228,7 +228,7 @@ const mapOptimizationSource = (
     id: source.sourceId || `${source.sourceType}-${index}`,
     kind: source.sourceType,
     title: source.label === 'CHUTE' ? 'Reusable leftover' : 'Roll',
-    badge: index === 0 ? 'Recommended' : 'Also used',
+    badge: index === 0 ?  'Recommended' : 'Also used',
     reason: index === 0
       ? 'This source starts the saved best-cut plan.'
       : 'The saved best-cut plan uses this source as well.',
@@ -658,21 +658,21 @@ export function CommandesListPage() {
 
       <div className="orders-workbench__hero">
         <div className="orders-workbench__hero-copy">
-          <span className="orders-workbench__eyebrow">Operator workbench</span>
-          <h1>Manage Orders</h1>
-          <p>Choose an order, work the next item, and check the best material source without bouncing across tabs.</p>
+          <span className="orders-workbench__eyebrow">{t('ordersWorkbench.operatorWorkbench')}</span>
+          <h1>{t('ordersWorkbench.manageOrders')}</h1>
+          <p>{t('ordersWorkbench.description')}</p>
         </div>
 
         <div className="orders-workbench__hero-actions">
           <Button
             icon="pi pi-plus"
-            label="New order"
+            label={` ${t('ordersWorkbench.newOrder')}`}
             severity="success"
             onClick={() => navigate('/commandes/create')}
           />
           <Button
             icon="pi pi-external-link"
-            label="Open full order"
+            label={` ${t('ordersWorkbench.openFullOrder')}`}
             severity="secondary"
             outlined
             disabled={!activeOrder}
@@ -728,8 +728,8 @@ export function CommandesListPage() {
         <section className="orders-workbench__panel">
           <div className="orders-workbench__panel-header">
             <div>
-              <h2>Orders queue</h2>
-              <p>{loadingOrders ? 'Loading orders...' : `${visibleCommandes.length} orders on screen`}</p>
+              <h2> {t('ordersWorkbench.ordersQueue')}</h2>
+              <p>{loadingOrders ? t('ordersWorkbench.loadingOrders') : `${visibleCommandes.length} ${t('ordersWorkbench.ordersOnScreen')}`}</p>
             </div>
           </div>
 
@@ -739,7 +739,7 @@ export function CommandesListPage() {
                 <ProgressSpinner style={{ width: '42px', height: '42px' }} />
               </div>
             ) : visibleCommandes.length === 0 ? (
-              <Message severity="info" text="No orders match the current filters." />
+              <Message severity="info" text={t('ordersWorkbench.noOrdersMatchFilters')} />
             ) : (
               <div className="orders-workbench__stack orders-workbench__stack--scroll">
                 {visibleCommandes.map((order) => {
@@ -765,9 +765,9 @@ export function CommandesListPage() {
                       </div>
 
                       <div className="orders-workbench__mini-metrics">
-                        <span>{itemCounts.waiting} waiting</span>
-                        <span>{itemCounts.cutting} cutting</span>
-                        <span>{itemCounts.done} done</span>
+                        <span>{itemCounts.waiting} {t('ordersWorkbench.waiting')}</span>
+                        <span>{itemCounts.cutting} {t('ordersWorkbench.cutting')}</span>
+                        <span>{itemCounts.done} {t('ordersWorkbench.done')}</span>
                       </div>
 
                       <div className="orders-workbench__progress-track">
@@ -778,8 +778,8 @@ export function CommandesListPage() {
                       </div>
 
                       <div className="orders-workbench__card-subline">
-                        <span>{completionPct}% complete</span>
-                        <span>{order.altierLibelle || 'Workshop not set'}</span>
+                        <span>{completionPct}%  {t('ordersWorkbench.done')}</span>
+                        <span>{order.altierLibelle || t('ordersWorkbench.workshopNotSet')}</span>
                       </div>
                     </button>
                   );
@@ -905,18 +905,18 @@ export function CommandesListPage() {
         <section className="orders-workbench__panel orders-workbench__panel--workspace">
           <div className="orders-workbench__panel-header">
             <div>
-              <h2>Cut workspace</h2>
+              <h2>{t('ordersWorkbench.cutWorkspace')}</h2>
               <p>
                 {selectedItem
-                  ? `Line ${selectedItem.lineNumber} material decision`
-                  : 'Pick an item to inspect material usage'}
+                  ? `${t('ordersWorkbench.line')} ${selectedItem.lineNumber} ${t('ordersWorkbench.materialDecision')}`
+                  : t('ordersWorkbench.pickItem')}
               </p>
             </div>
 
             <div className="orders-workbench__workspace-actions">
               <Button
                 icon="pi pi-refresh"
-                label="Refresh best cut"
+                label={t('ordersWorkbench.refreshBestCut')}
                 text
                 disabled={!selectedItem}
                 loading={refreshingSuggestion}
@@ -924,7 +924,7 @@ export function CommandesListPage() {
               />
               <Button
                 icon="pi pi-external-link"
-                label="Advanced view"
+                label={t('ordersWorkbench.advancedView')}
                 text
                 disabled={!activeOrder}
                 onClick={() => activeOrder && navigate(`/commandes/${activeOrder.id}`)}
@@ -938,9 +938,9 @@ export function CommandesListPage() {
                 <ProgressSpinner style={{ width: '42px', height: '42px' }} />
               </div>
             ) : !activeOrder ? (
-              <Message severity="info" text="Choose an order from the queue to start." />
+              <Message severity="info" text={t('ordersWorkbench.pickItem')} />
             ) : !selectedItem ? (
-              <Message severity="info" text="Choose an item to see the recommended source, usage, and next action." />
+              <Message severity="info" text={t('ordersWorkbench.pickItem')} />
             ) : (
               <>
                 <div className="orders-workbench__selected-order">
@@ -949,17 +949,17 @@ export function CommandesListPage() {
                       <strong>{activeOrder.numeroCommande}</strong>
                       <div className="orders-workbench__card-subline">
                         <span>{activeOrder.clientName}</span>
-                        <span>{activeOrder.altierLibelle || 'Workshop not set'}</span>
+                        <span>{activeOrder.altierLibelle || t('ordersWorkbench.workshopNotSet')}</span>
                       </div>
                     </div>
                     <Tag value={orderStatusLabels[activeOrder.status]} severity={orderStatusSeverities[activeOrder.status]} />
                   </div>
 
                   <div className="orders-workbench__mini-metrics">
-                    <span>{selectedOrderCounts?.waiting ?? 0} waiting</span>
-                    <span>{selectedOrderCounts?.cutting ?? 0} cutting</span>
-                    <span>{selectedOrderCounts?.done ?? 0} done</span>
-                    <span>{selectedOrderCounts?.blocked ?? 0} cancelled</span>
+                    <span>{selectedOrderCounts?.waiting ?? 0} {t('ordersWorkbench.waiting')}</span>
+                    <span>{selectedOrderCounts?.cutting ?? 0} {t('ordersWorkbench.cutting')}</span>
+                    <span>{selectedOrderCounts?.done ?? 0} {t('ordersWorkbench.done')}</span>
+                    <span>{selectedOrderCounts?.blocked ?? 0} {t('ordersWorkbench.cancelled')}</span>
                   </div>
 
                   <div className="orders-workbench__progress-track">
@@ -971,7 +971,7 @@ export function CommandesListPage() {
 
                   <div className="orders-workbench__card-subline">
                     <span>Created {formatDateTime(activeOrder.createdAt)}</span>
-                    <span>{getOrderCompletionPct(activeOrder)}% complete</span>
+                    <span>{getOrderCompletionPct(activeOrder)}% {t('ordersWorkbench.done')}</span>
                   </div>
 
                   {(activeOrder.description || activeOrder.notes) && (
@@ -984,8 +984,8 @@ export function CommandesListPage() {
                 <div className="orders-workbench__workspace-items">
                   <div className="orders-workbench__workspace-items-header">
                     <div>
-                      <h3>Items in this order</h3>
-                      <p>Choose the next line without leaving the cut workspace.</p>
+                      <h3>{t('ordersWorkbench.itemsTitle')}</h3>
+                      <p>{t('ordersWorkbench.itemsSubtitle')}</p>
                     </div>
                   </div>
 
@@ -1005,7 +1005,7 @@ export function CommandesListPage() {
                           <div className="orders-workbench__card-topline">
                             <strong>
                               Line {item.lineNumber}
-                              {item.reference ? ` Â· ${item.reference}` : ''}
+                              {item.reference ? ` · ${item.reference}` : ''}
                             </strong>
                             <Tag value={itemStatusLabels[item.status]} severity={itemStatusSeverities[item.status]} />
                           </div>
@@ -1016,8 +1016,8 @@ export function CommandesListPage() {
                           </div>
 
                           <div className="orders-workbench__mini-metrics">
-                            <span>{item.quantite} pcs needed</span>
-                            <span>{producedQuantity} produced</span>
+                            <span>{item.quantite} {t('ordersWorkbench.pcsNeeded')}</span>
+                            <span>{producedQuantity} {t('ordersWorkbench.produced')}</span>
                           </div>
 
                           <div className="orders-workbench__progress-track">
@@ -1036,25 +1036,25 @@ export function CommandesListPage() {
                   <div className="orders-workbench__workspace-step">
                     <span className="orders-workbench__workspace-step-index">1</span>
                     <div>
-                      <span className="orders-workbench__workspace-step-label">What to cut</span>
-                      <strong>{remainingPieces} pieces left</strong>
+                      <span className="orders-workbench__workspace-step-label">{t('ordersWorkbench.whatToCut')}</span>
+                      <strong>{remainingPieces} {t('ordersWorkbench.piecesLeft')}</strong>
                     </div>
                   </div>
                   <div className="orders-workbench__workspace-step">
                     <span className="orders-workbench__workspace-step-index">2</span>
                     <div>
-                      <span className="orders-workbench__workspace-step-label">Use this source</span>
-                      <strong>{primaryRecommendation ? primaryRecommendation.reference : 'No source yet'}</strong>
+                      <span className="orders-workbench__workspace-step-label">{t('ordersWorkbench.useThisSource')}</span>
+                      <strong>{primaryRecommendation ? primaryRecommendation.reference : t('ordersWorkbench.noSourceYet')}</strong>
                     </div>
                   </div>
                   <div className="orders-workbench__workspace-step">
                     <span className="orders-workbench__workspace-step-index">3</span>
                     <div>
-                      <span className="orders-workbench__workspace-step-label">Expected result</span>
+                      <span className="orders-workbench__workspace-step-label">{t('ordersWorkbench.expectedResult')}</span>
                       <strong>
                         {optimizationMetrics
-                          ? `${optimizationMetrics.utilizationPct.toFixed(1)}% use`
-                          : 'Awaiting cut plan'}
+                          ? `${optimizationMetrics.utilizationPct.toFixed(1)}% ${t('ordersWorkbench.use')}`
+                          : t('ordersWorkbench.awaitingCutPlan')}
                       </strong>
                     </div>
                   </div>
@@ -1062,7 +1062,7 @@ export function CommandesListPage() {
 
                 <div className="orders-workbench__workspace-grid">
                   <div className="orders-workbench__workspace-card orders-workbench__workspace-card--item">
-                    <span className="orders-workbench__eyebrow">1. What to cut</span>
+                    <span className="orders-workbench__eyebrow">1. {t('ordersWorkbench.whatToCut')}</span>
                     <div className="orders-workbench__workspace-heading">
                       <strong>
                         Line {selectedItem.lineNumber}
@@ -1073,32 +1073,32 @@ export function CommandesListPage() {
 
                     <div className="orders-workbench__detail-grid">
                       <div>
-                        <span className="orders-workbench__detail-label">Needed</span>
-                        <strong>{selectedItem.quantite} pcs</strong>
+                        <span className="orders-workbench__detail-label">{t('ordersWorkbench.needed')}</span>
+                        <strong>{selectedItem.quantite} {t('ordersWorkbench.pcsNeeded')}</strong>
                       </div>
                       <div>
-                        <span className="orders-workbench__detail-label">Produced</span>
-                        <strong>{producedPieces} pcs</strong>
+                        <span className="orders-workbench__detail-label">{t('ordersWorkbench.produced')}</span>
+                        <strong>{producedPieces} {t('ordersWorkbench.pcsProduced')}</strong>
                       </div>
                       <div>
-                        <span className="orders-workbench__detail-label">Still to cut</span>
-                        <strong>{remainingPieces} pcs</strong>
+                        <span className="orders-workbench__detail-label">{t('ordersWorkbench.stillToCut')}</span>
+                        <strong>{remainingPieces} {t('ordersWorkbench.pcsLeft')}</strong>
                       </div>
                       <div>
-                        <span className="orders-workbench__detail-label">Piece size</span>
-                        <strong>{selectedItem.longueurM.toFixed(2)} m x {selectedItem.largeurMm} mm</strong>
+                        <span className="orders-workbench__detail-label">{t('ordersWorkbench.pieceSize')}</span>
+                        <strong>{selectedItem.longueurM.toFixed(2)} {t('ordersWorkbench.m')} x {selectedItem.largeurMm} {t('ordersWorkbench.mm')}</strong>
                       </div>
                       <div>
-                        <span className="orders-workbench__detail-label">Material need</span>
+                        <span className="orders-workbench__detail-label">{t('ordersWorkbench.materialNeed')}</span>
                         <strong>{formatSquareMeters(requiredAreaM2)}</strong>
                       </div>
                       <div>
-                        <span className="orders-workbench__detail-label">Material</span>
+                        <span className="orders-workbench__detail-label">{t('ordersWorkbench.material')}</span>
                         <strong>{selectedItem.materialType}</strong>
                       </div>
                       <div>
-                        <span className="orders-workbench__detail-label">Build</span>
-                        <strong>{selectedItem.nbPlis} plies · {selectedItem.thicknessMm} mm</strong>
+                        <span className="orders-workbench__detail-label">{t('ordersWorkbench.build')}</span>
+                        <strong>{selectedItem.nbPlis} {t('ordersWorkbench.plies')} · {selectedItem.thicknessMm} {t('ordersWorkbench.mm')}</strong>
                       </div>
                     </div>
 
@@ -1109,13 +1109,13 @@ export function CommandesListPage() {
                       />
                     </div>
                     <div className="orders-workbench__card-subline">
-                      <span>{completionPct.toFixed(0)}% complete</span>
-                      <span>{selectedItem.materialType} • {selectedItem.colorName || 'No color set'}</span>
+                      <span>{completionPct.toFixed(0)}% {t('ordersWorkbench.complete')}</span>
+                      <span>{selectedItem.materialType} • {selectedItem.colorName || t('ordersWorkbench.noColorSet')}</span>
                     </div>
                   </div>
 
                   <div className="orders-workbench__workspace-card orders-workbench__workspace-card--highlight orders-workbench__workspace-card--source">
-                    <span className="orders-workbench__eyebrow">2. Recommended source</span>
+                    <span className="orders-workbench__eyebrow">2. {t('ordersWorkbench.recommendedSource')}</span>
                     {loadingWorkspace && !refreshingSuggestion ? (
                       <div className="orders-workbench__loading-state">
                         <ProgressSpinner style={{ width: '42px', height: '42px' }} />
@@ -1135,25 +1135,25 @@ export function CommandesListPage() {
 
                         <p className="orders-workbench__source-copy orders-workbench__source-copy--lead">
                           {suggestedSources.length > 1 && optimizationMetrics
-                            ? `Start with ${primaryRecommendation.reference}. The saved best-cut plan uses ${optimizationMetrics.sourceCount} sources in total.`
+                            ? t('ordersWorkbench.startWith', { reference: primaryRecommendation.reference, sourceCount: optimizationMetrics.sourceCount })
                             : primaryRecommendation.reason}
                         </p>
 
                         <div className="orders-workbench__detail-grid">
                           <div>
-                            <span className="orders-workbench__detail-label">Reference</span>
+                            <span className="orders-workbench__detail-label">{t('ordersWorkbench.reference')}</span>
                             <strong>{primaryRecommendation.reference}</strong>
                           </div>
                           <div>
-                            <span className="orders-workbench__detail-label">Current size</span>
+                            <span className="orders-workbench__detail-label">{t('ordersWorkbench.currentSize')}</span>
                             <strong>{primaryRecommendation.dimensions}</strong>
                           </div>
                           <div>
-                            <span className="orders-workbench__detail-label">Available area</span>
+                            <span className="orders-workbench__detail-label">{t('ordersWorkbench.availableArea')}</span>
                             <strong>{formatSquareMeters(primaryRecommendation.availableAreaM2)}</strong>
                           </div>
                           <div>
-                            <span className="orders-workbench__detail-label">Source type</span>
+                            <span className="orders-workbench__detail-label">{t('ordersWorkbench.sourceType')}</span>
                             <strong>{primaryRecommendation.statusLabel}</strong>
                           </div>
                         </div>
@@ -1164,7 +1164,7 @@ export function CommandesListPage() {
                   </div>
 
                   <div className="orders-workbench__workspace-card orders-workbench__workspace-card--usage">
-                    <span className="orders-workbench__eyebrow">3. Expected result</span>
+                    <span className="orders-workbench__eyebrow">3. {t('ordersWorkbench.expectedResult')}</span>
                     <div className="orders-workbench__usage">
                       <div className="orders-workbench__usage-bar">
                         <div
@@ -1182,42 +1182,42 @@ export function CommandesListPage() {
                       </div>
 
                       <div className="orders-workbench__usage-legend">
-                        <span><i className="orders-workbench__legend-dot orders-workbench__legend-dot--used" />Used {formatSquareMeters(usageSegments.usedAreaM2)}</span>
-                        <span><i className="orders-workbench__legend-dot orders-workbench__legend-dot--waste" />Scrap {formatSquareMeters(usageSegments.wasteAreaM2)}</span>
-                        <span><i className="orders-workbench__legend-dot orders-workbench__legend-dot--remaining" />Left after cut {formatSquareMeters(usageSegments.remainingAreaM2)}</span>
+                        <span><i className="orders-workbench__legend-dot orders-workbench__legend-dot--used" />{t('ordersWorkbench.used')} {formatSquareMeters(usageSegments.usedAreaM2)}</span>
+                        <span><i className="orders-workbench__legend-dot orders-workbench__legend-dot--waste" />{t('ordersWorkbench.scrap')} {formatSquareMeters(usageSegments.wasteAreaM2)}</span>
+                        <span><i className="orders-workbench__legend-dot orders-workbench__legend-dot--remaining" />{t('ordersWorkbench.leftAfterCut')} {formatSquareMeters(usageSegments.remainingAreaM2)}</span>
                       </div>
                     </div>
 
                     <div className="orders-workbench__stats-grid">
                       <div className="orders-workbench__stat-chip">
-                        <span>Utilization</span>
+                        <span>{t('ordersWorkbench.utilization')}</span>
                         <strong>{optimizationMetrics ? `${optimizationMetrics.utilizationPct.toFixed(1)}%` : '-'}</strong>
                       </div>
                       <div className="orders-workbench__stat-chip">
-                        <span>Sources used</span>
+                        <span>{t('ordersWorkbench.sourcesUsed')}</span>
                         <strong>{optimizationMetrics?.sourceCount ?? 0}</strong>
                       </div>
                       <div className="orders-workbench__stat-chip">
-                        <span>Placed pieces</span>
+                        <span>{t('ordersWorkbench.placedPieces')}</span>
                         <strong>{optimizationMetrics?.placedPieces ?? 0}</strong>
                       </div>
                       <div className="orders-workbench__stat-chip">
-                        <span>Waste saved</span>
+                        <span>{t('ordersWorkbench.wasteSaved')}</span>
                         <strong>{formatSquareMeters(optimizationComparison?.wasteSavedM2 ?? 0)}</strong>
                       </div>
                     </div>
                   </div>
 
                   <div className="orders-workbench__workspace-card orders-workbench__workspace-card--pool">
-                    <span className="orders-workbench__eyebrow">Backup sources</span>
+                    <span className="orders-workbench__eyebrow">{t('ordersWorkbench.backupSources')}</span>
                     {workspaceError ? (
                       <Message severity="warn" text={workspaceError} />
                     ) : (
                       <div className="orders-workbench__source-groups">
                         <div>
                           <div className="orders-workbench__group-heading">
-                            <strong>Reusable leftovers</strong>
-                            <span>{availableWaste.length} found</span>
+                            <strong>{t('ordersWorkbench.reusableLeftovers')}</strong>
+                            <span>{availableWaste.length} {t('ordersWorkbench.found')}</span>
                           </div>
                           <div className="orders-workbench__stack">
                             {wasteCandidates.slice(0, 3).map((candidate) => (
@@ -1240,15 +1240,15 @@ export function CommandesListPage() {
                               </div>
                             ))}
                             {wasteCandidates.length === 0 && (
-                              <Message severity="info" text="No reusable leftovers for this material." />
+                              <Message severity="info" text={t('ordersWorkbench.noReusableLeftovers')} />
                             )}
                           </div>
                         </div>
 
                         <div>
                           <div className="orders-workbench__group-heading">
-                            <strong>Rolls</strong>
-                            <span>{availableRolls.length} found</span>
+                            <strong>{t('ordersWorkbench.rolls')}</strong>
+                            <span>{availableRolls.length} {t('ordersWorkbench.found')}</span>
                           </div>
                           <div className="orders-workbench__stack">
                             {rollCandidates.slice(0, 3).map((candidate) => (
@@ -1271,7 +1271,7 @@ export function CommandesListPage() {
                               </div>
                             ))}
                             {rollCandidates.length === 0 && (
-                              <Message severity="info" text="No rolls are available for this material." />
+                              <Message severity="info" text={t('ordersWorkbench.noRollsAvailable')} />
                             )}
                           </div>
                         </div>
@@ -1280,14 +1280,14 @@ export function CommandesListPage() {
                   </div>
 
                   <div className="orders-workbench__workspace-card orders-workbench__workspace-card--preview">
-                    <span className="orders-workbench__eyebrow">Cut preview</span>
+                    <span className="orders-workbench__eyebrow">{t('ordersWorkbench.cutPreview')}</span>
                     {previewSvg ? (
                       <div
                         className="orders-workbench__svg-frame"
                         dangerouslySetInnerHTML={{ __html: previewSvg }}
                       />
                     ) : (
-                      <Message severity="info" text="No saved cut preview yet. Use the advanced view to place pieces and save a preview." />
+                      <Message severity="info" text={t('ordersWorkbench.noCutPreview')} />
                     )}
 
                     {suggestedSources.length > 0 && (
@@ -1310,14 +1310,14 @@ export function CommandesListPage() {
                 <div className="orders-workbench__footer-actions">
                   <Button
                     icon="pi pi-play"
-                    label="Start cutting"
+                    label={t('ordersWorkbench.startCutting')}
                     disabled={selectedItem.status !== 'PENDING' || itemStatusLoadingId === selectedItem.id}
                     loading={itemStatusLoadingId === selectedItem.id && selectedItem.status === 'PENDING'}
                     onClick={() => handleItemStatusChange(selectedItem, 'IN_PROGRESS')}
                   />
                   <Button
                     icon="pi pi-check"
-                    label="Mark done"
+                    label={t('ordersWorkbench.markDone')}
                     severity="success"
                     disabled={selectedItem.status === 'COMPLETED' || selectedItem.status === 'CANCELLED' || itemStatusLoadingId === selectedItem.id}
                     loading={itemStatusLoadingId === selectedItem.id && selectedItem.status !== 'PENDING'}
@@ -1325,7 +1325,7 @@ export function CommandesListPage() {
                   />
                   <Button
                     icon="pi pi-arrow-right"
-                    label="Next item"
+                    label={t('ordersWorkbench.nextItem')}
                     severity="secondary"
                     outlined
                     disabled={!nextActionableItem}
