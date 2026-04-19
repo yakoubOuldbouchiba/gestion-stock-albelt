@@ -119,7 +119,7 @@ function CommandesListPage() {
               <div className="orders-workbench__stack orders-workbench__stack--scroll" style={{ minHeight: 200, maxHeight: 400, overflowY: 'auto' }}>
                 {commandes.map(order => {
                   // Status color mapping
-                  const statusSeverity: Record<string, string> = {
+                  const statusSeverity: Record<string, "success" | "info" | "secondary" | "contrast" | "warning" | "danger"> = {
                     PENDING: 'warning',
                     ENCOURS: 'info',
                     COMPLETED: 'success',
@@ -130,7 +130,7 @@ function CommandesListPage() {
                     <Card key={order.id} className="orders-workbench__order-card">
                       <div className="orders-workbench__card-topline">
                         <strong>{order.numeroCommande}</strong>
-                        <Tag value={order.status} severity={statusSeverity[order.status] || undefined} />
+                        <Tag value={order.status} severity={statusSeverity[order.status] ?? undefined} />
                       </div>
                       <div className="orders-workbench__card-subline">
                         <span>{order.clientName}</span>
