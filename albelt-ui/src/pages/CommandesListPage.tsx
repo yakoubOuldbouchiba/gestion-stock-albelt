@@ -87,7 +87,7 @@ const itemStatusSeverities: Record<CommandeItem['status'], Severity> = {
   CANCELLED: 'danger',
 };
 
-const fitStatusLabels: Record<boolean, string> = {
+const fitStatusLabels: Record<'true' | 'false', string> = {
   true: 'Fits item',
   false: 'Check size',
 };
@@ -1230,7 +1230,7 @@ export function CommandesListPage() {
                                     />
                                     <strong>{candidate.reference}</strong>
                                   </div>
-                                  <Tag value={fitStatusLabels[candidate.fitsItem]} severity={candidate.fitsItem ? 'success' : 'warning'} />
+                                  <Tag value={fitStatusLabels[String(candidate.fitsItem) as 'true' | 'false']} severity={candidate.fitsItem ? 'success' : 'warning'} />
                                 </div>
                                 <div className="orders-workbench__card-subline">
                                   <span>{candidate.dimensions}</span>
@@ -1261,7 +1261,7 @@ export function CommandesListPage() {
                                     />
                                     <strong>{candidate.reference}</strong>
                                   </div>
-                                  <Tag value={fitStatusLabels[candidate.fitsItem]} severity={candidate.fitsItem ? 'success' : 'warning'} />
+                                  <Tag value={fitStatusLabels[String(candidate.fitsItem) as 'true' | 'false']} severity={candidate.fitsItem ? 'success' : 'warning'} />
                                 </div>
                                 <div className="orders-workbench__card-subline">
                                   <span>{candidate.dimensions}</span>
