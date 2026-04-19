@@ -682,10 +682,10 @@ export function CommandesListPage() {
       </div>
 
       <div className="orders-workbench__summary-grid">
-        {renderSummaryCard('Active orders', summaryStats.activeOrders, 'accent')}
-        {renderSummaryCard('Items waiting', summaryStats.waitingItems, 'amber')}
-        {renderSummaryCard('Cutting now', summaryStats.cuttingItems, 'cool')}
-        {renderSummaryCard('Items done', summaryStats.completedItems, 'ink')}
+        {renderSummaryCard(t('ordersWorkbench.activeOrders'), summaryStats.activeOrders, 'accent')}
+        {renderSummaryCard(t('ordersWorkbench.itemsWaiting'), summaryStats.waitingItems, 'amber')}
+        {renderSummaryCard(t('ordersWorkbench.cuttingNow'), summaryStats.cuttingItems, 'cool')}
+        {renderSummaryCard(t('ordersWorkbench.itemsDone'), summaryStats.completedItems, 'ink')}
       </div>
 
       <Card className="orders-workbench__filters-card">
@@ -695,7 +695,7 @@ export function CommandesListPage() {
             <InputText
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search order number or client"
+              placeholder={t('ordersWorkbench.searchOrderNumberOrClient')}
             />
           </span>
 
@@ -705,7 +705,7 @@ export function CommandesListPage() {
             onChange={(event) => setSelectedClient(event.value)}
             optionLabel="label"
             optionValue="value"
-            placeholder="All clients"
+            placeholder={t('ordersWorkbench.allClients')}
             className="orders-workbench__client-filter"
           />
 

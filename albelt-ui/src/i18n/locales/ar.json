@@ -1148,9 +1148,15 @@
     "nextItem": "العنصر التالي",
     "previousItem": "العنصر السابق",
     "plies": "الطبقات",
-    "used": "Utilisé",
-    "scrap": "Déchet",
-    "leftAfterCut": "Restant après découpe"
+    "used": "مستخدم",
+    "scrap": "نفاية",
+    "leftAfterCut": "متبقي بعد القص",
+    "activeOrders": "الطلبات النشطة",
+    "itemsWaiting": "العناصر في الانتظار",
+    "cuttingNow": "جاري القص",
+    "itemsDone": "العناصر المكتملة",
+    "searchOrderNumberOrClient": "البحث برقم الطلب أو اسم العميل...",
+    "allClients": "جميع العملاء"
   },
   "returns": {
     "title": "مرتجعات الطلب",

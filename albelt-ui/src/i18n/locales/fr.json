@@ -1211,7 +1211,13 @@
     "plies": "Plis",
     "used": "Utilisé",
     "scrap": "Déchet",
-    "leftAfterCut": "Restant après découpe"
+    "leftAfterCut": "Restant après découpe",
+    "activeOrders": "Commandes actives",
+    "itemsWaiting": "Articles en attente",
+    "cuttingNow": "En cours de découpe",
+    "itemsDone": "Articles terminés",
+    "searchOrderNumberOrClient": "Rechercher par numéro de commande ou nom du client...",
+    "allClients": "Tous les clients"
   },
   "optimizationComparison": "Comparaison d'optimisation",
   "regenerateSuggestion": "Régénérer la suggestion",

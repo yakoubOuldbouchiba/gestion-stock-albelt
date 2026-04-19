@@ -1130,9 +1130,15 @@
     "recommended": "Recommended",
     "alsoUsed": "Also used",
     "plies": "Plies",
-    "used": "Utilisé",
-    "scrap": "Déchet",
-    "leftAfterCut": "Restant après découpe"
+    "used": "Used",
+    "scrap": "Scrap",
+    "leftAfterCut": "Left after cut",
+    "activeOrders": "Active orders",
+    "itemsWaiting": "Items waiting",
+    "cuttingNow": "Cutting now",
+    "itemsDone": "Items done",
+    "searchOrderNumberOrClient": "Search by order number or client name...",
+    "allClients": "All Clients"
   },
   "returns": {
     "title": "Order Returns",
