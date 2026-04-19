@@ -1932,48 +1932,48 @@ export function CommandeDetailPage() {
     );
   };
 
-  const renderItemCommonSection = (item: CommandeItem) => {
-    const totalConforme = item.totalItemsConforme ?? 0;
-    const totalNonConforme = item.totalItemsNonConforme ?? 0;
-    const totalProduced = totalConforme + totalNonConforme;
-    const remaining = Math.max(0, item.quantite - totalProduced);
-    const over = Math.max(0, totalProduced - item.quantite);
+  // const renderItemCommonSection = (item: CommandeItem) => {
+  //   const totalConforme = item.totalItemsConforme ?? 0;
+  //   const totalNonConforme = item.totalItemsNonConforme ?? 0;
+  //   const totalProduced = totalConforme + totalNonConforme;
+  //   const remaining = Math.max(0, item.quantite - totalProduced);
+  //   const over = Math.max(0, totalProduced - item.quantite);
 
-    return (
-      <Card title={t('commandes.common') || 'Common'}>
-        <div className="albel-compare-grid">
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('commandes.metric')}</div>
-            <div>{t('commandes.material') || 'Material'}</div>
-            <div>{t('commandes.plies') || 'Plies'}</div>
-            <div>{t('commandes.thickness') || 'Thickness'}</div>
-            <div>{t('commandes.lengthM') || 'Length'}</div>
-            <div>{t('commandes.widthMm') || 'Width'}</div>
-            <div>{t('commandes.qty') || 'Qty'}</div>
-            <div>{t('commandes.itemsConforme')}</div>
-            <div>{t('commandes.itemsNonConforme')}</div>
-            <div>{t('commandes.itemsRemaining')}</div>
-            <div>{t('commandes.itemsOver')}</div>
-            <div>{t('commandes.status') || 'Status'}</div>
-          </div>
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('common.details') || 'Details'}</div>
-            <div>{item.materialType || '-'}</div>
-            <div>{item.nbPlis ?? '-'}</div>
-            <div>{item.thicknessMm != null ? `${item.thicknessMm} mm` : '-'}</div>
-            <div>{item.longueurM != null ? `${item.longueurM} m` : '-'}</div>
-            <div>{item.largeurMm != null ? `${item.largeurMm} mm` : '-'}</div>
-            <div>{item.quantite ?? '-'}</div>
-            <div>{totalConforme}</div>
-            <div>{totalNonConforme}</div>
-            <div>{remaining}</div>
-            <div>{over}</div>
-            <div>{item.status || '-'}</div>
-          </div>
-        </div>
-      </Card>
-    );
-  };
+  //   return (
+  //     <Card title={t('commandes.common') || 'Common'}>
+  //       <div className="albel-compare-grid">
+  //         <div>
+  //           <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('commandes.metric')}</div>
+  //           <div>{t('commandes.material') || 'Material'}</div>
+  //           <div>{t('commandes.plies') || 'Plies'}</div>
+  //           <div>{t('commandes.thickness') || 'Thickness'}</div>
+  //           <div>{t('commandes.lengthM') || 'Length'}</div>
+  //           <div>{t('commandes.widthMm') || 'Width'}</div>
+  //           <div>{t('commandes.qty') || 'Qty'}</div>
+  //           <div>{t('commandes.itemsConforme')}</div>
+  //           <div>{t('commandes.itemsNonConforme')}</div>
+  //           <div>{t('commandes.itemsRemaining')}</div>
+  //           <div>{t('commandes.itemsOver')}</div>
+  //           <div>{t('commandes.status') || 'Status'}</div>
+  //         </div>
+  //         <div>
+  //           <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('common.details') || 'Details'}</div>
+  //           <div>{item.materialType || '-'}</div>
+  //           <div>{item.nbPlis ?? '-'}</div>
+  //           <div>{item.thicknessMm != null ? `${item.thicknessMm} mm` : '-'}</div>
+  //           <div>{item.longueurM != null ? `${item.longueurM} m` : '-'}</div>
+  //           <div>{item.largeurMm != null ? `${item.largeurMm} mm` : '-'}</div>
+  //           <div>{item.quantite ?? '-'}</div>
+  //           <div>{totalConforme}</div>
+  //           <div>{totalNonConforme}</div>
+  //           <div>{remaining}</div>
+  //           <div>{over}</div>
+  //           <div>{item.status || '-'}</div>
+  //         </div>
+  //       </div>
+  //     </Card>
+  //   );
+  // };
 
   const getContrastTextColor = (hexColor?: string) => {
     if (!hexColor) return 'inherit';
@@ -2309,9 +2309,9 @@ export function CommandeDetailPage() {
                       activeIndex={activeItemDetailTabIndex}
                       onTabChange={(e) => setActiveItemDetailTabIndex(e.index)}
                     >
-                      <TabPanel header={t('commandes.cutNeed')}>
+                      {/* <TabPanel header={t('commandes.cutNeed')}>
                         {renderItemCommonSection(selectedItem)}
-                      </TabPanel>
+                      </TabPanel> */}
                       <TabPanel header={t('commandes.materialPlan')}>
                         {renderOptimizationSection(selectedItem)}
                       </TabPanel>
