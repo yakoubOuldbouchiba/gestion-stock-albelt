@@ -1133,9 +1133,9 @@
     "cutSize":"Taille de coupe",
     "cutNeed": "Besoin de coupe",
     "materialPlan": "Plan de matériau",
-    "cutAreas": "Zones de coupe",
+    "cutAreas": "Zones de coupe – rouleaux et chutes",
     "producedPieces": "Pièces produites",
-    "reusableLeftovers": "Restes réutilisables",
+    "reusableLeftovers": "Chutes",
     "lengthM2": "Longueur (m²)",
     "widthM": "Largeur (m)",
     "selectItemToContinue": "Sélectionnez un article pour continuer"

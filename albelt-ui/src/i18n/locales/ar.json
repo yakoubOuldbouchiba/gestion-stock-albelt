@@ -1074,10 +1074,10 @@
     "chutes":"قطع نفاية",
     "cutSize":"حجم القطع",
     "cutNeed": "الحاجة إلى القطع",
-    "materialPlan": "خطة المادة",
-    "cutAreas": "مساحات القطع",
+    "materialPlan": "اقتراحات المادة وخطة القص",
+    "cutAreas": "مناطق القطع – اللفائف والقصاصات",
     "producedPieces": "القطع المنتجة",
-    "reusableLeftovers": "البقايا القابلة لإعادة الاستخدام",
+    "reusableLeftovers": "البقايا",
     "lengthM": "الطول (م)",
     "widthMm": "العرض (مم)",
     "selectItemToContinue": "يرجى اختيار عنصر للمتابعة إلى معالجة الإنتاج"
