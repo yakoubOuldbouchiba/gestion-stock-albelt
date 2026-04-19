@@ -580,4 +580,14 @@ public class CommandeService {
         String trimmed = value.trim();
         return trimmed.isEmpty() ? "" : trimmed.toLowerCase();
     }
+
+    public OrderSummaryStatsDto getOrderSummaryStats() {
+        long totals = commandeRepository.count();
+        long waitingItems = commandeRepository.countByStatus("PENDING");
+        long cuttingItems = commandeRepository.countByStatus("ENCOURS");
+        long completedItems = commandeRepository.countByStatus("COMPLETED");
+        long cancelled  = commandeRepository.countByStatus("CANCELLED");
+        long activeOrders = totals - completedItems - cancelled ;
+        return new OrderSummaryStatsDto(activeOrders, waitingItems, cuttingItems, completedItems);
+    }
 }

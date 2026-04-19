@@ -68,4 +68,6 @@ public interface CommandeRepository extends JpaRepository<Commande, UUID> {
             @Param("toDate") java.time.LocalDateTime toDate,
             @Param("search") String search,
             Pageable pageable);
+
+    long countByStatus(String status);
 }

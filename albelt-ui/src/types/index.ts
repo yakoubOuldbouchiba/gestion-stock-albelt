@@ -902,3 +902,10 @@ export interface RollGroupedStatsResponse {
   totalAreaM2: number;
 }
 
+
+export interface OrderSummaryStats {
+  activeOrders: number;
+  waitingItems: number;
+  cuttingItems: number;
+  completedItems: number;
+}

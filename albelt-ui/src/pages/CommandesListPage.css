@@ -681,8 +681,7 @@
 @media (min-width: 1100px) {
   .orders-workbench__layout {
     grid-template-columns:
-      minmax(300px, 1fr)
-      minmax(320px, 2fr);
+      minmax(300px, 3fr);
     align-items: start;
   }
 

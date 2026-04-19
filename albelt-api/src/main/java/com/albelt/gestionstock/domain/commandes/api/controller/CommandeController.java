@@ -323,6 +323,11 @@ public class CommandeController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/summary-stats")
+    public ResponseEntity<ApiResponse<OrderSummaryStatsDto>> getOrderSummaryStats() {
+        return ResponseEntity.ok(ApiResponse.success(commandeService.getOrderSummaryStats(), "Summary stats retrieved successfully"));
+    }
+
     private java.time.LocalDateTime parseDateStart(String value) {
         if (value == null || value.trim().isEmpty()) return null;
         return java.time.LocalDate.parse(value.trim()).atStartOfDay();

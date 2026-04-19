@@ -7,15 +7,20 @@ import type {
   OptimizationComparison,
   AltierScore,
   ApiResponse,
-  PagedResponse
+  PagedResponse,
+  OrderSummaryStats
 } from '../types/index';
 
 /**
  * Commande (Order) API Service
  */
 export const CommandeService = {
-  // ==================== ORDER CRUD ====================
-
+    /**
+     * Get summary statistics for orders and items
+     */
+    async getSummaryStats(): Promise<ApiResponse<OrderSummaryStats>> {
+      return ApiService.get<OrderSummaryStats>('/commandes/summary-stats');
+    },
   /**
    * Get all orders
    */
@@ -151,6 +156,8 @@ export const CommandeService = {
   async deleteItem(itemId: string): Promise<ApiResponse<void>> {
     return ApiService.delete<void>(`/commandes/items/${itemId}`);
   },
+
+
 
   /**
    * Get optimization comparison (actual vs suggested)
