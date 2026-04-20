@@ -1,3 +1,3 @@
-export type Translate = (key: string, params?: Record<string, unknown>) => string;
+export type Translate = any;
 
 export type StatusSeverity = 'success' | 'info' | 'warning' | 'danger' | 'secondary';
