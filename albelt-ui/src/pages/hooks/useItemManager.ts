@@ -5,7 +5,6 @@ import { PlacedRectangleService } from '../../services/placedRectangleService';
 import { CommandeService } from '../../services/commandeService';
 import { RollService } from '../../services/rollService';
 import type { 
-  CommandeItem, 
   ProductionItem, 
   PlacedRectangle, 
   OptimizationComparison, 

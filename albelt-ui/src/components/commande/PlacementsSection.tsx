@@ -67,7 +67,6 @@ export function PlacementsSection({
         <Button
           label={t('rollDetail.addPlacement')}
           icon="pi pi-plus"
-          severity="primary"
           rounded
           onClick={() => onOpenPlacementModal(item)}
           disabled={isBusy || isCommandeLocked}

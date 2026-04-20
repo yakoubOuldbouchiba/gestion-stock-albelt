@@ -1,6 +1,5 @@
 import { Button } from 'primereact/button';
 import { Tag } from 'primereact/tag';
-import { Divider } from 'primereact/divider';
 import { formatDate } from '../../utils/date';
 import { getRollChuteSummary } from '@utils/rollChuteLabel';
 import type { PlacedRectangle, ProductionItem } from '../../types';
