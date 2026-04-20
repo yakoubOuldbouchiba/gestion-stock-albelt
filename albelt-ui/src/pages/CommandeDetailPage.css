@@ -301,6 +301,21 @@
   border: none;
   border-radius: 999px;
   background: #f3eee5;
+  color: var(--commande-muted);
+  transition: all 0.2s ease;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+}
+
+.commande-detail-tabs .p-tabview-nav li:not(.p-highlight) .p-tabview-nav-link:hover {
+  background: #ebe4d8;
+  color: var(--commande-ink);
+}
+
+.commande-detail-tabs .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+  background: var(--commande-accent);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(36, 92, 74, 0.25);
 }
 
 .commande-detail-tabs .p-tabview-panels {

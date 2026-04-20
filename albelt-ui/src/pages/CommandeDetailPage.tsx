@@ -392,24 +392,89 @@ export function CommandeDetailPage() {
     colorName: r.colorName,
   }));
 
-  const normalizeOptimizationSvg = (rawSvg: string) => rawSvg.replace(/<svg([^>]*?)>/, (_, attrs) => {
-    const cleaned = attrs.replace(/\s*(width|height|preserveAspectRatio|class)="[^"]*"/g, '');
-    return `<svg${cleaned} class="albel-generated-svg" preserveAspectRatio="xMinYMid meet">`;
-  });
-
-  const buildOptimizationSvgSlices = (rawSvg: string, maxAspectRatio = 6) => {
+  const normalizeOptimizationSvg = (rawSvg: string) => {
+    if (!rawSvg) return '';
+    
+    let extraStyles = '';
     try {
-      const parsed = new DOMParser().parseFromString(rawSvg, 'image/svg+xml');
-      const svgEl = parsed.querySelector('svg');
+      const vbMatch = rawSvg.match(/viewBox=["']([^"']+)["']/);
+      if (vbMatch) {
+        const parts = vbMatch[1].split(/[\s,]+/).map(Number);
+        const vbW = parts[2];
+        if (vbW > 0) {
+          // Heuristic: font size should be about 1/80th of the viewbox width
+          // to be readable but not overwhelming.
+          const fontSize = Math.max(12, Math.round(vbW / 80));
+          const strokeWidth = Math.max(0.5, fontSize / 12);
+          extraStyles = `
+            text { 
+              font-size: ${fontSize}px !important; 
+              font-weight: 700 !important;
+              fill: #000 !important;
+              paint-order: stroke !important;
+              stroke: rgba(255,255,255,0.9) !important;
+              stroke-width: ${strokeWidth}px !important;
+            }
+            rect {
+              stroke-width: ${strokeWidth}px !important;
+            }
+          `;
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing SVG for dynamic styles:', e);
+    }
+
+    return rawSvg.replace(/<svg([^>]*?)>/, (_, attrs) => {
+      const cleaned = attrs.replace(/\s*(width|height|preserveAspectRatio|class)="[^"]*"/g, '');
+      return `<svg${cleaned} class="albel-generated-svg" preserveAspectRatio="xMinYMid meet"><style>${extraStyles}</style>`;
+    });
+  };
+
+  const buildOptimizationSvgSlices = (rawSvg: string, maxAspectRatio = 5) => {
+    if (!rawSvg) return null;
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(rawSvg, 'image/svg+xml');
+      const svgEl = doc.querySelector('svg');
       if (!svgEl) return null;
-      const [minX, minY, vbW, vbH] = (svgEl.getAttribute('viewBox') ?? '').split(/[\s,]+/).map(Number);
+
+      const viewBox = svgEl.getAttribute('viewBox');
+      if (!viewBox) return null;
+
+      const [minX, minY, vbW, vbH] = viewBox.split(/[\s,]+/).map(Number);
       if (vbW <= 0 || vbH <= 0 || Number.isNaN(vbW)) return null;
+
       const ratio = vbW / vbH;
+      // Only slice if it's too long
       if (ratio <= maxAspectRatio) return null;
+
+      // Calculate how many slices we need
       const count = Math.min(Math.ceil(ratio / maxAspectRatio), 12);
       const sliceW = vbW / count;
-      return Array.from({ length: count }, (_, i) => normalizeOptimizationSvg(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX + i * sliceW} ${minY} ${sliceW} ${vbH}">${svgEl.innerHTML}</svg>`));
-    } catch { return null; }
+      
+      const slices: { html: string; label: string }[] = [];
+      const innerSvg = svgEl.innerHTML;
+
+      for (let i = 0; i < count; i++) {
+        const startX = minX + i * sliceW;
+        const sliceViewBox = `${startX} ${minY} ${sliceW} ${vbH}`;
+        const sliceSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${sliceViewBox}">${innerSvg}</svg>`;
+        
+        // Create a human-friendly label (assuming dimensions are in mm)
+        const startM = (startX / 1000).toFixed(1);
+        const endM = ((startX + sliceW) / 1000).toFixed(1);
+        
+        slices.push({
+          html: normalizeOptimizationSvg(sliceSvg),
+          label: `${startM}m — ${endM}m`
+        });
+      }
+      return slices;
+    } catch (err) {
+      console.error('Error slicing SVG:', err);
+      return null;
+    }
   };
 
   if (loading) return <div className="commande-detail-page commande-detail-page--loading"><ProgressSpinner /></div>;
@@ -693,11 +758,33 @@ export function CommandeDetailPage() {
         style={{ width: '90vw' }}
         className="albel-svg-zoom-dialog"
       >
-        {svgZoomPreview && (
-          <div className="albel-svg-zoom-content">
-            <div dangerouslySetInnerHTML={{ __html: normalizeOptimizationSvg(svgZoomPreview.svg) }} />
-          </div>
-        )}
+        {svgZoomPreview && (() => {
+          const slices = buildOptimizationSvgSlices(svgZoomPreview.svg);
+          const isSliced = Array.isArray(slices) && slices.length > 1;
+          
+          return (
+            <div className={`albel-svg-viewer albel-svg-viewer--zoom${isSliced ? ' albel-svg-viewer--sliced' : ''}`}>
+              {isSliced ? (
+                <div className="albel-svg-slices">
+                  {slices!.map((slice, idx) => (
+                    <div key={`zoom-slice-${idx}`} className="albel-svg-slice-container">
+                      <div className="albel-svg-slice-header">
+                        <span>{t('commandes.slice')} {idx + 1}</span>
+                        <span className="albel-svg-slice-label">{slice.label}</span>
+                      </div>
+                      <div
+                        className="albel-svg-slice"
+                        dangerouslySetInnerHTML={{ __html: slice.html }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div dangerouslySetInnerHTML={{ __html: normalizeOptimizationSvg(svgZoomPreview.svg) }} />
+              )}
+            </div>
+          );
+        })()}
       </Dialog>
 
       <Toast ref={toastRef} baseZIndex={10000} />

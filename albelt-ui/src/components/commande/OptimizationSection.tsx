@@ -17,7 +17,7 @@ interface OptimizationSectionProps {
   onPrint: (variant: 'actual' | 'suggested') => void;
   formatMetricValue: (value?: number, digits?: number) => string;
   normalizeOptimizationSvg: (rawSvg: string) => string;
-  buildOptimizationSvgSlices: (rawSvg: string) => string[] | null;
+  buildOptimizationSvgSlices: (rawSvg: string) => { html: string; label: string }[] | null;
 }
 
 export function OptimizationSection({
@@ -82,21 +82,20 @@ export function OptimizationSection({
         {svg ? (
           <div
             className={`albel-svg-viewer${isSliced ? ' albel-svg-viewer--sliced' : ''}`}
-            style={{
-              border: '1px solid var(--surface-border)',
-              borderRadius: '8px',
-              backgroundColor: 'var(--surface-card)',
-              padding: '0.5rem',
-            }}
           >
             {isSliced ? (
               <div className="albel-svg-slices">
                 {svgSlices!.map((slice, idx) => (
-                  <div
-                    key={`${variant}-slice-${idx}`}
-                    className="albel-svg-slice"
-                    dangerouslySetInnerHTML={{ __html: slice }}
-                  />
+                  <div key={`${variant}-slice-${idx}`} className="albel-svg-slice-container">
+                    <div className="albel-svg-slice-header">
+                      <span>{t('commandes.slice')} {idx + 1}</span>
+                      <span className="albel-svg-slice-label">{slice.label}</span>
+                    </div>
+                    <div
+                      className="albel-svg-slice"
+                      dangerouslySetInnerHTML={{ __html: slice.html }}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
