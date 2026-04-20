@@ -115,9 +115,6 @@ export function CommandeDetailPage() {
     quantity: '',
     notes: '',
   });
-
-  const statusKeys = ['PENDING', 'ENCOURS', 'COMPLETED', 'CANCELLED', 'ON_HOLD'];
-  const statuses = statusKeys.map((key) => t(`${key}`));
   const itemStatuses: ItemStatus[] = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
   const isCommandeLocked = useMemo(() => {
@@ -1322,7 +1319,6 @@ export function CommandeDetailPage() {
     await saveProductionItem();
   };
 
-  const statusOptions = statuses.map((status) => ({ label: t(`statuses.${status}`), value: status }));
   const itemStatusOptions = itemStatuses.map((status) => ({ label: t(`statuses.${status}`), value: status }));
   const isBusy =
     updating ||
