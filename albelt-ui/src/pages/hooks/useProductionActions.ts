@@ -61,6 +61,26 @@ export function useProductionActions(
 
         await loadProductionForItem(targetItem.id);
         await loadOptimizationForItem(targetItem.id);
+
+        // Refresh commande and check if COMPLETED
+        if (commandeId) {
+          const cmdRes = await CommandeService.getById(commandeId);
+          if (cmdRes.data) {
+            setCommande(cmdRes.data);
+            const updatedItem = cmdRes.data.items.find(i => i.id === targetItem.id);
+            if (updatedItem && updatedItem.status !== 'COMPLETED' && (updatedItem.totalItemsConforme ?? 0) >= updatedItem.quantite) {
+              try {
+                await CommandeService.updateItemStatus(updatedItem.id, 'COMPLETED');
+                // Refresh again to sync the final COMPLETED status
+                const finalCmdRes = await CommandeService.getById(commandeId);
+                if (finalCmdRes.data) setCommande(finalCmdRes.data);
+              } catch (err) {
+                console.error('Failed to auto-complete item status:', err);
+              }
+            }
+          }
+        }
+
         showSuccess(t('commandes.productionItemCreated'));
         return true;
       } catch (err) {
@@ -111,9 +131,24 @@ export function useProductionActions(
         try {
           await ProductionItemService.delete(productionItemId);
           await loadProductionForItem(itemId);
-          const commandeRes = await CommandeService.getById(commandeId);
-          if (commandeRes.data) {
-            setCommande(commandeRes.data);
+          
+          if (commandeId) {
+            const commandeRes = await CommandeService.getById(commandeId);
+            if (commandeRes.data) {
+              setCommande(commandeRes.data);
+              const updatedItem = commandeRes.data.items.find(i => i.id === itemId);
+              
+              // If status is COMPLETED but now produced < quantity, revert to IN_PROGRESS
+              if (updatedItem && updatedItem.status === 'COMPLETED' && (updatedItem.totalItemsConforme ?? 0) < updatedItem.quantite) {
+                try {
+                  await CommandeService.updateItemStatus(itemId, 'IN_PROGRESS');
+                  const finalCmdRes = await CommandeService.getById(commandeId);
+                  if (finalCmdRes.data) setCommande(finalCmdRes.data);
+                } catch (err) {
+                  console.error('Failed to revert item status to IN_PROGRESS:', err);
+                }
+              }
+            }
           }
           showSuccess('Production item deleted.');
         } catch (err) {

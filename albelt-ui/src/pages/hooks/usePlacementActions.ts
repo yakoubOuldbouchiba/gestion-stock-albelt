@@ -140,6 +140,21 @@ export function usePlacementActions(
       }
       await loadPlacementsForItem(item.id);
       await loadOptimizationForItem(item.id);
+
+      // Auto-update item status to IN_PROGRESS if it was PENDING
+      if (item.status === 'PENDING') {
+        try {
+          await CommandeService.updateItemStatus(item.id, 'IN_PROGRESS');
+        } catch (err) {
+          console.error('Failed to auto-update item status:', err);
+        }
+      }
+
+      // Refresh commande state to sync status and other metrics
+      if (commandeId) {
+        const cmdRes = await CommandeService.getById(commandeId);
+        if (cmdRes.data) setCommande(cmdRes.data);
+      }
       resetPlacementForm();
       showSuccess(isEditing ? t('inventory.placementUpdated') : t('inventory.placementSaved'));
       return true;
@@ -208,6 +223,29 @@ export function usePlacementActions(
           }
 
           await performDelete();
+
+          // After deletion, check if we should revert status to PENDING
+          if (commandeId) {
+            const cmdRes = await CommandeService.getById(commandeId);
+            if (cmdRes.data) {
+              setCommande(cmdRes.data);
+              const updatedItem = cmdRes.data.items.find(i => i.id === itemId);
+              
+              // Check if any placements remain for this item
+              const placementsRes = await PlacedRectangleService.getByCommandeItem(itemId);
+              const remainingPlacements = Array.isArray(placementsRes.data) ? placementsRes.data : [];
+              
+              if (updatedItem && updatedItem.status === 'IN_PROGRESS' && remainingPlacements.length === 0) {
+                try {
+                  await CommandeService.updateItemStatus(itemId, 'PENDING');
+                  const finalCmdRes = await CommandeService.getById(commandeId);
+                  if (finalCmdRes.data) setCommande(finalCmdRes.data);
+                } catch (err) {
+                  console.error('Failed to revert item status to PENDING:', err);
+                }
+              }
+            }
+          }
         } catch (err) {
           console.error('Error deleting placement:', err);
           showError(t('inventory.placementDeleteFailed'));
