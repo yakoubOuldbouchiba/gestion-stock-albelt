@@ -544,6 +544,7 @@ export function CommandeDetailPage() {
                         <PlacementsSection
                           item={selectedItem}
                           placementsForItem={placementsForItem}
+                          productionForItem={productionForItem}
                           isBusy={isBusy}
                           isCommandeLocked={isCommandeLocked}
                           onOpenPlacementModal={handleOpenPlacementModal}
@@ -551,6 +552,7 @@ export function CommandeDetailPage() {
                           onOpenPlacementPreview={p => { setPreviewPlacement(p); setShowPlacementPreview(true); }}
                           onDeletePlacement={handleDeletePlacement}
                           onOpenProductionModal={handleOpenProductionModal}
+                          onDeleteProduction={pid => handleDeleteProductionItem(pid, selectedItem.id)}
                           formatSourceLabel={formatSourceLabel}
                         />
                       </TabPanel>

@@ -1,6 +1,6 @@
 import { Button } from 'primereact/button';
-import { Message } from 'primereact/message';
 import { Tag } from 'primereact/tag';
+import { Divider } from 'primereact/divider';
 import { formatDate } from '../../utils/date';
 import { getRollChuteSummary } from '@utils/rollChuteLabel';
 import type { PlacedRectangle, ProductionItem } from '../../types';
@@ -21,66 +21,86 @@ export const ProductionSection = ({
   isBusy,
   onDeleteProduction,
 }: ProductionSectionProps) => (
-  <div style={{ marginTop: '0.75rem' }}>
-    <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{t('commandes.productionItems')}</div>
+  <div className="operator-section">
+    <div className="operator-section__header">
+      <h3>{t('commandes.productionItems')}</h3>
+    </div>
+
     {productionForItem.length === 0 ? (
-      <Message severity="info" text={t('commandes.noProductionItems')} />
+      <div className="operator-empty-state">
+        <i className="pi pi-box" style={{ fontSize: '2rem', marginBottom: '1rem', opacity: 0.5 }}></i>
+        <p>{t('commandes.noProductionItems')}</p>
+      </div>
     ) : (
-      <div className="albel-compact-list">
+      <div className="operator-grid">
         {productionForItem.map((production) => {
           const placement = production.placedRectangle
             ?? placementsForItem.find((item) => item.id === production.placedRectangleId);
           const source = placement?.roll ?? placement?.wastePiece ?? null;
           const isRollSource = Boolean(placement?.rollId ?? placement?.roll?.id);
           const sourceSummary = source ? getRollChuteSummary(source) : null;
-          const sourceLabel = sourceSummary ? `Ref: ${sourceSummary.reference}` : 'Placement';
+          const sourceLabel = sourceSummary ? sourceSummary.reference : 'Placement';
+          
           return (
-            <div key={production.id} className="albel-compact-item">
-              {production.goodProduction}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <Tag value={sourceLabel} severity={isRollSource ? 'info' : 'success'} />
-                {sourceSummary && (
-                  <span>
-                    Plis: {sourceSummary.nbPlis} | Thk: {sourceSummary.thickness} | Color: {sourceSummary.color}
-                  </span>
+            <div key={production.id} className="operator-card operator-card--production operator-card--large">
+              <div className="operator-card__content">
+                <div className="operator-card__top">
+                  <div className="operator-card__title">
+                    <Tag 
+                      value={isRollSource ? 'ROLL' : 'WASTE'} 
+                      severity={isRollSource ? 'info' : 'success'}
+                    />
+                    <span className="operator-card__source-ref">{sourceLabel}</span>
+                  </div>
+                  {typeof production.goodProduction === 'boolean' && (
+                    <Tag
+                      icon={production.goodProduction ? 'pi pi-check' : 'pi pi-times'}
+                      value={production.goodProduction ? t('commandes.productionGood') : t('commandes.productionBad')}
+                      severity={production.goodProduction ? 'success' : 'danger'}
+                      className="operator-status-pill"
+                    />
+                  )}
+                </div>
+
+                <div className="operator-metrics-hero">
+                  <div className="operator-hero-metric">
+                    <span className="operator-hero-metric__label">{t('rollDetail.lengthM') || 'Length'}</span>
+                    <span className="operator-hero-metric__value">{production.pieceLengthM}m</span>
+                  </div>
+                  <div className="operator-hero-metric">
+                    <span className="operator-hero-metric__label">{t('rollDetail.widthMm') || 'Width'}</span>
+                    <span className="operator-hero-metric__value">{production.pieceWidthMm}mm</span>
+                  </div>
+                  <div className="operator-hero-metric operator-hero-metric--qty">
+                    <span className="operator-hero-metric__label">{t('commandes.quantity') || 'Qty'}</span>
+                    <span className="operator-hero-metric__value">x{production.quantity}</span>
+                  </div>
+                </div>
+
+                <div className="operator-card__footer-meta">
+                  <span className="operator-meta-tag">{production.totalAreaM2?.toFixed(2)} m²</span>
+                  <span className="operator-meta-tag">{formatDate(production.createdAt)}</span>
+                </div>
+
+                {production.productionMiss && (
+                  <div className="operator-production-miss">
+                    <i className="pi pi-info-circle" style={{ marginRight: '0.5rem' }}></i>
+                    <strong>{t('commandes.productionMissLabel')}:</strong> {production.productionMiss}
+                  </div>
                 )}
-                {placement && (
-                  <span>
-                    x:{placement.xMm} y:{placement.yMm} {placement.widthMm}x{placement.heightMm}mm
-                  </span>
-                )}
-                {typeof production.goodProduction === 'boolean' && (
-                  <Tag
-                    value={production.goodProduction ? t('commandes.productionGood') : t('commandes.productionBad')}
-                    severity={production.goodProduction ? 'success' : 'danger'}
-                  />
-                )}
-                <span>
-                  {production.pieceLengthM}m x {production.pieceWidthMm}mm x {production.quantity}
-                  {' '}({production.totalAreaM2?.toFixed(2)}m2)
-                </span>
-                <span>{formatDate(production.createdAt)}</span>
-                {onDeleteProduction && (
+              </div>
+
+              {onDeleteProduction && (
+                <div className="operator-card__actions">
+                  <span className="operator-id-tag">ID: {production.id.slice(0, 8)}</span>
                   <Button
-                    label={t('common.delete')}
                     icon="pi pi-trash"
                     severity="danger"
                     text
+                    rounded
                     onClick={() => onDeleteProduction(production.id)}
                     disabled={isBusy}
                   />
-                )}
-              </div>
-              {production.productionMiss && (
-                <div style={{ marginTop: '0.35rem', color: 'var(--text-color-secondary)', fontSize: '0.85rem' }}>
-                  {t('commandes.productionMissLabel')}: {production.productionMiss}
                 </div>
               )}
             </div>
@@ -90,3 +110,4 @@ export const ProductionSection = ({
     )}
   </div>
 );
+

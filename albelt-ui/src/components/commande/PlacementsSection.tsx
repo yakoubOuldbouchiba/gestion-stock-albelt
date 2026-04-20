@@ -1,12 +1,13 @@
 import { Button } from 'primereact/button';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
-import type { CommandeItem, PlacedRectangle } from '../../types';
+import { Tag } from 'primereact/tag';
+import { Divider } from 'primereact/divider';
+import type { CommandeItem, PlacedRectangle, ProductionItem } from '../../types';
 import { useI18n } from '@hooks/useI18n';
 
 interface PlacementsSectionProps {
   item: CommandeItem;
   placementsForItem: PlacedRectangle[];
+  productionForItem: ProductionItem[];
   isBusy: boolean;
   isCommandeLocked: boolean;
   onOpenPlacementModal: (item: CommandeItem) => void;
@@ -14,12 +15,14 @@ interface PlacementsSectionProps {
   onOpenPlacementPreview: (placement: PlacedRectangle) => void;
   onDeletePlacement: (placementId: string, itemId: string) => void;
   onOpenProductionModal: (item: CommandeItem, placementId: string) => void;
+  onDeleteProduction?: (productionId: string) => void;
   formatSourceLabel: (source: any, fallbackRef?: string) => string;
 }
 
 export function PlacementsSection({
   item,
   placementsForItem,
+  productionForItem,
   isBusy,
   isCommandeLocked,
   onOpenPlacementModal,
@@ -27,6 +30,7 @@ export function PlacementsSection({
   onOpenPlacementPreview,
   onDeletePlacement,
   onOpenProductionModal,
+  onDeleteProduction,
   formatSourceLabel,
 }: PlacementsSectionProps) {
   const { t } = useI18n();
@@ -34,179 +38,182 @@ export function PlacementsSection({
   const getPlacementSource = (placement: PlacedRectangle) =>
     placement.roll ?? placement.wastePiece ?? null;
 
-  const renderPlacementSource = (placement: PlacedRectangle) => {
-    const source = getPlacementSource(placement);
-    const isRollSource = Boolean(placement.rollId ?? placement.roll?.id);
-    const isWasteSource = Boolean(placement.wastePieceId ?? placement.wastePiece?.id);
-    const typeLabel = isRollSource ? 'Roll' : isWasteSource ? 'Waste' : t('commandes.notAvailable');
-    const itemLabel = placement.commandeItem
-      ? [
-          placement.commandeItem.lineNumber ? `Line ${placement.commandeItem.lineNumber}` : null,
-          placement.commandeItem.reference ?? null,
-        ]
-          .filter(Boolean)
-          .join(' • ')
-      : null;
-    const sourceLabel = formatSourceLabel(source, placement.id.slice(0, 8));
-    const label = itemLabel ?? sourceLabel;
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-        <span style={{ fontWeight: 600 }}>{typeLabel}</span>
-        <span style={{ color: 'var(--text-color-secondary)' }}>{label}</span>
-      </div>
-    );
-  };
+  // Group placements by source
+  const groupedPlacements = placementsForItem.reduce((acc, placement) => {
+    const rollId = placement.rollId ?? placement.roll?.id;
+    const wastePieceId = placement.wastePieceId ?? placement.wastePiece?.id;
+    const sourceId = rollId ?? wastePieceId ?? 'unknown';
+    const type = rollId ? 'ROLL' : wastePieceId ? 'WASTE_PIECE' : 'UNKNOWN';
+    const key = `${type}:${sourceId}`;
 
-  const renderPlacementColor = (placement: PlacedRectangle) => {
-    const source = getPlacementSource(placement);
-    const colorHex = placement.colorHexCode ?? source?.colorHexCode;
-    const colorName = placement.colorName ?? source?.colorName ?? colorHex;
-    if (!colorHex) return null;
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-        <span
-          style={{
-            width: '12px',
-            height: '12px',
-            backgroundColor: colorHex,
-            borderRadius: '3px',
-            border: '1px solid var(--surface-border)',
-          }}
-        />
-        <span>{colorName}</span>
-      </span>
-    );
-  };
-
-  const renderPlacementActions = (placement: PlacedRectangle) => (
-    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-      <Button
-        label={t('commandes.addProductionItem')}
-        icon="pi pi-plus"
-        text
-        onClick={() => onOpenProductionModal(item, placement.id)}
-        disabled={isBusy || isCommandeLocked}
-      />
-      <Button
-        label={t('common.edit')}
-        icon="pi pi-pencil"
-        text
-        onClick={() => onOpenEditPlacementModal(item, placement)}
-        disabled={isBusy || isCommandeLocked}
-      />
-      <Button
-        label={t('common.delete')}
-        icon="pi pi-trash"
-        severity="danger"
-        text
-        onClick={() => onDeletePlacement(placement.id, item.id)}
-        disabled={isBusy || isCommandeLocked}
-      />
-    </div>
-  );
-
-  const placementRows = placementsForItem
-    .map((placement) => {
+    if (!acc[key]) {
       const source = getPlacementSource(placement);
-      const rollId = placement.rollId ?? placement.roll?.id;
-      const wastePieceId = placement.wastePieceId ?? placement.wastePiece?.id;
-      const type = rollId ? 'ROLL' : wastePieceId ? 'WASTE_PIECE' : 'UNKNOWN';
-      const sourceId = rollId ?? wastePieceId ?? placement.id;
       const reference = source?.reference ?? source?.materialType ?? sourceId.slice(0, 8);
-      const sourceLabel = formatSourceLabel(source, reference);
-      const itemLabel = placement.commandeItem
-        ? [
-            placement.commandeItem.lineNumber ? `Line ${placement.commandeItem.lineNumber}` : null,
-            placement.commandeItem.reference ?? null,
-          ]
-            .filter(Boolean)
-            .join(' • ')
-        : null;
-      const groupLabel =
-        type === 'ROLL'
-          ? `Roll ${sourceLabel}`
-          : type === 'WASTE_PIECE'
-          ? `Waste ${sourceLabel}`
-          : `Source ${sourceLabel}`;
-      return {
-        ...placement,
-        groupKey: `${type}:${sourceId}`,
-        groupLabel,
-        groupItemLabel: itemLabel,
+      acc[key] = {
+        type,
+        source,
+        label: formatSourceLabel(source, reference),
+        placements: [],
       };
-    })
-    .sort((a, b) => a.groupKey.localeCompare(b.groupKey));
+    }
+    acc[key].placements.push(placement);
+    return acc;
+  }, {} as Record<string, { type: string; source: any; label: string; placements: PlacedRectangle[] }>);
 
   return (
-    <div style={{ marginTop: '0.75rem' }}>
-      <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{t('rollDetail.placements')}</div>
-      <div style={{ display: 'grid', gap: '0.75rem' }}>
-        <div style={{ display: 'grid', gap: '0.75rem' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '0.75rem',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ fontWeight: 600 }}>{t('rollDetail.existingPlacements')}</div>
-            <Button
-              label={t('rollDetail.addPlacement')}
-              icon="pi pi-plus"
-              severity="secondary"
-              onClick={() => onOpenPlacementModal(item)}
-              disabled={isBusy || isCommandeLocked}
-            />
-          </div>
-          <DataTable
-            value={placementRows}
-            dataKey="id"
-            emptyMessage={t('rollDetail.noPlacements') || 'No placements recorded for this item.'}
-            size="small"
-            className="p-datatable-sm"
-            rowGroupMode="subheader"
-            groupRowsBy="groupKey"
-            sortField="groupKey"
-            sortOrder={1}
-            rowGroupHeaderTemplate={(row) => (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '0.75rem',
-                  padding: '0.25rem 0',
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                  <span style={{ fontWeight: 600 }}>{row.groupLabel}</span>
-                  {row.groupItemLabel ? (
-                    <span style={{ color: 'var(--text-color-secondary)', fontSize: '0.9rem' }}>
-                      {row.groupItemLabel}
-                    </span>
-                  ) : null}
+    <div className="operator-section">
+      <div className="operator-section__header">
+        <h3>{t('rollDetail.existingPlacements')}</h3>
+        <Button
+          label={t('rollDetail.addPlacement')}
+          icon="pi pi-plus"
+          severity="primary"
+          rounded
+          onClick={() => onOpenPlacementModal(item)}
+          disabled={isBusy || isCommandeLocked}
+        />
+      </div>
+
+      {Object.entries(groupedPlacements).length === 0 ? (
+        <div className="operator-empty-state">
+          <i className="pi pi-map" style={{ fontSize: '2rem', marginBottom: '1rem', opacity: 0.5 }}></i>
+          <p>{t('rollDetail.noPlacements') || 'No placements recorded for this item.'}</p>
+        </div>
+      ) : (
+        <div className="operator-groups">
+          {Object.entries(groupedPlacements).map(([key, group]) => (
+            <div key={key} className="operator-group">
+              <div className="operator-group__header">
+                <div className="operator-group__title">
+                  <Tag 
+                    value={group.type === 'ROLL' ? 'ROLL' : 'WASTE'} 
+                    severity={group.type === 'ROLL' ? 'info' : 'success'}
+                    style={{ marginRight: '0.75rem' }}
+                  />
+                  <strong>{group.label}</strong>
                 </div>
                 <Button
-                  label="Preview"
+                  label="Preview Source"
                   icon="pi pi-eye"
                   text
-                  onClick={() => onOpenPlacementPreview(row)}
+                  size="small"
+                  onClick={() => onOpenPlacementPreview(group.placements[0])}
                 />
               </div>
-            )}
-          >
-            <Column header={t('rollDetail.source')} body={renderPlacementSource} />
-            <Column field="xMm" header={t('rollDetail.xMm')} />
-            <Column field="yMm" header={t('rollDetail.yMm')} />
-            <Column field="widthMm" header={t('rollDetail.widthMm')} />
-            <Column field="heightMm" header={t('rollDetail.heightMm')} />
-            <Column header={t('rollDetail.color')} body={renderPlacementColor} />
-            <Column header={t('rollDetail.actions')} body={renderPlacementActions} />
-          </DataTable>
+              
+              <div className="operator-grid">
+                {group.placements.map((placement) => {
+                  const production = productionForItem.filter(p => p.placedRectangleId === placement.id);
+                  
+                  return (
+                    <div key={placement.id} className="operator-card">
+                      <div className="operator-card__content">
+                        <div className="operator-card__metrics">
+                          <div className="operator-metric">
+                            <span className="operator-metric__label">X</span>
+                            <span className="operator-metric__value">{placement.xMm}</span>
+                          </div>
+                          <div className="operator-metric">
+                            <span className="operator-metric__label">Y</span>
+                            <span className="operator-metric__value">{placement.yMm}</span>
+                          </div>
+                          <Divider layout="vertical" />
+                          <div className="operator-metric operator-metric--highlight">
+                            <span className="operator-metric__label">W</span>
+                            <span className="operator-metric__value">{placement.widthMm}</span>
+                          </div>
+                          <div className="operator-metric operator-metric--highlight">
+                            <span className="operator-metric__label">H</span>
+                            <span className="operator-metric__value">{placement.heightMm}</span>
+                          </div>
+                        </div>
+
+                        <div className="operator-card__meta">
+                          {placement.colorHexCode && (
+                            <div className="operator-color-tag">
+                              <span 
+                                className="operator-color-tag__dot" 
+                                style={{ backgroundColor: placement.colorHexCode }}
+                              />
+                              {placement.colorName || placement.colorHexCode}
+                            </div>
+                          )}
+                          <span className="operator-id-tag">ID: {placement.id.slice(0, 6)}</span>
+                        </div>
+
+                        {production.length > 0 && (
+                          <div className="operator-nested-list">
+                            <div className="operator-nested-list__header">
+                              {t('commandes.producedPieces')} ({production.length})
+                            </div>
+                            {production.map(p => (
+                              <div key={p.id} className="operator-nested-item">
+                                <div className="operator-nested-item__info">
+                                  <Tag 
+                                    severity={p.goodProduction ? 'success' : 'danger'} 
+                                    style={{ width: '8px', height: '8px', borderRadius: '50%', padding: 0 }}
+                                  />
+                                  <span>{p.quantity} x {p.pieceLengthM}m x {p.pieceWidthMm}mm</span>
+                                </div>
+                                {onDeleteProduction && (
+                                  <Button 
+                                    icon="pi pi-times" 
+                                    text 
+                                    rounded 
+                                    severity="danger" 
+                                    className="operator-nested-item__delete"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDeleteProduction(p.id);
+                                    }}
+                                    disabled={isBusy || isCommandeLocked}
+                                  />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="operator-card__actions">
+                        <Button
+                          label={t('commandes.addProductionItem')}
+                          icon="pi pi-plus"
+                          severity="success"
+                          className="p-button-sm"
+                          onClick={() => onOpenProductionModal(item, placement.id)}
+                          disabled={isBusy || isCommandeLocked}
+                        />
+                        <div className="operator-card__sub-actions">
+                          <Button
+                            icon="pi pi-pencil"
+                            text
+                            rounded
+                            tooltip={t('common.edit')}
+                            onClick={() => onOpenEditPlacementModal(item, placement)}
+                            disabled={isBusy || isCommandeLocked}
+                          />
+                          <Button
+                            icon="pi pi-trash"
+                            text
+                            rounded
+                            severity="danger"
+                            tooltip={t('common.delete')}
+                            onClick={() => onDeletePlacement(placement.id, item.id)}
+                            disabled={isBusy || isCommandeLocked}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }
+
+
