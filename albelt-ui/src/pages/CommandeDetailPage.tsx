@@ -151,7 +151,7 @@ export function CommandeDetailPage() {
     };
 
     fetchData();
-  }, [id, t]);
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -2111,7 +2111,6 @@ export function CommandeDetailPage() {
                   value={selectedAltierId}
                   onChange={(e) => setSelectedAltierId(e.value)}
                   placeholder={t('inventory.selectWorkshop')}
-                  showClear
                   disabled={altierScoresLoading || altierSaving || isCommandeLocked}
                   className="commande-detail-input-full"
                 />
@@ -2128,13 +2127,25 @@ export function CommandeDetailPage() {
             </Card>
 
             <StatusUpdateCard
-              selectedStatus={selectedStatus}
-              statusOptions={statusOptions}
               updating={updating}
-              currentStatus={commande.status}
               disabled={isCommandeLocked}
-              onStatusChange={(nextStatus) => setSelectedStatus(nextStatus)}
-              onUpdate={handleStatusUpdate}
+              selectedStatus={selectedStatus}
+              onStart={async () => {
+                setSelectedStatus('ENCOURS');
+                setTimeout(() => handleStatusUpdate(), 0);
+              }}
+              onUndoStart={async () => {
+                setSelectedStatus('PENDING');
+                setTimeout(() => handleStatusUpdate(), 0);
+              }}
+              onCancel={async () => {
+                setSelectedStatus('CANCELLED');
+                setTimeout(() => handleStatusUpdate(), 0);
+              }}
+              onCompleted={async () => {
+                setSelectedStatus('COMPLETED');
+                setTimeout(() => handleStatusUpdate(), 0);
+              }}
               t={t}
             />
           </div>
@@ -2309,9 +2320,6 @@ export function CommandeDetailPage() {
                       activeIndex={activeItemDetailTabIndex}
                       onTabChange={(e) => setActiveItemDetailTabIndex(e.index)}
                     >
-                      {/* <TabPanel header={t('commandes.cutNeed')}>
-                        {renderItemCommonSection(selectedItem)}
-                      </TabPanel> */}
                       <TabPanel header={t('commandes.materialPlan')}>
                         {renderOptimizationSection(selectedItem)}
                       </TabPanel>

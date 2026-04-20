@@ -876,6 +876,9 @@
     }
   },
   "commandes": {
+    "start": "Démarrer",
+    "undoStart": "Annuler démarrage",
+    "completed": "Terminé",
     "common": "Commun",
     "title": "Commandes",
     "loading": "Chargement des commandes...",

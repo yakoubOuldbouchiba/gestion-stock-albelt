@@ -846,6 +846,9 @@
     "loading": "Loading..."
   },
   "commandes": {
+    "start": "Start",
+    "undoStart": "Undo Start",
+    "completed": "Completed",
     "common": "Common",
     "title": "Orders (Commandes)",
     "loading": "Loading orders...",

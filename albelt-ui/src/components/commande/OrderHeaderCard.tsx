@@ -27,6 +27,7 @@ export const OrderHeaderCard = ({
   onBack,
   t,
 }: OrderHeaderCardProps) => {
+
   const normalizedStatus = (commande.status || '').trim().toUpperCase();
   const isCommandeLocked = normalizedStatus === 'COMPLETED' || normalizedStatus === 'CANCELLED';
 
@@ -37,7 +38,7 @@ export const OrderHeaderCard = ({
           <span className="commande-header-card__eyebrow">Manage order</span>
           <span className="commande-header-card__number">{commande.numeroCommande}</span>
           <div>
-            <Tag value={t('commandes.statuses.' + commande.status)} severity={getStatusSeverity(commande.status)} />
+            <Tag value={t('statuses.' + commande.status)} severity={getStatusSeverity(commande.status)} />
           </div>
         </div>
 

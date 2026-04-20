@@ -864,6 +864,9 @@
     }
   },
   "commandes": {
+    "start": "بدء ",
+    "undoStart": "تراجع عن البدء ",
+    "completed": "اكتمل ",
     "common": "الطلب",
     "title": "الطلبات",
     "loading": "جاري تحميل الطلبات...",

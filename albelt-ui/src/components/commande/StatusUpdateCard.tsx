@@ -1,45 +1,68 @@
+
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
-import { Dropdown } from 'primereact/dropdown';
 import type { Translate } from './commandeTypes';
 
 type StatusUpdateCardProps = {
-  selectedStatus: string;
-  statusOptions: { label: string; value: string }[];
   updating: boolean;
-  currentStatus: string;
   disabled?: boolean;
-  onStatusChange: (nextStatus: string) => void;
-  onUpdate: () => void;
+  selectedStatus: string;
+  onStart: () => void;
+  onUndoStart: () => void;
+  onCancel: () => void;
+  onCompleted: () => void;
   t: Translate;
 };
 
 export const StatusUpdateCard = ({
-  selectedStatus,
-  statusOptions,
   updating,
-  currentStatus,
   disabled,
-  onStatusChange,
-  onUpdate,
+  selectedStatus,
+  onStart,
+  onUndoStart,
+  onCancel,
+  onCompleted,
   t,
-}: StatusUpdateCardProps) => (
-  <Card title={t('commandes.updateOrderStatus')} style={{ marginBottom: '1rem' }}>
-    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-      <Dropdown
-        value={selectedStatus}
-        options={statusOptions}
-        onChange={(e) => onStatusChange(e.value)}
-        placeholder={t('commandes.updateStatus')}
-        style={{ minWidth: '220px' }}
-        disabled={Boolean(disabled) || updating}
-      />
-      <Button
-        label={updating ? t('commandes.updating') : t('commandes.updateStatus')}
-        onClick={onUpdate}
-        disabled={Boolean(disabled) || updating || selectedStatus === currentStatus}
-        loading={updating}
-      />
-    </div>
-  </Card>
-);
+}: StatusUpdateCardProps) => {
+  // Normalize status for comparison
+  const status = (selectedStatus || '').trim().toUpperCase();
+  return (
+    <Card title={t('commandes.updateOrderStatus')} style={{ marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Show Start if status is PENDING */}
+        {status === 'PENDING' && (
+          <Button
+            label={t('commandes.start') || 'Start'}
+            onClick={onStart}
+            disabled={Boolean(disabled) || updating}
+          />
+        )}
+        {/* Show Undo Start if status is ENCOURS */}
+        {status === 'ENCOURS' && (
+          <Button
+            label={t('commandes.undoStart') || 'Undo Start'}
+            onClick={onUndoStart}
+            disabled={Boolean(disabled) || updating}
+            severity="secondary"
+          />
+        )}
+        {/* Cancel always visible */}
+        <Button
+          label={t('commandes.cancel') || 'Cancel'}
+          onClick={onCancel}
+          disabled={Boolean(disabled) || updating}
+          severity="danger"
+        />
+        {/* Completed only if ENCOURS */}
+        {status === 'ENCOURS' && (
+          <Button
+            label={t('commandes.completed') || 'Completed'}
+            onClick={onCompleted}
+            disabled={Boolean(disabled) || updating}
+            severity="success"
+          />
+        )}
+      </div>
+    </Card>
+  );
+};
