@@ -417,7 +417,6 @@ export function CommandeDetailPage() {
 
   return (
     <div className="commande-detail-page">
-      <Toast ref={toastRef} />
       <ConfirmDialog />
 
       <div className="commande-detail-shell">
@@ -700,6 +699,8 @@ export function CommandeDetailPage() {
           </div>
         )}
       </Dialog>
+
+      <Toast ref={toastRef} baseZIndex={10000} />
     </div>
   );
 }
