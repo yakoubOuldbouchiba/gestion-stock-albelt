@@ -99,9 +99,9 @@ export function InventoryPage() {
 
   const [filters, setFilters] = useState({
     searchTerm: '',
-    materialFilter: 'ALL' as MaterialType | 'ALL',
-    statusFilter: 'ALL' as RollStatus | 'ALL',
+    materialFilter: 'ALL' as MaterialType,
     altierFilter: 'ALL',
+    statusFilter: 'ALL' as RollStatus,
     colorFilter: 'ALL',
     nbPlisFilter: '',
     thicknessFilter: '',
@@ -411,8 +411,8 @@ export function InventoryPage() {
   const loadRolls = async (
     pageIndex: number,
     search: string,
-    material: MaterialType | 'ALL',
-    status: RollStatus | 'ALL',
+    material: MaterialType,
+    status: RollStatus,
     altierId: string,
     colorId: string,
     nbPlis: string,
@@ -450,8 +450,8 @@ export function InventoryPage() {
   const loadWastePieces = async (
     pageIndex: number,
     search: string,
-    material: MaterialType | 'ALL',
-    status: RollStatus | 'ALL',
+    material: MaterialType,
+    status: RollStatus,
     altierId: string,
     colorId: string,
     nbPlis: string,
@@ -789,12 +789,12 @@ export function InventoryPage() {
     );
   };
 
-  const materialFilterOptions = useMemo((): { label: string; value: MaterialType | 'ALL' }[] => [
+  const materialFilterOptions = useMemo((): { label: string; value: MaterialType }[] => [
     { label: t('inventory.allMaterials'), value: 'ALL' },
     ...materials.map((mat) => ({ label: mat, value: mat }))
   ], [t, materials]);
 
-  const statusFilterOptions = useMemo((): { label: string; value: RollStatus | 'ALL' }[] => [
+  const statusFilterOptions = useMemo((): { label: string; value: RollStatus }[] => [
     { label: t('inventory.allStatus'), value: 'ALL' },
     ...statuses.map((status) => ({ label: t(`statuses.${status}`), value: status }))
   ], [t, statuses]);
@@ -809,9 +809,9 @@ export function InventoryPage() {
   }, []);
 
   const handleSearchChange = (value: string) => applyFilterChange({ searchTerm: value });
-  const handleMaterialChange = (value: MaterialType | 'ALL') => applyFilterChange({ materialFilter: value });
+  const handleMaterialChange = (value: MaterialType) => applyFilterChange({ materialFilter: value });
   const handleAltierChange = (value: string) => applyFilterChange({ altierFilter: value });
-  const handleStatusChange = (value: RollStatus | 'ALL') => applyFilterChange({ statusFilter: value });
+  const handleStatusChange = (value: RollStatus) => applyFilterChange({ statusFilter: value });
   const handleColorChange = (value: string) => applyFilterChange({ colorFilter: value });
   const handleNbPlisChange = (value: string) => applyFilterChange({ nbPlisFilter: value });
   const handleThicknessChange = (value: string) => applyFilterChange({ thicknessFilter: value });
