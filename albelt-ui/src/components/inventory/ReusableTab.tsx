@@ -99,7 +99,6 @@ export function ReusableTab({
           size="small"
           className="industrial-table"
           emptyMessage={t('inventory.noReusableChuteFound')}
-          stickyHeader
           removableSort
         >
           <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>

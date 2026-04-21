@@ -652,12 +652,6 @@ export function InventoryPage() {
     );
   };
 
-  const rollWastePercentBody = (roll: Roll) => {
-    const usedAreaM2 = roll.usedAreaM2 ?? roll.totalWasteAreaM2 ?? 0;
-    const percent = roll.areaM2 ? (usedAreaM2 / roll.areaM2) * 100 : 0;
-    return `${percent.toFixed(1)}%`;
-  };
-
   const rollStatusBody = (roll: Roll) => <Tag value={t(`statuses.${roll.status}`)} severity={statusSeverity(roll.status)} />;
 
   const rollActionsBody = (roll: Roll) => (

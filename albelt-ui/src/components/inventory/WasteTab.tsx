@@ -76,7 +76,6 @@ export function WasteTab({
           size="small"
           className="industrial-table"
           emptyMessage={t('inventory.noWasteChuteFound')}
-          stickyHeader
           removableSort
         >
           <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>

@@ -100,7 +100,6 @@ export function InventoryTab({
           size="small"
           className="industrial-table"
           emptyMessage={t('inventory.noRollsFound')}
-          stickyHeader
         >
           <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
           <Column header={t('waste.tableMaterial')} body={rollMaterialBody} sortable field="materialType" />
