@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -15,6 +13,8 @@ type WasteTabProps = {
   groupedLoading: boolean;
   renderGroupedStatsTable: (rows: any[], loading: boolean) => JSX.Element;
   pieces: WastePiece[];
+  selection: WastePiece[];
+  onSelectionChange: (e: any) => void;
   wasteMaterialBody: (piece: WastePiece) => JSX.Element;
   wasteStatusBody: (piece: WastePiece) => JSX.Element;
   wasteActionsBody: (piece: WastePiece) => JSX.Element | null;
@@ -22,8 +22,6 @@ type WasteTabProps = {
   wasteTotalElements: number;
   pageSize: number;
   onPageChange: (page: number) => void;
-  onOpenCreateChute: () => void;
-  filters: ReactNode;
   formatDate: (value: string) => string;
 };
 
@@ -35,6 +33,8 @@ export function WasteTab({
   groupedLoading,
   renderGroupedStatsTable,
   pieces,
+  selection,
+  onSelectionChange,
   wasteMaterialBody,
   wasteStatusBody,
   wasteActionsBody,
@@ -42,44 +42,61 @@ export function WasteTab({
   wasteTotalElements,
   pageSize,
   onPageChange,
-  onOpenCreateChute,
-  filters,
   formatDate,
 }: WasteTabProps) {
   return (
-    <div style={{ display: 'grid', gap: '1rem' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem' }}>
-        <Button
-          label={t('inventory.createChute') || 'Create Chute'}
-          icon="pi pi-plus"
-          onClick={onOpenCreateChute}
-        />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Checkbox
             inputId="groupedWaste"
             checked={showGrouped}
             onChange={(e) => onToggleGrouped(!!e.checked)}
           />
-          <label htmlFor="groupedWaste">{t('inventory.showGroupedStats') || 'Show Grouped Statistics'}</label>
+          <label htmlFor="groupedWaste" style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+            {t('inventory.showGroupedStats') || 'Show Grouped Statistics'}
+          </label>
         </div>
+        {selection.length > 0 && (
+          <div className="bulk-actions-hint">
+            <strong>{selection.length}</strong> {t('inventory.itemsSelected') || 'Items Selected'}
+          </div>
+        )}
       </div>
-
-      {filters}
 
       {showGrouped ? (
         renderGroupedStatsTable(groupedStats, groupedLoading)
       ) : (
         <DataTable
           value={pieces}
+          selection={selection}
+          onSelectionChange={onSelectionChange}
           dataKey="id"
+          selectionMode="multiple"
           size="small"
+          className="industrial-table"
           emptyMessage={t('inventory.noWasteChuteFound')}
+          stickyHeader
+          removableSort
         >
-          <Column header={t('inventory.material')} body={wasteMaterialBody} />
-          <Column header={t('inventory.area')} body={(piece: WastePiece) => piece.areaM2.toFixed(2)} />
-          <Column header={t('inventory.status')} body={wasteStatusBody} />
-          <Column header={t('inventory.received')} body={(piece: WastePiece) => formatDate(piece.createdAt)} />
-          <Column header={t('waste.tableActions')} body={wasteActionsBody} />
+          <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+          <Column header={t('inventory.material')} body={wasteMaterialBody} sortable field="materialType" />
+          <Column 
+            header={t('inventory.area')} 
+            body={(piece: WastePiece) => <span>{piece.areaM2.toFixed(2)} m²</span>} 
+            sortable
+            field="areaM2"
+          />
+          <Column header={t('inventory.status')} body={wasteStatusBody} sortable field="status" />
+          <Column 
+            header={t('inventory.received')} 
+            body={(piece: WastePiece) => <span style={{ fontSize: '0.85rem' }}>{formatDate(piece.createdAt)}</span>} 
+            sortable 
+            field="createdAt" 
+            className="hide-on-md"
+            headerClassName="hide-on-md"
+          />
+          <Column header={t('waste.tableActions')} body={wasteActionsBody} style={{ width: '80px' }} />
         </DataTable>
       )}
 
@@ -88,6 +105,8 @@ export function WasteTab({
         rows={pageSize}
         totalRecords={wasteTotalElements}
         onPageChange={(e) => onPageChange(e.page ?? 0)}
+        template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+        currentPageReportTemplate="{first} to {last} of {totalRecords}"
       />
     </div>
   );

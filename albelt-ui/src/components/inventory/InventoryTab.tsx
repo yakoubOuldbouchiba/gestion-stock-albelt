@@ -1,124 +1,125 @@
-import type { ReactNode } from 'react';
-import { Button } from 'primereact/button';
+
 import { Checkbox } from 'primereact/checkbox';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Paginator } from 'primereact/paginator';
-import type { MaterialType, Roll } from '../../types';
+import type { Roll } from '../../types';
 import type { Translate } from '../commande/commandeTypes';
-
-type InventoryStat = {
-  material: MaterialType;
-  count: number;
-  area: number;
-};
 
 type InventoryTabProps = {
   t: Translate;
-  stats: InventoryStat[];
-  getMaterialColor: (material: MaterialType, colorHex?: string | null) => string;
   showGrouped: boolean;
   onToggleGrouped: (value: boolean) => void;
   groupedStats: any[];
   groupedLoading: boolean;
   renderGroupedStatsTable: (rows: any[], loading: boolean) => JSX.Element;
   rolls: Roll[];
+  selection: Roll[];
+  onSelectionChange: (e: any) => void;
   rollTotalElements: number;
   rollPage: number;
   pageSize: number;
   onPageChange: (page: number) => void;
-  onOpenReceiveRoll: () => void;
   rollMaterialBody: (roll: Roll) => JSX.Element;
-  rollWastePercentBody: (roll: Roll) => string;
   rollStatusBody: (roll: Roll) => JSX.Element;
   rollActionsBody: (roll: Roll) => JSX.Element;
-  filters: ReactNode;
   formatDate: (value: string) => string;
 };
 
 export function InventoryTab({
   t,
-  stats,
-  getMaterialColor,
   showGrouped,
   onToggleGrouped,
   groupedStats,
   groupedLoading,
   renderGroupedStatsTable,
   rolls,
+  selection,
+  onSelectionChange,
   rollTotalElements,
   rollPage,
   pageSize,
   onPageChange,
-  onOpenReceiveRoll,
   rollMaterialBody,
-  rollWastePercentBody,
   rollStatusBody,
   rollActionsBody,
-  filters,
   formatDate,
 }: InventoryTabProps) {
-  return (
-    <div style={{ display: 'grid', gap: '1rem' }}>
-      <div className="albel-dashboard__stats">
-        {stats.map((stat) => (
-          <div key={stat.material} className="albel-stat">
-            <div className="albel-stat__label" style={{ color: getMaterialColor(stat.material) }}>
-              {stat.material}
-            </div>
-            <div className="albel-stat__value">{stat.count}</div>
-            <div className="albel-stat__meta">{t('inventory.availableRolls')}</div>
-            <div className="albel-stat__meta">{stat.area.toFixed(2)} m²</div>
-          </div>
-        ))}
-      </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem' }}>
-        <Button
-          label={t('inventory.receiveNewRoll') || 'Receive Roll'}
-          icon="pi pi-plus"
-          onClick={onOpenReceiveRoll}
-        />
+  const stockProgressBody = (roll: Roll) => {
+    const used = roll.usedAreaM2 ?? roll.totalWasteAreaM2 ?? 0;
+    const available = roll.availableAreaM2 ?? (roll.areaM2 || 0) - used;
+    const percent = roll.areaM2 ? (available / roll.areaM2) * 100 : 0;
+
+    let color = 'var(--color-accent)';
+    if (percent > 50) color = 'var(--color-accent-cool)';
+    else if (percent > 20) color = '#f59e0b';
+
+    return (
+      <div className="progress-cell">
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+          <span>{percent.toFixed(0)}%</span>
+          <span style={{ color: 'var(--color-muted)' }}>{available.toFixed(1)} m²</span>
+        </div>
+        <div className="stock-progress">
+          <div className="stock-progress-fill" style={{ width: `${percent}%`, backgroundColor: color } as any}></div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Checkbox
             inputId="groupedInventory"
             checked={showGrouped}
             onChange={(e) => onToggleGrouped(!!e.checked)}
           />
-          <label htmlFor="groupedInventory">{t('inventory.showGroupedStats') || 'Show Grouped Statistics'}</label>
+          <label htmlFor="groupedInventory" style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+            {t('inventory.showGroupedStats') || 'Show Grouped Statistics'}
+          </label>
         </div>
+        {selection.length > 0 && (
+          <div className="bulk-actions-hint">
+            <strong>{selection.length}</strong> {t('inventory.itemsSelected') || 'Items Selected'}
+          </div>
+        )}
       </div>
-
-      {filters}
 
       {showGrouped ? (
         renderGroupedStatsTable(groupedStats, groupedLoading)
       ) : (
         <DataTable
           value={rolls}
+          selection={selection}
+          onSelectionChange={onSelectionChange}
           dataKey="id"
+          selectionMode="multiple"
           size="small"
+          className="industrial-table"
           emptyMessage={t('inventory.noRollsFound')}
+          stickyHeader
         >
-          <Column header={t('waste.tableMaterial')} body={rollMaterialBody} />
-          <Column header={t('waste.reference') || 'Reference'} body={(roll: Roll) => roll.reference || 'N/A'} />
-          <Column header={t('waste.tableArea')} body={(roll: Roll) => (roll.areaM2 || 0).toFixed(2)} />
+          <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+          <Column header={t('waste.tableMaterial')} body={rollMaterialBody} sortable field="materialType" />
           <Column
-            header={t('inventory.waste')}
-            body={(roll: Roll) => (roll.usedAreaM2 ?? roll.totalWasteAreaM2 ?? 0).toFixed(2)}
+            header={t('inventory.stockStatus') || 'Stock Level'}
+            body={stockProgressBody}
+            sortable
+            field="availableAreaM2"
           />
+          <Column header={t('waste.tableStatus')} body={rollStatusBody} sortable field="status" />
           <Column
-            header={t('inventory.availableArea')}
-            body={(roll: Roll) => {
-              const used = roll.usedAreaM2 ?? roll.totalWasteAreaM2 ?? 0;
-              const available = roll.availableAreaM2 ?? (roll.areaM2 || 0) - used;
-              return available.toFixed(2);
-            }}
+            header={t('waste.tableCreated')}
+            body={(roll: Roll) => <span style={{ fontSize: '0.85rem' }}>{formatDate(roll.receivedDate)}</span>}
+            sortable
+            field="receivedDate"
+            className="hide-on-md"
+            headerClassName="hide-on-md"
           />
-          <Column header={t('inventory.wastePercent')} body={rollWastePercentBody} />
-          <Column header={t('waste.tableStatus')} body={rollStatusBody} />
-          <Column header={t('waste.tableCreated')} body={(roll: Roll) => formatDate(roll.receivedDate)} />
-          <Column header={t('waste.tableActions')} body={rollActionsBody} />
+          <Column header={t('waste.tableActions')} body={rollActionsBody} style={{ width: '80px' }} />
         </DataTable>
       )}
 
@@ -127,6 +128,8 @@ export function InventoryTab({
         rows={pageSize}
         totalRecords={rollTotalElements}
         onPageChange={(e) => onPageChange(e.page ?? 0)}
+        template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+        currentPageReportTemplate="{first} to {last} of {totalRecords}"
       />
     </div>
   );

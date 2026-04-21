@@ -1,0 +1,471 @@
+/* InventoryPage.css - Industrial ERP Aesthetics */
+
+.inventory-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    gap: 1rem;
+    background: #f1f5f9;
+    box-sizing: border-box;
+}
+
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.inventory-title-row {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.inventory-title-row h1 {
+    font-size: 1.25rem;
+    margin: 0;
+}
+
+/* Stock KPI Cards */
+.stock-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+}
+
+.stock-kpi-card {
+    background: white;
+    padding: 1.25rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-xs);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stock-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.stock-kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--stat-color, var(--color-accent));
+}
+
+.stock-kpi-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.stock-kpi-value {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 0.25rem;
+}
+
+.stock-kpi-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+}
+
+.stock-kpi-trend {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Layout with Sidebar */
+.inventory-main-layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 1fr;
+    gap: 1rem;
+    min-height: 0; /* Critical for preventing flex blowout */
+}
+
+@media (max-width: 1024px) {
+    .inventory-main-layout {
+        grid-template-columns: 1fr;
+    }
+    .inventory-sidebar {
+        display: none; /* Hide sidebar on small screens to preserve viewport */
+    }
+}
+
+.inventory-sidebar {
+    background: white;
+    padding: 1.25rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-height: 0;
+}
+
+.inventory-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+    min-height: 0;
+}
+
+.stock-kpi-grid {
+    display: flex;
+    gap: 0.75rem;
+    padding-bottom: 0.25rem;
+    flex-shrink: 0; /* Keep KPIs visible */
+}
+
+.stock-kpi-card {
+    flex: 0 0 180px;
+    background: white;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    position: relative;
+    overflow: hidden;
+}
+
+.stock-kpi-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--color-muted);
+}
+
+.stock-kpi-value {
+    font-size: 1.25rem;
+    font-weight: 800;
+}
+
+.filter-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.filter-panel-header h3 {
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin: 0;
+}
+
+/* Data Table Industrial Styling */
+.industrial-table {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.industrial-table .p-datatable-thead > tr > th {
+    background: #f1f5f9;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    padding: 0.75rem 1rem;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    font-weight: 800;
+    border-bottom: 2px solid var(--color-border);
+    white-space: nowrap;
+}
+
+.industrial-table .p-datatable-tbody > tr {
+    transition: background 0.15s ease;
+}
+
+.industrial-table .p-datatable-tbody > tr:nth-child(even) {
+    background: #fcfcfd;
+}
+
+.industrial-table .p-datatable-tbody > tr:hover {
+    background: #f8fafc !important;
+}
+
+.industrial-table .p-datatable-tbody > tr > td {
+    padding: 0.75rem 1rem;
+    vertical-align: middle;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #f1f5f9;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal; /* Allow wrapping to prevent horizontal scroll */
+}
+
+.industrial-table .p-datatable-wrapper {
+    flex: 1;
+    overflow-x: hidden !important; /* Force zero horizontal scroll */
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* Sticky Actions Column */
+.industrial-table .p-datatable-tbody > tr > td:last-child,
+.industrial-table .p-datatable-thead > tr > th:last-child {
+    position: sticky;
+    right: 0;
+    background: inherit;
+    z-index: 1;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+}
+
+.industrial-table .p-datatable-thead > tr > th:last-child {
+    background: #f1f5f9;
+    z-index: 2;
+}
+
+.id-cell {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+}
+
+.reference-cell {
+    font-weight: 700;
+    color: var(--color-ink);
+}
+
+.progress-cell {
+    width: 120px;
+}
+
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+/* Custom Progress Bar for Stock */
+.stock-progress {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.stock-progress-fill {
+    height: 100%;
+    background: var(--fill-color, var(--color-accent));
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Actions Menu */
+.table-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* Tab Styling Overrides */
+.inventory-tabs .p-tabview-nav {
+    background: transparent !important;
+    border: none !important;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.inventory-tabs .p-tabview-nav li .p-tabview-nav-link {
+    background: white !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0.75rem 1.25rem !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    color: var(--color-muted) !important;
+    transition: all 0.2s !important;
+}
+
+.inventory-tabs .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+    background: var(--color-ink) !important;
+    color: white !important;
+    border-color: var(--color-ink) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.inventory-tabs {
+    display: flex;
+    flex-direction: column;
+}
+
+.inventory-tabs .p-tabview-panels {
+    background: transparent !important;
+    padding: 0 !important;
+}
+
+/* Quick Action Buttons Row */
+.action-bar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Industrial Filters in Sidebar */
+.inventory-filters-industrial {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.inventory-filters-industrial .inventory-filters__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.inventory-filters-industrial .inventory-filters__label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--color-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.inventory-filters-industrial .p-inputtext,
+.inventory-filters-industrial .p-dropdown {
+    width: 100%;
+    border-color: #e2e8f0;
+}
+
+.inventory-filters-industrial .p-inputtext:focus,
+.bulk-actions-hint {
+    background: var(--color-ink);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.p-datatable.industrial-table .p-checkbox .p-checkbox-box.p-highlight {
+    background: var(--color-ink) !important;
+    border-color: var(--color-ink) !important;
+}
+
+.industrial-table .p-sortable-column-icon {
+    font-size: 0.7rem;
+    margin-left: 0.5rem;
+    color: var(--color-muted);
+}
+
+.industrial-table .p-highlight .p-sortable-column-icon {
+    color: var(--color-ink);
+}
+
+.industrial-table .p-checkbox .p-checkbox-box {
+    border-radius: 4px;
+    border: 1.5px solid #cbd5e1;
+}
+
+.industrial-table .p-checkbox .p-checkbox-box:hover {
+    border-color: var(--color-ink);
+}
+
+.industrial-table .p-checkbox .p-checkbox-box.p-highlight {
+    background: var(--color-ink) !important;
+    border-color: var(--color-ink) !important;
+}
+
+.industrial-table .p-sortable-column:focus {
+    box-shadow: none !important;
+}
+
+.industrial-table .p-datatable-thead > tr > th.p-sortable-column:hover {
+    background: #e2e8f0 !important;
+}
+
+/* Responsive Column Visibility */
+@media (max-width: 1400px) {
+    .hide-on-md {
+        display: none !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .hide-on-sm {
+        display: none !important;
+    }
+}
+
+/* Merged Cell Styling */
+.material-merged-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.25rem 0;
+}
+
+.merged-reference {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: var(--color-ink);
+}
+
+.merged-details {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    font-weight: 600;
+}
+
+.merged-meta {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.p-tag {
+    width: fit-content;
+    font-size: 0.65rem !important;
+    padding: 0.2rem 0.5rem !important;
+}
