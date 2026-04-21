@@ -789,8 +789,15 @@ export function InventoryPage() {
     );
   };
 
-  const materialFilterOptions = useMemo(() => [{ label: t('inventory.allMaterials'), value: 'ALL' }, ...materials.map((mat) => ({ label: mat, value: mat }))], [t, materials]);
-  const statusFilterOptions = useMemo(() => [{ label: t('inventory.allStatus'), value: 'ALL' }, ...statuses.map((status) => ({ label: t(`statuses.${status}`), value: status }))], [t, statuses]);
+  const materialFilterOptions = useMemo((): { label: string; value: MaterialType | 'ALL' }[] => [
+    { label: t('inventory.allMaterials'), value: 'ALL' },
+    ...materials.map((mat) => ({ label: mat, value: mat }))
+  ], [t, materials]);
+
+  const statusFilterOptions = useMemo((): { label: string; value: RollStatus | 'ALL' }[] => [
+    { label: t('inventory.allStatus'), value: 'ALL' },
+    ...statuses.map((status) => ({ label: t(`statuses.${status}`), value: status }))
+  ], [t, statuses]);
   const altierFilterOptions = useMemo(() => [{ label: t('inventory.allWorkshops'), value: 'ALL' }, ...altiers.map((altier) => ({ label: altier.libelle, value: altier.id }))], [t, altiers]);
   const supplierOptions = useMemo(() => suppliers.map((s) => ({ label: s.name || 'N/A', value: s.id })), [suppliers]);
   const colorOptions = useMemo(() => colors.map((c) => ({ label: `${c.name} (${c.hexCode})`, value: c.id })), [colors]);
