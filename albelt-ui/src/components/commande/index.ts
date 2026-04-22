@@ -8,3 +8,5 @@ export * from './ChuteDialog';
 export * from './PlacementDialog';
 export * from './PlacementPreviewDialog';
 export * from './ProductionDialog';
+export * from './form/CommandeItemsEditor';
+export * from './form/CommandeItemsSummary';

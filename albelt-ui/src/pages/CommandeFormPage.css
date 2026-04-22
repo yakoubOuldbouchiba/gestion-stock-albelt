@@ -1,0 +1,258 @@
+.commande-form-page.page-container {
+  max-width: 1200px;
+  margin-inline: auto;
+}
+
+.commande-form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.commande-field-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.commande-item-card {
+  padding: 1rem;
+}
+
+.commande-form-page .order-items-grid {
+  width: 100%;
+}
+
+.commande-form-page .order-item-fields {
+  width: 100%;
+}
+
+.commande-form-page .p-inputtext,
+.commande-form-page .p-dropdown,
+.commande-form-page .p-multiselect,
+.commande-form-page .p-inputnumber-input,
+.commande-form-page .p-inputtextarea {
+  font-size: 0.92rem;
+}
+
+.commande-form-page .p-inputtext,
+.commande-form-page .p-inputnumber-input,
+.commande-form-page .p-inputtextarea {
+  padding: 0.5rem 0.65rem;
+}
+
+.commande-form-page .p-dropdown .p-dropdown-label,
+.commande-form-page .p-multiselect .p-multiselect-label {
+  padding: 0.5rem 0.65rem;
+}
+
+.commande-form-page .p-dropdown .p-dropdown-trigger,
+.commande-form-page .p-multiselect .p-multiselect-trigger {
+  width: 2.25rem;
+}
+
+.commande-static-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 700px) {
+  .commande-static-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+  }
+}
+
+.commande-static-field {
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+  min-width: 0;
+}
+
+.commande-static-label {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+
+.commande-static-value {
+  font-weight: 650;
+  color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commande-summary-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.9) 100%);
+  box-shadow: var(--shadow-xs);
+  padding: 0.75rem;
+}
+
+.commande-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+@media (min-width: 700px) {
+  .commande-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .commande-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.commande-summary-stat {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.8);
+  min-width: 0;
+}
+
+.commande-summary-stat__icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  flex: 0 0 auto;
+}
+
+.commande-summary-stat__meta {
+  min-width: 0;
+}
+
+.commande-summary-stat__label {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.commande-summary-stat__value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-ink);
+  font-size: 1.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commande-item-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.commande-item-metric {
+  padding: 0.55rem 0.6rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(248, 250, 252, 0.75);
+  min-width: 0;
+}
+
+.commande-item-metric__label {
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.15rem;
+}
+
+.commande-item-metric__value {
+  font-weight: 700;
+  color: var(--color-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .commande-item-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.commande-form-page .order-item-fields {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 700px) {
+  .commande-form-page .order-item-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .commande-form-page .order-item-fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.commande-item-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.commande-form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  position: sticky;
+  bottom: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
+}
+
+@media (min-width: 1100px) {
+  .commande-form-page .order-items-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 699px) {
+  .commande-form-actions {
+    position: static;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+}
