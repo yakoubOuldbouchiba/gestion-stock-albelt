@@ -15,6 +15,7 @@ import { useAsyncLock } from '@hooks/useAsyncLock';
 import { MovementConfirmDialog } from '../components/movement/MovementConfirmDialog';
 import { nowDateTimeLocal, dateTimeLocalToIso } from './hooks/useMovementDateTime';
 import { useMovementsListData } from './hooks/useMovementsListData';
+import { PageHeader } from '../components/PageHeader';
 import './MovementPages.css';
 
 export function MovementsListPage() {
@@ -184,15 +185,11 @@ export function MovementsListPage() {
 
   return (
     <div className="page-container movement-page">
-      <div className="movement-page__header">
-        <div>
-          <h1 className="albel-page-title">{t('movementsList.title')}</h1>
-          <p style={{ margin: 0 }}>{t('movementsList.subtitle')}</p>
-        </div>
-        <div className="movement-page__headerActions">
-          <Button icon="pi pi-plus" label={t('movementsList.createBtn')} onClick={handleCreateMovement} disabled={!user} />
-        </div>
-      </div>
+      <PageHeader
+        title={t('movementsList.title')}
+        subtitle={t('movementsList.subtitle')}
+        actions={<Button icon="pi pi-plus" label={t('movementsList.createBtn')} onClick={handleCreateMovement} disabled={!user} />}
+      />
 
       {data.error && <Message severity="error" text={data.error} style={{ marginBottom: '0.75rem' }} />}
 

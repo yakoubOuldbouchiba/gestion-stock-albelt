@@ -64,10 +64,9 @@
 }
 
 .orders-workbench__summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   gap: 1rem;
-  margin-bottom: 1.1rem;
 }
 
 .orders-workbench__summary-card {

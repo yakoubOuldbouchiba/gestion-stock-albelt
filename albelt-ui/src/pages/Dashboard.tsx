@@ -10,6 +10,7 @@ import { Column } from 'primereact/column';
 import { Tag } from 'primereact/tag';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { PageHeader } from '../components/PageHeader';
 
 export function Dashboard() {
   const { t } = useI18n();
@@ -69,10 +70,10 @@ export function Dashboard() {
 
   return (
     <div className="albel-dashboard">
-      <div className="albel-dashboard__header">
-        <h1 className="albel-dashboard__title">{t('dashboard.title')}</h1>
-        <Button icon="pi pi-refresh" label={t('common.refresh')} onClick={loadDashboardData} />
-      </div>
+      <PageHeader
+        title={t('dashboard.title')}
+        actions={<Button icon="pi pi-refresh" label={t('common.refresh')} onClick={loadDashboardData} />}
+      />
 
       {error && <Message severity="error" text={error} />}
 

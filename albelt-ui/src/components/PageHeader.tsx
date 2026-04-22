@@ -1,20 +1,39 @@
 import type { ReactNode } from 'react';
+import './PageHeader.css';
 
 interface PageHeaderProps {
-  title: string;
-  subtitle?: string;
+  title: string | ReactNode;
+  subtitle?: string | ReactNode;
   actions?: ReactNode;
+  tags?: ReactNode;
+  children?: ReactNode;
 }
 
-export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, actions, tags, children }: PageHeaderProps) {
   return (
-    <div className="albel-page-header" style={{ marginBottom: '1rem' }}>
-      <div style={{ minWidth: 0 }}>
-        <h1 className="albel-page-title">{title}</h1>
-        {subtitle ? <p style={{ margin: 0 }}>{subtitle}</p> : null}
+    <header className="albel-page-header">
+      <div className="albel-page-title-row">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <h1>{title}</h1>
+            {tags && <div style={{ display: 'flex', gap: '0.5rem' }}>{tags}</div>}
+          </div>
+          {subtitle && <p className="albel-page-subtitle">{subtitle}</p>}
+        </div>
+        
+        {actions && (
+          <div className="albel-page-action-bar">
+            {actions}
+          </div>
+        )}
       </div>
-      {actions ? <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>{actions}</div> : null}
-    </div>
+      
+      {children && (
+        <div className="albel-page-header-children">
+          {children}
+        </div>
+      )}
+    </header>
   );
 }
 

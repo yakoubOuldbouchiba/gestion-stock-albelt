@@ -1,4 +1,5 @@
 import { Tag } from 'primereact/tag';
+import { PageHeader } from '../PageHeader';
 
 type TransferWorkbenchHeaderProps = {
   title: string;
@@ -17,8 +18,8 @@ type TransferWorkbenchHeaderProps = {
 };
 
 export function TransferWorkbenchHeader({
-  // title,
-  // description,
+  title,
+  description,
   pendingCount,
   deliveredCount,
   rollTotal,
@@ -32,20 +33,17 @@ export function TransferWorkbenchHeader({
   totalMovementCount,
 }: TransferWorkbenchHeaderProps) {
   return (
-    <>
-      <section className="transfer-workbench__hero">
-        {/* <div className="transfer-workbench__hero-copy">
-          <span className="transfer-workbench__eyebrow">ERP Manufacturing Transfer</span>
-          <h1>{title}</h1>
-          <p>{description}</p>
-        </div> */}
-
-        <div className="transfer-workbench__hero-badges">
+    <PageHeader
+      title={title}
+      subtitle={description}
+      tags={<span className="transfer-workbench__eyebrow">ERP Manufacturing Transfer</span>}
+      actions={
+        <div className="transfer-workbench__hero-badges" style={{ display: 'flex', gap: '0.5rem' }}>
           <Tag value={`Pending: ${pendingCount}`} severity="warning" />
           <Tag value={`Delivered: ${deliveredCount}`} severity="success" />
         </div>
-      </section>
-
+      }
+    >
       <section className="transfer-workbench__summary-grid">
         <article className="transfer-workbench__summary-card">
           <span className="transfer-workbench__summary-label">Rolls</span>
@@ -71,6 +69,6 @@ export function TransferWorkbenchHeader({
           <small>{totalMovementCount} total transferred items</small>
         </article>
       </section>
-    </>
+    </PageHeader>
   );
 }

@@ -1,4 +1,5 @@
 import { Button } from 'primereact/button';
+import { PageHeader } from '../PageHeader';
 import type { TFunction } from 'i18next';
 import type { WorkbenchSummaryMetric } from './CommandesWorkbench.types';
 
@@ -14,30 +15,22 @@ export function CommandesWorkbenchHeader({
   onCreateOrder,
 }: CommandesWorkbenchHeaderProps) {
   return (
-    <>
-      <div className="orders-workbench__hero">
-        <div className="orders-workbench__hero-copy">
-          <span className="orders-workbench__eyebrow">
-            {t('ordersWorkbench.operatorWorkbench', 'Operator workbench')}
-          </span>
-          <h1>{t('ordersWorkbench.manageOrders', 'Manage your orders')}</h1>
-          <p>
-            {t(
-              'ordersWorkbench.description',
-              'Choose the next order, see what is blocked, and move directly into production without hunting through tabs.'
-            )}
-          </p>
-        </div>
-        <div className="orders-workbench__hero-actions">
-          <Button
-            icon="pi pi-plus"
-            label={t('ordersWorkbench.newOrder', 'New order')}
-            severity="success"
-            onClick={onCreateOrder}
-          />
-        </div>
-      </div>
-
+    <PageHeader
+      title={t('ordersWorkbench.manageOrders', 'Manage your orders')}
+      subtitle={t(
+        'ordersWorkbench.description',
+        'Choose the next order, see what is blocked, and move directly into production without hunting through tabs.'
+      )}
+      tags={<span className="orders-workbench__eyebrow">{t('ordersWorkbench.operatorWorkbench', 'Operator workbench')}</span>}
+      actions={
+        <Button
+          icon="pi pi-plus"
+          label={t('ordersWorkbench.newOrder', 'New order')}
+          severity="success"
+          onClick={onCreateOrder}
+        />
+      }
+    >
       <div className="orders-workbench__summary-grid">
         {summaryMetrics.map((metric) => (
           <div key={metric.key} className={`orders-workbench__summary-card ${metric.accentClass}`}>
@@ -46,6 +39,6 @@ export function CommandesWorkbenchHeader({
           </div>
         ))}
       </div>
-    </>
+    </PageHeader>
   );
 }

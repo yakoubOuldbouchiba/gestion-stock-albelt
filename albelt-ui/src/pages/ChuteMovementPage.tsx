@@ -15,6 +15,7 @@ import { RollMovementForm } from '../components/RollMovementForm';
 import { MovementConfirmDialog } from '../components/movement/MovementConfirmDialog';
 import { nowDateTimeLocal, dateTimeLocalToIso } from './hooks/useMovementDateTime';
 import { useMovementHistory } from './hooks/useMovementHistory';
+import { PageHeader } from '../components/PageHeader';
 import './MovementPages.css';
 
 export function ChuteMovementPage() {
@@ -85,20 +86,18 @@ export function ChuteMovementPage() {
 
   return (
     <div className="page-container movement-page">
-      <div className="movement-page__header">
-        <div>
-          <h1 className="albel-page-title">{t('rollMovement.title')}</h1>
-          <p style={{ margin: 0 }}>{t('rollMovement.description', { itemId: wasteId?.substring(0, 8) })}</p>
-        </div>
-        <div className="movement-page__headerActions">
+      <PageHeader
+        title={t('rollMovement.title')}
+        subtitle={t('rollMovement.description', { itemId: wasteId?.substring(0, 8) })}
+        actions={
           <Button
             icon="pi pi-plus"
             label={t('rollMovement.recordBtn')}
             onClick={() => setShowMovementForm(true)}
             disabled={!user || isBusy || !wasteId}
           />
-        </div>
-      </div>
+        }
+      />
 
       {history.error && <Message severity="error" text={history.error} style={{ marginBottom: '0.75rem' }} />}
 

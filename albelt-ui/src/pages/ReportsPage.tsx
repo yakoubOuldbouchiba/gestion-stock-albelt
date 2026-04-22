@@ -12,6 +12,7 @@ import { Tag } from 'primereact/tag';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { InputText } from 'primereact/inputtext';
+import { PageHeader } from '../components/PageHeader';
 
 interface OperatorMetric {
   operatorId: string;
@@ -224,18 +225,20 @@ export function ReportsPage() {
 
   return (
     <div style={{ display: 'grid', gap: '1.5rem' }}>
-      <div className="albel-page-header">
-        <h1 className="albel-page-title">{t('reports.analyticsTitle')}</h1>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <Button icon="pi pi-refresh" label={t('common.refresh')} onClick={loadAnalytics} />
-          <Button
-            icon="pi pi-download"
-            label={t('common.export')}
-            severity="secondary"
-            onClick={() => exportToCSV([{ data: 'exported' }], 'report.csv')}
-          />
-        </div>
-      </div>
+      <PageHeader
+        title={t('reports.analyticsTitle')}
+        actions={
+          <>
+            <Button icon="pi pi-refresh" label={t('common.refresh')} onClick={loadAnalytics} />
+            <Button
+              icon="pi pi-download"
+              label={t('common.export')}
+              severity="secondary"
+              onClick={() => exportToCSV([{ data: 'exported' }], 'report.csv')}
+            />
+          </>
+        }
+      />
 
       {error && <Message severity="error" text={error} />}
 

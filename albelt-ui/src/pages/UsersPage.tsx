@@ -17,6 +17,7 @@ import { ProgressSpinner } from 'primereact/progressspinner';
 import { RadioButton } from 'primereact/radiobutton';
 import { Checkbox } from 'primereact/checkbox';
 import { useAsyncLock } from '@hooks/useAsyncLock';
+import { PageHeader } from '../components/PageHeader';
 
 export function UsersPage() {
   const { t } = useI18n();
@@ -276,16 +277,16 @@ export function UsersPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
-        <div>
-          <h1 style={{ margin: 0 }}>{t('users.title')}</h1>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+      <PageHeader
+        title={t('users.title')}
+        tags={
+          <>
             <Tag value={`${totalElements} ${t('users.totalUsers')}`} severity="info" />
             <Tag value={`${activeCount} ${t('users.active')}`} severity="success" />
             <Tag value={`${inactiveCount} ${t('users.inactive')}`} severity="secondary" />
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {error && <Message severity="error" text={error} />}
 

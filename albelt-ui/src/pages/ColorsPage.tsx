@@ -13,6 +13,7 @@ import { Tag } from 'primereact/tag';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { useAsyncLock } from '@hooks/useAsyncLock';
+import { PageHeader } from '../components/PageHeader';
 
 interface ColorFormData {
   name: string;
@@ -171,13 +172,11 @@ export function ColorsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
-        <div>
-          <h1 style={{ margin: 0 }}>{t('navigation.colors') || 'Colors'}</h1>
-          <div style={{ color: 'var(--text-color-secondary)' }}>{totalRecords} {t('common.list') || 'items'}</div>
-        </div>
-        <Button icon="pi pi-plus" label={t('common.add') || 'Add Color'} onClick={() => setShowForm(true)} disabled={isBusy} />
-      </div>
+      <PageHeader
+        title={t('navigation.colors') || 'Colors'}
+        subtitle={`${totalRecords} ${t('common.list') || 'items'}`}
+        actions={<Button icon="pi pi-plus" label={t('common.add') || 'Add Color'} onClick={() => setShowForm(true)} disabled={isBusy} />}
+      />
 
       {error && <Message severity="error" text={error} />}
 

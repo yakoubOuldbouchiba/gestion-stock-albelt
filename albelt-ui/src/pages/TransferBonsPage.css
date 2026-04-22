@@ -69,10 +69,9 @@
 }
 
 .transfer-workbench__summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   gap: 1rem;
-  margin-top: 1rem;
 }
 
 .transfer-workbench__summary-card {

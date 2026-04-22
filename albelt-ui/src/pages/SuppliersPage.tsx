@@ -11,6 +11,7 @@ import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { useAsyncLock } from '@hooks/useAsyncLock';
+import { PageHeader } from '../components/PageHeader';
 
 const emptyForm: SupplierRequest = {
   name: '',
@@ -174,15 +175,11 @@ export function SuppliersPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
-        <div>
-          <h1 style={{ margin: 0 }}>{t('suppliers.management')}</h1>
-          <div style={{ color: 'var(--text-color-secondary)' }}>
-            {totalElements} {totalElements !== 1 ? t('suppliers.plural') : t('suppliers.singular')}
-          </div>
-        </div>
-        <Button icon="pi pi-plus" label={t('suppliers.addNew')} onClick={() => setShowForm(true)} disabled={isBusy} />
-      </div>
+      <PageHeader
+        title={t('suppliers.management')}
+        subtitle={`${totalElements} ${totalElements !== 1 ? t('suppliers.plural') : t('suppliers.singular')}`}
+        actions={<Button icon="pi pi-plus" label={t('suppliers.addNew')} onClick={() => setShowForm(true)} disabled={isBusy} />}
+      />
 
       {error && <Message severity="error" text={error} />}
 

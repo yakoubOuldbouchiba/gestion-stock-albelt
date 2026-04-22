@@ -28,6 +28,7 @@ import { WasteTab } from '../components/inventory/WasteTab';
 import { ReceiveRollDialog } from '../components/inventory/ReceiveRollDialog';
 import { CreateChuteDialog } from '../components/inventory/CreateChuteDialog';
 import { QrCodeCard } from '../components/QrCodeCard';
+import { PageHeader } from '../components/PageHeader';
 import './InventoryPage.css';
 
 export function InventoryPage() {
@@ -876,14 +877,15 @@ export function InventoryPage() {
 
   return (
     <div className="inventory-page">
-      <header className="inventory-header">
-        <div className="inventory-title-row">
-          <h1>{t('inventory.title')}</h1>
-          <div className="action-bar">
+      <PageHeader
+        title={t('inventory.title')}
+        actions={
+          <>
             <Button label={t('inventory.receiveNewRoll') || 'Receive Roll'} icon="pi pi-plus" severity="danger" onClick={() => setDialogs((prev) => ({ ...prev, receiveRoll: true }))} />
             <Button label={t('inventory.createChute') || 'Create Chute'} icon="pi pi-scissors" outlined onClick={() => setDialogs((prev) => ({ ...prev, createChute: true }))} />
-          </div>
-        </div>
+          </>
+        }
+      >
         <div className="stock-kpi-grid">
           {materialStats.map((stat) => (
             <div key={stat.material} className="stock-kpi-card" style={{ '--stat-color': getMaterialColor(stat.material) } as any}>
@@ -898,7 +900,7 @@ export function InventoryPage() {
             <div className="stock-kpi-footer"><span>{materialStats.reduce((acc, s) => acc + s.count, 0)} {t('inventory.totalItems') || 'Total Items'}</span></div>
           </div>
         </div>
-      </header>
+      </PageHeader>
 
       {error && <Message severity="error" text={error} />}
 

@@ -21,6 +21,7 @@ import { Tag } from 'primereact/tag';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { useAsyncLock } from '@hooks/useAsyncLock';
+import { PageHeader } from '../components/PageHeader';
 
 export function ClientsPage() {
   const { t } = useI18n();
@@ -399,13 +400,11 @@ export function ClientsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
-        <div>
-          <h1 style={{ margin: 0 }}>{t('clients.title')}</h1>
-          <div style={{ color: 'var(--text-color-secondary)' }}>{t('clients.subtitle')}</div>
-        </div>
-        <Button icon="pi pi-plus" label={t('clients.addClient')} onClick={() => setShowForm(true)} disabled={isBusy} />
-      </div>
+      <PageHeader
+        title={t('clients.title')}
+        subtitle={t('clients.subtitle')}
+        actions={<Button icon="pi pi-plus" label={t('clients.addClient')} onClick={() => setShowForm(true)} disabled={isBusy} />}
+      />
 
       {error && <Message severity="error" text={error} />}
 

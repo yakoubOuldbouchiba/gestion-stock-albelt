@@ -1,4 +1,5 @@
 import { Tag } from 'primereact/tag';
+import { PageHeader } from '../PageHeader';
 
 type PurchaseWorkbenchHeaderProps = {
   title: string;
@@ -22,20 +23,17 @@ export function PurchaseWorkbenchHeader({
   totalBons,
 }: PurchaseWorkbenchHeaderProps) {
   return (
-    <>
-      <section className="purchase-workbench__hero">
-        <div>
-          <span className="purchase-workbench__eyebrow">ERP Purchasing Workbench</span>
-          <h1>{title}</h1>
-          <p>{subtitle}</p>
-        </div>
-
-        <div className="purchase-workbench__hero-badges">
+    <PageHeader
+      title={title}
+      subtitle={subtitle}
+      tags={<span className="purchase-workbench__eyebrow">ERP Purchasing Workbench</span>}
+      actions={
+        <div className="purchase-workbench__hero-badges" style={{ display: 'flex', gap: '0.5rem' }}>
           <Tag value={`Draft: ${draftCount}`} severity="warning" />
           <Tag value={`Validated: ${validatedCount}`} severity="success" />
         </div>
-      </section>
-
+      }
+    >
       <section className="purchase-workbench__summary-grid">
         <article className="purchase-workbench__summary-card">
           <span className="purchase-workbench__summary-label">Purchase Bons</span>
@@ -61,6 +59,6 @@ export function PurchaseWorkbenchHeader({
           <small>Available partners for sourcing</small>
         </article>
       </section>
-    </>
+    </PageHeader>
   );
 }

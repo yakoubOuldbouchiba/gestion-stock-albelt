@@ -9,6 +9,7 @@ import { InputNumber } from 'primereact/inputnumber';
 import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { useAsyncLock } from '@hooks/useAsyncLock';
+import { PageHeader } from '../components/PageHeader';
 
 const MATERIAL_TYPES: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
 
@@ -126,16 +127,16 @@ export function MaterialChuteThresholdsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
-        <div>
-          <h1 style={{ margin: 0 }}>{t('materialChuteThresholds.title')}</h1>
-          <div style={{ color: 'var(--text-color-secondary)' }}>{t('materialChuteThresholds.hint')}</div>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <Button icon="pi pi-refresh" label={t('common.refresh')} severity="secondary" onClick={load} disabled={isLocked('threshold-save')} />
-          <Button label={isLocked('threshold-save') ? t('common.saving') : t('common.save')} onClick={saveAll} disabled={isLocked('threshold-save')} loading={isLocked('threshold-save')} />
-        </div>
-      </div>
+      <PageHeader
+        title={t('materialChuteThresholds.title')}
+        subtitle={t('materialChuteThresholds.hint')}
+        actions={
+          <>
+            <Button icon="pi pi-refresh" label={t('common.refresh')} severity="secondary" onClick={load} disabled={isLocked('threshold-save')} />
+            <Button label={isLocked('threshold-save') ? t('common.saving') : t('common.save')} onClick={saveAll} disabled={isLocked('threshold-save')} loading={isLocked('threshold-save')} />
+          </>
+        }
+      />
 
       {error && <Message severity="error" text={error} />}
       {message && <Message severity="success" text={message} />}
