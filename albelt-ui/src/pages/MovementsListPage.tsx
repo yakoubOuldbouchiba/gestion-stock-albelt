@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import rollMovementService, { RollMovement } from '../services/rollMovementService';
+import { useState } from 'react';
+import rollMovementService, { type RollMovement } from '../services/rollMovementService';
 import { formatDateTime } from '../utils/date';
 import { useAuthStore } from '@hooks/useAuth';
 import { useI18n } from '@hooks/useI18n';
@@ -8,106 +8,31 @@ import { Button } from 'primereact/button';
 import { TabView, TabPanel } from 'primereact/tabview';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { Dialog } from 'primereact/dialog';
-import { InputText } from 'primereact/inputtext';
 import { Message } from 'primereact/message';
 import { Tag } from 'primereact/tag';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { useAsyncLock } from '@hooks/useAsyncLock';
+import { MovementConfirmDialog } from '../components/movement/MovementConfirmDialog';
+import { nowDateTimeLocal, dateTimeLocalToIso } from './hooks/useMovementDateTime';
+import { useMovementsListData } from './hooks/useMovementsListData';
+import './MovementPages.css';
 
 export function MovementsListPage() {
   const { user } = useAuthStore();
   const { t } = useI18n();
-  
-  const [activeTab, setActiveTab] = useState<'created' | 'pending'>('created');
-  const [createdMovements, setCreatedMovements] = useState<RollMovement[]>([]);
-  const [pendingMovements, setPendingMovements] = useState<RollMovement[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { run, isLocked } = useAsyncLock();
+
+  const [activeIndex, setActiveIndex] = useState(0);
+  const data = useMovementsListData({ altierIds: user?.altierIds || [], t });
+
   const [deleting, setDeleting] = useState<string | null>(null);
-  
-  // Form state
+
   const [showMovementForm, setShowMovementForm] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [selectedMovement, setSelectedMovement] = useState<RollMovement | undefined>(undefined);
-  
-  // Confirmation form state
-  const [showConfirmForm, setShowConfirmForm] = useState(false);
+
   const [selectedMovementId, setSelectedMovementId] = useState<string | null>(null);
-  const [confirmData, setConfirmData] = useState({
-    dateEntree: new Date().toISOString().slice(0, 16)
-  });
-
-  useEffect(() => {
-    loadData();
-  }, [user?.altierIds?.length]);
-
-  const loadData = async () => {
-    if (!user || !user.altierIds || user.altierIds.length === 0) {
-      setLoading(false);
-      setError(t('movementsList.userAltierNotAvailable'));
-      console.warn('User or altierIds missing:', { user, altierIds: user?.altierIds });
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('Loading movements for altiers:', user.altierIds);
-      
-      // Fetch movements from all altiers the user has access to
-      // (My Created Movements = all movements FROM any of user's altiers)
-      let allCreatedMovements: RollMovement[] = [];
-      for (const altierID of user.altierIds) {
-        const response = await rollMovementService.getMovementsFromAltier(altierID, 0, 20, { excludeBon: true });
-        console.log(`Created movements response for altier ${altierID}:`, response);
-        if (response.success && response.data) {
-          const items = Array.isArray(response.data)
-            ? response.data
-            : response.data.items ?? (response.data as any).content ?? [];
-          allCreatedMovements = [...allCreatedMovements, ...items];
-          console.log(`Loaded ${items.length} created movements from altier ${altierID}`);
-        } else {
-          console.error(`Failed to fetch created movements for altier ${altierID}:`, response.message);
-        }
-      }
-      setCreatedMovements(allCreatedMovements);
-      console.log('Total created movements:', allCreatedMovements.length);
-      
-      // Fetch pending receipts for each altier (movements TO the altier that haven't been received)
-      let allPendingMovements: RollMovement[] = [];
-      for (const altierID of user.altierIds) {
-        const response = await rollMovementService.getPendingReceiptsByAltier(altierID, 0, 20, { excludeBon: true });
-        console.log(`Pending receipts response for altier ${altierID}:`, response);
-        if (response.success && response.data) {
-          const items = Array.isArray(response.data)
-            ? response.data
-            : response.data.items ?? (response.data as any).content ?? [];
-          allPendingMovements = [...allPendingMovements, ...items];
-          console.log(`Loaded ${items.length} pending receipts for altier ${altierID}`);
-        } else {
-          console.error(`Failed to fetch pending receipts for altier ${altierID}:`, response.message);
-        }
-      }
-      setPendingMovements(allPendingMovements);
-      console.log('Total pending movements:', allPendingMovements.length);
-    } catch (err) {
-      setError(t('movementsList.failedToLoad'));
-      setCreatedMovements([]);
-      setPendingMovements([]);
-      console.error('Error loading movements:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConfirmInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setConfirmData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const [confirmDateEntree, setConfirmDateEntree] = useState(nowDateTimeLocal());
 
   const handleCreateMovement = () => {
     setFormMode('create');
@@ -124,7 +49,7 @@ export function MovementsListPage() {
   const handleFormSuccess = async () => {
     setShowMovementForm(false);
     setSelectedMovement(undefined);
-    await loadData();
+    await data.refresh();
   };
 
   const handleFormCancel = () => {
@@ -136,80 +61,52 @@ export function MovementsListPage() {
     if (!confirm(t('movementsList.confirmDelete'))) {
       return;
     }
-    
+
     try {
       setDeleting(movementId);
       const response = await rollMovementService.deleteMovement(movementId);
-      
+
       if (response.success) {
-        await loadData();
-        setError(null);
+        await data.refresh();
+        data.setError(null);
       } else {
-        setError(t('movementsList.failedToDelete') + ': ' + response.message);
+        data.setError(`${t('movementsList.failedToDelete')}: ${response.message}`);
       }
     } catch (err) {
-      setError(t('movementsList.failedToDelete'));
       console.error(err);
+      data.setError(t('movementsList.failedToDelete'));
     } finally {
       setDeleting(null);
     }
   };
 
-  const handleConfirmReceipt = async (e?: React.FormEvent | React.MouseEvent) => {
-    if (e && 'preventDefault' in e) {
-      e.preventDefault();
-    }
-    
+  const handleConfirmReceipt = async () => {
     if (!selectedMovementId || !user) return;
-    
-    if (!confirmData.dateEntree) {
-      setError(t('movementsList.dateEntreeRequired'));
+    if (!confirmDateEntree) {
+      data.setError(t('movementsList.dateEntreeRequired'));
       return;
     }
-    
-    try {
-      // Convert datetime-local format to ISO 8601 with timezone
-      const isoDateString = confirmData.dateEntree.endsWith('Z') 
-        ? confirmData.dateEntree 
-        : `${confirmData.dateEntree}:00.000Z`;
-      
-      // Call API to confirm receipt with dateEntree
-      const response = await rollMovementService.confirmReceipt(
-        selectedMovementId,
-        isoDateString
-      );
-      
+
+    await run(async () => {
+      const response = await rollMovementService.confirmReceipt(selectedMovementId, dateTimeLocalToIso(confirmDateEntree));
       if (response.success) {
-        // Reload movements
-        await loadData();
-        
-        setConfirmData({ dateEntree: new Date().toISOString().slice(0, 16) });
+        await data.refresh();
         setSelectedMovementId(null);
-        setShowConfirmForm(false);
-        setError(null);
+        data.setError(null);
       } else {
-        setError(response.message || t('movementsList.failedToConfirm'));
+        data.setError(response.message || t('movementsList.failedToConfirm'));
       }
-    } catch (err) {
-      setError(t('movementsList.failedToConfirm'));
-      console.error(err);
-    }
+    }, 'movements-confirm');
   };
 
   const formatDate = (dateValue: string | null | undefined | any[]) => {
-    if (!dateValue) return '-';
-    
-    // Handle array format from backend [year, month, day, hour, minute, second, nano]
+    if (!dateValue) return t('common.dash');
     if (Array.isArray(dateValue)) {
       const [year, month, day, hour, minute] = dateValue;
       return formatDateTime(new Date(year, month - 1, day, hour, minute));
     }
-    
-    // Handle ISO string format
     return formatDateTime(dateValue);
   };
-
-  const tabIndex = activeTab === 'created' ? 0 : 1;
 
   const statusBody = (movement: RollMovement) => (
     <Tag
@@ -219,49 +116,38 @@ export function MovementsListPage() {
   );
 
   const movementItemBody = (movement: RollMovement) => {
-    if (movement.rollId) {
-      return `${t('inventory.roll')}: ${movement.rollId.substring(0, 8)}...`;
-    }
-    if (movement.wastePieceId) {
-      return `${t('inventory.wastePiece')}: ${movement.wastePieceId.substring(0, 8)}...`;
-    }
-    return '-';
+    if (movement.rollId) return `${t('inventory.roll')}: ${movement.rollId.substring(0, 8)}…`;
+    if (movement.wastePieceId) return `${t('inventory.wastePiece')}: ${movement.wastePieceId.substring(0, 8)}…`;
+    return t('common.dash');
   };
 
   const fromAltierBody = (movement: RollMovement) => (
-    <div>
+    <div style={{ minWidth: 0 }}>
       {movement.fromAltier ? (
         <>
-          <strong>{movement.fromAltier.libelle}</strong>
-          <div>{movement.fromAltier.adresse}</div>
+          <div style={{ fontWeight: 700 }}>{movement.fromAltier.libelle}</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>{movement.fromAltier.adresse}</div>
         </>
       ) : (
-        <em>Supplier</em>
+        <em>{t('rollMovement.supplier')}</em>
       )}
     </div>
   );
 
   const toAltierBody = (movement: RollMovement) => (
-    <div>
-      <strong>{movement.toAltier.libelle}</strong>
-      <div>{movement.toAltier.adresse}</div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontWeight: 700 }}>{movement.toAltier.libelle}</div>
+      <div style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>{movement.toAltier.adresse}</div>
     </div>
   );
 
-  const bonBody = (movement: RollMovement) => (
-    movement.transferBonId ? `${movement.transferBonId.substring(0, 8)}...` : '-'
-  );
+  const bonBody = (movement: RollMovement) => (movement.transferBonId ? `${movement.transferBonId.substring(0, 8)}…` : t('common.dash'));
 
   const createdActionsBody = (movement: RollMovement) => (
     <div style={{ display: 'flex', gap: '0.5rem' }}>
       {!movement.dateEntree && (
         <>
-          <Button
-            icon="pi pi-pencil"
-            text
-            onClick={() => handleEditMovement(movement)}
-            aria-label={t('common.edit')}
-          />
+          <Button icon="pi pi-pencil" text onClick={() => handleEditMovement(movement)} aria-label={t('common.edit')} />
           <Button
             icon="pi pi-trash"
             text
@@ -281,46 +167,34 @@ export function MovementsListPage() {
       label={t('movementsList.confirmBtn')}
       text
       onClick={() => {
-        setShowConfirmForm(true);
+        setConfirmDateEntree(nowDateTimeLocal());
         setSelectedMovementId(movement.id);
       }}
+      disabled={isLocked('movements-confirm')}
     />
   );
 
-  const confirmFooter = (
-    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-      <Button type="submit" label={t('movementsList.confirmBtn')} onClick={handleConfirmReceipt} />
-      <Button
-        type="button"
-        label={t('common.cancel')}
-        severity="secondary"
-        onClick={() => {
-          setShowConfirmForm(false);
-          setSelectedMovementId(null);
-        }}
-      />
-    </div>
-  );
-
-  if (loading) {
+  if (data.loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+      <div className="page-container movement-page" style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
         <ProgressSpinner />
       </div>
     );
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+    <div className="page-container movement-page">
+      <div className="movement-page__header">
         <div>
-          <h1>{t('movementsList.title')}</h1>
-          <p>{t('movementsList.subtitle')}</p>
+          <h1 className="albel-page-title">{t('movementsList.title')}</h1>
+          <p style={{ margin: 0 }}>{t('movementsList.subtitle')}</p>
         </div>
-        <Button icon="pi pi-plus" label={t('movementsList.createBtn')} onClick={handleCreateMovement} />
+        <div className="movement-page__headerActions">
+          <Button icon="pi pi-plus" label={t('movementsList.createBtn')} onClick={handleCreateMovement} disabled={!user} />
+        </div>
       </div>
 
-      {error && <Message severity="error" text={error} />}
+      {data.error && <Message severity="error" text={data.error} style={{ marginBottom: '0.75rem' }} />}
 
       {showMovementForm && user && (
         <RollMovementForm
@@ -333,37 +207,24 @@ export function MovementsListPage() {
         />
       )}
 
-      <Dialog
-        header={t('movementsList.confirmTitle')}
-        visible={showConfirmForm && !!selectedMovementId}
-        onHide={() => {
-          setShowConfirmForm(false);
-          setSelectedMovementId(null);
-        }}
-        footer={confirmFooter}
-      >
-        <div style={{ display: 'grid', gap: '0.5rem' }}>
-          <label htmlFor="dateEntree">{t('movementsList.dateEntree')} *</label>
-          <InputText
-            type="datetime-local"
-            id="dateEntree"
-            name="dateEntree"
-            value={confirmData.dateEntree}
-            onChange={handleConfirmInputChange}
-            required
-          />
-        </div>
-      </Dialog>
+      <MovementConfirmDialog
+        t={t}
+        visible={!!selectedMovementId}
+        busy={isLocked('movements-confirm')}
+        title={t('movementsList.confirmTitle')}
+        description={t('rollMovement.confirmReceiptDesc')}
+        dateEntree={confirmDateEntree}
+        onDateEntreeChange={setConfirmDateEntree}
+        onHide={() => setSelectedMovementId(null)}
+        onConfirm={handleConfirmReceipt}
+      />
 
-      <TabView
-        activeIndex={tabIndex}
-        onTabChange={(e) => setActiveTab(e.index === 0 ? 'created' : 'pending')}
-      >
-        <TabPanel header={t('movementsList.createdTab', { count: createdMovements.length })}>
-          {createdMovements.length === 0 ? (
+      <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
+        <TabPanel header={t('movementsList.createdTab', { count: data.summary.createdCount })}>
+          {data.createdMovements.length === 0 ? (
             <Message severity="info" text={t('movementsList.noCreatedMovements')} />
           ) : (
-            <DataTable value={createdMovements} dataKey="id" size="small">
+            <DataTable value={data.createdMovements} dataKey="id" size="small">
               <Column header={t('movementsList.item')} body={movementItemBody} />
               <Column header={t('movementsList.bon')} body={bonBody} />
               <Column header={t('movementsList.from')} body={fromAltierBody} />
@@ -376,11 +237,12 @@ export function MovementsListPage() {
             </DataTable>
           )}
         </TabPanel>
-        <TabPanel header={t('movementsList.pendingTab', { count: pendingMovements.length })}>
-          {pendingMovements.length === 0 ? (
+
+        <TabPanel header={t('movementsList.pendingTab', { count: data.summary.pendingCount })}>
+          {data.pendingMovements.length === 0 ? (
             <Message severity="info" text={t('movementsList.noPendingReceipts')} />
           ) : (
-            <DataTable value={pendingMovements} dataKey="id" size="small">
+            <DataTable value={data.pendingMovements} dataKey="id" size="small">
               <Column header={t('movementsList.item')} body={movementItemBody} />
               <Column header={t('movementsList.bon')} body={bonBody} />
               <Column header={t('movementsList.from')} body={fromAltierBody} />
@@ -398,3 +260,4 @@ export function MovementsListPage() {
 }
 
 export default MovementsListPage;
+

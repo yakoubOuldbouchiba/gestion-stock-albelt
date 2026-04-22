@@ -15,6 +15,7 @@ import { useCommandeItems, calculateSurfaceM2, createDefaultCommandeItem } from 
 import { useCommandeLookups } from './hooks/useCommandeLookups';
 import CommandeItemsEditor from '../components/commande/form/CommandeItemsEditor';
 import CommandeItemsSummary from '../components/commande/form/CommandeItemsSummary';
+import PageHeader from '../components/PageHeader';
 import type { CommandeItemRequest, CommandeRequest, CommandeStatus, MaterialType, TypeMouvement } from '../types';
 import './CommandeFormPage.css';
 
@@ -190,12 +191,7 @@ export function CommandeCreatePage() {
         </div>
       )}
 
-      <div className="albel-page-header" style={{ marginBottom: '1rem' }}>
-        <div>
-          <h1 className="albel-page-title">{t('commandes.createOrder')}</h1>
-          <p style={{ margin: 0 }}>{t('commandes.fillDetailsBelow')}</p>
-        </div>
-      </div>
+      <PageHeader title={t('commandes.createOrder')} subtitle={t('commandes.fillDetailsBelow')} />
 
       <form onSubmit={handleSubmit} className="commande-form-content">
         <Card title={t('commandes.orderHeader')}>
@@ -314,4 +310,3 @@ export function CommandeCreatePage() {
 }
 
 export default CommandeCreatePage;
-

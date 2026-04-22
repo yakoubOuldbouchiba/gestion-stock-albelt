@@ -1,0 +1,124 @@
+.movement-dialog .p-dialog-header {
+  padding: 1rem 1.1rem;
+}
+
+.movement-dialog .p-dialog-content {
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.movement-dialog__stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.movement-dialog__section {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: var(--shadow-xs);
+  padding: 0.9rem 1rem;
+}
+
+.movement-dialog__section--compact {
+  padding: 0.75rem 1rem;
+}
+
+.movement-dialog__sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.movement-dialog__sectionTitle {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.movement-dialog__sectionHint {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.movement-dialog__muted {
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+
+.movement-dialog__label {
+  display: block;
+  font-weight: 650;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  margin-bottom: 0.35rem;
+}
+
+.movement-dialog__preview {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed rgba(148, 163, 184, 0.55);
+}
+
+.movement-dialog__previewTitle {
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+
+.movement-dialog__previewText {
+  color: var(--color-muted);
+  font-size: 0.92rem;
+}
+
+.movement-dialog__twoCol {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .movement-dialog__twoCol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.movement-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.movement-dialog__radioRow {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.movement-dialog__radioOption {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 650;
+}
+
+.movement-dialog__radioOption .p-radiobutton {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 520px) {
+  .movement-dialog__actions > * {
+    flex: 1 1 auto;
+  }
+}

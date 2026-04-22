@@ -4,6 +4,8 @@ export { Layout } from './Layout';
 export { ProtectedRoute } from './ProtectedRoute';
 export { AdminRoute } from './AdminRoute';
 export { RollMovementForm } from './RollMovementForm';
+export * from './movement';
+export * from './PageHeader';
 export { LanguageSwitcher } from './LanguageSwitcher';
 export { Pagination } from './Pagination';
 export { LazyLoadingFallback } from './LazyLoadingFallback';
