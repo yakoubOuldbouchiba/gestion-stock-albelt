@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { WastePiece } from '../types/index';
 import { WastePieceService } from '../services/wastePieceService';
@@ -7,6 +7,7 @@ import { formatDate } from '../utils/date';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { Message } from 'primereact/message';
+import { Toast } from 'primereact/toast';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import { Tag } from 'primereact/tag';
 import { QrCodeCard } from '../components/QrCodeCard';
@@ -23,6 +24,7 @@ export function ChuteDetailPage() {
   const navigate = useNavigate();
 
   const [wastePiece, setWastePiece] = useState<WastePiece | null>(null);
+  const toast = useRef<Toast>(null);
   const [parentWaste, setParentWaste] = useState<WastePiece | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRegeneratingQr, setIsRegeneratingQr] = useState(false);
@@ -35,6 +37,7 @@ export function ChuteDetailPage() {
     setForm,
     isProcessing,
     error: placementError,
+    clearPlacementError,
     editingId,
     handleSave,
     handleDelete,
@@ -44,6 +47,14 @@ export function ChuteDetailPage() {
   } = usePlacements(wasteId || '', 'waste');
 
   const combinedError = error || placementError;
+
+  useEffect(() => {
+    if (combinedError) {
+      toast.current?.show({ severity: 'error', summary: combinedError, detail: combinedError, life: 5000 });
+      setLocalError(null);
+      clearPlacementError && clearPlacementError();
+    }
+  }, [combinedError, t, clearPlacementError]);
 
   useEffect(() => {
     if (wasteId) {
@@ -99,6 +110,7 @@ export function ChuteDetailPage() {
 
   return (
     <div className="detail-page-container p-gutter">
+      <Toast ref={toast} position="bottom-center" />
       <header className="detail-header">
         <div className="detail-header__main">
           <Button icon="pi pi-arrow-left" text onClick={() => navigate('/inventory')} className="p-button-lg" />
@@ -150,7 +162,7 @@ export function ChuteDetailPage() {
             isEditing={!!editingId}
             isProcessing={isProcessing}
             onChange={(name, val) => setForm(prev => ({ ...prev, [name]: val }))}
-            onSave={() => handleSave(sourceWidth, sourceLength)}
+            onSave={() => handleSave(sourceWidth, sourceLength, loadData)}
             onCancel={cancelEdit}
           />
         </div>

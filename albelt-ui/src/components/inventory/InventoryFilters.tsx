@@ -1,5 +1,6 @@
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
+import React, { useState } from 'react';
 import type { MaterialType, RollStatus } from '../../types';
 import type { Translate } from '../commande/commandeTypes';
 import '../../styles/InventoryFilters.css';
@@ -47,6 +48,22 @@ export function InventoryFilters({
   thicknessFilter,
   onThicknessChange,
 }: InventoryFiltersProps) {
+  // Local state for all InputText fields
+  const [localSearch, setLocalSearch] = useState(searchTerm);
+  const [localNbPlis, setLocalNbPlis] = useState(nbPlisFilter);
+  const [localThickness, setLocalThickness] = useState(thicknessFilter);
+
+  // Keep local state in sync if parent changes
+  React.useEffect(() => {
+    setLocalSearch(searchTerm);
+  }, [searchTerm]);
+  React.useEffect(() => {
+    setLocalNbPlis(nbPlisFilter);
+  }, [nbPlisFilter]);
+  React.useEffect(() => {
+    setLocalThickness(thicknessFilter);
+  }, [thicknessFilter]);
+
   return (
     <div className="inventory-filters-industrial">
       <div className="inventory-filters__field">
@@ -58,8 +75,14 @@ export function InventoryFilters({
           <InputText
             id="inventory-search"
             placeholder={t('inventory.search') || 'Search reference, ID...'}
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onSearchChange(localSearch);
+              }
+            }}
+            onBlur={() => onSearchChange(localSearch)}
             className="p-inputtext-sm"
           />
         </span>
@@ -128,8 +151,14 @@ export function InventoryFilters({
           </label>
           <InputText
             id="inventory-plies"
-            value={nbPlisFilter}
-            onChange={(e) => onNbPlisChange(e.target.value)}
+            value={localNbPlis}
+            onChange={(e) => setLocalNbPlis(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onNbPlisChange(localNbPlis);
+              }
+            }}
+            onBlur={() => onNbPlisChange(localNbPlis)}
             type="number"
             min={0}
             placeholder="Qty"
@@ -142,8 +171,14 @@ export function InventoryFilters({
           </label>
           <InputText
             id="inventory-thickness"
-            value={thicknessFilter}
-            onChange={(e) => onThicknessChange(e.target.value)}
+            value={localThickness}
+            onChange={(e) => setLocalThickness(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onThicknessChange(localThickness);
+              }
+            }}
+            onBlur={() => onThicknessChange(localThickness)}
             type="number"
             min={0}
             step="0.01"

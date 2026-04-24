@@ -8,6 +8,7 @@
     gap: 1rem;
     background: #f1f5f9;
     box-sizing: border-box;
+    height: fit-content;
 }
 
 .inventory-header {
@@ -126,6 +127,7 @@
     flex-direction: column;
     gap: 1.25rem;
     min-height: 0;
+    height: fit-content;
 }
 
 .inventory-content {

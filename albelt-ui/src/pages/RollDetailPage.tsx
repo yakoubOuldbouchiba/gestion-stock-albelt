@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { Roll, RollStatus, WastePiece } from '../types/index';
 import { RollService } from '../services/rollService';
@@ -22,12 +22,13 @@ import { PlacementForm } from '../components/detail/PlacementForm';
 import { PlacementList } from '../components/detail/PlacementList';
 import { usePlacements } from './hooks/usePlacements';
 import '../styles/DetailPages.css';
+import { Toast } from 'primereact/toast';
 
 export function RollDetailPage() {
   const { t } = useI18n();
   const { rollId } = useParams<{ rollId: string }>();
   const navigate = useNavigate();
-  
+  const toast = useRef<Toast>(null);
   const [roll, setRoll] = useState<Roll | null>(null);
   const [wastePieces, setWastePieces] = useState<WastePiece[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +42,7 @@ export function RollDetailPage() {
     setForm,
     isProcessing,
     error: placementError,
+    clearPlacementError,
     editingId,
     handleSave,
     handleDelete,
@@ -59,6 +61,14 @@ export function RollDetailPage() {
       loadPlacements();
     }
   }, [rollId, loadPlacements]);
+
+  useEffect(() => {
+    if (combinedError) {
+      toast.current?.show({ severity: 'error', summary: combinedError, detail: combinedError, life: 5000 });
+      setLocalError(null);
+      clearPlacementError();
+    }
+  }, [combinedError, t, clearPlacementError]);
 
   const loadData = async () => {
     if (!rollId) return;
@@ -136,8 +146,7 @@ export function RollDetailPage() {
           <Button label={t('rollDetail.movements')} icon="pi pi-map-marker" outlined size="small" onClick={() => navigate(`/roll/${roll.id}/movements`)} />
         </div>
       </header>
-
-      {combinedError && <Message severity="error" text={combinedError} className="mb-4 w-full" />}
+      <Toast ref={toast} position="bottom-center" />
 
       <section className="metrics-grid">
         <MetricTile label={t('rollDetail.width')} value={roll.widthMm} unit="mm" />
@@ -178,7 +187,7 @@ export function RollDetailPage() {
             isEditing={!!editingId} 
             isProcessing={isProcessing} 
             onChange={(name, val) => setForm(prev => ({ ...prev, [name]: val }))} 
-            onSave={() => handleSave(sourceWidth, sourceLength)} 
+            onSave={() => handleSave(sourceWidth, sourceLength, loadData)} 
             onCancel={cancelEdit} 
           />
         </div>

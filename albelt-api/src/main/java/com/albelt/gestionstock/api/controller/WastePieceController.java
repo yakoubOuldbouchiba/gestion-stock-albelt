@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -296,6 +297,20 @@ public class WastePieceController {
         var areas = wastePieceService.getTotalWasteAreaByMaterial();
         return ResponseEntity.ok(ApiResponse.success(areas));
     }
+
+
+    /**
+     * Get inventory statistics grouped by material type only
+     * GET /api/rolls/stats/by-material
+     */
+    @GetMapping("/stats/by-material")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStatsDechetByMaterialDechet(WasteType type     ) {
+        log.debug("Fetching stats by material type");
+
+        var stats = wastePieceService.getStatsByMaterial(type);
+        return ResponseEntity.ok(ApiResponse.success(stats, "Stats retrieved"));
+    }
+
 
     private java.time.LocalDateTime parseDateStart(String value) {
         if (value == null || value.trim().isEmpty()) return null;

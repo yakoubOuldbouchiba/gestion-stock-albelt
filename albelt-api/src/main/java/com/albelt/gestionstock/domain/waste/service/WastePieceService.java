@@ -14,9 +14,7 @@ import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.colors.service.ColorService;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
-import com.albelt.gestionstock.shared.enums.MaterialType;
-import com.albelt.gestionstock.shared.enums.WasteStatus;
-import com.albelt.gestionstock.shared.enums.WasteType;
+import com.albelt.gestionstock.shared.enums.*;
 import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
@@ -31,10 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Service for Waste Piece management
@@ -336,5 +331,22 @@ public class WastePieceService {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    public List<Map<String, Object>> getStatsByMaterial(WasteType type) {
+        log.debug("Fetching stats grouped by material type");
+
+        List<WasteStatus> activeStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
+        List<Object[]> results = wastePieceRepository.getStatsByMaterial(type,activeStatuses);
+
+        return results.stream()
+                .map(row -> {
+                    Map<String, Object> stat = new java.util.HashMap<>();
+                    stat.put("material", row[0]);
+                    stat.put("count", ((Number) row[1]).longValue());
+                    stat.put("totalArea", row[2] != null ? row[2] : BigDecimal.ZERO);
+                    return stat;
+                })
+                .toList();
     }
 }

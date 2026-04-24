@@ -2,6 +2,7 @@ package com.albelt.gestionstock.domain.waste.repository;
 
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.shared.enums.MaterialType;
+import com.albelt.gestionstock.shared.enums.RollStatus;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;
 import org.springframework.data.domain.Page;
@@ -192,4 +193,9 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
                   @Param("wasteType") WasteType wasteType,
                   @Param("statuses") List<WasteStatus> statuses,
                   Pageable pageable);
+
+    @Query("SELECT w.roll.materialType, COUNT(w), SUM(w.availableAreaM2) FROM WastePiece w " +
+            "WHERE w.status IN (:activeStatuses) and w.wasteType = :wasteType " +
+            "GROUP BY w.roll.materialType")
+    List<Object[]> getStatsByMaterial(WasteType wasteType,List<WasteStatus> activeStatuses);
 }

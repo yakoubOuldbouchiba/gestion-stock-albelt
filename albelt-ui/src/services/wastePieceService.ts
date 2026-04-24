@@ -5,12 +5,12 @@ import type { WastePiece, MaterialType, ApiResponse, PagedResponse, WasteStatus,
  * Waste Piece API Service - Focus on reuse tracking and waste reduction
  */
 export const WastePieceService = {
-    /**
-     * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
-     */
-    async getGroupedByAllFields(type : WasteType): Promise<ApiResponse<any[]>> {
-      return ApiService.get<any[]>('/waste-pieces/grouped', { type });
-    },
+  /**
+   * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+   */
+  async getGroupedByAllFields(type: WasteType): Promise<ApiResponse<any[]>> {
+    return ApiService.get<any[]>('/waste-pieces/grouped', { type });
+  },
   /**
    * CRITICAL: Find waste piece for reuse
    */
@@ -168,5 +168,17 @@ export const WastePieceService = {
    */
   async getClassificationStats(): Promise<ApiResponse<any>> {
     return ApiService.get('/waste-pieces/stats/classification');
+  },
+  /**
+   * Get inventory statistics grouped by material type
+   * GET /api/waste-pieces/stats/by-material
+   */
+  async getStatsByMaterial(type: WasteType): Promise<
+    ApiResponse<Array<{ material: MaterialType; count: number; totalArea: number }>>
+  > {
+    return ApiService.get<Array<{ material: MaterialType; count: number; totalArea: number }>>(
+      '/waste-pieces/stats/by-material',
+      { type }
+    );
   },
 };

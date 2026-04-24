@@ -145,6 +145,8 @@ export function usePlacements(sourceId: string, sourceType: 'roll' | 'waste') {
     setForm({ xMm: '', yMm: '', widthMm: '', heightMm: '', commandeItemId: '' });
   };
 
+  const clearPlacementError = () => setError(null);
+
   return {
     placements,
     loadPlacements,
@@ -153,6 +155,7 @@ export function usePlacements(sourceId: string, sourceType: 'roll' | 'waste') {
     isProcessing,
     error,
     setError,
+    clearPlacementError,
     editingId,
     handleSave,
     handleDelete,

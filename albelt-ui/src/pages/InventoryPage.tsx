@@ -170,16 +170,23 @@ export function InventoryPage() {
 
   const loadMaterialStats = useCallback(async () => {
     try {
-      const res = await RollService.getStatsByMaterial();
-      const rows = res.success && res.data ? res.data : [];
-
+      let res;
+      if (activeTab === 'inventory') {
+       res = await RollService.getStatsByMaterial();
+      }else if (activeTab === 'reusable') {
+        res = await WastePieceService.getStatsByMaterial('CHUTE_EXPLOITABLE');
+      } else if (activeTab === 'waste') {  
+        res = await WastePieceService.getStatsByMaterial('DECHET');
+      }
       const byMaterial = new Map<MaterialType, { count: number; totalArea: number }>();
-      for (const row of rows) {
-        if (row?.material) {
-          byMaterial.set(row.material, {
-            count: Number(row.count) || 0,
-            totalArea: Number(row.totalArea) || 0,
-          });
+      if (res && res.data) {
+        for (const row of res.data) {
+          if (row?.material) {
+            byMaterial.set(row.material, {
+              count: Number(row.count) || 0,
+              totalArea: Number(row.totalArea) || 0,
+            });
+          }
         }
       }
 
@@ -197,7 +204,7 @@ export function InventoryPage() {
       console.error('Failed to load inventory material stats:', err);
       setMaterialStats(materials.map((material) => ({ material, count: 0, area: 0 })));
     }
-  }, [materials]);
+  }, [materials, activeTab]);
 
   useEffect(() => {
     loadMaterialStats();
