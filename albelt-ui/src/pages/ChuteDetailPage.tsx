@@ -178,7 +178,7 @@ export function ChuteDetailPage() {
 
           <Card title={t('rollDetail.processing')} className="mb-4">
             <div className="flex flex-col gap-2 text-sm">
-              <div className="flex justify-between"><strong>{t('rollDetail.totalCuts')}:</strong><span>{wastePiece.totalCuts}</span></div>
+              <div className="flex justify-between"><strong>{t('rollDetail.totalCuts')}:</strong><span>{placements.length}</span></div>
               <div className="flex justify-between"><strong>{t('inventory.availableArea')}:</strong><span className="font-bold text-success">{(wastePiece.availableAreaM2 || 0).toFixed(2)} m²</span></div>
             </div>
           </Card>

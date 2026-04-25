@@ -204,7 +204,7 @@ export function RollDetailPage() {
 
           <Card title={t('rollDetail.processing')} className="mb-4">
             <div className="flex flex-col gap-2 text-sm">
-              <div className="flex justify-between"><strong>{t('rollDetail.totalCuts')}:</strong><span>{roll.totalCuts}</span></div>
+              <div className="flex justify-between"><strong>{t('rollDetail.totalCuts')}:</strong><span>{placements.length}</span></div>
               <div className="flex justify-between"><strong>{t('inventory.availableArea')}:</strong><span className="font-bold text-success">{availableAreaM2.toFixed(2)} m²</span></div>
             </div>
           </Card>

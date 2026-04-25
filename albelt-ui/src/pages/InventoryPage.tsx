@@ -277,8 +277,7 @@ export function InventoryPage() {
           ...prev,
           nbPlis: selectedChute.nbPlis,
           thicknessMm: selectedChute.thicknessMm,
-          widthMm: selectedChute.widthMm,
-          lengthM: selectedChute.lengthM,
+          // widthMm and lengthM are set by placement selection only
           areaM2: selectedChute.areaM2,
           altierId: selectedChute.altierId,
           colorId: selectedChute.colorId,
@@ -1003,7 +1002,51 @@ export function InventoryPage() {
       </div>
 
       <ReceiveRollDialog visible={dialogs.receiveRoll} onHide={handleCancel} onSubmit={handleSubmit} onCancel={handleCancel} isSubmitting={isLocked('inventory-roll')} formData={formData} t={t} supplierOptions={supplierOptions} altierOptions={altiers.map(a => ({ label: a.libelle, value: a.id }))} materialOptions={materials.map(m => ({ label: m, value: m }))} colorOptions={colorOptions} colorsAvailable={colors.length > 0} onSupplierChange={v => setFormData(p => ({ ...p, supplierId: v }))} onAltierChange={v => setFormData(p => ({ ...p, altierId: v }))} onMaterialChange={v => setFormData(p => ({ ...p, materialType: v }))} onColorChange={v => setFormData(p => ({ ...p, colorId: v }))} onFieldChange={handleInputChange} />
-      <CreateChuteDialog visible={dialogs.createChute} onHide={() => { setDialogs(p => ({ ...p, createChute: false })); resetChute(); }} onSubmit={handleChuteSubmit} onCancel={() => { setDialogs(p => ({ ...p, createChute: false })); resetChute(); }} isSubmitting={isLocked('inventory-chute')} t={t} chuteSourceType={chute.sourceType} chuteSourceOptions={[{ label: t('inventory.roll'), value: 'ROLL' }, { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' }]} onSourceTypeChange={v => setChute(p => ({ ...p, sourceType: v as any, rollId: '', parentWastePieceId: '', placementId: '', placements: [] }))} chuteRollId={chute.rollId} onChuteRollChange={v => setChute(p => ({ ...p, rollId: v, placementId: '' }))} chuteRollOptions={chute.filteredRolls.map(r => ({ label: formatRollChuteLabel(r), value: r.id }))} chuteRollsLoading={chute.filteredRollsLoading} supplierOptions={supplierOptions} materialOptions={materials.map(m => ({ label: m, value: m }))} supplierId={formData.supplierId} materialType={formData.materialType} onSupplierChange={v => setFormData(p => ({ ...p, supplierId: v }))} onMaterialChange={v => setFormData(p => ({ ...p, materialType: v }))} parentWastePieceId={chute.parentWastePieceId} parentWasteOptions={chute.parentWastePieces.map(p => ({ label: formatRollChuteLabel(p), value: p.id }))} parentWastePiecesLoading={chute.parentWastePiecesLoading} onParentWasteChange={v => setChute(p => ({ ...p, parentWastePieceId: v, placementId: '' }))} chutePlacementId={chute.placementId} chutePlacementOptions={chute.placements.map(p => ({ label: `Placement ${p.id.substring(0, 8)} • ${p.widthMm}x${p.heightMm}mm`, value: p.id }))} chutePlacementsLoading={chute.placementsLoading} onPlacementChange={v => setChute(p => ({ ...p, placementId: v }))} formData={formData} onFieldChange={handleInputChange} onDimensionChange={handleDimensionChange} altierOptions={altiers.map(a => ({ label: a.libelle, value: a.id }))} onAltierChange={v => setFormData(p => ({ ...p, altierId: v }))} disableAltier={chute.sourceType === 'WASTE_PIECE'} />
+      <CreateChuteDialog
+        visible={dialogs.createChute}
+        onHide={() => { setDialogs(p => ({ ...p, createChute: false })); resetChute(); }}
+        onSubmit={handleChuteSubmit}
+        onCancel={() => { setDialogs(p => ({ ...p, createChute: false })); resetChute(); }}
+        isSubmitting={isLocked('inventory-chute')}
+        t={t}
+        chuteSourceType={chute.sourceType}
+        chuteSourceOptions={[{ label: t('inventory.roll'), value: 'ROLL' }, { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' }]}
+        onSourceTypeChange={v => setChute(p => ({ ...p, sourceType: v as any, rollId: '', parentWastePieceId: '', placementId: '', placements: [] }))}
+        chuteRollId={chute.rollId}
+        onChuteRollChange={v => setChute(p => ({ ...p, rollId: v, placementId: '' }))}
+        chuteRollOptions={chute.filteredRolls.map(r => ({ label: formatRollChuteLabel(r), value: r.id }))}
+        chuteRollsLoading={chute.filteredRollsLoading}
+        supplierOptions={supplierOptions}
+        materialOptions={materials.map(m => ({ label: m, value: m }))}
+        supplierId={formData.supplierId}
+        materialType={formData.materialType}
+        onSupplierChange={v => setFormData(p => ({ ...p, supplierId: v }))}
+        onMaterialChange={v => setFormData(p => ({ ...p, materialType: v }))}
+        parentWastePieceId={chute.parentWastePieceId}
+        parentWasteOptions={chute.parentWastePieces.map(p => ({ label: formatRollChuteLabel(p), value: p.id }))}
+        parentWastePiecesLoading={chute.parentWastePiecesLoading}
+        onParentWasteChange={v => setChute(p => ({ ...p, parentWastePieceId: v, placementId: '' }))}
+        chutePlacementId={chute.placementId}
+        chutePlacementOptions={chute.placements.filter(p => !p.commandeItemId).map(p => ({ label: `Placement ${p.id.substring(0, 8)} • ${p.widthMm}x${p.heightMm}mm`, value: p.id }))}
+        chutePlacementsLoading={chute.placementsLoading}
+        onPlacementChange={v => {
+          setChute(p => ({ ...p, placementId: v }));
+          const placement = chute.placements.find(p => p.id === v);
+          if (placement) {
+            setFormData(prev => ({
+              ...prev,
+              widthMm: placement.widthMm,
+              lengthM: (placement.heightMm / 1000),
+            }));
+          }
+        }}
+        formData={formData}
+        onFieldChange={handleInputChange}
+        onDimensionChange={handleDimensionChange}
+        altierOptions={altiers.map(a => ({ label: a.libelle, value: a.id }))}
+        onAltierChange={v => setFormData(p => ({ ...p, altierId: v }))}
+        disableAltier={chute.sourceType === 'WASTE_PIECE'}
+      />
       <Dialog header={selectedPreview?.type === 'roll' ? (t('rollDetail.title') || 'Roll Details') : (t('waste.wasteDetailsTitle') || 'Chute Details')} visible={!!selectedPreview} onHide={() => setSelectedPreview(null)} footer={previewFooter} style={{ width: 'min(720px, 95vw)' }}>
         {selectedPreview?.type === 'roll' ? renderRollPreview(selectedPreview.item) : null}
         {selectedPreview?.type === 'waste' ? renderWastePreview(selectedPreview.item) : null}
