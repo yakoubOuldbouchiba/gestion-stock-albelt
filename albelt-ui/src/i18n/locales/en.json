@@ -1222,7 +1222,9 @@
     "USED": "Used",
     "SCRAP": "Scrap",
     "DELIVERED": "Delivered",
-    "ENCOURS": "In Progress"
+    "ENCOURS": "In Progress",
+    "ON_HOLD": "On Hold",
+    "all":"All"
   },
   "pagination": {
     "previous": "Previous",

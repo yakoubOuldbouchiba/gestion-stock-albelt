@@ -43,7 +43,8 @@
     "inactive": "غير نشط",
     "actions": "الإجراءات",
     "reason": "السبب",
-    "roll": "اللفةا"
+    "roll": "اللفة",
+    "all":"الكل"
   },
   "navigation": {
     "dashboard": "لوحة التحكم",
@@ -1240,7 +1241,8 @@
     "PENDING": "قيد المعالجة",
     "ACTIVE": "نشط",
     "INACTIVE": "غير نشط", 
-    "ENCOURS": "قيد التنفيذ"
+    "ENCOURS": "قيد التنفيذ",
+    "ON_HOLD": "قيد الانتظار"
   }, 
   "pagination" : {
     "previous": "السابق",

@@ -42,7 +42,8 @@
     "noData": "Aucune donnée disponible",
     "loading_data": "Chargement des données...",
     "created": "Créé",
-    "updated": "Mis à jour"
+    "updated": "Mis à jour",
+    "all":"Tous"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -1273,7 +1274,8 @@
     "RETURNED": "Retourné",
     "RECEIVED": "Reçu",
     "DELIVERED": "Livré",
-    "ENCOURS": "Encours"
+    "ENCOURS": "Encours",
+    "ON_HOLD": "En attente"
   },
   "pagination": {
     "previous": "Précédent",

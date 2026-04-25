@@ -40,12 +40,12 @@ export function useCommandesWorkbench({ t }: UseCommandesWorkbenchOptions): Comm
 
   const statusOptions = useMemo<WorkbenchStatusOption[]>(
     () => [
-      { label: t('orders.status.all', 'All'), value: '' },
-      { label: t('orders.status.PENDING', 'Pending'), value: 'PENDING' },
-      { label: t('orders.status.ENCOURS', 'In Progress'), value: 'ENCOURS' },
-      { label: t('orders.status.COMPLETED', 'Completed'), value: 'COMPLETED' },
-      { label: t('orders.status.CANCELLED', 'Cancelled'), value: 'CANCELLED' },
-      { label: t('orders.status.ON_HOLD', 'On Hold'), value: 'ON_HOLD' },
+      { label: t('common.all', 'All'), value: '' },
+      { label: t('statuses.PENDING', 'Pending'), value: 'PENDING' },
+      { label: t('statuses.ENCOURS', 'In Progress'), value: 'ENCOURS' },
+      { label: t('statuses.COMPLETED', 'Completed'), value: 'COMPLETED' },
+      { label: t('statuses.CANCELLED', 'Cancelled'), value: 'CANCELLED' },
+      { label: t('statuses.ON_HOLD', 'On Hold'), value: 'ON_HOLD' },
     ],
     [t]
   );
