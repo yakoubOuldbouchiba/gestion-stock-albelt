@@ -10,6 +10,7 @@ interface OptimizationSectionProps {
   optimizationComparison: OptimizationComparison | null;
   optimizationLoading: boolean;
   optimizationError: string | null;
+  optimizationMode: 'load' | 'regenerate';
   isBusy: boolean;
   isCommandeLocked: boolean;
   onRegenerate: (itemId: string) => void;
@@ -25,6 +26,7 @@ export function OptimizationSection({
   optimizationComparison,
   optimizationLoading,
   optimizationError,
+  optimizationMode,
   isBusy,
   isCommandeLocked,
   onRegenerate,
@@ -40,6 +42,26 @@ export function OptimizationSection({
   const suggested = optimizationComparison?.suggested?.metrics;
   const actualConforme = item.totalItemsConforme ?? 0;
   const actualNonConforme = item.totalItemsNonConforme ?? 0;
+  const actualSourceMix = (optimizationComparison?.actualSources ?? []).reduce(
+    (acc, source) => {
+      if (source.sourceType === 'ROLL') acc.rolls += 1;
+      if (source.sourceType === 'WASTE_PIECE') acc.chutes += 1;
+      return acc;
+    },
+    { rolls: 0, chutes: 0 }
+  );
+  const suggestedSourceMix = (optimizationComparison?.suggested?.sources ?? []).reduce(
+    (acc, source) => {
+      if (source.sourceType === 'ROLL') acc.rolls += 1;
+      if (source.sourceType === 'WASTE_PIECE') acc.chutes += 1;
+      return acc;
+    },
+    { rolls: 0, chutes: 0 }
+  );
+  const rollsDelta =
+    actual?.sourceCount != null && suggested?.sourceCount != null
+      ? suggested.sourceCount - actual.sourceCount
+      : null;
 
   const renderSvgPanel = (
     title: string,
@@ -121,9 +143,14 @@ export function OptimizationSection({
           marginBottom: '0.5rem',
         }}
       >
-        <div style={{ fontWeight: 600 }}>{t('commandes.optimizationComparison')}</div>
+        <div>
+          <div style={{ fontWeight: 600 }}>{t('commandes.suggestedCutPlan')}</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
+            {t('commandes.suggestionReuseHint')}
+          </div>
+        </div>
         <Button
-          label={t('commandes.regenerateSuggestion')}
+          label={t('commandes.recalculateSuggestion')}
           icon="pi pi-refresh"
           severity="secondary"
           onClick={() => onRegenerate(item.id)}
@@ -138,7 +165,14 @@ export function OptimizationSection({
 
       {optimizationLoading && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}>
-          <ProgressSpinner />
+          <div style={{ display: 'grid', justifyItems: 'center', gap: '0.5rem' }}>
+            <ProgressSpinner />
+            <small style={{ color: 'var(--text-color-secondary)' }}>
+              {optimizationMode === 'regenerate'
+                ? t('commandes.recalculatingSuggestion')
+                : t('commandes.loadingSuggestion')}
+            </small>
+          </div>
         </div>
       )}
 
@@ -148,6 +182,35 @@ export function OptimizationSection({
 
       {!optimizationLoading && optimizationComparison && (
         <div style={{ display: 'grid', gap: '0.75rem' }}>
+          <Message severity="info" text={t('commandes.sourcePriorityHint')} />
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+              gap: '0.75rem',
+            }}
+          >
+            <Card>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>{t('commandes.wasteSavedM2')}</div>
+              <div style={{ marginTop: '0.25rem', fontSize: '1.35rem', fontWeight: 700 }}>
+                {formatMetricValue(optimizationComparison.wasteSavedM2)}
+              </div>
+            </Card>
+            <Card>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>{t('commandes.utilizationGainPct')}</div>
+              <div style={{ marginTop: '0.25rem', fontSize: '1.35rem', fontWeight: 700 }}>
+                {formatMetricValue(optimizationComparison.utilizationGainPct)}
+              </div>
+            </Card>
+            <Card>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>{t('commandes.rollsUsedDelta')}</div>
+              <div style={{ marginTop: '0.25rem', fontSize: '1.35rem', fontWeight: 700 }}>
+                {rollsDelta == null ? '-' : `${rollsDelta > 0 ? '+' : ''}${rollsDelta}`}
+              </div>
+            </Card>
+          </div>
+
           <Card>
             <div className="albel-compare-grid">
               <div>
@@ -157,6 +220,7 @@ export function OptimizationSection({
                 <div>{t('commandes.utilizationPct')}</div>
                 <div>{t('commandes.sources')}</div>
                 <div>{t('commandes.pieces')}</div>
+                <div>{t('commandes.sourceMix')}</div>
                 <div>{t('commandes.conformePieces')}</div>
                 <div>{t('commandes.nonConformePieces')}</div>
               </div>
@@ -169,6 +233,7 @@ export function OptimizationSection({
                 <div>
                   {actual?.placedPieces ?? '-'}/{actual?.totalPieces ?? '-'}
                 </div>
+                <div>{`${actualSourceMix.chutes} ${t('commandes.chutesLabel')} / ${actualSourceMix.rolls} ${t('commandes.rollsLabel')}`}</div>
                 <div>{actualConforme}</div>
                 <div>{actualNonConforme}</div>
               </div>
@@ -181,18 +246,9 @@ export function OptimizationSection({
                 <div>
                   {suggested?.placedPieces ?? '-'}/{suggested?.totalPieces ?? '-'}
                 </div>
+                <div>{`${suggestedSourceMix.chutes} ${t('commandes.chutesLabel')} / ${suggestedSourceMix.rolls} ${t('commandes.rollsLabel')}`}</div>
                 <div>-</div>
                 <div>-</div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-              <div>
-                {t('commandes.wasteSavedM2')}: {formatMetricValue(optimizationComparison.wasteSavedM2)}
-              </div>
-              <div>
-                {t('commandes.utilizationGainPct')}:{' '}
-                {formatMetricValue(optimizationComparison.utilizationGainPct)}
               </div>
             </div>
           </Card>
@@ -208,7 +264,9 @@ export function OptimizationSection({
               t('commandes.suggestedLayout'),
               'suggested',
               optimizationComparison.suggested?.svg,
-              t('commandes.noSuggestedSvg')
+              optimizationComparison.suggested?.placements?.length
+                ? t('commandes.noSuggestedSvg')
+                : t('commandes.noFeasibleSuggestedLayout')
             )}
           </div>
         </div>

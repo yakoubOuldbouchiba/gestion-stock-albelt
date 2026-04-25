@@ -115,15 +115,6 @@ export function CommandesWorkbenchWorkspace({
                   {item.observations ? <div>{item.observations}</div> : null}
                 </div>
               ) : null}
-
-              <div className="orders-workbench__workspace-actions">
-                <Button
-                  label={t('ordersWorkbench.openFullOrder', 'Open full order')}
-                  icon="pi pi-arrow-right"
-                  severity={isPriority ? 'success' : 'secondary'}
-                  onClick={() => onOpenOrder(highlightedOrder.id)}
-                />
-              </div>
             </div>
           );
         })}

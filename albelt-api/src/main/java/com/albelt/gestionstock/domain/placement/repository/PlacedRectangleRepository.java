@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.placement.repository;
 
+import com.albelt.gestionstock.domain.optimization.data.OptimizationOccupiedRectSnapshot;
 import com.albelt.gestionstock.domain.placement.entity.PlacedRectangle;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -112,6 +113,28 @@ public interface PlacedRectangleRepository extends JpaRepository<PlacedRectangle
             @Param("yMin") int yMin,
             @Param("yMax") int yMax,
             @Param("commandeId") UUID commandeId
+    );
+
+    @Query("""
+        select new com.albelt.gestionstock.domain.optimization.data.OptimizationOccupiedRectSnapshot(
+            pr.roll.id,
+            pr.wastePiece.id,
+            pr.xMm,
+            pr.yMm,
+            pr.widthMm,
+            pr.heightMm,
+            pr.updatedAt
+        )
+        from PlacedRectangle pr
+        where (:hasRollIds = true and pr.roll.id in :rollIds)
+           or (:hasWasteIds = true and pr.wastePiece.id in :wasteIds)
+        order by pr.createdAt asc
+        """)
+    List<OptimizationOccupiedRectSnapshot> findOccupiedSnapshotsBySourceIds(
+        @Param("hasRollIds") boolean hasRollIds,
+        @Param("rollIds") List<UUID> rollIds,
+        @Param("hasWasteIds") boolean hasWasteIds,
+        @Param("wasteIds") List<UUID> wasteIds
     );
 
 }

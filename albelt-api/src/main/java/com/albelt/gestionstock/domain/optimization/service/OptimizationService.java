@@ -12,6 +12,8 @@ import com.albelt.gestionstock.domain.optimization.dto.OptimizationPlanResponse;
 import com.albelt.gestionstock.domain.optimization.dto.AltierScoreResponse;
 import com.albelt.gestionstock.domain.optimization.dto.OptimizationPlacementReportResponse;
 import com.albelt.gestionstock.domain.optimization.dto.OptimizationSourceReportResponse;
+import com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot;
+import com.albelt.gestionstock.domain.optimization.engine.OptimizationEngine;
 import com.albelt.gestionstock.domain.optimization.entity.*;
 import com.albelt.gestionstock.domain.optimization.repository.OptimizationPlacementRepository;
 import com.albelt.gestionstock.domain.optimization.repository.OptimizationPlanRepository;
@@ -52,6 +54,7 @@ public class OptimizationService {
     private static final int MAX_ROLL_CANDIDATES = 80;
     private static final int SVG_PADDING = 40;
     private static final List<String> ACTIVE_COMMANDE_STATUSES = Arrays.asList("PENDING", "ENCOURS");
+    private static final String ALGORITHM_VERSION = "v2-blf";
 
     private final CommandeItemRepository itemRepository;
     private final CommandeRepository commandeRepository;
@@ -64,56 +67,21 @@ public class OptimizationService {
     private final OptimizationPlanRepository planRepository;
     private final OptimizationPlacementRepository placementRepository;
     private final QrCodeService qrCodeService;
+    private final OptimizationSnapshotLoader snapshotLoader;
+    private final OptimizationEngine optimizationEngine;
 
     @Transactional
     public OptimizationPlan generateAndSaveSuggestion(CommandeItem item) {
         if (item == null) {
             return null;
         }
-
-        supersedeActivePlans(item.getId());
-
-        List<Piece> pieces = buildPieces(item);
-        if (pieces.isEmpty()) {
-            return saveEmptyPlan(item, pieces.size());
-        }
-
-        List<SourceCandidate> candidates = buildCandidates(item);
-        if (candidates.isEmpty()) {
-            return saveEmptyPlan(item, pieces.size());
-        }
-
-        UUID commandeId = item.getCommande() != null ? item.getCommande().getId() : null;
-        OptimizationRun run = optimizePieces(pieces, candidates, item.getId(), commandeId);
-        OptimizationPlan plan = buildPlan(item, run);
-
-        OptimizationPlan saved = planRepository.save(plan);
-        persistPlacements(saved, run.placements);
-
-        return saved;
+        return generateAndSaveSuggestion(item.getId(), true);
     }
 
     @Transactional
     public OptimizationComparisonResponse getComparison(UUID commandeItemId, boolean forceRegenerate) {
-        CommandeItem item = itemRepository.findById(commandeItemId)
-            .orElseThrow(() -> new ResourceNotFoundException("Order item not found: " + commandeItemId));
-
-        OptimizationPlan plan = null;
-        if (!forceRegenerate) {
-            plan = planRepository
-                .findFirstByCommandeItemIdAndStatusOrderByCreatedAtDesc(commandeItemId, OptimizationPlanStatus.ACTIVE)
-                .orElse(null);
-
-            // If the commande has an assigned altier, always regenerate to ensure
-            // the suggestion is constrained to that altier.
-            if (plan != null && item.getCommande() != null && item.getCommande().getAltier() != null) {
-                plan = null;
-            }
-        }
-
-        if (plan == null) {
-            plan = generateAndSaveSuggestion(item);
-        }
+        OptimizationItemSnapshot item = snapshotLoader.loadItem(commandeItemId);
+        OptimizationPlan plan = generateAndSaveSuggestion(commandeItemId, forceRegenerate);
 
         OptimizationMetrics actualMetrics = computeActualMetrics(item);
         OptimizationMetricsResponse actualResponse = toMetricsResponse(actualMetrics);
@@ -145,6 +113,43 @@ public class OptimizationService {
             .build();
     }
 
+    private OptimizationPlan generateAndSaveSuggestion(UUID commandeItemId, boolean forceRegenerate) {
+        OptimizationItemSnapshot item = snapshotLoader.loadItem(commandeItemId);
+        var planningContext = snapshotLoader.loadPlanningContext(item);
+
+        if (!forceRegenerate) {
+            OptimizationPlan reusable = planRepository
+                .findFirstByCommandeItemIdAndStatusAndAlgorithmVersionAndInputSignatureAndStockSignatureOrderByCreatedAtDesc(
+                    commandeItemId,
+                    OptimizationPlanStatus.ACTIVE,
+                    ALGORITHM_VERSION,
+                    planningContext.inputSignature(),
+                    planningContext.stockSignature()
+                )
+                .orElse(null);
+            if (reusable != null) {
+                return reusable;
+            }
+        }
+
+        supersedeActivePlans(commandeItemId);
+
+        OptimizationEngine.OptimizationResult result = optimizationEngine.optimize(
+            item,
+            planningContext.sources(),
+            planningContext.occupiedBySource()
+        );
+
+        if (result.totalPieces() == 0 || planningContext.sources().isEmpty()) {
+            return saveEmptyPlan(item, result.totalPieces(), planningContext.inputSignature(), planningContext.stockSignature());
+        }
+
+        OptimizationPlan plan = buildPlan(item, result, planningContext.inputSignature(), planningContext.stockSignature());
+        OptimizationPlan saved = planRepository.save(plan);
+        persistPlacements(saved, result.placements());
+        return saved;
+    }
+
     private void supersedeActivePlans(UUID commandeItemId) {
         List<OptimizationPlan> activePlans = planRepository.findByCommandeItemIdAndStatus(
             commandeItemId,
@@ -160,9 +165,15 @@ public class OptimizationService {
         }
     }
 
-    private OptimizationPlan saveEmptyPlan(CommandeItem item, int totalPieces) {
+    private OptimizationPlan saveEmptyPlan(OptimizationItemSnapshot item,
+                                           int totalPieces,
+                                           String inputSignature,
+                                           String stockSignature) {
         OptimizationPlan plan = OptimizationPlan.builder()
-            .commandeItemId(item.getId())
+            .commandeItemId(item.itemId())
+            .algorithmVersion(ALGORITHM_VERSION)
+            .inputSignature(inputSignature)
+            .stockSignature(stockSignature)
             .totalPieces(totalPieces)
             .placedPieces(0)
             .sourceCount(0)
@@ -253,12 +264,13 @@ public class OptimizationService {
 
     @Transactional(readOnly = true)
     public List<AltierScoreResponse> scoreAltiersForCommande(UUID commandeId) {
-        Commande commande = commandeRepository.findById(commandeId)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + commandeId));
+        List<OptimizationItemSnapshot> items = snapshotLoader.loadItemsForCommande(commandeId);
+        if (items.isEmpty() && !commandeRepository.existsById(commandeId)) {
+            throw new ResourceNotFoundException("Order not found: " + commandeId);
+        }
 
-        List<CommandeItem> items = commande.getItems() != null ? commande.getItems() : List.of();
         int totalPieces = items.stream()
-            .map(CommandeItem::getQuantite)
+            .map(OptimizationItemSnapshot::quantite)
             .filter(Objects::nonNull)
             .mapToInt(Integer::intValue)
             .sum();
@@ -269,19 +281,14 @@ public class OptimizationService {
         for (Altier altier : altiers) {
             int placedPieces = 0;
 
-            for (CommandeItem item : items) {
-                List<Piece> pieces = buildPieces(item);
-                if (pieces.isEmpty()) {
-                    continue;
-                }
-
-                List<SourceCandidate> candidates = buildCandidates(item, altier.getId());
-                if (candidates.isEmpty()) {
-                    continue;
-                }
-
-                OptimizationRun run = optimizePieces(pieces, candidates, item.getId(), commandeId);
-                placedPieces += run.placedPieces;
+            for (OptimizationItemSnapshot item : items) {
+                var planningContext = snapshotLoader.loadPlanningContext(item.withAltierId(altier.getId()));
+                OptimizationEngine.OptimizationResult result = optimizationEngine.optimize(
+                    item.withAltierId(altier.getId()),
+                    planningContext.sources(),
+                    planningContext.occupiedBySource()
+                );
+                placedPieces += result.placedPieces();
             }
 
             BigDecimal coveragePct = BigDecimal.ZERO;
@@ -616,29 +623,28 @@ public class OptimizationService {
             && first.yMm + first.heightMm > second.yMm;
     }
 
-    private OptimizationPlan buildPlan(CommandeItem item, OptimizationRun run) {
-        BigDecimal usedArea = run.usedAreaM2();
-        BigDecimal totalSourceArea = run.totalSourceAreaM2();
-        BigDecimal wasteArea = totalSourceArea.subtract(usedArea).max(BigDecimal.ZERO);
-        BigDecimal utilization = totalSourceArea.compareTo(BigDecimal.ZERO) == 0
-            ? BigDecimal.ZERO
-            : usedArea.divide(totalSourceArea, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
-
-        String svg = buildSuggestedSvg(run.selectedPlans, item);
+    private OptimizationPlan buildPlan(OptimizationItemSnapshot item,
+                                       OptimizationEngine.OptimizationResult run,
+                                       String inputSignature,
+                                       String stockSignature) {
+        String svg = buildSuggestedSvg(run.sourcePlans(), item);
 
         return OptimizationPlan.builder()
-            .commandeItemId(item.getId())
-            .totalPieces(run.totalPieces)
-            .placedPieces(run.placedPieces)
-            .sourceCount(run.selectedPlans.size())
-            .usedAreaM2(usedArea)
-            .wasteAreaM2(wasteArea)
-            .utilizationPct(utilization)
+            .commandeItemId(item.itemId())
+            .algorithmVersion(ALGORITHM_VERSION)
+            .inputSignature(inputSignature)
+            .stockSignature(stockSignature)
+            .totalPieces(run.totalPieces())
+            .placedPieces(run.placedPieces())
+            .sourceCount(run.sourcePlans().size())
+            .usedAreaM2(run.usedAreaM2())
+            .wasteAreaM2(run.wasteAreaM2())
+            .utilizationPct(run.utilizationPct())
             .svg(svg)
             .build();
     }
 
-    private void persistPlacements(OptimizationPlan plan, List<PlacementRecord> placements) {
+    private void persistPlacements(OptimizationPlan plan, List<OptimizationEngine.PlacementResult> placements) {
         if (placements == null || placements.isEmpty()) {
             return;
         }
@@ -646,33 +652,33 @@ public class OptimizationService {
         List<OptimizationPlacement> entities = placements.stream()
             .map(record -> OptimizationPlacement.builder()
                 .plan(plan)
-                .sourceType(record.source.type)
-                .roll(record.source.roll)
-                .wastePiece(record.source.wastePiece)
-                .xMm(record.choice.rect.xMm)
-                .yMm(record.choice.rect.yMm)
-                .widthMm(record.choice.widthMm)
-                .heightMm(record.choice.heightMm)
-                .rotated(record.choice.rotated)
-                .pieceWidthMm(record.piece.widthMm)
-                .pieceLengthM(record.piece.lengthM)
-                .areaM2(record.piece.areaM2)
+                .sourceType(record.source().sourceType())
+                .roll(record.source().rollId() != null ? rollRepository.getReferenceById(record.source().rollId()) : null)
+                .wastePiece(record.source().wastePieceId() != null ? wastePieceRepository.getReferenceById(record.source().wastePieceId()) : null)
+                .xMm(record.xMm())
+                .yMm(record.yMm())
+                .widthMm(record.widthMm())
+                .heightMm(record.heightMm())
+                .rotated(record.rotated())
+                .pieceWidthMm(record.pieceWidthMm())
+                .pieceLengthM(record.pieceLengthM())
+                .areaM2(record.areaM2())
                 .build())
             .toList();
 
         placementRepository.saveAll(entities);
     }
 
-    private OptimizationMetrics computeActualMetrics(CommandeItem item) {
-        BigDecimal usedArea = productionItemRepository.sumTotalAreaByCommandeItemId(item.getId());
+    private OptimizationMetrics computeActualMetrics(OptimizationItemSnapshot item) {
+        BigDecimal usedArea = productionItemRepository.sumTotalAreaByCommandeItemId(item.itemId());
         if (usedArea == null) {
             usedArea = BigDecimal.ZERO;
         }
 
-        Long producedQty = productionItemRepository.sumQuantityByCommandeItemIdExcludingId(item.getId(), null);
+        Long producedQty = productionItemRepository.sumQuantityByCommandeItemIdExcludingId(item.itemId(), null);
         int placedPieces = producedQty != null ? producedQty.intValue() : 0;
 
-        List<PlacedRectangle> placements = placedRectangleRepository.findByCommandeItemIdWithSources(item.getId());
+        List<PlacedRectangle> placements = placedRectangleRepository.findByCommandeItemIdWithSources(item.itemId());
         Map<String, BigDecimal> sourceAreas = new HashMap<>();
         for (PlacedRectangle pr : placements) {
             if (pr.getRoll() != null) {
@@ -691,7 +697,7 @@ public class OptimizationService {
             : usedArea.divide(totalSourceArea, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
 
         return new OptimizationMetrics(
-            item.getQuantite() != null ? item.getQuantite() : 0,
+            item.quantite() != null ? item.quantite() : 0,
             placedPieces,
             sourceAreas.size(),
             usedArea,
@@ -735,32 +741,39 @@ public class OptimizationService {
             .build();
     }
 
-    private String buildSuggestedSvg(List<SourcePlan> plans, CommandeItem item) {
+    private String buildSuggestedSvg(List<OptimizationEngine.SourcePlan> plans, OptimizationItemSnapshot item) {
         if (plans == null || plans.isEmpty()) {
             return null;
         }
-        MaterialType materialType = parseMaterialType(item.getMaterialType());
+        MaterialType materialType = parseMaterialType(item.materialType());
         MaterialChuteThreshold threshold = thresholdRepository.findByMaterialType(materialType).orElse(null);
         ThresholdSpec spec = threshold != null
             ? new ThresholdSpec(threshold.getMinWidthMm(), toLengthMm(threshold.getMinLengthM()))
             : new ThresholdSpec(0, 0);
 
         List<SvgGroup> groups = new ArrayList<>();
-        for (SourcePlan plan : plans) {
-            List<SvgRect> placements = plan.placements.stream()
-                .map(record -> SvgRect.fromPlacement(record.choice.rect.xMm, record.choice.rect.yMm,
-                    record.choice.widthMm, record.choice.heightMm, "#8fd3ff", "#004d7a",
-                    buildPlacementLabel(record.choice.rect.xMm, record.choice.rect.yMm,
-                        record.choice.widthMm, record.choice.heightMm)))
+        for (OptimizationEngine.SourcePlan plan : plans) {
+            List<SvgRect> placements = plan.placements().stream()
+                .map(record -> SvgRect.fromPlacement(record.xMm(), record.yMm(),
+                    record.widthMm(), record.heightMm(), "#8fd3ff", "#004d7a",
+                    buildPlacementLabel(record.xMm(), record.yMm(),
+                        record.widthMm(), record.heightMm())))
                 .toList();
 
-            List<SvgRect> wasteRects = plan.freeRects.stream()
-                .map(rect -> buildWasteRect(rect, spec))
+            List<SvgRect> wasteRects = plan.freeRects().stream()
+                .map(rect -> buildWasteRect(rect.xMm(), rect.yMm(), rect.widthMm(), rect.heightMm(), spec))
                 .toList();
 
-            // Render length on X axis and width on Y axis (avoids extremely tall SVGs for long rolls).
-            groups.add(new SvgGroup(plan.source.label(), plan.source.details(),
-                plan.source.heightMm, plan.source.widthMm, placements, wasteRects));
+            String sourceLabel = plan.source().sourceType() == OptimizationSourceType.WASTE ? "CHUTE" : "ROLL";
+            String sourceDetails = buildSourceDetails(
+                plan.source().reference(),
+                plan.source().nbPlis(),
+                plan.source().thicknessMm(),
+                plan.source().widthMm(),
+                toLengthMm(plan.source().lengthM())
+            );
+            groups.add(new SvgGroup(sourceLabel, sourceDetails,
+                toLengthMm(plan.source().lengthM()), plan.source().widthMm(), placements, wasteRects));
         }
 
         return renderSvg(groups, false);
@@ -1044,12 +1057,12 @@ public class OptimizationService {
         return svg.toString();
     }
 
-    private SvgRect buildWasteRect(FreeRect rect, ThresholdSpec spec) {
-        boolean reusable = rect.widthMm >= spec.minWidthMm && rect.heightMm >= spec.minLengthMm;
+    private SvgRect buildWasteRect(int xMm, int yMm, int widthMm, int heightMm, ThresholdSpec spec) {
+        boolean reusable = widthMm >= spec.minWidthMm && heightMm >= spec.minLengthMm;
         String fill = reusable ? "#c8f7c5" : "#e0e0e0";
         String stroke = reusable ? "#2f7a2f" : "#9a9a9a";
-        return SvgRect.fromPlacement(rect.xMm, rect.yMm, rect.widthMm, rect.heightMm, fill, stroke, 0.3,
-            buildPlacementLabel(rect.xMm, rect.yMm, rect.widthMm, rect.heightMm));
+        return SvgRect.fromPlacement(xMm, yMm, widthMm, heightMm, fill, stroke, 0.3,
+            buildPlacementLabel(xMm, yMm, widthMm, heightMm));
     }
 
     private String buildPlacementLabel(int xMm, int yMm, int widthMm, int heightMm) {

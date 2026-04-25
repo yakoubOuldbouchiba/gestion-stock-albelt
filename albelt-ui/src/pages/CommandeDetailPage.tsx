@@ -111,6 +111,7 @@ export function CommandeDetailPage() {
     optimizationComparison,
     optimizationLoading,
     optimizationError,
+    optimizationMode,
     rollsByMaterial,
     loadWasteForItem,
     loadProductionForItem,
@@ -594,9 +595,10 @@ export function CommandeDetailPage() {
                           optimizationComparison={optimizationComparison}
                           optimizationLoading={optimizationLoading}
                           optimizationError={optimizationError}
+                          optimizationMode={optimizationMode}
                           isBusy={isBusy}
                           isCommandeLocked={isCommandeLocked}
-                          onRegenerate={loadOptimizationForItem}
+                          onRegenerate={(itemId) => loadOptimizationForItem(itemId, true)}
                           onEnlarge={(title, svg) => setSvgZoomPreview({ title, svg })}
                           onPrint={printServerGeneratedLayout}
                           formatMetricValue={(v, d) => (v != null && !Number.isNaN(v)) ? Number(v).toFixed(d ?? 2) : '-'}

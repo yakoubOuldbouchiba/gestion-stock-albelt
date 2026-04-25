@@ -15,6 +15,14 @@ public interface OptimizationPlanRepository extends JpaRepository<OptimizationPl
     Optional<OptimizationPlan> findFirstByCommandeItemIdAndStatusOrderByCreatedAtDesc(UUID commandeItemId,
                                                                                      OptimizationPlanStatus status);
 
+    Optional<OptimizationPlan> findFirstByCommandeItemIdAndStatusAndAlgorithmVersionAndInputSignatureAndStockSignatureOrderByCreatedAtDesc(
+        UUID commandeItemId,
+        OptimizationPlanStatus status,
+        String algorithmVersion,
+        String inputSignature,
+        String stockSignature
+    );
+
     List<OptimizationPlan> findByCommandeItemIdAndStatus(UUID commandeItemId, OptimizationPlanStatus status);
 
     @Query("select count(p) from OptimizationPlan p where p.commandeItemId = :itemId")

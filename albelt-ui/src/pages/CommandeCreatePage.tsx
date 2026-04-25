@@ -10,6 +10,7 @@ import { Message } from 'primereact/message';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { CommandeService } from '../services/commandeService';
 import { useI18n } from '@hooks/useI18n';
+import { useCallback } from 'react';
 import { useAsyncLock } from '@hooks/useAsyncLock';
 import { useCommandeItems, calculateSurfaceM2, createDefaultCommandeItem } from './hooks/useCommandeItems';
 import { useCommandeLookups } from './hooks/useCommandeLookups';
@@ -32,6 +33,15 @@ interface MouvementOption {
 export function CommandeCreatePage() {
   const navigate = useNavigate();
   const { t } = useI18n();
+  // Memoize error handler to avoid infinite loop in useCommandeLookups
+  const handleClientsError = useCallback((message: string, err?: unknown) => {
+    setError(message);
+    toastRef.current?.show({
+      severity: 'error',
+      summary: t('common.error'),
+      detail: (err as any)?.message || message,
+    });
+  }, [t]);
   const toastRef = useRef<Toast>(null);
   const { run, isLocked } = useAsyncLock();
 
@@ -45,16 +55,15 @@ export function CommandeCreatePage() {
   const [notes, setNotes] = useState('');
   const selectedStatus: CommandeStatus = 'PENDING';
 
-  const { clients, colors, clientsLoading } = useCommandeLookups({
+  const {
+    clients,
+    colors,
+    clientsLoading,
+    loadMoreClients,
+    clientsHasMore
+  } = useCommandeLookups({
     t,
-    onClientsError: (message, err) => {
-      setError(message);
-      toastRef.current?.show({
-        severity: 'error',
-        summary: t('common.error'),
-        detail: (err as any)?.message || message,
-      });
-    },
+    onClientsError: handleClientsError,
   });
 
   const { items, updateItem, addItem, removeItem, summary } = useCommandeItems<CommandeItemRequest>({
@@ -235,6 +244,18 @@ export function CommandeCreatePage() {
                 disabled={clientsLoading || isSubmitting}
                 className={formErrors.selectedClient ? 'p-invalid' : ''}
                 style={{ width: '100%' }}
+                virtualScrollerOptions={{
+                  itemSize: 36,
+                  lazy: true,
+                  onLazyLoad: (event) => {
+                    if (clientsHasMore && !clientsLoading) {
+                      loadMoreClients();
+                    }
+                  },
+                  showLoader: clientsLoading,
+                  loading: clientsLoading,
+                  delay: 0,
+                }}
               />
               {formErrors.selectedClient && <small className="p-error">{formErrors.selectedClient}</small>}
             </div>

@@ -1,5 +1,7 @@
 package com.albelt.gestionstock.domain.rolls.repository;
 
+import com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint;
+import com.albelt.gestionstock.domain.optimization.data.OptimizationSourceSnapshot;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
@@ -245,5 +247,65 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
               r.altier.id, r.status , a.libelle
        """)
        List<Object[]> groupByAllFields();
+
+    @Query("""
+        select new com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint(
+            count(r),
+            max(r.updatedAt),
+            coalesce(sum(coalesce(r.availableAreaM2, r.areaM2)), 0)
+        )
+        from Roll r
+        where r.materialType = :materialType
+          and r.status in (com.albelt.gestionstock.shared.enums.RollStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
+          and (:altierId is null or r.altier.id = :altierId)
+          and (:nbPlis is null or r.nbPlis = :nbPlis)
+          and (:thicknessMm is null or r.thicknessMm = :thicknessMm)
+          and (:colorId is null or r.color.id = :colorId)
+          and (:reference is null or lower(coalesce(r.reference, '')) = lower(:reference))
+        """)
+    OptimizationCandidateFingerprint findOptimizationFingerprint(
+        @Param("materialType") MaterialType materialType,
+        @Param("nbPlis") Integer nbPlis,
+        @Param("thicknessMm") BigDecimal thicknessMm,
+        @Param("colorId") UUID colorId,
+        @Param("reference") String reference,
+        @Param("altierId") UUID altierId
+    );
+
+    @Query("""
+        select new com.albelt.gestionstock.domain.optimization.data.OptimizationSourceSnapshot(
+            com.albelt.gestionstock.domain.optimization.entity.OptimizationSourceType.ROLL,
+            r.id,
+            null,
+            coalesce(r.widthRemainingMm, r.widthMm),
+            coalesce(r.lengthRemainingM, r.lengthM),
+            coalesce(r.availableAreaM2, r.areaM2),
+            r.areaM2,
+            r.nbPlis,
+            r.thicknessMm,
+            color.id,
+            r.reference,
+            r.receivedDate,
+            r.updatedAt
+        )
+        from Roll r
+        left join r.color color
+        where r.materialType = :materialType
+          and r.status in (com.albelt.gestionstock.shared.enums.RollStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
+          and (:altierId is null or r.altier.id = :altierId)
+          and (:nbPlis is null or r.nbPlis = :nbPlis)
+          and (:thicknessMm is null or r.thicknessMm = :thicknessMm)
+          and (:colorId is null or color.id = :colorId)
+          and (:reference is null or lower(coalesce(r.reference, '')) = lower(:reference))
+        order by r.receivedDate asc, r.createdAt asc
+        """)
+    List<OptimizationSourceSnapshot> findOptimizationCandidates(
+        @Param("materialType") MaterialType materialType,
+        @Param("nbPlis") Integer nbPlis,
+        @Param("thicknessMm") BigDecimal thicknessMm,
+        @Param("colorId") UUID colorId,
+        @Param("reference") String reference,
+        @Param("altierId") UUID altierId
+    );
 }
 

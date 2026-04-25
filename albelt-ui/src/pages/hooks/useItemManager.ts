@@ -20,6 +20,7 @@ export function useItemManager(selectedItemId: string | null) {
   const [optimizationComparison, setOptimizationComparison] = useState<OptimizationComparison | null>(null);
   const [optimizationLoading, setOptimizationLoading] = useState(false);
   const [optimizationError, setOptimizationError] = useState<string | null>(null);
+  const [optimizationMode, setOptimizationMode] = useState<'load' | 'regenerate'>('load');
   const optimizationRequestRef = useRef(0);
 
   const [rollsByMaterial, setRollsByMaterial] = useState<Record<string, Roll[]>>({});
@@ -71,6 +72,7 @@ export function useItemManager(selectedItemId: string | null) {
     optimizationRequestRef.current = requestId;
     setOptimizationLoading(true);
     setOptimizationError(null);
+    setOptimizationMode(forceRegenerate ? 'regenerate' : 'load');
     try {
       const response = forceRegenerate
         ? await CommandeService.regenerateOptimization(itemId)
@@ -143,6 +145,7 @@ export function useItemManager(selectedItemId: string | null) {
     optimizationComparison,
     optimizationLoading,
     optimizationError,
+    optimizationMode,
     rollsByMaterial,
     rollsLoadingByMaterial,
     loadWasteForItem,

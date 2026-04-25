@@ -1,5 +1,7 @@
 package com.albelt.gestionstock.domain.waste.repository;
 
+import com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint;
+import com.albelt.gestionstock.domain.optimization.data.OptimizationSourceSnapshot;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
@@ -198,4 +200,66 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
             "WHERE w.status IN (:activeStatuses) and w.wasteType = :wasteType " +
             "GROUP BY w.roll.materialType")
     List<Object[]> getStatsByMaterial(WasteType wasteType,List<WasteStatus> activeStatuses);
+
+    @Query("""
+        select new com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint(
+            count(wp),
+            max(wp.updatedAt),
+            coalesce(sum(coalesce(wp.availableAreaM2, wp.areaM2)), 0)
+        )
+        from WastePiece wp
+        where wp.materialType = :materialType
+          and wp.status in (com.albelt.gestionstock.shared.enums.WasteStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.WasteStatus.OPENED)
+          and (wp.wasteType = com.albelt.gestionstock.shared.enums.WasteType.CHUTE_EXPLOITABLE or wp.wasteType is null)
+          and (:altierId is null or wp.altier.id = :altierId)
+          and (:nbPlis is null or wp.nbPlis = :nbPlis)
+          and (:thicknessMm is null or wp.thicknessMm = :thicknessMm)
+          and (:colorId is null or wp.color.id = :colorId)
+          and (:reference is null or lower(coalesce(wp.reference, '')) = lower(:reference))
+        """)
+    OptimizationCandidateFingerprint findOptimizationFingerprint(
+        @Param("materialType") MaterialType materialType,
+        @Param("nbPlis") Integer nbPlis,
+        @Param("thicknessMm") BigDecimal thicknessMm,
+        @Param("colorId") UUID colorId,
+        @Param("reference") String reference,
+        @Param("altierId") UUID altierId
+    );
+
+    @Query("""
+        select new com.albelt.gestionstock.domain.optimization.data.OptimizationSourceSnapshot(
+            com.albelt.gestionstock.domain.optimization.entity.OptimizationSourceType.WASTE,
+            null,
+            wp.id,
+            coalesce(wp.widthRemainingMm, wp.widthMm),
+            coalesce(wp.lengthRemainingM, wp.lengthM),
+            coalesce(wp.availableAreaM2, wp.areaM2),
+            wp.areaM2,
+            wp.nbPlis,
+            wp.thicknessMm,
+            color.id,
+            wp.reference,
+            null,
+            wp.updatedAt
+        )
+        from WastePiece wp
+        left join wp.color color
+        where wp.materialType = :materialType
+          and wp.status in (com.albelt.gestionstock.shared.enums.WasteStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.WasteStatus.OPENED)
+          and (wp.wasteType = com.albelt.gestionstock.shared.enums.WasteType.CHUTE_EXPLOITABLE or wp.wasteType is null)
+          and (:altierId is null or wp.altier.id = :altierId)
+          and (:nbPlis is null or wp.nbPlis = :nbPlis)
+          and (:thicknessMm is null or wp.thicknessMm = :thicknessMm)
+          and (:colorId is null or color.id = :colorId)
+          and (:reference is null or lower(coalesce(wp.reference, '')) = lower(:reference))
+        order by coalesce(wp.availableAreaM2, wp.areaM2) desc, wp.createdAt asc
+        """)
+    List<OptimizationSourceSnapshot> findOptimizationCandidates(
+        @Param("materialType") MaterialType materialType,
+        @Param("nbPlis") Integer nbPlis,
+        @Param("thicknessMm") BigDecimal thicknessMm,
+        @Param("colorId") UUID colorId,
+        @Param("reference") String reference,
+        @Param("altierId") UUID altierId
+    );
 }

@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.domain.commandes.repository;
 
 import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
+import com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -38,4 +39,53 @@ public interface CommandeItemRepository extends JpaRepository<CommandeItem, UUID
      */
     @Query("SELECT ci FROM CommandeItem ci WHERE ci.materialType = :materialType ORDER BY ci.createdAt DESC")
     List<CommandeItem> findByMaterialType(@Param("materialType") String materialType);
+
+    @Query("""
+        select new com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot(
+            ci.id,
+            c.id,
+            a.id,
+            ci.materialType,
+            ci.nbPlis,
+            ci.thicknessMm,
+            ci.longueurM,
+            ci.largeurMm,
+            ci.quantite,
+            color.id,
+            ci.reference,
+            ci.updatedAt,
+            c.updatedAt
+        )
+        from CommandeItem ci
+        join ci.commande c
+        left join c.altier a
+        left join ci.color color
+        where ci.id = :itemId
+        """)
+    java.util.Optional<OptimizationItemSnapshot> findOptimizationSnapshotById(@Param("itemId") UUID itemId);
+
+    @Query("""
+        select new com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot(
+            ci.id,
+            c.id,
+            a.id,
+            ci.materialType,
+            ci.nbPlis,
+            ci.thicknessMm,
+            ci.longueurM,
+            ci.largeurMm,
+            ci.quantite,
+            color.id,
+            ci.reference,
+            ci.updatedAt,
+            c.updatedAt
+        )
+        from CommandeItem ci
+        join ci.commande c
+        left join c.altier a
+        left join ci.color color
+        where c.id = :commandeId
+        order by ci.lineNumber asc
+        """)
+    List<OptimizationItemSnapshot> findOptimizationSnapshotsByCommandeId(@Param("commandeId") UUID commandeId);
 }

@@ -35,6 +35,12 @@ public class OptimizationPlan {
     @Builder.Default
     private String algorithmVersion = "v1";
 
+    @Column(name = "input_signature", length = 128)
+    private String inputSignature;
+
+    @Column(name = "stock_signature", length = 128)
+    private String stockSignature;
+
     @Column(name = "rotation_allowed", nullable = false)
     @Builder.Default
     private Boolean rotationAllowed = Boolean.TRUE;
