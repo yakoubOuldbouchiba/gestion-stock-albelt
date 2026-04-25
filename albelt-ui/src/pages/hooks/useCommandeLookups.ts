@@ -42,7 +42,7 @@ export function useCommandeLookups({ t, onClientsError }: UseCommandeLookupsOpti
       setClients((prev) => reset ? clientOptions : [...prev, ...clientOptions]);
       setClientsPage(pageToLoad + 1);
       setClientsHasMore((paged?.totalPages ?? 0) > (pageToLoad + 1));
-      if ((reset ? clientOptions.length : prev.length + clientOptions.length) === 0) {
+      if ((reset ? clientOptions.length : clients.length + clientOptions.length) === 0) {
         onClientsError?.(t('commandes.noClientsAvailable'));
       }
     } catch (err) {

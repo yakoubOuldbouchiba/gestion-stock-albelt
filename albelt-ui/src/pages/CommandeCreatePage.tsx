@@ -247,7 +247,7 @@ export function CommandeCreatePage() {
                 virtualScrollerOptions={{
                   itemSize: 36,
                   lazy: true,
-                  onLazyLoad: (event) => {
+                  onLazyLoad: () => {
                     if (clientsHasMore && !clientsLoading) {
                       loadMoreClients();
                     }
