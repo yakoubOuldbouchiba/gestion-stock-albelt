@@ -212,10 +212,10 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
           and wp.status in (com.albelt.gestionstock.shared.enums.WasteStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.WasteStatus.OPENED)
           and (wp.wasteType = com.albelt.gestionstock.shared.enums.WasteType.CHUTE_EXPLOITABLE or wp.wasteType is null)
           and (:altierId is null or wp.altier.id = :altierId)
-          and (:nbPlis is null or wp.nbPlis = :nbPlis)
-          and (:thicknessMm is null or wp.thicknessMm = :thicknessMm)
-          and (:colorId is null or wp.color.id = :colorId)
-          and (:reference is null or lower(coalesce(wp.reference, '')) = lower(:reference))
+          and (:nbPlis is null or wp.roll.nbPlis = :nbPlis)
+          and (:thicknessMm is null or wp.roll.thicknessMm = :thicknessMm)
+          and (:colorId is null or wp.roll.color.id = :colorId)
+          and (:reference is null or lower(coalesce(wp.roll.reference, '')) = lower(:reference))
         """)
     OptimizationCandidateFingerprint findOptimizationFingerprint(
         @Param("materialType") MaterialType materialType,
@@ -235,23 +235,23 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
             coalesce(wp.lengthRemainingM, wp.lengthM),
             coalesce(wp.availableAreaM2, wp.areaM2),
             wp.areaM2,
-            wp.nbPlis,
-            wp.thicknessMm,
+            wp.roll.nbPlis,
+            wp.roll.thicknessMm,
             color.id,
-            wp.reference,
+            wp.roll.reference,
             null,
             wp.updatedAt
         )
         from WastePiece wp
-        left join wp.color color
+        left join wp.roll.color color
         where wp.materialType = :materialType
           and wp.status in (com.albelt.gestionstock.shared.enums.WasteStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.WasteStatus.OPENED)
           and (wp.wasteType = com.albelt.gestionstock.shared.enums.WasteType.CHUTE_EXPLOITABLE or wp.wasteType is null)
           and (:altierId is null or wp.altier.id = :altierId)
-          and (:nbPlis is null or wp.nbPlis = :nbPlis)
-          and (:thicknessMm is null or wp.thicknessMm = :thicknessMm)
+          and (:nbPlis is null or wp.roll.nbPlis = :nbPlis)
+          and (:thicknessMm is null or wp.roll.thicknessMm = :thicknessMm)
           and (:colorId is null or color.id = :colorId)
-          and (:reference is null or lower(coalesce(wp.reference, '')) = lower(:reference))
+          and (:reference is null or lower(coalesce(wp.roll.reference, '')) = lower(:reference))
         order by coalesce(wp.availableAreaM2, wp.areaM2) desc, wp.createdAt asc
         """)
     List<OptimizationSourceSnapshot> findOptimizationCandidates(
