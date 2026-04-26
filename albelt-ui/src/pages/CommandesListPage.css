@@ -105,11 +105,11 @@
 
 .orders-workbench__summary-label {
   display: block;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.1rem;
   color: var(--owb-muted);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
 }
 
@@ -433,7 +433,7 @@ button.orders-workbench__order-card {
 }
 
 
-.orders-workbench__workspace-card--source .orders-workbench__detail-grid > div:first-child strong {
+.orders-workbench__workspace-card--source .orders-workbench__detail-grid>div:first-child strong {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -722,7 +722,7 @@ button.orders-workbench__order-card {
     max-height: none;
   }
 
-  .orders-workbench__layout--dual > .orders-workbench__panel:first-child {
+  .orders-workbench__layout--dual>.orders-workbench__panel:first-child {
     position: sticky;
     top: 1rem;
   }
@@ -806,6 +806,7 @@ button.orders-workbench__order-card {
 }
 
 @media (max-width: 520px) {
+
   .orders-workbench__summary-grid,
   .orders-workbench__mini-metrics,
   .orders-workbench__detail-grid,

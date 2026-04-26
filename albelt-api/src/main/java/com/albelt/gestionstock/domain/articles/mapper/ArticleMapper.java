@@ -58,7 +58,7 @@ public class ArticleMapper {
         if (entity == null) {
             return null;
         }
-        return ArticleResponse.builder()
+        var builder = ArticleResponse.builder()
                 .id(entity.getId())
                 .materialType(entity.getMaterialType())
                 .thicknessMm(entity.getThicknessMm())
@@ -67,12 +67,21 @@ public class ArticleMapper {
                 .name(entity.getName())
                 .code(entity.getCode())
                 .externalId(entity.getExternalId())
-                .colorId(entity.getColor() != null ? entity.getColor().getId() : null)
-                .colorName(entity.getColor() != null ? entity.getColor().getName() : null)
-                .colorHexCode(entity.getColor() != null ? entity.getColor().getHexCode() : null)
                 .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .build();
+                .updatedAt(entity.getUpdatedAt());
+
+        if (entity.getColor() != null) {
+            // Accessing ID on a proxy typically doesn't trigger initialization
+            builder.colorId(entity.getColor().getId());
+            
+            // Only access other fields if initialized to avoid LazyInitializationException
+            if (org.hibernate.Hibernate.isInitialized(entity.getColor())) {
+                builder.colorName(entity.getColor().getName());
+                builder.colorHexCode(entity.getColor().getHexCode());
+            }
+        }
+
+        return builder.build();
     }
 
     public List<ArticleResponse> toResponseList(List<Article> entities) {

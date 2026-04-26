@@ -5,6 +5,7 @@ import com.albelt.gestionstock.domain.articles.entity.Article;
 import com.albelt.gestionstock.domain.articles.repository.ArticleRepository;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -126,13 +127,13 @@ public class ArticleService {
 
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<Article> getAllPaged(String search, int page, int size) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return articleRepository.findFiltered(search, pageable);
     }
 
     @Transactional(readOnly = true)
     public List<Article> getAll() {
-        return articleRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        return articleRepository.findAllWithColor(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 
     @Transactional(readOnly = true)

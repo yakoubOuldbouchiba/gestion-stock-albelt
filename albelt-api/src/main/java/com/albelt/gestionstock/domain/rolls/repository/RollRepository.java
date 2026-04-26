@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.rolls.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint;
 import com.albelt.gestionstock.domain.optimization.data.OptimizationSourceSnapshot;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
@@ -109,11 +110,13 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
     /**
      * Find available rolls in user's assigned altiers (FIFO-compatible)
      */
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r WHERE r.altier.id IN (:altierIds) " +
            "AND r.status IN (:statuses) ORDER BY r.receivedDate ASC")
     List<Roll> findAvailableByAltierIds(@Param("altierIds") List<UUID> altierIds,
                                        @Param("statuses") List<RollStatus> statuses);
 
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r " +
            "JOIN r.article article " +
            "WHERE r.altier.id IN (:altierIds) " +
@@ -140,16 +143,15 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
     /**
      * Paged roll search with optional filters and altier restriction
      */
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r " +
-           "JOIN FETCH r.article ra " +
-           "LEFT JOIN FETCH ra.color " +
            "WHERE r.altier.id IN (:altierIds) " +
            "AND (:status IS NULL OR r.status = :status) " +
-           "AND (:articleId IS NULL OR ra.id = :articleId) " +
+           "AND (:articleId IS NULL OR r.article.id = :articleId) " +
            "AND (:materialType IS NULL OR r.materialType = :materialType) " +
            "AND (:supplierId IS NULL OR r.supplier.id = :supplierId) " +
            "AND (:altierId IS NULL OR r.altier.id = :altierId) " +
-           "AND (:colorId IS NULL OR ra.color.id = :colorId) " +
+           "AND (:colorId IS NULL OR r.article.color.id = :colorId) " +
            "AND (:nbPlis IS NULL OR r.nbPlis = :nbPlis) " +
            "AND (:thicknessMm IS NULL OR r.thicknessMm = :thicknessMm) " +
            "AND r.receivedDate >= :fromDate " +
@@ -159,7 +161,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
            "LOWER(r.supplier.name) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(r.altier.libelle) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(r.materialType) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(ra.reference) LIKE CONCAT('%', :search, '%'))")
+           "LOWER(r.article.reference) LIKE CONCAT('%', :search, '%'))")
     Page<Roll> findFiltered(
             @Param("altierIds") List<UUID> altierIds,
             @Param("status") RollStatus status,
@@ -179,6 +181,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      * Find rolls by supplier and material type
      * Used for chute form dropdown when selecting from existing rolls
      */
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r WHERE r.supplier.id = :supplierId " +
            "AND r.materialType = :materialType " +
            "AND r.status IN (:statuses) " +

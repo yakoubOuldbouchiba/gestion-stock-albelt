@@ -148,7 +148,12 @@ public class RollMapper {
             return null;
         }
         Color color = entity.getArticle() != null ? entity.getArticle().getColor() : null;
-        
+
+        boolean supplierInitialized = entity.getSupplier() != null
+            && org.hibernate.Hibernate.isInitialized(entity.getSupplier());
+        boolean altierInitialized = entity.getAltier() != null
+            && org.hibernate.Hibernate.isInitialized(entity.getAltier());
+
         return RollResponse.builder()
                 .id(entity.getId())
                 .articleId(entity.getArticle() != null ? entity.getArticle().getId() : null)
@@ -156,7 +161,7 @@ public class RollMapper {
                 .reference(entity.getReference())
                 .receivedDate(entity.getReceivedDate())
                 .supplierId(entity.getSupplier() != null ? entity.getSupplier().getId() : null)
-                .supplierName(entity.getSupplier() != null ? entity.getSupplier().getName() : null)
+                .supplierName(supplierInitialized ? entity.getSupplier().getName() : null)
                 .materialType(entity.getMaterialType())
                 .nbPlis(entity.getNbPlis())
                 .thicknessMm(entity.getThicknessMm())
@@ -169,11 +174,11 @@ public class RollMapper {
                 .availableAreaM2(entity.getAvailableAreaM2())
                 .status(entity.getStatus())
                 .altierId(entity.getAltier() != null ? entity.getAltier().getId() : null)
-                .altierLibelle(entity.getAltier() != null ? entity.getAltier().getLibelle() : null)
+                .altierLibelle(altierInitialized ? entity.getAltier().getLibelle() : null)
                 .qrCode(entity.getQrCode())
                 .colorId(color != null ? color.getId() : null)
-                .colorName(color != null ? color.getName() : null)
-                .colorHexCode(color != null ? color.getHexCode() : null)
+                .colorName(color != null && org.hibernate.Hibernate.isInitialized(color) ? color.getName() : null)
+                .colorHexCode(color != null && org.hibernate.Hibernate.isInitialized(color) ? color.getHexCode() : null)
                 .totalCuts(entity.getTotalCuts())
                 .totalWasteAreaM2(entity.getTotalWasteAreaM2())
                 .lastProcessingDate(entity.getLastProcessingDate())

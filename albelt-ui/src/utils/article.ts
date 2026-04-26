@@ -55,8 +55,14 @@ export function getArticleDisplayLabel(item?: MaybeArticleBacked | null): string
   const materialType = getArticleMaterialType(item);
   const thicknessMm = getArticleThicknessMm(item);
   const nbPlis = getArticleNbPlis(item);
+  const colorName = item?.article?.colorName || (item as any)?.colorName;
 
-  return [materialType, thicknessMm != null ? `${thicknessMm}mm` : null, nbPlis != null ? `${nbPlis} plis` : null]
+  return [
+    materialType,
+    thicknessMm != null ? `${thicknessMm}mm` : null,
+    nbPlis != null ? `${nbPlis} plis` : null,
+    colorName
+  ]
     .filter(Boolean)
     .join(' - ');
 }

@@ -125,17 +125,15 @@ export function ReceiveRollDialog({
                 onChange={onFieldChange}
                 readOnly
                 disabled
-                placeholder={t('inventory.autoFromArticle') || 'Auto from article'}
               />
             </div>
-             <div>
+            <div>
               <label htmlFor="colorName">{t('inventory.color') || 'Color'}</label>
               <InputText
                 id="colorName"
                 value={formData.article?.colorName || ''}
                 readOnly
                 disabled
-                placeholder={t('inventory.autoFromArticle') || 'Auto from article'}
               />
             </div>
           </div>
@@ -150,7 +148,6 @@ export function ReceiveRollDialog({
                 value={String(formData.nbPlis ?? '')}
                 readOnly
                 disabled
-                placeholder={t('inventory.autoFromArticle') || 'Auto from article'}
               />
             </div>
             <div>
@@ -162,7 +159,6 @@ export function ReceiveRollDialog({
                 value={String(formData.thicknessMm ?? '')}
                 readOnly
                 disabled
-                placeholder={t('inventory.autoFromArticle') || 'Auto from article'}
               />
             </div>
           </div>
@@ -204,15 +200,6 @@ export function ReceiveRollDialog({
             </div>
           </div>
 
-          <div>
-            <label htmlFor="qrCode">{t('inventory.qrCode')}</label>
-            <InputText
-              id="qrCode"
-              name="qrCode"
-              value={formData.qrCode || ''}
-              onChange={onFieldChange}
-            />
-          </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
             <Button

@@ -9,6 +9,7 @@ import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -79,15 +80,14 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     /**
      * Paged waste piece search with optional filters
      */
+    @EntityGraph(attributePaths = {"article", "article.color"})
     @Query("SELECT wp FROM WastePiece wp " +
-           "JOIN FETCH wp.article ra " +
-           "LEFT JOIN FETCH ra.color " +
-           "WHERE (:articleId IS NULL OR ra.id = :articleId) " +
+           "WHERE (:articleId IS NULL OR wp.article.id = :articleId) " +
            "AND (:materialType IS NULL OR wp.materialType = :materialType) " +
            "AND (:status IS NULL OR wp.status = :status) " +
           "AND (:wasteType IS NULL OR wp.wasteType = :wasteType) " +
            "AND (:altierId IS NULL OR wp.altier.id = :altierId) " +
-          "AND (:colorId IS NULL OR ra.color.id = :colorId) " +
+          "AND (:colorId IS NULL OR wp.article.color.id = :colorId) " +
           "AND (:nbPlis IS NULL OR wp.nbPlis = :nbPlis) " +
           "AND (:thicknessMm IS NULL OR wp.thicknessMm = :thicknessMm) " +
            "AND wp.createdAt >= :fromDate " +
@@ -95,7 +95,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
            "AND (:search = '' OR " +
            "LOWER(wp.qrCode) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(wp.materialType) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(ra.reference) LIKE CONCAT('%', :search, '%')) ")
+           "LOWER(wp.article.reference) LIKE CONCAT('%', :search, '%')) ")
     Page<WastePiece> findFiltered(
             @Param("articleId") UUID articleId,
             @Param("materialType") MaterialType materialType,
@@ -127,12 +127,14 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     /**
      * Find waste pieces for a specific commande item
      */
+    @EntityGraph(attributePaths = {"article", "article.color"})
     @Query("SELECT wp FROM WastePiece wp WHERE wp.commandeItemId = :commandeItemId ORDER BY wp.areaM2 DESC")
     List<WastePiece> findByCommandeItem(@Param("commandeItemId") UUID commandeItemId);
 
        /**
         * Find waste pieces for a specific roll
         */
+    @EntityGraph(attributePaths = {"article", "article.color"})
        @Query("SELECT wp FROM WastePiece wp WHERE wp.roll.id = :rollId ORDER BY wp.createdAt DESC")
        List<WastePiece> findByRollId(@Param("rollId") UUID rollId);
 

@@ -184,7 +184,6 @@ ol {
 .p-inputnumber-input,
 .p-multiselect {
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
   background: #fff;
   transition: var(--transition-smooth);
   min-height: 40px;
@@ -216,6 +215,7 @@ ol {
   font-size: 0.85rem;
 }
 
+
 .p-dropdown .p-dropdown-label,
 .p-inputtext,
 .p-inputnumber-input {
@@ -235,7 +235,6 @@ ol {
 .p-input-icon-right>i {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
   color: var(--color-muted);
   font-size: 0.95rem;
   z-index: 2;
@@ -714,13 +713,13 @@ ol {
   border: 1px solid var(--color-border);
 }
 
-.albel-compare-grid > div {
+.albel-compare-grid>div {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.albel-compare-grid > div:first-child {
+.albel-compare-grid>div:first-child {
   color: var(--color-muted);
   font-weight: 700;
   font-size: 0.8rem;
@@ -728,18 +727,18 @@ ol {
   letter-spacing: 0.05em;
 }
 
-.albel-compare-grid > div > div {
+.albel-compare-grid>div>div {
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
   background: #fff;
-  border: 1px solid rgba(0,0,0,0.03);
+  border: 1px solid rgba(0, 0, 0, 0.03);
   font-size: 0.95rem;
   min-height: 2.5rem;
   display: flex;
   align-items: center;
 }
 
-.albel-compare-grid > div > div:first-child {
+.albel-compare-grid>div>div:first-child {
   background: transparent;
   border: none;
   padding-left: 0;
@@ -780,7 +779,7 @@ ol {
   width: auto;
   min-width: 100%;
   display: block;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.05));
 }
 
 .albel-svg-slices {

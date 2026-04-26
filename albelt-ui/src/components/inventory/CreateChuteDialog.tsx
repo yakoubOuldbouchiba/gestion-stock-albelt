@@ -230,6 +230,7 @@ export function CreateChuteDialog({
             <div style={{ gridColumn: 'span 2' }}>
               <label htmlFor="articleId">{t('inventory.selectArticle') || 'Select Article'} *</label>
               <ArticleSelector
+                readOnly
                 id="articleId"
                 options={articles.filter(a => a.materialType === materialType)}
                 value={formData.article || formData.articleId}
@@ -242,22 +243,22 @@ export function CreateChuteDialog({
           <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
               <label htmlFor="reference">{t('rolls.reference')}</label>
-              <InputText id="reference" name="reference" value={formData.reference || ''} disabled readOnly placeholder={t('inventory.autoFromArticle') || 'Auto from article'} />
+              <InputText id="reference" name="reference" value={formData.reference || ''} disabled readOnly />
             </div>
             <div>
               <label htmlFor="colorName">{t('inventory.color') || 'Color'}</label>
-              <InputText id="colorName" value={formData.article?.colorName || ''} disabled readOnly placeholder={t('inventory.autoFromArticle') || 'Auto from article'} />
+              <InputText id="colorName" value={formData.article?.colorName || ''} disabled readOnly />
             </div>
           </div>
 
           <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
               <label htmlFor="nbPlis">{t('rolls.plies')}</label>
-              <InputText type="number" id="nbPlis" name="nbPlis" value={String(formData.nbPlis ?? '')} disabled readOnly placeholder={t('inventory.autoFromArticle') || 'Auto from article'} />
+              <InputText type="number" id="nbPlis" name="nbPlis" value={String(formData.nbPlis ?? '')} disabled readOnly />
             </div>
             <div>
               <label htmlFor="thicknessMm">{t('rolls.thickness')}</label>
-              <InputText type="number" id="thicknessMm" name="thicknessMm" value={String(formData.thicknessMm ?? '')} disabled readOnly placeholder={t('inventory.autoFromArticle') || 'Auto from article'} />
+              <InputText type="number" id="thicknessMm" name="thicknessMm" value={String(formData.thicknessMm ?? '')} disabled readOnly />
             </div>
           </div>
 
@@ -298,15 +299,6 @@ export function CreateChuteDialog({
             </div>
           </div>
 
-          <div>
-            <label htmlFor="qrCode">{t('inventory.qrCode')}</label>
-            <InputText
-              id="qrCode"
-              name="qrCode"
-              value={formData.qrCode || ''}
-              onChange={onFieldChange}
-            />
-          </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
             <Button

@@ -88,6 +88,7 @@ export function InventoryPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [altiers, setAltiers] = useState<Altier[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [colors, setColors] = useState<Color[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('inventory');
@@ -291,7 +292,11 @@ export function InventoryPage() {
         setFormData((prev) => ({
           ...prev,
           articleId: selectedChute.articleId ?? undefined,
-          article: selectedChute.article,
+          article: selectedChute.article ? {
+            ...selectedChute.article,
+            colorName: selectedChute.article.colorName || selectedChute.colorName,
+            colorHexCode: selectedChute.article.colorHexCode || selectedChute.colorHexCode,
+          } : undefined,
           nbPlis: selectedChute.nbPlis,
           thicknessMm: selectedChute.thicknessMm,
           areaM2: selectedChute.areaM2,
@@ -312,7 +317,11 @@ export function InventoryPage() {
         setFormData((prev) => ({
           ...prev,
           articleId: selectedParent.articleId ?? undefined,
-          article: selectedParent.article,
+          article: selectedParent.article ? {
+            ...selectedParent.article,
+            colorName: selectedParent.article.colorName || selectedParent.colorName,
+            colorHexCode: selectedParent.article.colorHexCode || selectedParent.colorHexCode,
+          } : undefined,
           materialType: selectedParent.materialType,
           nbPlis: selectedParent.nbPlis,
           thicknessMm: selectedParent.thicknessMm,
@@ -1129,7 +1138,4 @@ export function InventoryPage() {
 }
 
 export default InventoryPage;
-function setColors(_arg0: Color[]) {
-  throw new Error('Function not implemented.');
-}
 
