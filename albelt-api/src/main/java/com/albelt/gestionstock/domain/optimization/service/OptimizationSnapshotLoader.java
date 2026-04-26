@@ -11,7 +11,6 @@ import com.albelt.gestionstock.domain.optimization.repository.OptimizationPlacem
 import com.albelt.gestionstock.domain.placement.repository.PlacedRectangleRepository;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.domain.waste.repository.WastePieceRepository;
-import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +21,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
@@ -57,29 +57,45 @@ public class OptimizationSnapshotLoader {
     @Transactional(readOnly = true)
     public OptimizationPlanningContext loadPlanningContext(OptimizationItemSnapshot itemSnapshot) {
         OptimizationCandidateFilter filter = new OptimizationCandidateFilter(
-            parseMaterialType(itemSnapshot.materialType()),
-            itemSnapshot.nbPlis(),
-            itemSnapshot.thicknessMm(),
+            itemSnapshot.articleId(),
             itemSnapshot.colorId(),
-            normalize(itemSnapshot.reference()),
             itemSnapshot.altierId()
         );
 
+        if (filter.articleId() == null) {
+            return new OptimizationPlanningContext(
+                itemSnapshot,
+                List.of(),
+                Collections.emptyMap(),
+                digest(java.util.Arrays.asList(
+                    safe(itemSnapshot.itemId()),
+                    safe(itemSnapshot.commandeId()),
+                    safe(itemSnapshot.altierId()),
+                    safe(itemSnapshot.articleId()),
+                    safe(itemSnapshot.materialType()),
+                    safe(itemSnapshot.nbPlis()),
+                    safe(itemSnapshot.thicknessMm()),
+                    safe(itemSnapshot.longueurM()),
+                    safe(itemSnapshot.largeurMm()),
+                    safe(itemSnapshot.quantite()),
+                    safe(itemSnapshot.colorId()),
+                    safe(normalize(itemSnapshot.reference())),
+                    safe(itemSnapshot.itemUpdatedAt()),
+                    safe(itemSnapshot.commandeUpdatedAt())
+                )),
+                digest(List.of("ROLLS=0|null|0", "WASTES=0|null|0"))
+            );
+        }
+
         OptimizationCandidateFingerprint wasteFingerprint = wastePieceRepository.findOptimizationFingerprint(
-            filter.materialType(),
-            filter.nbPlis(),
-            filter.thicknessMm(),
+            filter.articleId(),
             filter.colorId(),
-            filter.reference(),
             filter.altierId()
         );
 
         OptimizationCandidateFingerprint rollFingerprint = rollRepository.findOptimizationFingerprint(
-            filter.materialType(),
-            filter.nbPlis(),
-            filter.thicknessMm(),
+            filter.articleId(),
             filter.colorId(),
-            filter.reference(),
             filter.altierId()
         );
 
@@ -128,6 +144,7 @@ public class OptimizationSnapshotLoader {
             safe(itemSnapshot.itemId()),
             safe(itemSnapshot.commandeId()),
             safe(itemSnapshot.altierId()),
+            safe(itemSnapshot.articleId()),
             safe(itemSnapshot.materialType()),
             safe(itemSnapshot.nbPlis()),
             safe(itemSnapshot.thicknessMm()),
@@ -149,6 +166,7 @@ public class OptimizationSnapshotLoader {
             .forEach(source -> stockParts.add(
                 safe(source.sourceType()) + "|"
                     + safe(source.sourceId()) + "|"
+                    + safe(source.articleId()) + "|"
                     + safe(source.widthMm()) + "|"
                     + safe(source.lengthM()) + "|"
                     + safe(source.availableAreaM2()) + "|"
@@ -178,13 +196,6 @@ public class OptimizationSnapshotLoader {
             inputSignature,
             digest(stockParts)
         );
-    }
-
-    private MaterialType parseMaterialType(String value) {
-        if (value == null) {
-            return null;
-        }
-        return MaterialType.valueOf(value.trim().toUpperCase());
     }
 
     private String normalize(String value) {

@@ -15,6 +15,8 @@ import { useI18n } from '@hooks/useI18n';
 export function useItemManager(selectedItemId: string | null) {
   const { t } = useI18n();
   const [wasteForItem, setWasteForItem] = useState<any[]>([]);
+  const [availableWasteByArticle, setAvailableWasteByArticle] = useState<Record<string, any[]>>({});
+  const [wasteLoadingByArticle, setWasteLoadingByArticle] = useState<Record<string, boolean>>({});
   const [productionForItem, setProductionForItem] = useState<ProductionItem[]>([]);
   const [placementsForItem, setPlacementsForItem] = useState<PlacedRectangle[]>([]);
   const [optimizationComparison, setOptimizationComparison] = useState<OptimizationComparison | null>(null);
@@ -23,8 +25,8 @@ export function useItemManager(selectedItemId: string | null) {
   const [optimizationMode, setOptimizationMode] = useState<'load' | 'regenerate'>('load');
   const optimizationRequestRef = useRef(0);
 
-  const [rollsByMaterial, setRollsByMaterial] = useState<Record<string, Roll[]>>({});
-  const [rollsLoadingByMaterial, setRollsLoadingByMaterial] = useState<Record<string, boolean>>({});
+  const [rollsByArticle, setRollsByArticle] = useState<Record<string, Roll[]>>({});
+  const [rollsLoadingByArticle, setRollsLoadingByArticle] = useState<Record<string, boolean>>({});
 
   const loadWasteForItem = useCallback(async (itemId: string) => {
     try {
@@ -101,26 +103,43 @@ export function useItemManager(selectedItemId: string | null) {
     }
   }, [t]);
 
-  const ensureRollsForMaterial = useCallback(async (materialType?: string) => {
-    if (!materialType) return;
-    if ((rollsByMaterial[materialType] || []).length > 0) return;
-    if (rollsLoadingByMaterial[materialType]) return;
+  const ensureRollsForArticle = useCallback(async (articleId?: string | null) => {
+    if (!articleId) return;
+    if ((rollsByArticle[articleId] || []).length > 0) return;
+    if (rollsLoadingByArticle[articleId]) return;
 
-    setRollsLoadingByMaterial((prev) => ({ ...prev, [materialType]: true }));
+    setRollsLoadingByArticle((prev) => ({ ...prev, [articleId]: true }));
     try {
-      const response = await RollService.getAvailableByMaterial(materialType as any);
+      const response = await RollService.getAvailableByArticle(articleId);
       if (response.success && response.data) {
-        setRollsByMaterial((prev) => ({ ...prev, [materialType]: response.data || [] }));
+        setRollsByArticle((prev) => ({ ...prev, [articleId]: response.data || [] }));
       } else {
-        setRollsByMaterial((prev) => ({ ...prev, [materialType]: [] }));
+        setRollsByArticle((prev) => ({ ...prev, [articleId]: [] }));
       }
     } catch (err) {
       console.error('Error loading rolls:', err);
-      setRollsByMaterial((prev) => ({ ...prev, [materialType]: [] }));
+      setRollsByArticle((prev) => ({ ...prev, [articleId]: [] }));
     } finally {
-      setRollsLoadingByMaterial((prev) => ({ ...prev, [materialType]: false }));
+      setRollsLoadingByArticle((prev) => ({ ...prev, [articleId]: false }));
     }
-  }, [rollsByMaterial, rollsLoadingByMaterial]);
+  }, [rollsByArticle, rollsLoadingByArticle]);
+
+  const ensureWasteForArticle = useCallback(async (articleId?: string | null) => {
+    if (!articleId) return;
+    if ((availableWasteByArticle[articleId] || []).length > 0) return;
+    if (wasteLoadingByArticle[articleId]) return;
+
+    setWasteLoadingByArticle((prev) => ({ ...prev, [articleId]: true }));
+    try {
+      const response = await WastePieceService.getAvailableByArticle(articleId, 0, 200);
+      setAvailableWasteByArticle((prev) => ({ ...prev, [articleId]: response.data || [] }));
+    } catch (err) {
+      console.error('Error loading article waste:', err);
+      setAvailableWasteByArticle((prev) => ({ ...prev, [articleId]: [] }));
+    } finally {
+      setWasteLoadingByArticle((prev) => ({ ...prev, [articleId]: false }));
+    }
+  }, [availableWasteByArticle, wasteLoadingByArticle]);
 
   useEffect(() => {
     if (!selectedItemId) {
@@ -146,12 +165,15 @@ export function useItemManager(selectedItemId: string | null) {
     optimizationLoading,
     optimizationError,
     optimizationMode,
-    rollsByMaterial,
-    rollsLoadingByMaterial,
+    availableWasteByArticle,
+    rollsByArticle,
+    rollsLoadingByArticle,
+    wasteLoadingByArticle,
     loadWasteForItem,
     loadProductionForItem,
     loadPlacementsForItem,
     loadOptimizationForItem,
-    ensureRollsForMaterial,
+    ensureWasteForArticle,
+    ensureRollsForArticle,
   };
 }

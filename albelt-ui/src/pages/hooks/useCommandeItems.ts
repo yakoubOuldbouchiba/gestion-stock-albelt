@@ -13,6 +13,8 @@ export function createDefaultCommandeItem(lineNumber: number): CommandeItemReque
   const longueurM = 5;
   const largeurMm = 1000;
   return {
+    articleId: undefined,
+    article: null,
     materialType: 'PU',
     nbPlis: 1,
     thicknessMm: 2.5,

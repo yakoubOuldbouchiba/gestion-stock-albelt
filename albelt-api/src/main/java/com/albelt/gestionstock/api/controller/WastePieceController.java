@@ -58,6 +58,7 @@ public class WastePieceController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) UUID articleId,
             @RequestParam(required = false) MaterialType materialType,
             @RequestParam(required = false) WasteStatus status,
             @RequestParam(required = false) WasteType wasteType,
@@ -70,7 +71,7 @@ public class WastePieceController {
         log.debug("Fetching all waste pieces: page={}, size={}", page, size);
         var fromDate = parseDateStart(dateFrom);
         var toDate = parseDateEnd(dateTo);
-        var wastePieces = wastePieceService.getAllPaged(materialType, status, altierId, colorId, nbPlis,
+        var wastePieces = wastePieceService.getAllPaged(articleId, materialType, status, altierId, colorId, nbPlis,
             thicknessMm, wasteType, fromDate, toDate, search, page, size);
         var responses = wastePieceMapper.toResponseList(wastePieces.getContent());
         var paged = PagedResponse.<WastePieceResponse>builder()
@@ -236,16 +237,16 @@ public class WastePieceController {
 
     /**
      * Get available waste pieces by material
-     * GET /api/waste-pieces/available?material={material}&page={page}&size={size}
+     * GET /api/waste-pieces/available?articleId={articleId}&page={page}&size={size}
      */
     @GetMapping("/available")
     @Transactional(readOnly = true)
-    public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getAvailableByMaterial(
-            @RequestParam MaterialType material,
+    public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getAvailableByArticle(
+            @RequestParam UUID articleId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        log.debug("Fetching available waste pieces for material: {}", material);
-        var wastePieces = wastePieceService.getAvailableByMaterial(material, page, size);
+        log.debug("Fetching available waste pieces for article: {}", articleId);
+        var wastePieces = wastePieceService.getAvailableByArticle(articleId, page, size);
         var responses = wastePieceMapper.toResponseList(wastePieces);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }

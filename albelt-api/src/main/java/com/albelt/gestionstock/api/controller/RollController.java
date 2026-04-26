@@ -60,6 +60,7 @@ public class RollController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) RollStatus status,
+            @RequestParam(required = false) UUID articleId,
             @RequestParam(required = false) MaterialType materialType,
             @RequestParam(required = false) UUID supplierId,
             @RequestParam(required = false) UUID altierId,
@@ -93,6 +94,7 @@ public class RollController {
         var rolls = rollService.getByUserAltiersPaged(
                 accessibleAltierIds,
                 status,
+                articleId,
                 materialType,
                 supplierId,
                 altierId,
@@ -119,18 +121,18 @@ public class RollController {
     /**
      * Get available rolls for a material type, scoped to the current user's accessible altiers.
      * Status is restricted to AVAILABLE/OPENED.
-     * GET /api/rolls/available?materialType={materialType}
+     * GET /api/rolls/available?articleId={articleId}
      */
     @GetMapping("/available")
-    public ResponseEntity<ApiResponse<List<RollResponse>>> getAvailableByMaterial(
-            @RequestParam MaterialType materialType) {
+    public ResponseEntity<ApiResponse<List<RollResponse>>> getAvailableByArticle(
+            @RequestParam UUID articleId) {
         UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
         if (accessibleAltierIds.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(List.of(), "No accessible rolls"));
         }
 
-        var rolls = rollService.getAvailableByUserAltiersAndMaterial(accessibleAltierIds, materialType);
+        var rolls = rollService.getAvailableByUserAltiersAndArticle(accessibleAltierIds, articleId);
         var responses = rollMapper.toResponseList(rolls);
         return ResponseEntity.ok(ApiResponse.success(responses, "Available rolls retrieved"));
     }

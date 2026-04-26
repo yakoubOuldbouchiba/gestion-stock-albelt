@@ -2,6 +2,7 @@ package com.albelt.gestionstock.domain.purchasebons.service;
 
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.altier.service.AltierService;
+import com.albelt.gestionstock.domain.articles.service.ArticleService;
 import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.colors.service.ColorService;
 import com.albelt.gestionstock.domain.purchasebons.dto.PurchaseBonItemRequest;
@@ -47,6 +48,7 @@ public class PurchaseBonService {
     private final UserService userService;
     private final AltierService altierService;
     private final ColorService colorService;
+    private final ArticleService articleService;
     private final RollService rollService;
 
     @Transactional
@@ -219,6 +221,13 @@ public class PurchaseBonService {
                     .color(color)
                     .qrCode(request.getQrCode())
                     .build();
+            item.setArticle(articleService.resolve(
+                request.getMaterialType(),
+                request.getThicknessMm(),
+                request.getNbPlis(),
+                request.getReference(),
+                request.getColorId()
+            ));
             items.add(item);
         }
         return items;

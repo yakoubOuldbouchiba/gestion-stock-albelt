@@ -61,6 +61,7 @@
     "purchaseBons": "Bons d'achat",
     "materialChute": "Seuils de matériau",
     "colors": "Couleurs",
+    "articles": "Articles",
     "orders": "Commandes"
   },
   "sidebar": {
@@ -915,6 +916,7 @@
     "orderUpdatedSuccessfully": "Commande mise à jour avec succès",
     "updateError": "Échec de la mise à jour de la commande. Veuillez vérifier votre saisie et réessayer.",
     "selectMaterial": "Sélectionner le matériau",
+    "selectArticle": "Sélectionner un article",
     "selectMouvement": "Sélectionner le mouvement",
     "lineNumber": "Ligne #",
     "movement": "Mouvement",
@@ -1009,6 +1011,7 @@
     "orderNumberHint": "Entrez ou générez automatiquement un numéro de commande unique",
     "descriptionHint": "Décrivez brièvement le contenu et l'objectif de la commande",
     "itemsRequired": "Au moins un article est requis",
+    "articleRequired": "Sélectionnez un article pour chaque ligne",
     "itemCount": "Articles",
     "totalQuantity": "Quantité totale",
     "totalSurface": "Surface totale",

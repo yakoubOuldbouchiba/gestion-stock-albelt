@@ -23,7 +23,16 @@ public interface PurchaseBonRepository extends JpaRepository<PurchaseBon, UUID> 
         /**
          * Paged purchase bon search with optional filters
          */
-          @Query("SELECT pb FROM PurchaseBon pb " +
+          @Query(value = "SELECT DISTINCT pb FROM PurchaseBon pb " +
+              "LEFT JOIN FETCH pb.items i " +
+              "LEFT JOIN FETCH i.article a " +
+              "LEFT JOIN FETCH a.color " +
+              "WHERE (:status IS NULL OR pb.status = :status) " +
+              "AND (:supplierId IS NULL OR pb.supplier.id = :supplierId) " +
+              "AND (:fromDate IS NULL OR pb.bonDate >= :fromDate) " +
+              "AND (:toDate IS NULL OR pb.bonDate <= :toDate) " +
+              "AND (:search = '' OR LOWER(pb.reference) LIKE CONCAT('%', :search, '%')) ",
+              countQuery = "SELECT COUNT(pb) FROM PurchaseBon pb " +
               "WHERE (:status IS NULL OR pb.status = :status) " +
               "AND (:supplierId IS NULL OR pb.supplier.id = :supplierId) " +
               "AND (:fromDate IS NULL OR pb.bonDate >= :fromDate) " +
@@ -37,6 +46,6 @@ public interface PurchaseBonRepository extends JpaRepository<PurchaseBon, UUID> 
             @Param("search") String search,
             Pageable pageable);
 
-    @EntityGraph(attributePaths = {"items", "items.color", "items.altier", "supplier", "createdBy"})
+    @EntityGraph(attributePaths = {"items", "items.color", "items.altier", "items.article", "items.article.color", "supplier", "createdBy"})
     Optional<PurchaseBon> findWithItemsById(UUID id);
 }

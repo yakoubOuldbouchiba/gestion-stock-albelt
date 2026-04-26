@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.domain.purchasebons.entity;
 
 import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.articles.entity.Article;
 import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import jakarta.persistence.*;
@@ -18,7 +19,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "purchase_bon_items", indexes = {
         @Index(name = "idx_purchase_bon_items_bon_id", columnList = "purchase_bon_id"),
-        @Index(name = "idx_purchase_bon_items_material", columnList = "material_type")
+        @Index(name = "idx_purchase_bon_items_material", columnList = "material_type"),
+        @Index(name = "idx_purchase_bon_items_article_id", columnList = "article_id")
 })
 @Getter
 @Setter
@@ -34,6 +36,10 @@ public class PurchaseBonItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "purchase_bon_id", nullable = false)
     private PurchaseBon purchaseBon;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "article_id")
+    private Article article;
 
     @Column(name = "line_number", nullable = false)
     private Integer lineNumber;
@@ -78,4 +84,55 @@ public class PurchaseBonItem {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    private void syncLegacyFieldsFromArticleLifecycle() {
+        syncLegacyFieldsFromArticle();
+    }
+
+    public MaterialType getMaterialType() {
+        MaterialType fromArticle = parseMaterialType(article != null ? article.getMaterialType() : null);
+        return fromArticle != null ? fromArticle : materialType;
+    }
+
+    public Integer getNbPlis() {
+        return article != null && article.getNbPlis() != null ? article.getNbPlis() : nbPlis;
+    }
+
+    public BigDecimal getThicknessMm() {
+        return article != null && article.getThicknessMm() != null ? article.getThicknessMm() : thicknessMm;
+    }
+
+    public void setArticle(Article article) {
+        this.article = article;
+        syncLegacyFieldsFromArticle();
+    }
+
+    public void syncLegacyFieldsFromArticle() {
+        if (article == null) {
+            return;
+        }
+        MaterialType articleMaterialType = parseMaterialType(article.getMaterialType());
+        if (articleMaterialType != null) {
+            this.materialType = articleMaterialType;
+        }
+        if (article.getNbPlis() != null) {
+            this.nbPlis = article.getNbPlis();
+        }
+        if (article.getThicknessMm() != null) {
+            this.thicknessMm = article.getThicknessMm();
+        }
+    }
+
+    private MaterialType parseMaterialType(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return MaterialType.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
 }

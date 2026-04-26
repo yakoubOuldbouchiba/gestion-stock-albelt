@@ -21,7 +21,11 @@ public interface CommandeRepository extends JpaRepository<Commande, UUID> {
     /**
      * Find order by order number
      */
-    Optional<Commande> findByNumeroCommande(String numeroCommande);
+    @Query("SELECT DISTINCT c FROM Commande c LEFT JOIN FETCH c.items i LEFT JOIN FETCH i.article a LEFT JOIN FETCH a.color WHERE c.numeroCommande = :numeroCommande")
+    Optional<Commande> findByNumeroCommande(@Param("numeroCommande") String numeroCommande);
+
+    @Query("SELECT DISTINCT c FROM Commande c LEFT JOIN FETCH c.items i LEFT JOIN FETCH i.article a LEFT JOIN FETCH a.color WHERE c.id = :id")
+    Optional<Commande> findWithAllAssociationsById(@Param("id") UUID id);
 
     /**
      * Check if order number exists
@@ -49,13 +53,22 @@ public interface CommandeRepository extends JpaRepository<Commande, UUID> {
     /**
      * Find all orders ordered by creation date
      */
-    @Query("SELECT c FROM Commande c ORDER BY c.createdAt DESC")
+    @Query("SELECT DISTINCT c FROM Commande c LEFT JOIN FETCH c.items i LEFT JOIN FETCH i.article a LEFT JOIN FETCH a.color ORDER BY c.createdAt DESC")
     List<Commande> findAllOrderByCreatedAtDesc();
 
     /**
      * Paged order search with optional filters
      */
-    @Query("SELECT c FROM Commande c " +
+    @Query(value = "SELECT DISTINCT c FROM Commande c " +
+           "LEFT JOIN FETCH c.items i " +
+           "LEFT JOIN FETCH i.article a " +
+           "LEFT JOIN FETCH a.color " +
+           "WHERE (:status IS NULL OR c.status = :status) " +
+           "AND (:clientId IS NULL OR c.client.id = :clientId) " +
+           "AND c.createdAt >= :fromDate " +
+           "AND c.createdAt <= :toDate " +
+           "AND (:search = '' OR LOWER(c.numeroCommande) LIKE CONCAT('%', :search, '%')) ",
+           countQuery = "SELECT COUNT(c) FROM Commande c " +
            "WHERE (:status IS NULL OR c.status = :status) " +
            "AND (:clientId IS NULL OR c.client.id = :clientId) " +
            "AND c.createdAt >= :fromDate " +

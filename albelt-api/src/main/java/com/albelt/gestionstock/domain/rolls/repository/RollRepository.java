@@ -114,6 +114,17 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
     List<Roll> findAvailableByAltierIds(@Param("altierIds") List<UUID> altierIds,
                                        @Param("statuses") List<RollStatus> statuses);
 
+    @Query("SELECT r FROM Roll r " +
+           "JOIN r.article article " +
+           "WHERE r.altier.id IN (:altierIds) " +
+           "AND article.id = :articleId " +
+           "AND r.status IN (:statuses) " +
+           "ORDER BY r.receivedDate ASC")
+    List<Roll> findAvailableByAltierIdsAndArticle(
+           @Param("altierIds") List<UUID> altierIds,
+           @Param("articleId") UUID articleId,
+           @Param("statuses") List<RollStatus> statuses);
+
     /**
      * Find available rolls for a specific material in user's assigned altiers.
      */
@@ -130,14 +141,17 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      * Paged roll search with optional filters and altier restriction
      */
     @Query("SELECT r FROM Roll r " +
+           "JOIN FETCH r.article ra " +
+           "LEFT JOIN FETCH ra.color " +
            "WHERE r.altier.id IN (:altierIds) " +
            "AND (:status IS NULL OR r.status = :status) " +
+           "AND (:articleId IS NULL OR ra.id = :articleId) " +
            "AND (:materialType IS NULL OR r.materialType = :materialType) " +
            "AND (:supplierId IS NULL OR r.supplier.id = :supplierId) " +
            "AND (:altierId IS NULL OR r.altier.id = :altierId) " +
-          "AND (:colorId IS NULL OR r.color.id = :colorId) " +
-          "AND (:nbPlis IS NULL OR r.nbPlis = :nbPlis) " +
-          "AND (:thicknessMm IS NULL OR r.thicknessMm = :thicknessMm) " +
+           "AND (:colorId IS NULL OR ra.color.id = :colorId) " +
+           "AND (:nbPlis IS NULL OR r.nbPlis = :nbPlis) " +
+           "AND (:thicknessMm IS NULL OR r.thicknessMm = :thicknessMm) " +
            "AND r.receivedDate >= :fromDate " +
            "AND r.receivedDate <= :toDate " +
            "AND (:search = '' OR " +
@@ -145,16 +159,17 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
            "LOWER(r.supplier.name) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(r.altier.libelle) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(r.materialType) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(r.reference) LIKE CONCAT('%', :search, '%'))")
+           "LOWER(ra.reference) LIKE CONCAT('%', :search, '%'))")
     Page<Roll> findFiltered(
             @Param("altierIds") List<UUID> altierIds,
             @Param("status") RollStatus status,
+            @Param("articleId") UUID articleId,
             @Param("materialType") MaterialType materialType,
             @Param("supplierId") UUID supplierId,
             @Param("altierId") UUID altierId,
-           @Param("colorId") UUID colorId,
-           @Param("nbPlis") Integer nbPlis,
-           @Param("thicknessMm") BigDecimal thicknessMm,
+            @Param("colorId") UUID colorId,
+            @Param("nbPlis") Integer nbPlis,
+            @Param("thicknessMm") BigDecimal thicknessMm,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
             @Param("search") String search,
@@ -197,7 +212,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
     /**
      * Fetch recent rolls for a set of altiers (LIMIT via Pageable).
      */
-    @Query("SELECT r FROM Roll r WHERE r.altier.id IN (:altierIds) ORDER BY r.receivedDate DESC")
+    @Query("SELECT r FROM Roll r JOIN FETCH r.article ra LEFT JOIN FETCH ra.color WHERE r.altier.id IN (:altierIds) ORDER BY r.receivedDate DESC")
     List<Roll> findRecentByAltierIds(@Param("altierIds") List<UUID> altierIds, Pageable pageable);
 
     /**
@@ -205,6 +220,8 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      * by a pending transfer bon movement (transferBon != null AND dateEntree IS NULL).
      */
     @Query("SELECT r FROM Roll r " +
+           "JOIN FETCH r.article ra " +
+           "LEFT JOIN FETCH ra.color " +
            "WHERE r.altier.id IN (:accessibleAltierIds) " +
            "AND r.altier.id = :fromAltierId " +
            "AND r.status IN (:statuses) " +
@@ -224,28 +241,28 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
         * Group by color, nbPlis, thicknessMm, materialType, altierId, status
         */
     @Query("""
-       SELECT 
-              r.color.id, 
-              c.name, 
-              c.hexCode, 
-              r.nbPlis, 
-              r.thicknessMm, 
-              r.materialType, 
-              r.altier.id, 
-              a.libelle,
-              r.status, 
-              COUNT(r), 
-              SUM(r.areaM2),
-              SUM(r.usedAreaM2)       
-       FROM Roll r
-       LEFT JOIN r.color c
-       LEFT JOIN r.supplier s
-       LEFT JOIN r.altier a
-       GROUP BY 
-              r.color.id, c.name, c.hexCode, 
-              r.nbPlis, r.thicknessMm, r.materialType,  
-              r.altier.id, r.status , a.libelle
-       """)
+        SELECT 
+               r.article.color.id, 
+               c.name, 
+               c.hexCode, 
+               r.nbPlis, 
+               r.thicknessMm, 
+               r.materialType, 
+               r.altier.id, 
+               a.libelle,
+               r.status, 
+               COUNT(r), 
+               SUM(r.areaM2),
+               SUM(r.usedAreaM2)       
+        FROM Roll r
+        LEFT JOIN r.article.color c
+        LEFT JOIN r.supplier s
+        LEFT JOIN r.altier a
+        GROUP BY 
+               r.article.color.id, c.name, c.hexCode, 
+               r.nbPlis, r.thicknessMm, r.materialType,  
+               r.altier.id, r.status , a.libelle
+        """)
        List<Object[]> groupByAllFields();
 
     @Query("""
@@ -255,20 +272,15 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
             coalesce(sum(coalesce(r.availableAreaM2, r.areaM2)), 0)
         )
         from Roll r
-        where r.materialType = :materialType
+        join r.article article
+        where article.id = :articleId
           and r.status in (com.albelt.gestionstock.shared.enums.RollStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
           and (:altierId is null or r.altier.id = :altierId)
-          and (:nbPlis is null or r.nbPlis = :nbPlis)
-          and (:thicknessMm is null or r.thicknessMm = :thicknessMm)
-          and (:colorId is null or r.color.id = :colorId)
-          and (:reference is null or lower(coalesce(r.reference, '')) = lower(:reference))
+          and (:colorId is null or article.color.id = :colorId)
         """)
     OptimizationCandidateFingerprint findOptimizationFingerprint(
-        @Param("materialType") MaterialType materialType,
-        @Param("nbPlis") Integer nbPlis,
-        @Param("thicknessMm") BigDecimal thicknessMm,
+        @Param("articleId") UUID articleId,
         @Param("colorId") UUID colorId,
-        @Param("reference") String reference,
         @Param("altierId") UUID altierId
     );
 
@@ -277,34 +289,30 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
             com.albelt.gestionstock.domain.optimization.entity.OptimizationSourceType.ROLL,
             r.id,
             null,
+            article.id,
             coalesce(r.widthRemainingMm, r.widthMm),
             coalesce(r.lengthRemainingM, r.lengthM),
             coalesce(r.availableAreaM2, r.areaM2),
             r.areaM2,
-            r.nbPlis,
-            r.thicknessMm,
+            article.nbPlis,
+            article.thicknessMm,
             color.id,
-            r.reference,
+            article.reference,
             r.receivedDate,
             r.updatedAt
         )
         from Roll r
-        left join r.color color
-        where r.materialType = :materialType
+        join r.article article
+        left join article.color color
+        where article.id = :articleId
           and r.status in (com.albelt.gestionstock.shared.enums.RollStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
           and (:altierId is null or r.altier.id = :altierId)
-          and (:nbPlis is null or r.nbPlis = :nbPlis)
-          and (:thicknessMm is null or r.thicknessMm = :thicknessMm)
           and (:colorId is null or color.id = :colorId)
-          and (:reference is null or lower(coalesce(r.reference, '')) = lower(:reference))
         order by r.receivedDate asc, r.createdAt asc
         """)
     List<OptimizationSourceSnapshot> findOptimizationCandidates(
-        @Param("materialType") MaterialType materialType,
-        @Param("nbPlis") Integer nbPlis,
-        @Param("thicknessMm") BigDecimal thicknessMm,
+        @Param("articleId") UUID articleId,
         @Param("colorId") UUID colorId,
-        @Param("reference") String reference,
         @Param("altierId") UUID altierId
     );
 }

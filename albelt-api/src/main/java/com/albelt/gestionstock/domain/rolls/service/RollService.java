@@ -4,6 +4,7 @@ import com.albelt.gestionstock.domain.rolls.dto.RollRequest;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.rolls.mapper.RollMapper;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
+import com.albelt.gestionstock.domain.articles.service.ArticleService;
 import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.colors.service.ColorService;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
@@ -58,6 +59,7 @@ public class RollService {
     private final SupplierService supplierService;
     private final AltierService altierService;
     private final ColorService colorService;
+    private final ArticleService articleService;
     private final QrCodeService qrCodeService;
 
     /**
@@ -83,16 +85,15 @@ public class RollService {
             altier = altierService.getById(request.getAltierId());
         }
 
-        Color color = null;
-        if (request.getColorId() != null) {
-            color = colorService.getById(request.getColorId());
-        }
-        
-        Roll roll = rollMapper.toEntity(request, supplier, altier, color, createdBy);
+        Roll roll = rollMapper.toEntity(request, supplier, altier, createdBy);
+        roll.setArticle(articleService.resolve(
+            request.getMaterialType(),
+            request.getThicknessMm(),
+            request.getNbPlis(),
+            request.getReference(),
+            request.getColorId()
+        ));
         Roll saved = rollRepository.save(roll);
-        saved.setQrCode(qrCodeService.generateForRoll(saved));
-        saved = rollRepository.save(saved);
-        
         log.info("Roll received successfully: id={}, material={}, area_m2={}, status=AVAILABLE, totalCuts=0, totalWaste=0m²", 
                  saved.getId(), saved.getMaterialType(), saved.getAreaM2());
         return saved;
@@ -171,6 +172,7 @@ public class RollService {
     @Transactional(readOnly = true)
     public Page<Roll> getByUserAltiersPaged(List<UUID> userAltierIds,
                                             RollStatus status,
+                                            UUID articleId,
                                             MaterialType materialType,
                                             UUID supplierId,
                                             UUID altierId,
@@ -195,7 +197,7 @@ public class RollService {
         java.time.LocalDate effectiveFromDate = fromDate != null ? fromDate : java.time.LocalDate.of(1970, 1, 1);
         java.time.LocalDate effectiveToDate = toDate != null ? toDate : java.time.LocalDate.of(2100, 1, 1);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "receivedDate"));
-        return rollRepository.findFiltered(userAltierIds, status, materialType, supplierId, altierId,
+        return rollRepository.findFiltered(userAltierIds, status, articleId, materialType, supplierId, altierId,
             colorId, nbPlis, thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
     }
 
@@ -215,12 +217,12 @@ public class RollService {
      * Get available rolls for a material in user's assigned altiers.
      */
     @Transactional(readOnly = true)
-    public List<Roll> getAvailableByUserAltiersAndMaterial(List<UUID> userAltierIds, MaterialType materialType) {
-        if (userAltierIds == null || userAltierIds.isEmpty() || materialType == null) {
+    public List<Roll> getAvailableByUserAltiersAndArticle(List<UUID> userAltierIds, UUID articleId) {
+        if (userAltierIds == null || userAltierIds.isEmpty() || articleId == null) {
             return List.of();
         }
         List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
-        return rollRepository.findAvailableByAltierIdsAndMaterial(userAltierIds, materialType, availableStatuses);
+        return rollRepository.findAvailableByAltierIdsAndArticle(userAltierIds, articleId, availableStatuses);
     }
 
     /**
@@ -395,6 +397,15 @@ public class RollService {
      * Save a roll (for updates)
      */
     public Roll save(Roll roll) {
+        if (roll != null && roll.getArticle() == null) {
+            roll.setArticle(articleService.resolve(
+                roll.getMaterialType(),
+                roll.getThicknessMm(),
+                roll.getNbPlis(),
+                roll.getReference(),
+                null // If we are saving an existing roll without an article, we might not have a colorId easily available here unless we fetch it
+            ));
+        }
         return rollRepository.save(roll);
     }
 

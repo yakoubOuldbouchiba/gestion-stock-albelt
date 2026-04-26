@@ -43,6 +43,10 @@ export const WastePieceService = {
     return ApiService.get<WastePiece[]>('/waste-pieces/available', { material, page, size });
   },
 
+  async getAvailableByArticle(articleId: string, page = 0, size = 20): Promise<ApiResponse<WastePiece[]>> {
+    return ApiService.get<WastePiece[]>('/waste-pieces/available', { articleId, page, size });
+  },
+
   /**
    * Get waste from cutting operation
    */
@@ -98,6 +102,7 @@ export const WastePieceService = {
     thicknessMm?: number;
     dateFrom?: string;
     dateTo?: string;
+    articleId?: string;
   }): Promise<ApiResponse<PagedResponse<WastePiece>>> {
     return ApiService.get<PagedResponse<WastePiece>>('/waste-pieces', params);
   },
@@ -115,7 +120,7 @@ export const WastePieceService = {
   },
 
   /**
-  * Get waste pieces by type (DECHET or CHUTE_EXPLOITABLE)
+   * Get waste pieces by type (DECHET or CHUTE_EXPLOITABLE)
    */
   async getByType(type: string, page = 0, size = 20): Promise<ApiResponse<WastePiece[]>> {
     return ApiService.get<WastePiece[]>('/waste-pieces/by-type', { type, page, size });

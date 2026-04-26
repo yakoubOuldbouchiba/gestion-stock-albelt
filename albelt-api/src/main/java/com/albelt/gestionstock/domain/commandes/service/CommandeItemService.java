@@ -2,12 +2,14 @@ package com.albelt.gestionstock.domain.commandes.service;
 
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import com.albelt.gestionstock.shared.exceptions.BusinessException;
+import com.albelt.gestionstock.domain.articles.service.ArticleService;
 import com.albelt.gestionstock.domain.commandes.dto.*;
 import com.albelt.gestionstock.domain.commandes.entity.*;
 import com.albelt.gestionstock.domain.commandes.mapper.CommandeItemMapper;
 import com.albelt.gestionstock.domain.commandes.repository.*;
 import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.colors.service.ColorService;
+import com.albelt.gestionstock.domain.articles.entity.Article;
 import com.albelt.gestionstock.domain.optimization.service.OptimizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ public class CommandeItemService {
     private final CommandeItemRepository itemRepository;
     private final CommandeItemMapper itemMapper;
     private final ColorService colorService;
+    private final ArticleService articleService;
     private final OptimizationService optimizationService;
 
     // ==================== ITEM CRUD ====================
@@ -43,11 +46,7 @@ public class CommandeItemService {
         assertCommandeNotLocked(commande);
 
         CommandeItem item = itemMapper.toEntity(request, commande);
-
-        if (request.getColorId() != null) {
-            Color color = colorService.getById(request.getColorId());
-            item.setColor(color);
-        }
+        item.setArticle(getRequiredArticle(request));
 
         CommandeItem saved = itemRepository.save(item);
 
@@ -118,17 +117,9 @@ public class CommandeItemService {
 
         CommandeItem item = getById(id);
         assertCommandeNotLocked(item.getCommande());
+        item.setArticle(getRequiredArticle(request));
 
         // Update fields
-        if (request.getMaterialType() != null) {
-            item.setMaterialType(request.getMaterialType());
-        }
-        if (request.getNbPlis() != null) {
-            item.setNbPlis(request.getNbPlis());
-        }
-        if (request.getThicknessMm() != null) {
-            item.setThicknessMm(request.getThicknessMm());
-        }
         if (request.getLongueurM() != null) {
             item.setLongueurM(request.getLongueurM());
         }
@@ -149,13 +140,6 @@ public class CommandeItemService {
         }
         if (request.getObservations() != null) {
             item.setObservations(request.getObservations());
-        }
-        if (request.getReference() != null) {
-            item.setReference(request.getReference());
-        }
-        if (request.getColorId() != null) {
-            Color color = colorService.getById(request.getColorId());
-            item.setColor(color);
         }
 
         CommandeItem updated = itemRepository.save(item);
@@ -217,5 +201,12 @@ public class CommandeItemService {
         itemRepository.deleteAll(items);
 
         log.info("All items deleted for order: {}", commandeId);
+    }
+
+    private Article getRequiredArticle(CommandeItemRequest request) {
+        if (request == null || request.getArticleId() == null) {
+            throw new BusinessException("Article is required");
+        }
+        return articleService.getById(request.getArticleId());
     }
 }

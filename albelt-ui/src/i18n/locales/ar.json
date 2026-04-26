@@ -62,6 +62,7 @@
     "purchaseBons": "إيصالات  الشراء",
     "materialChute": "حدود المواد",
     "colors": "الألوان",
+    "articles": "المقالات",
     "orders": "الطلبات"
   },
   "sidebar": {
@@ -898,6 +899,7 @@
     "confirmDelete": "هل أنت متأكد من رغبتك في حذف هذا الطلب؟",
     "fillDetailsBelow": "ملء التفاصيل أدناه لإنشاء طلب جديد",
     "selectMaterial": "اختر المادة",
+    "selectArticle": "اختر المقال",
     "selectMouvement": "اختر الحركة",
     "lineNumber": "خط #",
     "movement": "الحركة",
@@ -1007,6 +1009,7 @@
     "orderNumberHint": "أدخل أو قم بإنشاء رقم طلب فريد تلقائيًا",
     "descriptionHint": "صف محتوى الطلب والغرض منه باختصار",
     "itemsRequired": "مطلوب عنصر واحد على الأقل",
+    "articleRequired": "اختر مقالاً لكل سطر",
     "itemCount": "عناصر",
     "totalQuantity": "الكمية الإجمالية",
     "totalSurface": "الحد الأدنى للسطح",

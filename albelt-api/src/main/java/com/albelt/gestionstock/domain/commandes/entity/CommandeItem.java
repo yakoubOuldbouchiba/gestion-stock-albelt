@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.commandes.entity;
 
+import com.albelt.gestionstock.domain.articles.entity.Article;
 import com.albelt.gestionstock.domain.colors.entity.Color;
 import jakarta.persistence.*;
 import lombok.*;
@@ -20,7 +21,7 @@ import java.util.UUID;
         @Index(name = "idx_commande_items_status", columnList = "status"),
         @Index(name = "idx_commande_items_type_mouvement", columnList = "type_mouvement"),
     @Index(name = "idx_commande_items_material_type", columnList = "material_type"),
-    @Index(name = "idx_commande_items_color_id", columnList = "color_id")
+    @Index(name = "idx_commande_items_article_id", columnList = "article_id")
 })
 @Data
 @NoArgsConstructor
@@ -35,6 +36,10 @@ public class CommandeItem {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "commande_id", nullable = false)
     private Commande commande;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "article_id", nullable = false)
+    private Article article;
 
     // Material Specifications
     @Column(name = "material_type", nullable = false, length = 20)
@@ -81,10 +86,6 @@ public class CommandeItem {
     @Column(name = "reference", length = 100)
     private String reference;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "color_id")
-    private Color color;
-
     // Sequence
     @Column(name = "line_number", nullable = false)
     private Integer lineNumber;
@@ -115,4 +116,48 @@ public class CommandeItem {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    private void syncLegacyFieldsFromArticleLifecycle() {
+        syncLegacyFieldsFromArticle();
+    }
+
+    public void setArticle(Article article) {
+        this.article = article;
+        syncLegacyFieldsFromArticle();
+    }
+
+    public String getMaterialType() {
+        return article != null && article.getMaterialType() != null ? article.getMaterialType() : materialType;
+    }
+
+    public Integer getNbPlis() {
+        return article != null && article.getNbPlis() != null ? article.getNbPlis() : nbPlis;
+    }
+
+    public BigDecimal getThicknessMm() {
+        return article != null && article.getThicknessMm() != null ? article.getThicknessMm() : thicknessMm;
+    }
+
+    public String getReference() {
+        String articleReference = article != null ? article.getReference() : null;
+        return articleReference != null ? articleReference : reference;
+    }
+
+    public void syncLegacyFieldsFromArticle() {
+        if (article == null) {
+            return;
+        }
+        if (article.getMaterialType() != null) {
+            this.materialType = article.getMaterialType();
+        }
+        if (article.getNbPlis() != null) {
+            this.nbPlis = article.getNbPlis();
+        }
+        if (article.getThicknessMm() != null) {
+            this.thicknessMm = article.getThicknessMm();
+        }
+        this.reference = article.getReference();
+    }
 }

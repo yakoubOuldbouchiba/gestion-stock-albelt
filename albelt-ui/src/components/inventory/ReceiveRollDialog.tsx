@@ -3,7 +3,9 @@ import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
-import type { MaterialType, RollRequest } from '../../types';
+import type { Article, MaterialType, RollRequest } from '../../types';
+import type { ArticleOption } from '../../pages/hooks/useCommandeLookups';
+import ArticleSelector from '../commande/form/ArticleSelector';
 import type { Translate } from '../commande/commandeTypes';
 
 type ReceiveRollDialogProps = {
@@ -17,12 +19,11 @@ type ReceiveRollDialogProps = {
   supplierOptions: { label: string; value: string }[];
   altierOptions: { label: string; value: string }[];
   materialOptions: { label: string; value: MaterialType }[];
-  colorOptions: { label: string; value: string }[];
-  colorsAvailable: boolean;
   onSupplierChange: (value: string) => void;
   onAltierChange: (value: string) => void;
   onMaterialChange: (value: MaterialType) => void;
-  onColorChange: (value: string) => void;
+  articles: ArticleOption[];
+  onArticleChange: (article: Article | null) => void;
   onFieldChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 };
 
@@ -37,12 +38,11 @@ export function ReceiveRollDialog({
   supplierOptions,
   altierOptions,
   materialOptions,
-  colorOptions,
-  colorsAvailable,
   onSupplierChange,
   onAltierChange,
   onMaterialChange,
-  onColorChange,
+  articles,
+  onArticleChange,
   onFieldChange,
 }: ReceiveRollDialogProps) {
   return (
@@ -103,6 +103,19 @@ export function ReceiveRollDialog({
                 required
               />
             </div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <label htmlFor="articleId">{t('inventory.selectArticle') || 'Select Article'} *</label>
+              <ArticleSelector
+                id="articleId"
+                options={articles.filter(a => a.materialType === formData.materialType)}
+                value={formData.article || formData.articleId}
+                onChange={onArticleChange}
+                placeholder={t('inventory.selectArticle') || 'Search article...'}
+              />
+            </div>
+          </div>
+
+          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
               <label htmlFor="reference">{t('inventory.reference')}</label>
               <InputText
@@ -110,55 +123,53 @@ export function ReceiveRollDialog({
                 name="reference"
                 value={formData.reference || ''}
                 onChange={onFieldChange}
+                readOnly
+                disabled
+                placeholder={t('inventory.autoFromArticle') || 'Auto from article'}
               />
             </div>
-            <div>
-              <label htmlFor="colorId">{t('inventory.color') || 'Color'} *</label>
-              <Dropdown
-                id="colorId"
-                value={formData.colorId || ''}
-                options={colorOptions}
-                onChange={(e) => onColorChange(e.value)}
-                placeholder={colorsAvailable
-                  ? (t('inventory.selectColor') || 'Select color')
-                  : (t('inventory.noColors') || 'No colors configured')}
-                filter
-                disabled={!colorsAvailable}
-                required={colorsAvailable}
+             <div>
+              <label htmlFor="colorName">{t('inventory.color') || 'Color'}</label>
+              <InputText
+                id="colorName"
+                value={formData.article?.colorName || ''}
+                readOnly
+                disabled
+                placeholder={t('inventory.autoFromArticle') || 'Auto from article'}
               />
             </div>
           </div>
 
           <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
-              <label htmlFor="nbPlis">{t('rolls.plies')} *</label>
+              <label htmlFor="nbPlis">{t('rolls.plies')}</label>
               <InputText
                 type="number"
                 id="nbPlis"
                 name="nbPlis"
                 value={String(formData.nbPlis ?? '')}
-                onChange={onFieldChange}
-                min={1}
-                required
+                readOnly
+                disabled
+                placeholder={t('inventory.autoFromArticle') || 'Auto from article'}
               />
             </div>
             <div>
-              <label htmlFor="thicknessMm">{t('rolls.thickness')} *</label>
+              <label htmlFor="thicknessMm">{t('rolls.thickness')}</label>
               <InputText
                 type="number"
                 id="thicknessMm"
                 name="thicknessMm"
                 value={String(formData.thicknessMm ?? '')}
-                onChange={onFieldChange}
-                step="0.1"
-                required
+                readOnly
+                disabled
+                placeholder={t('inventory.autoFromArticle') || 'Auto from article'}
               />
             </div>
           </div>
 
           <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
-              <label htmlFor="widthMm">{t('rolls.width')}</label>
+              <label htmlFor="widthMm">{t('rolls.width')} *</label>
               <InputText
                 type="number"
                 id="widthMm"
@@ -169,7 +180,7 @@ export function ReceiveRollDialog({
               />
             </div>
             <div>
-              <label htmlFor="lengthM">{t('rolls.length')}</label>
+              <label htmlFor="lengthM">{t('rolls.length')} *</label>
               <InputText
                 type="number"
                 id="lengthM"
@@ -208,7 +219,7 @@ export function ReceiveRollDialog({
               type="submit"
               label={t('inventory.addRollToInventory')}
               loading={isSubmitting}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !formData.articleId}
             />
             <Button
               type="button"

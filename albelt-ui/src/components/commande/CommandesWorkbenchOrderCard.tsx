@@ -4,6 +4,7 @@ import { formatDate } from '../../utils/date';
 import type { Commande } from '../../types';
 import type { WorkbenchOrderMetrics } from './CommandesWorkbench.types';
 import { getStatusSeverity } from './commandesWorkbench.utils';
+import { getArticleDisplayLabel } from '../../utils/article';
 
 interface CommandesWorkbenchOrderCardProps {
   t: TFunction;
@@ -61,7 +62,7 @@ export function CommandesWorkbenchOrderCard({
       <div className="orders-workbench__item-specs">
         {metrics.primaryMaterial ? <span>{metrics.primaryMaterial}</span> : null}
         {order.altierLibelle ? <span>{order.altierLibelle}</span> : null}
-        {metrics.nextItem?.reference ? <span>{metrics.nextItem.reference}</span> : null}
+        {metrics.nextItem ? <span>{getArticleDisplayLabel(metrics.nextItem)}</span> : null}
       </div>
 
       <div className="orders-workbench__progress-track">

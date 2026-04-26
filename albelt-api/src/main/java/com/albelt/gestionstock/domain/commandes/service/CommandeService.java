@@ -97,7 +97,7 @@ public class CommandeService {
     @Transactional(readOnly = true)
     public Commande getById(UUID id) {
         log.info("Fetching order with ID: {}", id);
-        return commandeRepository.findById(id)
+        return commandeRepository.findWithAllAssociationsById(id)
                 .orElseThrow(() -> {
                     log.warn("Order not found: {}", id);
                     return new ResourceNotFoundException("Order not found with id: " + id);
@@ -335,16 +335,16 @@ public class CommandeService {
                     if (sourceWaste.getAltier() != null) {
                         altierId = sourceWaste.getAltier().getId();
                     }
-                    if (sourceWaste.getColor() != null) {
-                        colorId = sourceWaste.getColor().getId();
+                    if (sourceWaste.getArticle().getColor() != null) {
+                        colorId = sourceWaste.getArticle().getColor().getId();
                     }
                     reference = sourceWaste.getReference();
                 } else if (sourceRoll != null) {
                     if (sourceRoll.getAltier() != null) {
                         altierId = sourceRoll.getAltier().getId();
                     }
-                    if (sourceRoll.getColor() != null) {
-                        colorId = sourceRoll.getColor().getId();
+                    if (sourceRoll.getArticle().getColor() != null) {
+                        colorId = sourceRoll.getArticle().getColor().getId();
                     }
                     reference = sourceRoll.getReference();
                 }
@@ -489,16 +489,16 @@ public class CommandeService {
             if (sourceWaste.getAltier() != null) {
                 altierId = sourceWaste.getAltier().getId();
             }
-            if (sourceWaste.getColor() != null) {
-                colorId = sourceWaste.getColor().getId();
+            if (sourceWaste.getArticle().getColor() != null) {
+                colorId = sourceWaste.getArticle().getColor().getId();
             }
             reference = sourceWaste.getReference();
         } else if (sourceRoll != null) {
             if (sourceRoll.getAltier() != null) {
                 altierId = sourceRoll.getAltier().getId();
             }
-            if (sourceRoll.getColor() != null) {
-                colorId = sourceRoll.getColor().getId();
+            if (sourceRoll.getArticle().getColor() != null) {
+                colorId = sourceRoll.getArticle().getColor().getId();
             }
             reference = sourceRoll.getReference();
         }

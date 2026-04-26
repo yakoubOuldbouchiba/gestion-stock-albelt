@@ -27,6 +27,7 @@ export const RollService = {
     thicknessMm?: number;
     dateFrom?: string;
     dateTo?: string;
+    articleId?: string;
   }): Promise<ApiResponse<PagedResponse<Roll>>> {
     return ApiService.get<PagedResponse<Roll>>('/rolls', params);
   },
@@ -69,6 +70,10 @@ export const RollService = {
    */
   async getAvailableByMaterial(materialType: MaterialType): Promise<ApiResponse<Roll[]>> {
     return ApiService.get<Roll[]>('/rolls/available', { materialType });
+  },
+
+  async getAvailableByArticle(articleId: string): Promise<ApiResponse<Roll[]>> {
+    return ApiService.get<Roll[]>('/rolls/available', { articleId });
   },
 
   /**

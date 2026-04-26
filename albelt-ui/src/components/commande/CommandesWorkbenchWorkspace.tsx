@@ -4,6 +4,7 @@ import { Tag } from 'primereact/tag';
 import type { TFunction } from 'i18next';
 import type { Commande } from '../../types';
 import { getItemCounts, getStatusSeverity } from './commandesWorkbench.utils';
+import { getArticleDisplayLabel, getArticleMaterialType, getArticleNbPlis } from '../../utils/article';
 
 interface CommandesWorkbenchWorkspaceProps {
   t: TFunction;
@@ -87,8 +88,8 @@ export function CommandesWorkbenchWorkspace({
               </div>
 
               <div className="orders-workbench__item-specs">
-                <span>{item.materialType}</span>
-                <span>{item.nbPlis} {t('ordersWorkbench.plies', 'plies')}</span>
+                <span>{getArticleMaterialType(item)}</span>
+                <span>{getArticleNbPlis(item)} {t('ordersWorkbench.plies', 'plies')}</span>
                 <span>{item.largeurMm} {t('ordersWorkbench.mm', 'mm')}</span>
                 <span>{item.longueurM} {t('ordersWorkbench.m', 'm')}</span>
               </div>
@@ -108,9 +109,9 @@ export function CommandesWorkbenchWorkspace({
                 </div>
               </div>
 
-              {(item.reference || item.colorName || item.observations) ? (
+              {(getArticleDisplayLabel(item) || item.colorName || item.observations) ? (
                 <div className="orders-workbench__note">
-                  {item.reference ? <div><strong>{t('ordersWorkbench.reference', 'Reference')}:</strong> {item.reference}</div> : null}
+                  {getArticleDisplayLabel(item) ? <div><strong>{t('ordersWorkbench.reference', 'Reference')}:</strong> {getArticleDisplayLabel(item)}</div> : null}
                   {item.colorName ? <div><strong>{t('common.color', 'Color')}:</strong> {item.colorName}</div> : null}
                   {item.observations ? <div>{item.observations}</div> : null}
                 </div>

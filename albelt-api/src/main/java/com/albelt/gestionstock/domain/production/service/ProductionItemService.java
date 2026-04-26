@@ -266,8 +266,8 @@ public class ProductionItemService {
                     formatStringValue(sourceReference)));
         }
 
-        var sourceColor = roll != null ? roll.getColor() : wastePiece != null ? wastePiece.getColor() : null;
-        var itemColor = commandeItem.getColor();
+        var sourceColor = roll != null ? roll.getArticle().getColor() : wastePiece != null ? wastePiece.getArticle().getColor() : null;
+        var itemColor = commandeItem.getArticle().getColor();
         UUID sourceColorId = sourceColor != null ? sourceColor.getId() : null;
         UUID itemColorId = itemColor != null ? itemColor.getId() : null;
         if (!matchesUuid(sourceColorId, itemColorId)) {

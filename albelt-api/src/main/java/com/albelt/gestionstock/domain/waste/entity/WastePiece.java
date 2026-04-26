@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.waste.entity;
 
+import com.albelt.gestionstock.domain.articles.entity.Article;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.domain.colors.entity.Color;
@@ -29,7 +30,8 @@ import java.util.UUID;
     @Index(name = "idx_waste_pieces_status", columnList = "status"),
     @Index(name = "idx_waste_pieces_commande_item", columnList = "commande_item_id"),
     @Index(name = "idx_waste_pieces_created_by", columnList = "created_by"),
-    @Index(name = "idx_waste_pieces_altier_id", columnList = "altier_id")
+    @Index(name = "idx_waste_pieces_altier_id", columnList = "altier_id"),
+    @Index(name = "idx_waste_pieces_article_id", columnList = "article_id")
 })
 @Data
 @NoArgsConstructor
@@ -51,6 +53,10 @@ public class WastePiece {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private WastePiece parentWastePiece;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "article_id", nullable = false)
+    private Article article;
 
     // Material Specifications (same as rolls)
     @Enumerated(EnumType.STRING)
@@ -104,10 +110,6 @@ public class WastePiece {
     @Column(name = "qr_code")
     private String qrCode;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "color_id")
-    private Color color;
-
     // Processing tracking (same as rolls)
     @Column(name = "total_cuts", nullable = false)
     @Builder.Default
@@ -142,6 +144,63 @@ public class WastePiece {
     // External/Internal Reference
     @Column(name = "reference", length = 100)
     private String reference;
+
+    @PrePersist
+    @PreUpdate
+    private void syncLegacyFieldsFromArticleLifecycle() {
+        syncLegacyFieldsFromArticle();
+    }
+
+    public void setArticle(Article article) {
+        this.article = article;
+        syncLegacyFieldsFromArticle();
+    }
+
+    public MaterialType getMaterialType() {
+        MaterialType fromArticle = parseMaterialType(article != null ? article.getMaterialType() : null);
+        return fromArticle != null ? fromArticle : materialType;
+    }
+
+    public Integer getNbPlis() {
+        return article != null && article.getNbPlis() != null ? article.getNbPlis() : nbPlis;
+    }
+
+    public BigDecimal getThicknessMm() {
+        return article != null && article.getThicknessMm() != null ? article.getThicknessMm() : thicknessMm;
+    }
+
+    public String getReference() {
+        String articleReference = article != null ? article.getReference() : null;
+        return articleReference != null ? articleReference : reference;
+    }
+
+    public void syncLegacyFieldsFromArticle() {
+        if (article == null) {
+            return;
+        }
+        MaterialType articleMaterialType = parseMaterialType(article.getMaterialType());
+        if (articleMaterialType != null) {
+            this.materialType = articleMaterialType;
+        }
+        if (article.getNbPlis() != null) {
+            this.nbPlis = article.getNbPlis();
+        }
+        if (article.getThicknessMm() != null) {
+            this.thicknessMm = article.getThicknessMm();
+        }
+        this.reference = article.getReference();
+    }
+
+    private MaterialType parseMaterialType(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return MaterialType.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
 
     /**
      * Check if waste piece is large enough for reuse (> 3m²)

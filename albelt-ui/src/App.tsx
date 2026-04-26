@@ -26,6 +26,7 @@ const TransferBonsPage = lazy(() => import('./pages/TransferBonsPage'));
 const PurchaseBonsPage = lazy(() => import('./pages/PurchaseBonsPage'));
 const MaterialChuteThresholdsPage = lazy(() => import('./pages/MaterialChuteThresholdsPage'));
 const ColorsPage = lazy(() => import('./pages/ColorsPage'));
+const ArticlesPage = lazy(() => import('./pages/ArticlesPage'));
 const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const CommandesListPage = lazy(() => import('./pages/CommandesListPage'));
 const CommandeCreatePage = lazy(() => import('./pages/CommandeCreatePage'));
@@ -176,6 +177,19 @@ export function App() {
               <Layout>
                 <Suspense fallback={<LazyLoadingFallback />}>
                   <SuppliersPage />
+                </Suspense>
+              </Layout>
+            </AdminRoute>
+          }
+        />
+
+        <Route
+          path="/articles"
+          element={
+            <AdminRoute>
+              <Layout>
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <ArticlesPage />
                 </Suspense>
               </Layout>
             </AdminRoute>

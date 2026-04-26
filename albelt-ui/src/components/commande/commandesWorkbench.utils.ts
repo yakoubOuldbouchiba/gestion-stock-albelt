@@ -1,5 +1,6 @@
 import type { CommandeItem } from '../../types';
 import type { WorkbenchItemCounts, WorkbenchOrderMetrics, WorkbenchTagSeverity } from './CommandesWorkbench.types';
+import { getArticleMaterialType } from '../../utils/article';
 
 export function getStatusSeverity(status: string): WorkbenchTagSeverity {
   const statusMap: Record<string, WorkbenchTagSeverity> = {
@@ -57,7 +58,7 @@ export function getPrimaryMaterial(items: CommandeItem[]) {
   const materialCount = new Map<string, number>();
 
   items.forEach((item) => {
-    const key = item.materialType || 'Unknown';
+    const key = getArticleMaterialType(item) || 'Unknown';
     materialCount.set(key, (materialCount.get(key) ?? 0) + 1);
   });
 

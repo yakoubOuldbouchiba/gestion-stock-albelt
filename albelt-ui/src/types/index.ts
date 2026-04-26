@@ -93,10 +93,76 @@ export interface Color {
   updatedAt: string;
 }
 
+export interface Article {
+  id: string;
+  materialType: MaterialType;
+  thicknessMm: number;
+  nbPlis: number;
+  reference?: string | null;
+  name?: string | null;
+  code?: string | null;
+  externalId?: string | null;
+  color?: Color;
+  colorId?: string;
+  colorName?: string;
+  colorHexCode?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ArticleRequest {
+  materialType: MaterialType;
+  thicknessMm: number;
+  nbPlis: number;
+  reference?: string | null;
+  name?: string | null;
+  code?: string | null;
+  externalId?: string | null;
+  colorId?: string | null;
+}
+
 export interface Roll {
   id: string;
   reference: string;
+  articleId?: string | null;
+  article?: Article | null;
   receivedDate: string;
+  supplierId: string;
+  supplierName?: string;
+  altierId?: string;
+  altierLibelle?: string;
+  altier?: {
+    id: string;
+    libelle: string;
+    adresse: string;
+  };
+  materialType: MaterialType;
+  nbPlis: number;
+  thicknessMm: number;
+  
+  // Dimensions (current state - no "initial" suffix)
+  widthMm: number;
+  widthRemainingMm?: number;
+  lengthM: number;
+  lengthRemainingM?: number;
+  areaM2: number;
+  usedAreaM2?: number;
+  availableAreaM2?: number;
+  
+  status: RollStatus;
+  qrCode?: string;
+  colorId?: string;
+  colorName?: string;
+  colorHexCode?: string;
+  
+  // Processing tracking
+  totalCuts: number;
+  totalWasteAreaM2: number;
+  lastProcessingDate?: string;
+  
+  // Convenience flags
+  availableForCutting?: boolean;
+  
   supplierId: string;
   supplierName?: string;
   altierId?: string;
@@ -142,6 +208,8 @@ export interface Roll {
 export interface RollSummary {
   id: string;
   reference?: string;
+  articleId?: string | null;
+  article?: Article | null;
   materialType?: MaterialType;
   nbPlis?: number;
   thicknessMm?: number;
@@ -161,7 +229,9 @@ export interface RollSummary {
 export interface RollRequest {
   supplierId: string;
   altierId?: string;
-  reference?:string;
+  articleId?: string;
+  article?: Article | null;
+  reference?: string;
   materialType: MaterialType;
   nbPlis: number;
   thicknessMm: number;
@@ -204,16 +274,14 @@ export interface CuttingOperation {
 export interface CuttingOperationRequest {
   commandeItemId: string;
   rollId: string;
-  plannedSurfaceM2?: number;
-  plannedPieces?: number;
-  status?: CuttingOperationStatus;
-  notes?: string;
-  operatorId?: string;
-  quantity?: number;
-  utilization?: number;
-  wasteArea?: number;
-  nestingResults?: Record<string, unknown>;
+  quantity: number;
+  piecesRequested: string;
+  nestingResult: string;
+  status: CuttingOperationStatus;
   visualizationSvg?: string;
+  notes?: string;
+  highEfficiency?: boolean;
+  significantWaste?: boolean;
 }
 
 /**
@@ -222,6 +290,8 @@ export interface CuttingOperationRequest {
 export interface WastePiece {
   id: string;
   reference: string;
+  articleId?: string | null;
+  article?: Article | null;
   rollId: string;
   supplierId?: string;
   supplierName?: string;
@@ -259,6 +329,8 @@ export interface WastePieceSummary {
   rollId?: string | null;
   parentWastePieceId?: string | null;
   reference?: string;
+  articleId?: string | null;
+  article?: Article | null;
   materialType?: MaterialType;
   nbPlis?: number;
   thicknessMm?: number;
@@ -526,6 +598,8 @@ export interface ReturnBonRequest {
 export type PurchaseBonStatus = 'DRAFT' | 'VALIDATED';
 
 export interface PurchaseBonItemRequest {
+  articleId?: string;
+  article?: Article | null;
   materialType: MaterialType;
   nbPlis: number;
   thicknessMm: number;
@@ -541,6 +615,8 @@ export interface PurchaseBonItemRequest {
 export interface PurchaseBonItem {
   id: string;
   lineNumber: number;
+  articleId?: string | null;
+  article?: Article | null;
   materialType: MaterialType;
   nbPlis: number;
   thicknessMm: number;
@@ -699,6 +775,8 @@ export type TypeMouvement = 'ENCOURS' | 'COUPE' | 'SORTIE' | 'RETOUR';
 export interface CommandeItemSummary {
   id: string;
   lineNumber?: number;
+  articleId?: string | null;
+  article?: Article | null;
   materialType?: string;
   nbPlis?: number;
   thicknessMm?: number;
@@ -717,6 +795,8 @@ export interface CommandeItemSummary {
 export interface CommandeItem {
   id: string;
   commandeId: string;
+  articleId?: string | null;
+  article?: Article | null;
   materialType: MaterialType;
   nbPlis: number;
   thicknessMm: number;
@@ -746,6 +826,8 @@ export interface CommandeItem {
 }
 
 export interface CommandeItemRequest {
+  articleId?: string;
+  article?: Article | null;
   materialType: MaterialType;
   nbPlis: number;
   thicknessMm: number;

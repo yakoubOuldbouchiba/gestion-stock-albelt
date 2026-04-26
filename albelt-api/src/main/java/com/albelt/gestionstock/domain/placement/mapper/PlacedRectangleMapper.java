@@ -108,9 +108,9 @@ public class PlacedRectangleMapper {
                 .usedAreaM2(roll.getUsedAreaM2())
                 .availableAreaM2(roll.getAvailableAreaM2())
                 .status(roll.getStatus())
-                .colorId(roll.getColor() != null ? roll.getColor().getId() : null)
-                .colorName(roll.getColor() != null ? roll.getColor().getName() : null)
-                .colorHexCode(roll.getColor() != null ? roll.getColor().getHexCode() : null)
+                .colorId(roll.getArticle() != null ? roll.getArticle().getColor().getId() : null)
+                .colorName(roll.getArticle() != null ? roll.getArticle().getColor().getName() : null)
+                .colorHexCode(roll.getArticle() != null ? roll.getArticle().getColor().getHexCode() : null)
                 .build();
     }
 
@@ -137,9 +137,9 @@ public class PlacedRectangleMapper {
                 .availableAreaM2(wastePiece.getAvailableAreaM2())
                 .status(wastePiece.getStatus())
                 .wasteType(wastePiece.getWasteType())
-                .colorId(wastePiece.getColor() != null ? wastePiece.getColor().getId() : null)
-                .colorName(wastePiece.getColor() != null ? wastePiece.getColor().getName() : null)
-                .colorHexCode(wastePiece.getColor() != null ? wastePiece.getColor().getHexCode() : null)
+                .colorId(wastePiece.getArticle().getColor() != null ? wastePiece.getArticle().getColor().getId() : null)
+                .colorName(wastePiece.getArticle().getColor() != null ? wastePiece.getArticle().getColor().getName() : null)
+                .colorHexCode(wastePiece.getArticle().getColor() != null ? wastePiece.getArticle().getColor().getHexCode() : null)
                 .build();
     }
 
@@ -160,9 +160,9 @@ public class PlacedRectangleMapper {
                 .status(item.getStatus())
                 .typeMouvement(item.getTypeMouvement())
                 .reference(item.getReference())
-                .colorId(item.getColor() != null ? item.getColor().getId() : null)
-                .colorName(item.getColor() != null ? item.getColor().getName() : null)
-                .colorHexCode(item.getColor() != null ? item.getColor().getHexCode() : null)
+                .colorId(item.getArticle().getColor() != null ? item.getArticle().getColor().getId() : null)
+                .colorName(item.getArticle().getColor() != null ? item.getArticle().getColor().getName() : null)
+                .colorHexCode(item.getArticle().getColor() != null ? item.getArticle().getColor().getHexCode() : null)
                 .build();
     }
 }

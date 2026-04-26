@@ -1,8 +1,8 @@
 package com.albelt.gestionstock.domain.rolls.entity;
 
+import com.albelt.gestionstock.domain.articles.entity.Article;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
-import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import jakarta.persistence.*;
@@ -28,7 +28,8 @@ import java.util.UUID;
         @Index(name = "idx_rolls_received_date", columnList = "received_date DESC"),
         @Index(name = "idx_rolls_material_status", columnList = "material_type,status"),
         @Index(name = "idx_rolls_altier_id", columnList = "altier_id"),
-        @Index(name = "idx_rolls_created_by", columnList = "created_by")
+        @Index(name = "idx_rolls_created_by", columnList = "created_by"),
+        @Index(name = "idx_rolls_article_id", columnList = "article_id")
 })
 @Data
 @NoArgsConstructor
@@ -47,6 +48,10 @@ public class Roll {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "article_id", nullable = false)
+    private Article article;
 
     // Material Specifications
     @Enumerated(EnumType.STRING)
@@ -96,10 +101,6 @@ public class Roll {
     @Column(name = "qr_code")
     private String qrCode;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "color_id")
-    private Color color;
-
     // Processing tracking (same as waste_pieces)
     @Column(name = "total_cuts", nullable = false)
     @Builder.Default
@@ -127,6 +128,63 @@ public class Roll {
     // External/Internal Reference
     @Column(name = "reference", length = 100)
     private String reference;
+
+    @PrePersist
+    @PreUpdate
+    private void syncLegacyFieldsFromArticleLifecycle() {
+        syncLegacyFieldsFromArticle();
+    }
+
+    public void setArticle(Article article) {
+        this.article = article;
+        syncLegacyFieldsFromArticle();
+    }
+
+    public MaterialType getMaterialType() {
+        MaterialType fromArticle = parseMaterialType(article != null ? article.getMaterialType() : null);
+        return fromArticle != null ? fromArticle : materialType;
+    }
+
+    public Integer getNbPlis() {
+        return article != null && article.getNbPlis() != null ? article.getNbPlis() : nbPlis;
+    }
+
+    public BigDecimal getThicknessMm() {
+        return article != null && article.getThicknessMm() != null ? article.getThicknessMm() : thicknessMm;
+    }
+
+    public String getReference() {
+        String articleReference = article != null ? article.getReference() : null;
+        return articleReference != null ? articleReference : reference;
+    }
+
+    public void syncLegacyFieldsFromArticle() {
+        if (article == null) {
+            return;
+        }
+        MaterialType articleMaterialType = parseMaterialType(article.getMaterialType());
+        if (articleMaterialType != null) {
+            this.materialType = articleMaterialType;
+        }
+        if (article.getNbPlis() != null) {
+            this.nbPlis = article.getNbPlis();
+        }
+        if (article.getThicknessMm() != null) {
+            this.thicknessMm = article.getThicknessMm();
+        }
+        this.reference = article.getReference();
+    }
+
+    private MaterialType parseMaterialType(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return MaterialType.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
 
     /**
      * Check if roll has enough area for a requested size

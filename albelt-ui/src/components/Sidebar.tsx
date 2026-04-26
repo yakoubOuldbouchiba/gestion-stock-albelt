@@ -144,6 +144,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </Link>
 
             <Link
+              to="/articles"
+              className={`nav-link ${isActive('/articles') ? 'active' : ''}`}
+              onClick={handleNavigate}
+            >
+              <Package size={20} className="nav-icon" />
+              <span>{t('navigation.articles') || 'Articles'}</span>
+            </Link>
+
+            <Link
               to="/colors"
               className={`nav-link ${isActive('/colors') ? 'active' : ''}`}
               onClick={handleNavigate}

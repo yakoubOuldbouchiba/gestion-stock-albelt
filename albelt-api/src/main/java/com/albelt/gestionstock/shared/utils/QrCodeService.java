@@ -94,7 +94,7 @@ public class QrCodeService {
         values.put("materialType", roll.getMaterialType());
         values.put("supplier", roll.getSupplier() != null ? roll.getSupplier().getName() : null);
         values.put("altier", roll.getAltier() != null ? roll.getAltier().getLibelle() : null);
-        values.put("color", roll.getColor() != null ? roll.getColor().getName() : null);
+        values.put("color", roll.getArticle() != null ? roll.getArticle().getColor().getName() : null);
         values.put("nbPlis", roll.getNbPlis());
         values.put("thicknessMm", roll.getThicknessMm());
         values.put("widthMm", roll.getWidthMm());
@@ -116,7 +116,7 @@ public class QrCodeService {
                 ? wastePiece.getRoll().getSupplier().getName()
                 : null);
         values.put("altier", wastePiece.getAltier() != null ? wastePiece.getAltier().getLibelle() : null);
-        values.put("color", wastePiece.getColor() != null ? wastePiece.getColor().getName() : null);
+        values.put("color", wastePiece.getArticle() != null ? wastePiece.getArticle().getColor().getName() : null);
         values.put("nbPlis", wastePiece.getNbPlis());
         values.put("thicknessMm", wastePiece.getThicknessMm());
         values.put("widthMm", wastePiece.getWidthMm());

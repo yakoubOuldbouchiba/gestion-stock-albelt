@@ -2,15 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@hooks/useI18n';
 
-import type { Roll, RollRequest, MaterialType, RollStatus, Supplier, Altier, WastePiece, Color, WasteType, PlacedRectangle } from '../types/index';
+import type { Roll, RollRequest, MaterialType, RollStatus, Supplier, Altier, WastePiece, WasteType, PlacedRectangle, Article, Color } from '../types/index';
+import type { ArticleOption } from './hooks/useCommandeLookups';
 import { RollService } from '../services/rollService';
 import { SupplierService } from '../services/supplierService';
 import { AltierService } from '../services/altierService';
 import { WastePieceService } from '../services/wastePieceService';
-import { ColorService } from '../services/colorService';
+import { ArticleService } from '../services/articleService';
 import { PlacedRectangleService } from '../services/placedRectangleService';
 import { getMaterialColor } from '../utils/materialColors';
 import { formatDate } from '../utils/date';
+import { getArticleDisplayLabel } from '../utils/article';
 import { formatRollChuteLabel, getRollChuteSummary } from '@utils/rollChuteLabel';
 import { Button } from 'primereact/button';
 import { TabView, TabPanel } from 'primereact/tabview';
@@ -30,6 +32,7 @@ import { CreateChuteDialog } from '../components/inventory/CreateChuteDialog';
 import { QrCodeCard } from '../components/QrCodeCard';
 import { PageHeader } from '../components/PageHeader';
 import './InventoryPage.css';
+import { ColorService } from '@/services/colorService';
 
 export function InventoryPage() {
   type TabKey = 'inventory' | 'reusable' | 'waste';
@@ -84,7 +87,7 @@ export function InventoryPage() {
   const [wastePieces, setWastePieces] = useState<WastePiece[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [altiers, setAltiers] = useState<Altier[]>([]);
-  const [colors, setColors] = useState<Color[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('inventory');
@@ -103,13 +106,25 @@ export function InventoryPage() {
     materialFilter: 'ALL' as MaterialType,
     altierFilter: 'ALL',
     statusFilter: 'ALL' as RollStatus,
-    colorFilter: 'ALL',
+    articleFilter: 'ALL',
     nbPlisFilter: '',
     thicknessFilter: '',
   });
 
   const [pagination, setPagination] = useState({ rollPage: 0, wastePage: 0 });
   const [totals, setTotals] = useState({ rollTotalElements: 0, wasteTotalElements: 0 });
+
+  const articleOptions = useMemo<ArticleOption[]>(() => {
+    return articles.map((article) => ({
+      label: getArticleDisplayLabel(article),
+      value: article.id,
+      article,
+      materialType: article.materialType,
+      nbPlis: article.nbPlis,
+      thicknessMm: article.thicknessMm,
+      reference: article.reference,
+    }));
+  }, [articles]);
 
   const { run, isLocked } = useAsyncLock();
   const pageSize = 10;
@@ -172,10 +187,10 @@ export function InventoryPage() {
     try {
       let res;
       if (activeTab === 'inventory') {
-       res = await RollService.getStatsByMaterial();
-      }else if (activeTab === 'reusable') {
+        res = await RollService.getStatsByMaterial();
+      } else if (activeTab === 'reusable') {
         res = await WastePieceService.getStatsByMaterial('CHUTE_EXPLOITABLE');
-      } else if (activeTab === 'waste') {  
+      } else if (activeTab === 'waste') {
         res = await WastePieceService.getStatsByMaterial('DECHET');
       }
       const byMaterial = new Map<MaterialType, { count: number; totalArea: number }>();
@@ -217,7 +232,7 @@ export function InventoryPage() {
       filters.materialFilter,
       filters.statusFilter,
       filters.altierFilter,
-      filters.colorFilter,
+      filters.articleFilter,
       filters.nbPlisFilter,
       filters.thicknessFilter
     );
@@ -227,7 +242,7 @@ export function InventoryPage() {
     filters.materialFilter,
     filters.statusFilter,
     filters.altierFilter,
-    filters.colorFilter,
+    filters.articleFilter,
     filters.nbPlisFilter,
     filters.thicknessFilter,
   ]);
@@ -242,7 +257,7 @@ export function InventoryPage() {
         filters.materialFilter,
         filters.statusFilter,
         filters.altierFilter,
-        filters.colorFilter,
+        filters.articleFilter,
         filters.nbPlisFilter,
         filters.thicknessFilter,
         wasteType
@@ -254,7 +269,7 @@ export function InventoryPage() {
     filters.materialFilter,
     filters.statusFilter,
     filters.altierFilter,
-    filters.colorFilter,
+    filters.articleFilter,
     filters.nbPlisFilter,
     filters.thicknessFilter,
     activeTab,
@@ -275,13 +290,14 @@ export function InventoryPage() {
       if (selectedChute) {
         setFormData((prev) => ({
           ...prev,
+          articleId: selectedChute.articleId ?? undefined,
+          article: selectedChute.article,
           nbPlis: selectedChute.nbPlis,
           thicknessMm: selectedChute.thicknessMm,
-          // widthMm and lengthM are set by placement selection only
           areaM2: selectedChute.areaM2,
-          altierId: selectedChute.altierId,
-          colorId: selectedChute.colorId,
-          reference: selectedChute.reference,
+          altierId: selectedChute.altierId ?? undefined,
+          colorId: selectedChute.colorId ?? undefined,
+          reference: selectedChute.reference ?? undefined,
           receivedDate: new Date().toISOString().split('T')[0],
         }));
       }
@@ -295,15 +311,17 @@ export function InventoryPage() {
       if (selectedParent) {
         setFormData((prev) => ({
           ...prev,
+          articleId: selectedParent.articleId ?? undefined,
+          article: selectedParent.article,
           materialType: selectedParent.materialType,
           nbPlis: selectedParent.nbPlis,
           thicknessMm: selectedParent.thicknessMm,
           widthMm: selectedParent.widthMm,
           lengthM: selectedParent.lengthM,
-          areaM2: (selectedParent.widthMm / 1000) * selectedParent.lengthM,
-          altierId: selectedParent.altierId,
-          colorId: selectedParent.colorId,
-          reference: selectedParent.reference,
+          areaM2: (selectedParent.widthMm / 1000) * Number(selectedParent.lengthM),
+          altierId: selectedParent.altierId ?? undefined,
+          colorId: selectedParent.colorId ?? undefined,
+          reference: selectedParent.reference ?? undefined,
           receivedDate: new Date().toISOString().split('T')[0],
         }));
       }
@@ -365,15 +383,17 @@ export function InventoryPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [suppliersResponse, altiersResponse, colorsResponse] = await Promise.all([
+      const [suppliersResponse, altiersResponse, colorsResponse, articlesResponse] = await Promise.all([
         SupplierService.getAll({ page: 0, size: 200 }),
         AltierService.getAll({ page: 0, size: 200 }),
         ColorService.getPaged({ page: 0, size: 500, isActive: true }),
+        ArticleService.getAll(),
       ]);
 
       if (suppliersResponse.success && suppliersResponse.data) setSuppliers(suppliersResponse.data.items || []);
       if (altiersResponse.success && altiersResponse.data) setAltiers(altiersResponse.data.items || []);
       if (colorsResponse.success && colorsResponse.data) setColors(colorsResponse.data.items || []);
+      if (articlesResponse.success && articlesResponse.data) setArticles(articlesResponse.data || []);
     } catch (err) {
       setError(t('messages.failedToLoad'));
       console.error(err);
@@ -421,7 +441,7 @@ export function InventoryPage() {
     material: MaterialType,
     status: RollStatus,
     altierId: string,
-    colorId: string,
+    articleId: string,
     nbPlis: string,
     thickness: string
   ) => {
@@ -437,7 +457,7 @@ export function InventoryPage() {
         materialType: material === 'ALL' ? undefined : material,
         status: status === 'ALL' ? undefined : status,
         altierId: altierId === 'ALL' ? undefined : altierId,
-        colorId: colorId === 'ALL' ? undefined : colorId,
+        articleId: articleId === 'ALL' ? undefined : articleId,
         nbPlis: Number.isFinite(parsedNbPlis) ? parsedNbPlis : undefined,
         thicknessMm: Number.isFinite(parsedThickness) ? parsedThickness : undefined,
       });
@@ -460,7 +480,7 @@ export function InventoryPage() {
     material: MaterialType,
     status: RollStatus,
     altierId: string,
-    colorId: string,
+    articleId: string,
     nbPlis: string,
     thickness: string,
     wasteType?: WasteType
@@ -478,7 +498,7 @@ export function InventoryPage() {
         status: status === 'ALL' ? undefined : status,
         wasteType,
         altierId: altierId === 'ALL' ? undefined : altierId,
-        colorId: colorId === 'ALL' ? undefined : colorId,
+        articleId: articleId === 'ALL' ? undefined : articleId,
         nbPlis: Number.isFinite(parsedNbPlis) ? parsedNbPlis : undefined,
         thicknessMm: Number.isFinite(parsedThickness) ? parsedThickness : undefined,
       });
@@ -502,7 +522,7 @@ export function InventoryPage() {
         ...prev,
         [name]: name === 'nbPlis' ? parseInt(value) || 0
           : ['thicknessMm', 'lengthM', 'widthMm', 'lengthRemainingM'].includes(name) ? parseFloat(value) || 0
-          : value,
+            : value,
       } as RollRequest;
       updated.areaM2 = (updated.lengthM || 0) * ((updated.widthMm || 0) / 1000);
       return updated;
@@ -518,7 +538,7 @@ export function InventoryPage() {
         const response = await RollService.receive(formData);
         if (response.success) {
           setPagination((prev) => ({ ...prev, rollPage: 0 }));
-          await loadRolls(0, filters.searchTerm, filters.materialFilter, filters.statusFilter, filters.altierFilter, filters.colorFilter, filters.nbPlisFilter, filters.thicknessFilter);
+          await loadRolls(0, filters.searchTerm, filters.materialFilter, filters.statusFilter, filters.altierFilter, filters.articleFilter, filters.nbPlisFilter, filters.thicknessFilter);
           await loadMaterialStats();
           resetForm();
           setDialogs((prev) => ({ ...prev, receiveRoll: false }));
@@ -577,17 +597,19 @@ export function InventoryPage() {
     }
 
     const wasteData = {
+      articleId: formData.articleId,
       rollId: selectedRoll?.id || selectedParent?.rollId,
       parentWastePieceId: selectedParent?.id,
-      materialType: selectedRoll?.materialType || selectedParent?.materialType,
+      materialType: formData.materialType,
       nbPlis: formData.nbPlis,
       thicknessMm: formData.thicknessMm,
       widthMm: formData.widthMm,
       lengthM: formData.lengthM,
       areaM2: formData.areaM2,
       status: 'AVAILABLE',
-      altierId: selectedRoll?.altierId || selectedParent?.altierId,
-      colorId: selectedRoll?.colorId || selectedParent?.colorId,
+      altierId: formData.altierId,
+      colorId: formData.colorId,
+      reference: formData.reference,
     };
 
     try {
@@ -595,7 +617,7 @@ export function InventoryPage() {
         const response = await WastePieceService.create(wasteData);
         if (response.success) {
           setPagination((prev) => ({ ...prev, wastePage: 0 }));
-          await loadWastePieces(0, filters.searchTerm, filters.materialFilter, filters.statusFilter, filters.altierFilter, filters.colorFilter, filters.nbPlisFilter, filters.thicknessFilter,
+          await loadWastePieces(0, filters.searchTerm, filters.materialFilter, filters.statusFilter, filters.altierFilter, filters.articleFilter, filters.nbPlisFilter, filters.thicknessFilter,
             activeTab === 'reusable' ? 'CHUTE_EXPLOITABLE' : activeTab === 'waste' ? 'DECHET' : undefined);
           setDialogs((prev) => ({ ...prev, createChute: false }));
           resetChute();
@@ -801,8 +823,6 @@ export function InventoryPage() {
   ], [t, statuses]);
   const altierFilterOptions = useMemo(() => [{ label: t('inventory.allWorkshops'), value: 'ALL' }, ...altiers.map((altier) => ({ label: altier.libelle, value: altier.id }))], [t, altiers]);
   const supplierOptions = useMemo(() => suppliers.map((s) => ({ label: s.name || 'N/A', value: s.id })), [suppliers]);
-  const colorOptions = useMemo(() => colors.map((c) => ({ label: `${c.name} (${c.hexCode})`, value: c.id })), [colors]);
-  const colorFilterOptions = useMemo(() => [{ label: t('inventory.allColors') || t('inventory.allColorsFallback'), value: 'ALL' }, ...colorOptions], [t, colorOptions]);
 
   const applyFilterChange = useCallback((partial: Partial<typeof filters>) => {
     setFilters((prev) => ({ ...prev, ...partial }));
@@ -813,7 +833,7 @@ export function InventoryPage() {
   const handleMaterialChange = (value: MaterialType) => applyFilterChange({ materialFilter: value });
   const handleAltierChange = (value: string) => applyFilterChange({ altierFilter: value });
   const handleStatusChange = (value: RollStatus) => applyFilterChange({ statusFilter: value });
-  const handleColorChange = (value: string) => applyFilterChange({ colorFilter: value });
+  const handleArticleFilterChange = (article: Article | null) => applyFilterChange({ articleFilter: article?.id || 'ALL' });
   const handleNbPlisChange = (value: string) => applyFilterChange({ nbPlisFilter: value });
   const handleThicknessChange = (value: string) => applyFilterChange({ thicknessFilter: value });
 
@@ -831,9 +851,9 @@ export function InventoryPage() {
       statusFilter={filters.statusFilter}
       statusOptions={statusFilterOptions}
       onStatusChange={handleStatusChange}
-      colorFilter={filters.colorFilter}
-      colorOptions={colorFilterOptions}
-      onColorChange={handleColorChange}
+      articleFilter={filters.articleFilter}
+      articleOptions={articleOptions}
+      onArticleChange={handleArticleFilterChange}
       nbPlisFilter={filters.nbPlisFilter}
       onNbPlisChange={handleNbPlisChange}
       thicknessFilter={filters.thicknessFilter}
@@ -855,9 +875,9 @@ export function InventoryPage() {
       statusFilter={filters.statusFilter}
       statusOptions={statusFilterOptions}
       onStatusChange={handleStatusChange}
-      colorFilter={filters.colorFilter}
-      colorOptions={colorFilterOptions}
-      onColorChange={handleColorChange}
+      articleFilter={filters.articleFilter}
+      articleOptions={articleOptions}
+      onArticleChange={handleArticleFilterChange}
       nbPlisFilter={filters.nbPlisFilter}
       onNbPlisChange={handleNbPlisChange}
       thicknessFilter={filters.thicknessFilter}
@@ -915,93 +935,125 @@ export function InventoryPage() {
           <div className="filter-panel">
             <div className="filter-panel-header">
               <h3>{t('inventory.filters') || 'Filters'}</h3>
-              <Button icon="pi pi-refresh" text size="small" onClick={() => setFilters({ searchTerm: '', materialFilter: 'ALL', statusFilter: 'ALL', altierFilter: 'ALL', colorFilter: 'ALL', nbPlisFilter: '', thicknessFilter: '' })} />
+              <Button icon="pi pi-refresh" text size="small" onClick={() => setFilters({ searchTerm: '', materialFilter: 'ALL', statusFilter: 'ALL', altierFilter: 'ALL', articleFilter: 'ALL', nbPlisFilter: '', thicknessFilter: '' })} />
             </div>
             {activeTab === 'inventory' ? rollFilters : wasteFilters}
           </div>
         </aside>
 
         <main className="inventory-content">
-          <TabView 
-            className="inventory-tabs" 
-            activeIndex={tabIndex} 
+          <TabView
+            className="inventory-tabs"
+            activeIndex={tabIndex}
             onTabChange={(e) => {
               const nextTab = e.index === 0 ? 'inventory' : e.index === 1 ? 'reusable' : 'waste';
               setActiveTab(nextTab);
-              setPagination((prev) => ({ 
-                ...prev, 
-                [nextTab === 'inventory' ? 'rollPage' : 'wastePage']: 0 
+              setPagination((prev) => ({
+                ...prev,
+                [nextTab === 'inventory' ? 'rollPage' : 'wastePage']: 0
               } as typeof pagination));
             }}
           >
             <TabPanel header={t('inventory.title') || 'Inventory'}>
-              <InventoryTab 
-                t={t} 
-                showGrouped={grouped.inventory.show} 
-                onToggleGrouped={(v) => setGrouped(p => ({ ...p, inventory: { ...p.inventory, show: v } }))} 
-                groupedStats={grouped.inventory.rows} 
-                groupedLoading={grouped.inventory.loading} 
-                renderGroupedStatsTable={renderGroupedStatsTable} 
-                rolls={rolls} 
-                selection={selectedRolls} 
-                onSelectionChange={(e: any) => setSelectedRolls(e.value)} 
-                rollTotalElements={totals.rollTotalElements} 
-                rollPage={pagination.rollPage} 
-                pageSize={pageSize} 
-                onPageChange={(p) => setPagination(prev => ({ ...prev, rollPage: p }))} 
-                rollMaterialBody={rollMaterialBody} 
-                rollStatusBody={rollStatusBody} 
-                rollActionsBody={rollActionsBody} 
-                formatDate={formatDate} 
+              <InventoryTab
+                t={t}
+                showGrouped={grouped.inventory.show}
+                onToggleGrouped={(v) => setGrouped(p => ({ ...p, inventory: { ...p.inventory, show: v } }))}
+                groupedStats={grouped.inventory.rows}
+                groupedLoading={grouped.inventory.loading}
+                renderGroupedStatsTable={renderGroupedStatsTable}
+                rolls={rolls}
+                selection={selectedRolls}
+                onSelectionChange={(e: any) => setSelectedRolls(e.value)}
+                rollTotalElements={totals.rollTotalElements}
+                rollPage={pagination.rollPage}
+                pageSize={pageSize}
+                onPageChange={(p) => setPagination(prev => ({ ...prev, rollPage: p }))}
+                rollMaterialBody={rollMaterialBody}
+                rollStatusBody={rollStatusBody}
+                rollActionsBody={rollActionsBody}
+                formatDate={formatDate}
               />
             </TabPanel>
             <TabPanel header={t('inventory.chuteReusable') || 'Chute Reusable'}>
-              <ReusableTab 
-                t={t} 
-                showGrouped={grouped.reusable.show} 
-                onToggleGrouped={(v) => setGrouped(p => ({ ...p, reusable: { ...p.reusable, show: v } }))} 
-                groupedStats={grouped.reusable.rows} 
-                groupedLoading={grouped.reusable.loading} 
-                renderGroupedStatsTable={renderGroupedStatsTable} 
-                pieces={reusablePieces} 
-                selection={selectedPieces} 
-                onSelectionChange={(e: any) => setSelectedPieces(e.value)} 
-                wasteMaterialBody={wasteMaterialBody} 
-                wasteStatusBody={wasteStatusBody} 
-                wasteActionsBody={wasteActionsBody} 
-                wastePage={pagination.wastePage} 
-                wasteTotalElements={totals.wasteTotalElements} 
-                pageSize={pageSize} 
-                onPageChange={(p) => setPagination(prev => ({ ...prev, wastePage: p }))} 
-                formatDate={formatDate} 
+              <ReusableTab
+                t={t}
+                showGrouped={grouped.reusable.show}
+                onToggleGrouped={(v) => setGrouped(p => ({ ...p, reusable: { ...p.reusable, show: v } }))}
+                groupedStats={grouped.reusable.rows}
+                groupedLoading={grouped.reusable.loading}
+                renderGroupedStatsTable={renderGroupedStatsTable}
+                pieces={reusablePieces}
+                selection={selectedPieces}
+                onSelectionChange={(e: any) => setSelectedPieces(e.value)}
+                wasteMaterialBody={wasteMaterialBody}
+                wasteStatusBody={wasteStatusBody}
+                wasteActionsBody={wasteActionsBody}
+                wastePage={pagination.wastePage}
+                wasteTotalElements={totals.wasteTotalElements}
+                pageSize={pageSize}
+                onPageChange={(p) => setPagination(prev => ({ ...prev, wastePage: p }))}
+                formatDate={formatDate}
               />
             </TabPanel>
             <TabPanel header={t('inventory.chuteDechet') || 'Chute Waste'}>
-              <WasteTab 
-                t={t} 
-                showGrouped={grouped.waste.show} 
-                onToggleGrouped={(v) => setGrouped(p => ({ ...p, waste: { ...p.waste, show: v } }))} 
-                groupedStats={grouped.waste.rows} 
-                groupedLoading={grouped.waste.loading} 
-                renderGroupedStatsTable={renderGroupedStatsTable} 
-                pieces={scrapPieces} 
-                selection={selectedPieces} 
-                onSelectionChange={(e: any) => setSelectedPieces(e.value)} 
-                wasteMaterialBody={wasteMaterialBody} 
-                wasteStatusBody={wasteStatusBody} 
-                wasteActionsBody={wasteActionsBody} 
-                wastePage={pagination.wastePage} 
-                wasteTotalElements={totals.wasteTotalElements} 
-                pageSize={pageSize} 
-                onPageChange={(p) => setPagination(prev => ({ ...prev, wastePage: p }))} 
-                formatDate={formatDate} 
+              <WasteTab
+                t={t}
+                showGrouped={grouped.waste.show}
+                onToggleGrouped={(v) => setGrouped(p => ({ ...p, waste: { ...p.waste, show: v } }))}
+                groupedStats={grouped.waste.rows}
+                groupedLoading={grouped.waste.loading}
+                renderGroupedStatsTable={renderGroupedStatsTable}
+                pieces={scrapPieces}
+                selection={selectedPieces}
+                onSelectionChange={(e: any) => setSelectedPieces(e.value)}
+                wasteMaterialBody={wasteMaterialBody}
+                wasteStatusBody={wasteStatusBody}
+                wasteActionsBody={wasteActionsBody}
+                wastePage={pagination.wastePage}
+                wasteTotalElements={totals.wasteTotalElements}
+                pageSize={pageSize}
+                onPageChange={(p) => setPagination(prev => ({ ...prev, wastePage: p }))}
+                formatDate={formatDate}
               />
             </TabPanel>
           </TabView>
         </main>
       </div>
 
-      <ReceiveRollDialog visible={dialogs.receiveRoll} onHide={handleCancel} onSubmit={handleSubmit} onCancel={handleCancel} isSubmitting={isLocked('inventory-roll')} formData={formData} t={t} supplierOptions={supplierOptions} altierOptions={altiers.map(a => ({ label: a.libelle, value: a.id }))} materialOptions={materials.map(m => ({ label: m, value: m }))} colorOptions={colorOptions} colorsAvailable={colors.length > 0} onSupplierChange={v => setFormData(p => ({ ...p, supplierId: v }))} onAltierChange={v => setFormData(p => ({ ...p, altierId: v }))} onMaterialChange={v => setFormData(p => ({ ...p, materialType: v }))} onColorChange={v => setFormData(p => ({ ...p, colorId: v }))} onFieldChange={handleInputChange} />
+      <ReceiveRollDialog
+        visible={dialogs.receiveRoll}
+        onHide={handleCancel}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        isSubmitting={isLocked('inventory-roll')}
+        formData={formData}
+        t={t}
+        supplierOptions={supplierOptions}
+        altierOptions={altiers.map(a => ({ label: a.libelle, value: a.id }))}
+        materialOptions={materials.map(m => ({ label: m, value: m }))}
+        articles={articleOptions}
+        onSupplierChange={(val) => setFormData(p => ({ ...p, supplierId: val }))}
+        onAltierChange={(val) => setFormData(p => ({ ...p, altierId: val }))}
+        onMaterialChange={(val) => setFormData(p => ({ ...p, materialType: val }))}
+        onArticleChange={(article) => {
+          if (article) {
+            setFormData(p => ({
+              ...p,
+              articleId: article.id,
+              article: article,
+              materialType: article.materialType as MaterialType,
+              nbPlis: article.nbPlis,
+              thicknessMm: article.thicknessMm,
+              reference: article.reference || '',
+              colorId: article.colorId,
+            }));
+          } else {
+            setFormData(p => ({ ...p, articleId: undefined, article: undefined, }));
+          }
+        }}
+        onFieldChange={handleInputChange}
+      />
       <CreateChuteDialog
         visible={dialogs.createChute}
         onHide={() => { setDialogs(p => ({ ...p, createChute: false })); resetChute(); }}
@@ -1044,8 +1096,29 @@ export function InventoryPage() {
         onFieldChange={handleInputChange}
         onDimensionChange={handleDimensionChange}
         altierOptions={altiers.map(a => ({ label: a.libelle, value: a.id }))}
-        onAltierChange={v => setFormData(p => ({ ...p, altierId: v }))}
+        onAltierChange={(val) => setFormData(p => ({ ...p, altierId: val }))}
         disableAltier={chute.sourceType === 'WASTE_PIECE'}
+        articles={articleOptions}
+        onArticleChange={(article) => {
+          if (article) {
+            setFormData(p => ({
+              ...p,
+              articleId: article.id,
+              article: article,
+              materialType: article.materialType as MaterialType,
+              nbPlis: article.nbPlis,
+              thicknessMm: article.thicknessMm,
+              reference: article.reference || '',
+              colorId: article.colorId,
+            }));
+          } else {
+            setFormData(p => ({
+              ...p,
+              articleId: undefined,
+              article: undefined,
+            }));
+          }
+        }}
       />
       <Dialog header={selectedPreview?.type === 'roll' ? (t('rollDetail.title') || 'Roll Details') : (t('waste.wasteDetailsTitle') || 'Chute Details')} visible={!!selectedPreview} onHide={() => setSelectedPreview(null)} footer={previewFooter} style={{ width: 'min(720px, 95vw)' }}>
         {selectedPreview?.type === 'roll' ? renderRollPreview(selectedPreview.item) : null}
@@ -1056,3 +1129,7 @@ export function InventoryPage() {
 }
 
 export default InventoryPage;
+function setColors(_arg0: Color[]) {
+  throw new Error('Function not implemented.');
+}
+

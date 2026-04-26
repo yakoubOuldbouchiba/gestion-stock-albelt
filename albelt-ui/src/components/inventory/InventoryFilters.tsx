@@ -1,8 +1,10 @@
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import React, { useState } from 'react';
-import type { MaterialType, RollStatus } from '../../types';
+import type { MaterialType, RollStatus, Article } from '../../types';
 import type { Translate } from '../commande/commandeTypes';
+import ArticleSelector from '../commande/form/ArticleSelector';
+import type { ArticleOption } from '../../pages/hooks/useCommandeLookups';
 import '../../styles/InventoryFilters.css';
 
 type InventoryFiltersProps = {
@@ -18,9 +20,9 @@ type InventoryFiltersProps = {
   statusFilter: RollStatus;
   statusOptions: { label: string; value: RollStatus }[];
   onStatusChange: (value: RollStatus) => void;
-  colorFilter: string;
-  colorOptions: { label: string; value: string }[];
-  onColorChange: (value: string) => void;
+  articleFilter: string;
+  articleOptions: ArticleOption[];
+  onArticleChange: (article: Article | null) => void;
   nbPlisFilter: string;
   onNbPlisChange: (value: string) => void;
   thicknessFilter: string;
@@ -40,9 +42,9 @@ export function InventoryFilters({
   statusFilter,
   statusOptions,
   onStatusChange,
-  colorFilter,
-  colorOptions,
-  onColorChange,
+  articleFilter,
+  articleOptions,
+  onArticleChange,
   nbPlisFilter,
   onNbPlisChange,
   thicknessFilter,
@@ -89,6 +91,20 @@ export function InventoryFilters({
       </div>
 
       <div className="inventory-filters__field">
+        <label className="inventory-filters__label" htmlFor="inventory-article">
+          {t('inventory.selectArticle') || 'Filter by Article'}
+        </label>
+        <ArticleSelector
+          id="inventory-article"
+          options={articleOptions.filter(a => materialFilter === 'ALL' || a.materialType === materialFilter)}
+          value={articleFilter}
+          onChange={onArticleChange}
+          placeholder={t('inventory.selectArticle') || 'Select article...'}
+          className="p-inputtext-sm"
+        />
+      </div>
+
+      <div className="inventory-filters__field">
         <label className="inventory-filters__label" htmlFor="inventory-material">
           {t('inventory.material') || 'Material'}
         </label>
@@ -130,20 +146,6 @@ export function InventoryFilters({
         />
       </div>
 
-      <div className="inventory-filters__field">
-        <label className="inventory-filters__label" htmlFor="inventory-color">
-          {t('inventory.color') || 'Color'}
-        </label>
-        <Dropdown
-          inputId="inventory-color"
-          value={colorFilter}
-          options={colorOptions}
-          onChange={(e) => onColorChange(e.value)}
-          placeholder={t('inventory.color') || 'Color'}
-          className="p-inputtext-sm"
-        />
-      </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
         <div className="inventory-filters__field">
           <label className="inventory-filters__label" htmlFor="inventory-plies">
@@ -163,6 +165,7 @@ export function InventoryFilters({
             min={0}
             placeholder="Qty"
             className="p-inputtext-sm"
+            disabled={!!articleFilter}
           />
         </div>
         <div className="inventory-filters__field">
@@ -184,6 +187,7 @@ export function InventoryFilters({
             step="0.01"
             placeholder="mm"
             className="p-inputtext-sm"
+            disabled={!!articleFilter}
           />
         </div>
       </div>

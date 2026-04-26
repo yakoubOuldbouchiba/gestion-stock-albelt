@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.commandes.dto;
 
+import com.albelt.gestionstock.domain.articles.dto.ArticleResponse;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -18,6 +19,10 @@ public class CommandeItemResponse {
     private UUID id;
     
     private UUID commandeId;
+
+    private UUID articleId;
+
+    private ArticleResponse article;
     
     private String materialType;
     

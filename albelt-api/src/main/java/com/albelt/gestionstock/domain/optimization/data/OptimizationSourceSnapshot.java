@@ -11,6 +11,7 @@ public record OptimizationSourceSnapshot(
     OptimizationSourceType sourceType,
     UUID rollId,
     UUID wastePieceId,
+    UUID articleId,
     Integer widthMm,
     BigDecimal lengthM,
     BigDecimal availableAreaM2,
@@ -22,6 +23,37 @@ public record OptimizationSourceSnapshot(
     LocalDate receivedDate,
     LocalDateTime updatedAt
 ) {
+
+    public OptimizationSourceSnapshot(OptimizationSourceType sourceType,
+                                      UUID rollId,
+                                      UUID wastePieceId,
+                                      Integer widthMm,
+                                      BigDecimal lengthM,
+                                      BigDecimal availableAreaM2,
+                                      BigDecimal fullAreaM2,
+                                      Integer nbPlis,
+                                      BigDecimal thicknessMm,
+                                      UUID colorId,
+                                      String reference,
+                                      LocalDate receivedDate,
+                                      LocalDateTime updatedAt) {
+        this(
+            sourceType,
+            rollId,
+            wastePieceId,
+            null,
+            widthMm,
+            lengthM,
+            availableAreaM2,
+            fullAreaM2,
+            nbPlis,
+            thicknessMm,
+            colorId,
+            reference,
+            receivedDate,
+            updatedAt
+        );
+    }
 
     public UUID sourceId() {
         return rollId != null ? rollId : wastePieceId;

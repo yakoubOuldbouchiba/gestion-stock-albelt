@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
+import { ArticleService } from '../../services/articleService';
 import { ClientService } from '../../services/clientService';
 import { ColorService } from '../../services/colorService';
-import type { Client, Color } from '../../types';
+import type { Article, Client, Color } from '../../types';
+import { getArticleDisplayLabel } from '../../utils/article';
 
 export interface ClientOption {
   label: string;
@@ -14,6 +16,16 @@ export interface ColorOption {
   hexCode?: string;
 }
 
+export interface ArticleOption {
+  label: string;
+  value: string;
+  article: Article;
+  materialType: string;
+  nbPlis: number;
+  thicknessMm: number;
+  reference?: string | null;
+}
+
 interface UseCommandeLookupsOptions {
   t: (key: string) => string;
   onClientsError?: (message: string, error?: unknown) => void;
@@ -22,6 +34,8 @@ interface UseCommandeLookupsOptions {
 export function useCommandeLookups({ t, onClientsError }: UseCommandeLookupsOptions) {
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [colors, setColors] = useState<ColorOption[]>([]);
+  const [articles, setArticles] = useState<ArticleOption[]>([]);
+  const [articlesLoading, setArticlesLoading] = useState(false);
   const [clientsLoading, setClientsLoading] = useState(false);
   const [clientsPage, setClientsPage] = useState(0);
   const [clientsHasMore, setClientsHasMore] = useState(true);
@@ -87,6 +101,41 @@ export function useCommandeLookups({ t, onClientsError }: UseCommandeLookupsOpti
     };
   }, []);
 
-  return { clients, colors, clientsLoading, loadMoreClients, clientsHasMore };
-}
+  useEffect(() => {
+    let cancelled = false;
 
+    const fetchArticles = async () => {
+      setArticlesLoading(true);
+      try {
+        const articleData = await ArticleService.getCachedList();
+        const options = articleData.map((article) => ({
+          label: getArticleDisplayLabel(article),
+          value: article.id,
+          article,
+          materialType: article.materialType,
+          nbPlis: article.nbPlis,
+          thicknessMm: article.thicknessMm,
+          reference: article.reference,
+        }));
+        if (!cancelled) {
+          setArticles(options);
+        }
+      } catch {
+        if (!cancelled) {
+          setArticles([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setArticlesLoading(false);
+        }
+      }
+    };
+
+    fetchArticles();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { clients, colors, articles, articlesLoading, clientsLoading, loadMoreClients, clientsHasMore };
+}

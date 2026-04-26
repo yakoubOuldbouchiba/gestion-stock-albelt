@@ -215,8 +215,9 @@ public class OptimizationService {
         MaterialType materialType = parseMaterialType(item.getMaterialType());
         Integer nbPlis = item.getNbPlis();
         BigDecimal thickness = item.getThicknessMm();
-        UUID colorId = item.getColor() != null ? item.getColor().getId() : null;
+        UUID colorId = item.getArticle().getColor()  != null ? item.getArticle().getColor() .getId() : null;
         String reference = normalize(item.getReference());
+        UUID articleId = item.getArticle() != null ? item.getArticle().getId() : null;
 
         List<WasteStatus> wasteStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
         List<WastePiece> wastePieces = altierId == null
@@ -234,9 +235,10 @@ public class OptimizationService {
 
         List<SourceCandidate> wasteCandidates = wastePieces.stream()
             .filter(wp -> wp.getWasteType() == WasteType.CHUTE_EXPLOITABLE || wp.getWasteType() == null)
-            .filter(wp -> matchesCommonFilters(materialType, nbPlis, thickness, colorId, reference,
+            .filter(wp -> matchesCommonFilters(articleId, materialType, nbPlis, thickness, colorId, reference,
+                wp.getArticle() != null ? wp.getArticle().getId() : null,
                 wp.getMaterialType(), wp.getNbPlis(), wp.getThicknessMm(),
-                wp.getColor() != null ? wp.getColor().getId() : null, wp.getReference()))
+                wp.getArticle().getColor()  != null ? wp.getArticle().getColor() .getId() : null, wp.getReference()))
             .map(wp -> SourceCandidate.fromWaste(wp))
             .filter(sc -> sc.canFit(item))
             .sorted(Comparator.comparing(SourceCandidate::effectiveAreaM2).reversed())
@@ -248,9 +250,10 @@ public class OptimizationService {
             : rollRepository.findFifoQueueByAltier(materialType, rollStatuses, altierId);
 
         List<SourceCandidate> rollCandidates = rolls.stream()
-            .filter(r -> matchesCommonFilters(materialType, nbPlis, thickness, colorId, reference,
+            .filter(r -> matchesCommonFilters(articleId, materialType, nbPlis, thickness, colorId, reference,
+                r.getArticle() != null ? r.getArticle().getId() : null,
                 r.getMaterialType(), r.getNbPlis(), r.getThicknessMm(),
-                r.getColor() != null ? r.getColor().getId() : null, r.getReference()))
+                r.getArticle().getColor()  != null ? r.getArticle().getColor() .getId() : null, r.getReference()))
             .map(SourceCandidate::fromRoll)
             .filter(sc -> sc.canFit(item))
             .sorted(Comparator.comparing(SourceCandidate::fifoScore).reversed())
@@ -826,8 +829,8 @@ public class OptimizationService {
                     .thicknessMm(r.getThicknessMm())
                     .widthMm(r.getWidthMm())
                     .lengthM(r.getLengthM())
-                    .colorName(r.getColor() != null ? r.getColor().getName() : null)
-                    .colorHexCode(r.getColor() != null ? r.getColor().getHexCode() : null)
+                    .colorName(r.getArticle().getColor()  != null ? r.getArticle().getColor() .getName() : null)
+                    .colorHexCode(r.getArticle().getColor()  != null ? r.getArticle().getColor() .getHexCode() : null)
                     .qrCode(r.getQrCode())
                     .build());
             } else if (pr.getWastePiece() != null) {
@@ -842,8 +845,8 @@ public class OptimizationService {
                     .thicknessMm(w.getThicknessMm())
                     .widthMm(w.getWidthMm())
                     .lengthM(w.getLengthM())
-                    .colorName(w.getColor() != null ? w.getColor().getName() : null)
-                    .colorHexCode(w.getColor() != null ? w.getColor().getHexCode() : null)
+                    .colorName(w.getArticle().getColor()  != null ? w.getArticle().getColor() .getName() : null)
+                    .colorHexCode(w.getArticle().getColor()  != null ? w.getArticle().getColor() .getHexCode() : null)
                     .qrCode(w.getQrCode())
                     .build());
             }
@@ -868,8 +871,8 @@ public class OptimizationService {
                 .yMm(pr.getYMm())
                 .widthMm(pr.getWidthMm())
                 .heightMm(pr.getHeightMm())
-                .placementColorName(pr.getColor() != null ? pr.getColor().getName() : null)
-                .placementColorHexCode(pr.getColor() != null ? pr.getColor().getHexCode() : null)
+                .placementColorName(pr.getColor()  != null ? pr.getColor() .getName() : null)
+                .placementColorHexCode(pr.getColor()  != null ? pr.getColor() .getHexCode() : null)
                 .qrCode(buildPlacementQrCode(
                     sourceType,
                     sourceId,
@@ -881,8 +884,8 @@ public class OptimizationService {
                     null,
                     null,
                     null,
-                    pr.getColor() != null ? pr.getColor().getName() : null,
-                    pr.getColor() != null ? pr.getColor().getHexCode() : null
+                    pr.getColor()  != null ? pr.getColor() .getName() : null,
+                    pr.getColor()  != null ? pr.getColor() .getHexCode() : null
                 ))
                 .build());
         }
@@ -907,8 +910,8 @@ public class OptimizationService {
                     .thicknessMm(r.getThicknessMm())
                     .widthMm(r.getWidthMm())
                     .lengthM(r.getLengthM())
-                    .colorName(r.getColor() != null ? r.getColor().getName() : null)
-                    .colorHexCode(r.getColor() != null ? r.getColor().getHexCode() : null)
+                    .colorName(r.getArticle().getColor()  != null ? r.getArticle().getColor() .getName() : null)
+                    .colorHexCode(r.getArticle().getColor()  != null ? r.getArticle().getColor() .getHexCode() : null)
                     .qrCode(r.getQrCode())
                     .build());
             } else if (op.getWastePiece() != null) {
@@ -923,8 +926,8 @@ public class OptimizationService {
                     .thicknessMm(w.getThicknessMm())
                     .widthMm(w.getWidthMm())
                     .lengthM(w.getLengthM())
-                    .colorName(w.getColor() != null ? w.getColor().getName() : null)
-                    .colorHexCode(w.getColor() != null ? w.getColor().getHexCode() : null)
+                    .colorName(w.getArticle().getColor()  != null ? w.getArticle().getColor() .getName() : null)
+                    .colorHexCode(w.getArticle().getColor()  != null ? w.getArticle().getColor() .getHexCode() : null)
                     .qrCode(w.getQrCode())
                     .build());
             }
@@ -1093,16 +1096,22 @@ public class OptimizationService {
         return MaterialType.valueOf(materialType.trim().toUpperCase(Locale.ROOT));
     }
 
-    private boolean matchesCommonFilters(MaterialType requiredMaterial,
+    private boolean matchesCommonFilters(UUID requiredArticleId,
+                                         MaterialType requiredMaterial,
                                          Integer requiredPlis,
                                          BigDecimal requiredThickness,
                                          UUID requiredColorId,
                                          String requiredReference,
+                                         UUID articleId,
                                          MaterialType material,
                                          Integer nbPlis,
                                          BigDecimal thickness,
                                          UUID colorId,
                                          String reference) {
+        if (requiredArticleId != null) {
+            return requiredArticleId.equals(articleId)
+                && (requiredColorId == null || requiredColorId.equals(colorId));
+        }
         if (material != requiredMaterial) {
             return false;
         }

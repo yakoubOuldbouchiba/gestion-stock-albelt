@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { WastePieceService } from '../../services/wastePieceService';
 import type { CommandeItem, Roll } from '../../types';
 import { useI18n } from '@hooks/useI18n';
+import { getArticleId } from '../../utils/article';
 
 export function useWasteActions(
   loadWasteForItem: (itemId: string) => Promise<void>,
@@ -80,6 +81,7 @@ export function useWasteActions(
     }
 
     const wasteData = {
+      articleId: getArticleId(source) ?? getArticleId(chuteTargetItem) ?? undefined,
       rollId: isRollSource ? source.id : source.rollId,
       parentWastePieceId: isRollSource ? undefined : source.id,
       materialType: source.materialType,

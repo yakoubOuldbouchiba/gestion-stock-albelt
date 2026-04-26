@@ -17,13 +17,9 @@ import { useCommandeLookups } from './hooks/useCommandeLookups';
 import CommandeItemsEditor from '../components/commande/form/CommandeItemsEditor';
 import CommandeItemsSummary from '../components/commande/form/CommandeItemsSummary';
 import PageHeader from '../components/PageHeader';
-import type { CommandeItemRequest, CommandeRequest, CommandeStatus, MaterialType, TypeMouvement } from '../types';
+import type { CommandeItemRequest, CommandeRequest, CommandeStatus, TypeMouvement } from '../types';
+import { applyArticleToPayload, getArticleId } from '../utils/article';
 import './CommandeFormPage.css';
-
-interface MaterialOption {
-  label: string;
-  value: MaterialType;
-}
 
 interface MouvementOption {
   label: string;
@@ -58,6 +54,7 @@ export function CommandeCreatePage() {
   const {
     clients,
     colors,
+    articles,
     clientsLoading,
     loadMoreClients,
     clientsHasMore
@@ -71,12 +68,6 @@ export function CommandeCreatePage() {
   });
 
   const isSubmitting = isLocked('commande-create');
-
-  const materials: MaterialOption[] = [
-    { label: 'PU', value: 'PU' },
-    { label: 'PVC', value: 'PVC' },
-    { label: 'CAOUTCHOUC', value: 'CAOUTCHOUC' },
-  ];
 
   const mouvements: MouvementOption[] = [
     { label: 'EN COURS', value: 'ENCOURS' },
@@ -105,16 +96,34 @@ export function CommandeCreatePage() {
       errors.items = t('commandes.itemsRequired');
     }
 
+    if (items.some((item) => !getArticleId(item))) {
+      errors.items = t('commandes.articleRequired') || t('commandes.itemsRequired');
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const toItemRequest = (item: CommandeItemRequest, index: number): CommandeItemRequest => ({
-    ...item,
-    longueurToleranceM: item.longueurToleranceM ?? 0,
-    surfaceConsommeeM2: calculateSurfaceM2(item),
-    lineNumber: item.lineNumber || index + 1,
-  });
+  const toItemRequest = (item: CommandeItemRequest, index: number): CommandeItemRequest => {
+    const normalized = applyArticleToPayload(item, item.article);
+    return {
+      articleId: normalized.articleId,
+      materialType: normalized.materialType,
+      nbPlis: normalized.nbPlis,
+      thicknessMm: normalized.thicknessMm,
+      longueurM: item.longueurM,
+      longueurToleranceM: item.longueurToleranceM ?? 0,
+      largeurMm: item.largeurMm,
+      quantite: item.quantite,
+      surfaceConsommeeM2: calculateSurfaceM2(item),
+      typeMouvement: item.typeMouvement,
+      status: item.status,
+      observations: item.observations,
+      reference: normalized.reference,
+      colorId: item.colorId,
+      lineNumber: item.lineNumber || index + 1,
+    };
+  };
 
   const handleRemoveItem = (index: number) => {
     confirmDialog({
@@ -296,7 +305,7 @@ export function CommandeCreatePage() {
         <CommandeItemsEditor
           t={t}
           items={items}
-          materials={materials}
+          articles={articles}
           mouvements={mouvements}
           colors={colors}
           disabled={isSubmitting}

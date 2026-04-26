@@ -29,16 +29,33 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
      * Find available waste pieces for a specific material (potential for reuse)
      * Uses composite index: (material_type, status, area_m2 DESC)
      */
-    @Query("SELECT wp FROM WastePiece wp WHERE wp.materialType = :materialType " +
+    @Query("SELECT wp FROM WastePiece wp " +
+           "JOIN FETCH wp.article ra " +
+           "LEFT JOIN FETCH ra.color " +
+           "WHERE wp.materialType = :materialType " +
            "AND wp.status IN (:statuses) ORDER BY wp.availableAreaM2 DESC")
     List<WastePiece> findAvailableByMaterial(@Param("materialType") MaterialType materialType,
+                                             @Param("statuses") List<WasteStatus> statuses,
+                                             Pageable pageable);
+
+    @Query("SELECT wp FROM WastePiece wp " +
+           "JOIN FETCH wp.article ra " +
+           "LEFT JOIN FETCH ra.color " +
+           "WHERE ra.id = :articleId " +
+           "AND wp.status IN (:statuses) " +
+           "AND (wp.wasteType = com.albelt.gestionstock.shared.enums.WasteType.CHUTE_EXPLOITABLE or wp.wasteType is null) " +
+           "ORDER BY wp.availableAreaM2 DESC")
+    List<WastePiece> findAvailableByArticle(@Param("articleId") UUID articleId,
                                              @Param("statuses") List<WasteStatus> statuses,
                                              Pageable pageable);
 
     /**
      * Find available waste pieces for a specific material, optionally restricted to an altier.
      */
-    @Query("SELECT wp FROM WastePiece wp WHERE wp.materialType = :materialType " +
+    @Query("SELECT wp FROM WastePiece wp " +
+           "JOIN FETCH wp.article ra " +
+           "LEFT JOIN FETCH ra.color " +
+           "WHERE wp.materialType = :materialType " +
            "AND wp.status IN (:statuses) " +
            "AND (:altierId IS NULL OR wp.altier.id = :altierId) " +
            "ORDER BY wp.availableAreaM2 DESC")
@@ -51,7 +68,10 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
      * Find large waste pieces (> 3m²) ready for reuse
      * Critical for waste reuse workflow
      */
-    @Query("SELECT wp FROM WastePiece wp WHERE wp.availableAreaM2 >= 3.0 " +
+    @Query("SELECT wp FROM WastePiece wp " +
+           "JOIN FETCH wp.article ra " +
+           "LEFT JOIN FETCH ra.color " +
+           "WHERE wp.availableAreaM2 >= 3.0 " +
            "AND wp.status IN (:statuses) ORDER BY wp.availableAreaM2 DESC")
     List<WastePiece> findLargeAvailablePieces(@Param("statuses") List<WasteStatus> statuses,
                                               Pageable pageable);
@@ -60,11 +80,14 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
      * Paged waste piece search with optional filters
      */
     @Query("SELECT wp FROM WastePiece wp " +
-           "WHERE (:materialType IS NULL OR wp.materialType = :materialType) " +
+           "JOIN FETCH wp.article ra " +
+           "LEFT JOIN FETCH ra.color " +
+           "WHERE (:articleId IS NULL OR ra.id = :articleId) " +
+           "AND (:materialType IS NULL OR wp.materialType = :materialType) " +
            "AND (:status IS NULL OR wp.status = :status) " +
           "AND (:wasteType IS NULL OR wp.wasteType = :wasteType) " +
            "AND (:altierId IS NULL OR wp.altier.id = :altierId) " +
-          "AND (:colorId IS NULL OR wp.color.id = :colorId) " +
+          "AND (:colorId IS NULL OR ra.color.id = :colorId) " +
           "AND (:nbPlis IS NULL OR wp.nbPlis = :nbPlis) " +
           "AND (:thicknessMm IS NULL OR wp.thicknessMm = :thicknessMm) " +
            "AND wp.createdAt >= :fromDate " +
@@ -72,8 +95,9 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
            "AND (:search = '' OR " +
            "LOWER(wp.qrCode) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(wp.materialType) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(wp.reference) LIKE CONCAT('%', :search, '%')) ")
+           "LOWER(ra.reference) LIKE CONCAT('%', :search, '%')) ")
     Page<WastePiece> findFiltered(
+            @Param("articleId") UUID articleId,
             @Param("materialType") MaterialType materialType,
             @Param("status") WasteStatus status,
            @Param("wasteType") WasteType wasteType,
@@ -89,7 +113,10 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     /**
      * Find reuse candidates with sufficient area
      */
-    @Query("SELECT wp FROM WastePiece wp WHERE wp.materialType = :materialType " +
+    @Query("SELECT wp FROM WastePiece wp " +
+           "JOIN FETCH wp.article ra " +
+           "LEFT JOIN FETCH ra.color " +
+           "WHERE wp.materialType = :materialType " +
            "AND wp.availableAreaM2 >= :minArea " +
            "AND wp.status IN (:statuses) " +
            "ORDER BY wp.availableAreaM2 DESC")
@@ -147,9 +174,9 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
        /**
         * Group by color, nbPlis, thicknessMm, materialType, altierId, status
         */
-       @Query("SELECT wp.color.id," +
-               "    wp.color.name, " +
-               "    wp.color.hexCode," +
+       @Query("SELECT wp.article.color.id," +
+               "    wp.article.color.name, " +
+               "    wp.article.color.hexCode," +
                "    wp.nbPlis," +
                "    wp.thicknessMm," +
                "    wp.materialType, " +
@@ -161,9 +188,9 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
                "    SUM(wp.usedAreaM2) " +
                "FROM WastePiece wp " +
                "Where wp.wasteType = :type " +
-               "GROUP BY wp.color.id," +
-               "         wp.color.name," +
-               "         wp.color.hexCode, " +
+               "GROUP BY wp.article.color.id," +
+               "         wp.article.color.name," +
+               "         wp.article.color.hexCode, " +
                "         wp.status," +
                "         wp.nbPlis, " +
                "         wp.thicknessMm," +
@@ -173,28 +200,30 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
        )
        List<Object[]> groupByAllFields(@Param("type") WasteType type);
 
-           /**
-            * Transfer sources: reusable waste pieces (CHUTE_EXPLOITABLE) that are AVAILABLE/OPENED in a given altier
-            * and not already reserved by a pending transfer bon movement (transferBon != null AND dateEntree IS NULL).
-            */
-           @Query("SELECT wp FROM WastePiece wp " +
-                  "WHERE wp.altier.id IN (:accessibleAltierIds) " +
-                  "AND wp.altier.id = :fromAltierId " +
-                  "AND wp.wasteType = :wasteType " +
-                  "AND wp.status IN (:statuses) " +
-                  "AND NOT EXISTS (" +
-                  "  SELECT 1 FROM RollMovement rm " +
-                  "  WHERE rm.wastePiece = wp " +
-                  "  AND rm.fromAltier.id = :fromAltierId " +
-                  "  AND rm.transferBon IS NOT NULL " +
-                  "  AND rm.dateEntree IS NULL" +
-                  ")")
-           Page<WastePiece> findTransferSources(
-                  @Param("accessibleAltierIds") List<UUID> accessibleAltierIds,
-                  @Param("fromAltierId") UUID fromAltierId,
-                  @Param("wasteType") WasteType wasteType,
-                  @Param("statuses") List<WasteStatus> statuses,
-                  Pageable pageable);
+            /**
+             * Transfer sources: reusable waste pieces (CHUTE_EXPLOITABLE) that are AVAILABLE/OPENED in a given altier
+             * and not already reserved by a pending transfer bon movement (transferBon != null AND dateEntree IS NULL).
+             */
+            @Query("SELECT wp FROM WastePiece wp " +
+                   "JOIN FETCH wp.article ra " +
+                   "LEFT JOIN FETCH ra.color " +
+                   "WHERE wp.altier.id IN (:accessibleAltierIds) " +
+                   "AND wp.altier.id = :fromAltierId " +
+                   "AND wp.wasteType = :wasteType " +
+                   "AND wp.status IN (:statuses) " +
+                   "AND NOT EXISTS (" +
+                   "  SELECT 1 FROM RollMovement rm " +
+                   "  WHERE rm.wastePiece = wp " +
+                   "  AND rm.fromAltier.id = :fromAltierId " +
+                   "  AND rm.transferBon IS NOT NULL " +
+                   "  AND rm.dateEntree IS NULL" +
+                   ")")
+            Page<WastePiece> findTransferSources(
+                   @Param("accessibleAltierIds") List<UUID> accessibleAltierIds,
+                   @Param("fromAltierId") UUID fromAltierId,
+                   @Param("wasteType") WasteType wasteType,
+                   @Param("statuses") List<WasteStatus> statuses,
+                   Pageable pageable);
 
     @Query("SELECT w.roll.materialType, COUNT(w), SUM(w.availableAreaM2) FROM WastePiece w " +
             "WHERE w.status IN (:activeStatuses) and w.wasteType = :wasteType " +
@@ -208,21 +237,16 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
             coalesce(sum(coalesce(wp.availableAreaM2, wp.areaM2)), 0)
         )
         from WastePiece wp
-        where wp.materialType = :materialType
+        join wp.article article
+        where article.id = :articleId
           and wp.status in (com.albelt.gestionstock.shared.enums.WasteStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.WasteStatus.OPENED)
           and (wp.wasteType = com.albelt.gestionstock.shared.enums.WasteType.CHUTE_EXPLOITABLE or wp.wasteType is null)
           and (:altierId is null or wp.altier.id = :altierId)
-          and (:nbPlis is null or wp.roll.nbPlis = :nbPlis)
-          and (:thicknessMm is null or wp.roll.thicknessMm = :thicknessMm)
-          and (:colorId is null or wp.roll.color.id = :colorId)
-          and (:reference is null or lower(coalesce(wp.roll.reference, '')) = lower(:reference))
+          and (:colorId is null or article.color.id = :colorId)
         """)
     OptimizationCandidateFingerprint findOptimizationFingerprint(
-        @Param("materialType") MaterialType materialType,
-        @Param("nbPlis") Integer nbPlis,
-        @Param("thicknessMm") BigDecimal thicknessMm,
+        @Param("articleId") UUID articleId,
         @Param("colorId") UUID colorId,
-        @Param("reference") String reference,
         @Param("altierId") UUID altierId
     );
 
@@ -231,35 +255,31 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
             com.albelt.gestionstock.domain.optimization.entity.OptimizationSourceType.WASTE,
             null,
             wp.id,
+            article.id,
             coalesce(wp.widthRemainingMm, wp.widthMm),
             coalesce(wp.lengthRemainingM, wp.lengthM),
             coalesce(wp.availableAreaM2, wp.areaM2),
             wp.areaM2,
-            wp.roll.nbPlis,
-            wp.roll.thicknessMm,
+            article.nbPlis,
+            article.thicknessMm,
             color.id,
-            wp.roll.reference,
+            article.reference,
             null,
             wp.updatedAt
         )
         from WastePiece wp
-        left join wp.roll.color color
-        where wp.materialType = :materialType
+        join wp.article article
+        left join article.color color
+        where article.id = :articleId
           and wp.status in (com.albelt.gestionstock.shared.enums.WasteStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.WasteStatus.OPENED)
           and (wp.wasteType = com.albelt.gestionstock.shared.enums.WasteType.CHUTE_EXPLOITABLE or wp.wasteType is null)
           and (:altierId is null or wp.altier.id = :altierId)
-          and (:nbPlis is null or wp.roll.nbPlis = :nbPlis)
-          and (:thicknessMm is null or wp.roll.thicknessMm = :thicknessMm)
           and (:colorId is null or color.id = :colorId)
-          and (:reference is null or lower(coalesce(wp.roll.reference, '')) = lower(:reference))
         order by coalesce(wp.availableAreaM2, wp.areaM2) desc, wp.createdAt asc
         """)
     List<OptimizationSourceSnapshot> findOptimizationCandidates(
-        @Param("materialType") MaterialType materialType,
-        @Param("nbPlis") Integer nbPlis,
-        @Param("thicknessMm") BigDecimal thicknessMm,
+        @Param("articleId") UUID articleId,
         @Param("colorId") UUID colorId,
-        @Param("reference") String reference,
         @Param("altierId") UUID altierId
     );
 }

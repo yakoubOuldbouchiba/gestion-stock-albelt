@@ -19,21 +19,17 @@ import {
 } from './hooks/useCommandeItems';
 import CommandeItemsEditor from '../components/commande/form/CommandeItemsEditor';
 import CommandeItemsSummary from '../components/commande/form/CommandeItemsSummary';
+import PageHeader from '../components/PageHeader';
 import type {
   AltierScore,
   CommandeItem,
   CommandeItemRequest,
   CommandeRequest,
   CommandeStatus,
-  MaterialType,
   TypeMouvement,
 } from '../types';
+import { applyArticleToPayload, getArticleId, getArticleMaterialType, getArticleNbPlis, getArticleReference, getArticleThicknessMm } from '../utils/article';
 import './CommandeFormPage.css';
-
-interface MaterialOption {
-  label: string;
-  value: MaterialType;
-}
 
 interface MouvementOption {
   label: string;
@@ -68,7 +64,7 @@ export function CommandeEditPage() {
   const [altierScores, setAltierScores] = useState<AltierScore[]>([]);
   const [altierScoresLoading, setAltierScoresLoading] = useState(false);
 
-  const { clients, colors } = useCommandeLookups({
+  const { clients, colors, articles } = useCommandeLookups({
     t,
     onClientsError: (message, err) => {
       setError(message);
@@ -88,12 +84,6 @@ export function CommandeEditPage() {
   const isBusy = isLocked('commande-update');
   const selectedClientLabel =
     clients.find((c) => c.value === selectedClient)?.label || selectedClient || t('commandes.notAvailable');
-
-  const materials: MaterialOption[] = [
-    { label: 'PU', value: 'PU' },
-    { label: 'PVC', value: 'PVC' },
-    { label: 'CAOUTCHOUC', value: 'CAOUTCHOUC' },
-  ];
 
   const mouvements: MouvementOption[] = [
     { label: 'EN COURS', value: 'ENCOURS' },
@@ -135,9 +125,11 @@ export function CommandeEditPage() {
 
           const mappedItems: EditableCommandeItem[] = (commandeData.items || []).map((item: CommandeItem, index) => ({
             id: item.id,
-            materialType: item.materialType,
-            nbPlis: item.nbPlis,
-            thicknessMm: item.thicknessMm,
+            articleId: getArticleId(item) ?? undefined,
+            article: item.article ?? null,
+            materialType: (getArticleMaterialType(item) || item.materialType) as CommandeItemRequest['materialType'],
+            nbPlis: getArticleNbPlis(item) ?? item.nbPlis,
+            thicknessMm: getArticleThicknessMm(item) ?? item.thicknessMm,
             longueurM: item.longueurM,
             longueurToleranceM: item.longueurToleranceM ?? 0,
             largeurMm: item.largeurMm,
@@ -146,7 +138,7 @@ export function CommandeEditPage() {
             typeMouvement: item.typeMouvement,
             status: item.status,
             observations: item.observations,
-            reference: item.reference,
+            reference: getArticleReference(item) ?? item.reference,
             colorId: item.colorId,
             lineNumber: item.lineNumber ?? index + 1,
           }));
@@ -215,6 +207,9 @@ export function CommandeEditPage() {
     if (items.length === 0) {
       errors.items = t('commandes.itemsRequired');
     }
+    if (items.some((item) => !getArticleId(item))) {
+      errors.items = t('commandes.articleRequired') || t('commandes.itemsRequired');
+    }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -229,22 +224,26 @@ export function CommandeEditPage() {
     });
   };
 
-  const toItemRequest = (item: EditableCommandeItem, index: number): CommandeItemRequest => ({
-    materialType: item.materialType,
-    nbPlis: item.nbPlis,
-    thicknessMm: item.thicknessMm,
-    longueurM: item.longueurM,
-    longueurToleranceM: item.longueurToleranceM ?? 0,
-    largeurMm: item.largeurMm,
-    quantite: item.quantite,
-    surfaceConsommeeM2: calculateSurfaceM2(item),
-    typeMouvement: item.typeMouvement,
-    status: item.status,
-    observations: item.observations,
-    reference: item.reference,
-    colorId: item.colorId,
-    lineNumber: item.lineNumber || index + 1,
-  });
+  const toItemRequest = (item: EditableCommandeItem, index: number): CommandeItemRequest => {
+    const normalized = applyArticleToPayload(item, item.article);
+    return {
+      articleId: normalized.articleId,
+      materialType: normalized.materialType,
+      nbPlis: normalized.nbPlis,
+      thicknessMm: normalized.thicknessMm,
+      longueurM: item.longueurM,
+      longueurToleranceM: item.longueurToleranceM ?? 0,
+      largeurMm: item.largeurMm,
+      quantite: item.quantite,
+      surfaceConsommeeM2: calculateSurfaceM2(item),
+      typeMouvement: item.typeMouvement,
+      status: item.status,
+      observations: item.observations,
+      reference: normalized.reference,
+      colorId: item.colorId,
+      lineNumber: item.lineNumber || index + 1,
+    };
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -369,12 +368,7 @@ export function CommandeEditPage() {
         </div>
       )}
 
-      <div className="albel-page-header" style={{ marginBottom: '1rem' }}>
-        <div>
-          <h1 className="albel-page-title">{t('commandes.editOrderTitle')}</h1>
-          <p style={{ margin: 0 }}>{t('commandes.editDetailsBelow')}</p>
-        </div>
-      </div>
+      <PageHeader title={t('commandes.editOrderTitle')} subtitle={t('commandes.editDetailsBelow')} />
 
       <form onSubmit={handleSubmit} className="commande-form-content">
         <Card title={t('commandes.orderHeader')}>
@@ -439,7 +433,7 @@ export function CommandeEditPage() {
         <CommandeItemsEditor
           t={t}
           items={items}
-          materials={materials}
+          articles={articles}
           mouvements={mouvements}
           colors={colors}
           disabled={isBusy}

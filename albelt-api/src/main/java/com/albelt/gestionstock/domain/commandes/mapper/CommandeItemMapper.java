@@ -2,8 +2,10 @@ package com.albelt.gestionstock.domain.commandes.mapper;
 
 import com.albelt.gestionstock.domain.commandes.dto.*;
 import com.albelt.gestionstock.domain.commandes.entity.*;
+import com.albelt.gestionstock.domain.articles.mapper.ArticleMapper;
 import com.albelt.gestionstock.domain.production.entity.ProductionItem;
 import com.albelt.gestionstock.domain.production.repository.ProductionItemRepository;
+import com.albelt.gestionstock.domain.colors.entity.Color;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashSet;
@@ -17,9 +19,11 @@ import java.util.Set;
 public class CommandeItemMapper {
 
     private final ProductionItemRepository productionItemRepository;
+    private final ArticleMapper articleMapper;
 
-    public CommandeItemMapper(ProductionItemRepository productionItemRepository) {
+    public CommandeItemMapper(ProductionItemRepository productionItemRepository, ArticleMapper articleMapper) {
         this.productionItemRepository = productionItemRepository;
+        this.articleMapper = articleMapper;
     }
 
     /**
@@ -56,10 +60,13 @@ public class CommandeItemMapper {
         }
 
         ProductionMatchSummary matchSummary = getProductionMatchSummary(item.getId());
+        Color color = item.getArticle() != null ? item.getArticle().getColor() : null;
 
         return CommandeItemResponse.builder()
                 .id(item.getId())
                 .commandeId(item.getCommande().getId())
+                .articleId(item.getArticle() != null ? item.getArticle().getId() : null)
+                .article(item.getArticle() != null ? articleMapper.toResponse(item.getArticle()) : null)
                 .materialType(item.getMaterialType())
                 .nbPlis(item.getNbPlis())
                 .thicknessMm(item.getThicknessMm())
@@ -72,9 +79,9 @@ public class CommandeItemMapper {
                 .status(item.getStatus())
                 .observations(item.getObservations())
             .reference(item.getReference())
-            .colorId(item.getColor() != null ? item.getColor().getId() : null)
-            .colorName(item.getColor() != null ? item.getColor().getName() : null)
-            .colorHexCode(item.getColor() != null ? item.getColor().getHexCode() : null)
+            .colorId(color != null ? color.getId() : null)
+            .colorName(color != null ? color.getName() : null)
+            .colorHexCode(color != null ? color.getHexCode() : null)
                 .goodProduction(matchSummary.goodProduction())
                 .productionMiss(matchSummary.productionMiss())
                 .totalItemsConforme(item.getTotalItemsConforme())

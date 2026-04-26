@@ -38,6 +38,17 @@ public interface TransferBonRepository extends JpaRepository<TransferBon, UUID> 
             @Param("search") String search,
             Pageable pageable);
 
-    @EntityGraph(attributePaths = {"movements", "movements.roll", "movements.fromAltier", "movements.toAltier", "movements.operator"})
+    @EntityGraph(attributePaths = {
+        "movements", 
+        "movements.roll", 
+        "movements.roll.article", 
+        "movements.roll.article.color", 
+        "movements.wastePiece", 
+        "movements.wastePiece.article", 
+        "movements.wastePiece.article.color", 
+        "movements.fromAltier", 
+        "movements.toAltier", 
+        "movements.operator"
+    })
     Optional<TransferBon> findWithMovementsById(UUID id);
 }

@@ -3,6 +3,12 @@ import { Tag } from 'primereact/tag';
 import { Message } from 'primereact/message';
 import type { CommandeItem } from '../../types';
 import { useI18n } from '@hooks/useI18n';
+import {
+  getArticleDisplayLabel,
+  getArticleMaterialType,
+  getArticleNbPlis,
+  getArticleThicknessMm,
+} from '../../utils/article';
 
 interface ItemSidebarProps {
   items: CommandeItem[];
@@ -36,9 +42,7 @@ export function ItemSidebar({
       <div className="commande-detail-sidebar__header">
         <div>
           <h2 className="commande-detail-sidebar__title">{t('commandes.itemsToProcess')}</h2>
-          <p className="commande-detail-sidebar__subtitle">
-            {t('commandes.itemsToProcessSubtitle')}
-          </p>
+          <p className="commande-detail-sidebar__subtitle">{t('commandes.itemsToProcessSubtitle')}</p>
         </div>
         <span className="commande-detail-sidebar__count">
           {filteredItems.length}/{items.length}
@@ -71,10 +75,7 @@ export function ItemSidebar({
               >
                 <div className="commande-detail-item-card__topline">
                   <span className="commande-detail-item-card__eyebrow">{getItemDisplayLabel(item)}</span>
-                  <Tag
-                    value={t(`statuses.${item.status}`)}
-                    severity={getStatusSeverity(item.status)}
-                  />
+                  <Tag value={t(`statuses.${item.status}`)} severity={getStatusSeverity(item.status)} />
                 </div>
 
                 <div
@@ -84,9 +85,9 @@ export function ItemSidebar({
                     color: getContrastTextColor(item.colorHexCode),
                   }}
                 >
-                  <strong>{item.materialType}</strong>
+                  <strong>{getArticleDisplayLabel(item)}</strong>
                   <span>
-                    {item.nbPlis}P • {item.thicknessMm} {t('commandes.mm')} • {item.longueurM} {t('commandes.m')} x {item.largeurMm} {t('commandes.mm')}
+                    {getArticleMaterialType(item)} • {getArticleNbPlis(item)}P • {getArticleThicknessMm(item)} {t('commandes.mm')} • {item.longueurM} {t('commandes.m')} x {item.largeurMm} {t('commandes.mm')}
                   </span>
                 </div>
 
@@ -117,3 +118,5 @@ export function ItemSidebar({
     </aside>
   );
 }
+
+export default ItemSidebar;

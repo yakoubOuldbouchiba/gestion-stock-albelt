@@ -3,6 +3,12 @@ import { Dropdown } from 'primereact/dropdown';
 import { Tag } from 'primereact/tag';
 import type { CommandeItem, ItemStatus } from '../../types';
 import { useI18n } from '@hooks/useI18n';
+import {
+  getArticleDisplayLabel,
+  getArticleMaterialType,
+  getArticleNbPlis,
+  getArticleThicknessMm,
+} from '../../utils/article';
 
 interface ItemDetailHeaderProps {
   selectedItem: CommandeItem;
@@ -74,13 +80,10 @@ export function ItemDetailHeader({
             color: getContrastTextColor(selectedItem.colorHexCode),
           }}
         >
-          {selectedItem.materialType} • {selectedItem.nbPlis}P • {selectedItem.thicknessMm} {t('commandes.mm')}
+          {getArticleDisplayLabel(selectedItem)} • {getArticleMaterialType(selectedItem)} • {getArticleNbPlis(selectedItem)}P • {getArticleThicknessMm(selectedItem)} {t('commandes.mm')}
         </span>
         <Tag value={selectedItem.typeMouvement} severity="info" />
-        <Tag
-          value={t(`statuses.${selectedItem.status}`)}
-          severity={getStatusSeverity(selectedItem.status)}
-        />
+        <Tag value={t(`statuses.${selectedItem.status}`)} severity={getStatusSeverity(selectedItem.status)} />
       </div>
 
       <div className="commande-detail-main__stats-grid">
@@ -99,25 +102,24 @@ export function ItemDetailHeader({
         <div className="commande-detail-kpi-card">
           <span>{t('commandes.currentMaterialUsed')}</span>
           <strong>
-            {selectedActualSources.rolls} {t('commandes.rolls')} / {selectedActualSources.chutes}{' '}
-            {t('commandes.chutes')}
+            {selectedActualSources.rolls} {t('commandes.rolls')} / {selectedActualSources.chutes} {t('commandes.chutes')}
           </strong>
         </div>
         <div className="commande-detail-kpi-card">
           <span>{t('commandes.suggestedMaterialUse')}</span>
           <strong>
-            {selectedSuggestedSources.rolls} {t('commandes.rolls')} /{' '}
-            {selectedSuggestedSources.chutes} {t('commandes.chutes')}
+            {selectedSuggestedSources.rolls} {t('commandes.rolls')} / {selectedSuggestedSources.chutes} {t('commandes.chutes')}
           </strong>
         </div>
         <div className="commande-detail-kpi-card">
           <span>{t('commandes.cutSize')}</span>
           <strong>
-            {selectedItem.longueurM} {t('commandes.m')} x {selectedItem.largeurMm}{' '}
-            {t('commandes.mm')}
+            {selectedItem.longueurM} {t('commandes.m')} x {selectedItem.largeurMm} {t('commandes.mm')}
           </strong>
         </div>
       </div>
     </>
   );
 }
+
+export default ItemDetailHeader;

@@ -8,6 +8,7 @@ public record OptimizationItemSnapshot(
     UUID itemId,
     UUID commandeId,
     UUID altierId,
+    UUID articleId,
     String materialType,
     Integer nbPlis,
     BigDecimal thicknessMm,
@@ -20,11 +21,43 @@ public record OptimizationItemSnapshot(
     LocalDateTime commandeUpdatedAt
 ) {
 
+    public OptimizationItemSnapshot(UUID itemId,
+                                    UUID commandeId,
+                                    UUID altierId,
+                                    String materialType,
+                                    Integer nbPlis,
+                                    BigDecimal thicknessMm,
+                                    BigDecimal longueurM,
+                                    Integer largeurMm,
+                                    Integer quantite,
+                                    UUID colorId,
+                                    String reference,
+                                    LocalDateTime itemUpdatedAt,
+                                    LocalDateTime commandeUpdatedAt) {
+        this(
+            itemId,
+            commandeId,
+            altierId,
+            null,
+            materialType,
+            nbPlis,
+            thicknessMm,
+            longueurM,
+            largeurMm,
+            quantite,
+            colorId,
+            reference,
+            itemUpdatedAt,
+            commandeUpdatedAt
+        );
+    }
+
     public OptimizationItemSnapshot withAltierId(UUID overriddenAltierId) {
         return new OptimizationItemSnapshot(
             itemId,
             commandeId,
             overriddenAltierId,
+            articleId,
             materialType,
             nbPlis,
             thicknessMm,

@@ -3,7 +3,9 @@ import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
-import type { MaterialType, RollRequest } from '../../types';
+import type { Article, MaterialType, RollRequest } from '../../types';
+import type { ArticleOption } from '../../pages/hooks/useCommandeLookups';
+import ArticleSelector from '../commande/form/ArticleSelector';
 import type { Translate } from '../commande/commandeTypes';
 
 type CreateChuteDialogProps = {
@@ -40,6 +42,8 @@ type CreateChuteDialogProps = {
   altierOptions: { label: string; value: string }[];
   onAltierChange: (value: string) => void;
   disableAltier: boolean;
+  articles: ArticleOption[];
+  onArticleChange: (article: Article | null) => void;
 };
 
 export function CreateChuteDialog({
@@ -76,6 +80,8 @@ export function CreateChuteDialog({
   altierOptions,
   onAltierChange,
   disableAltier,
+  articles,
+  onArticleChange,
 }: CreateChuteDialogProps) {
   return (
     <Dialog
@@ -119,6 +125,7 @@ export function CreateChuteDialog({
                   options={materialOptions}
                   onChange={(e) => onMaterialChange(e.value)}
                   required
+                  disabled={!!formData.articleId}
                 />
               </div>
             </div>
@@ -220,17 +227,37 @@ export function CreateChuteDialog({
           </div>
 
           <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
+            <div style={{ gridColumn: 'span 2' }}>
+              <label htmlFor="articleId">{t('inventory.selectArticle') || 'Select Article'} *</label>
+              <ArticleSelector
+                id="articleId"
+                options={articles.filter(a => a.materialType === materialType)}
+                value={formData.article || formData.articleId}
+                onChange={onArticleChange}
+                placeholder={t('inventory.selectArticle') || 'Search article...'}
+              />
+            </div>
+          </div>
+
+          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
               <label htmlFor="reference">{t('rolls.reference')}</label>
-              <InputText id="reference" name="reference" value={formData.reference} disabled readOnly />
+              <InputText id="reference" name="reference" value={formData.reference || ''} disabled readOnly placeholder={t('inventory.autoFromArticle') || 'Auto from article'} />
             </div>
             <div>
+              <label htmlFor="colorName">{t('inventory.color') || 'Color'}</label>
+              <InputText id="colorName" value={formData.article?.colorName || ''} disabled readOnly placeholder={t('inventory.autoFromArticle') || 'Auto from article'} />
+            </div>
+          </div>
+
+          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
+            <div>
               <label htmlFor="nbPlis">{t('rolls.plies')}</label>
-              <InputText type="number" id="nbPlis" name="nbPlis" value={String(formData.nbPlis ?? '')} disabled readOnly />
+              <InputText type="number" id="nbPlis" name="nbPlis" value={String(formData.nbPlis ?? '')} disabled readOnly placeholder={t('inventory.autoFromArticle') || 'Auto from article'} />
             </div>
             <div>
               <label htmlFor="thicknessMm">{t('rolls.thickness')}</label>
-              <InputText type="number" id="thicknessMm" name="thicknessMm" value={String(formData.thicknessMm ?? '')} disabled readOnly />
+              <InputText type="number" id="thicknessMm" name="thicknessMm" value={String(formData.thicknessMm ?? '')} disabled readOnly placeholder={t('inventory.autoFromArticle') || 'Auto from article'} />
             </div>
           </div>
 
@@ -286,7 +313,7 @@ export function CreateChuteDialog({
               type="submit"
               label={t('inventory.createChute') || 'Create Chute'}
               loading={isSubmitting}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !formData.articleId}
             />
             <Button
               type="button"

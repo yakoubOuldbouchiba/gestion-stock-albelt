@@ -5,14 +5,11 @@ import { DataTable } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
-import type { CommandeItemRequest, MaterialType, TypeMouvement } from '../../../types';
+import type { Article, CommandeItemRequest, TypeMouvement } from '../../../types';
 import { calculateSurfaceM2, calculateTotalSurfaceM2 } from '../../../pages/hooks/useCommandeItems';
-import type { ColorOption } from '../../../pages/hooks/useCommandeLookups';
-
-interface MaterialOption {
-  label: string;
-  value: MaterialType;
-}
+import type { ArticleOption, ColorOption } from '../../../pages/hooks/useCommandeLookups';
+import { applyArticleToPayload, getArticleId, getArticleMaterialType, getArticleNbPlis, getArticleReference, getArticleThicknessMm } from '../../../utils/article';
+import ArticleSelector from './ArticleSelector';
 
 interface MouvementOption {
   label: string;
@@ -24,7 +21,7 @@ type EditableItem = CommandeItemRequest & { id?: string };
 interface CommandeItemsEditorProps<TItem extends EditableItem> {
   t: (key: string) => string;
   items: TItem[];
-  materials: MaterialOption[];
+  articles: ArticleOption[];
   mouvements: MouvementOption[];
   colors: ColorOption[];
   disabled?: boolean;
@@ -38,7 +35,7 @@ interface CommandeItemsEditorProps<TItem extends EditableItem> {
 export function CommandeItemsEditor<TItem extends EditableItem>({
   t,
   items,
-  materials,
+  articles,
   mouvements,
   colors,
   disabled,
@@ -48,18 +45,23 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
   onAddItem,
   onRemoveItem,
 }: CommandeItemsEditorProps<TItem>) {
-  const materialBodyTemplate = (rowData: TItem, rowIndex: any) => (
-    <Dropdown
-      value={rowData.materialType}
-      onChange={(e) => onItemChange(rowIndex.rowIndex, 'materialType', e.value)}
-      options={materials}
-      optionLabel="label"
-      optionValue="value"
-      placeholder={t('commandes.selectMaterial')}
-      filter
-      showClear={false}
-      style={{ width: '100%' }}
+  const handleArticleChange = (rowIndex: number, article: Article | null) => {
+    const nextItem = applyArticleToPayload(items[rowIndex], article);
+    onItemChange(rowIndex, 'articleId', nextItem.articleId);
+    onItemChange(rowIndex, 'article', nextItem.article);
+    onItemChange(rowIndex, 'materialType', nextItem.materialType);
+    onItemChange(rowIndex, 'nbPlis', nextItem.nbPlis);
+    onItemChange(rowIndex, 'thicknessMm', nextItem.thicknessMm);
+    onItemChange(rowIndex, 'reference', nextItem.reference);
+  };
+
+  const articleBodyTemplate = (rowData: TItem, rowIndex: any) => (
+    <ArticleSelector
+      options={articles}
+      value={rowData.article ?? getArticleId(rowData)}
+      placeholder={t('inventory.reference')}
       disabled={disabled}
+      onChange={(article) => handleArticleChange(rowIndex.rowIndex, article)}
     />
   );
 
@@ -74,21 +76,21 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
     />
   );
 
-  const nbPlisBodyTemplate = (rowData: TItem, rowIndex: any) => (
+  const nbPlisBodyTemplate = (rowData: TItem) => (
     <InputNumber
-      value={rowData.nbPlis}
-      onValueChange={(e) => onItemChange(rowIndex.rowIndex, 'nbPlis', e.value || 0)}
+      value={getArticleNbPlis(rowData)}
+      onValueChange={() => undefined}
       min={1}
       max={50}
       style={{ width: '100%' }}
-      disabled={disabled}
+      disabled
     />
   );
 
-  const thicknessBodyTemplate = (rowData: TItem, rowIndex: any) => (
+  const thicknessBodyTemplate = (rowData: TItem) => (
     <InputNumber
-      value={rowData.thicknessMm}
-      onValueChange={(e) => onItemChange(rowIndex.rowIndex, 'thicknessMm', e.value || 0)}
+      value={getArticleThicknessMm(rowData)}
+      onValueChange={() => undefined}
       min={0.1}
       max={100}
       step={0.1}
@@ -96,7 +98,7 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
       minFractionDigits={1}
       maxFractionDigits={3}
       style={{ width: '100%' }}
-      disabled={disabled}
+      disabled
     />
   );
 
@@ -121,16 +123,6 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
       onValueChange={(e) => onItemChange(rowIndex.rowIndex, 'largeurMm', e.value || 0)}
       min={1}
       max={10000}
-      style={{ width: '100%' }}
-      disabled={disabled}
-    />
-  );
-
-  const referenceBodyTemplate = (rowData: TItem, rowIndex: any) => (
-    <InputText
-      value={rowData.reference || ''}
-      onChange={(e) => onItemChange(rowIndex.rowIndex, 'reference', e.target.value)}
-      placeholder={t('inventory.reference')}
       style={{ width: '100%' }}
       disabled={disabled}
     />
@@ -229,9 +221,9 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
                   <div style={{ fontWeight: 750 }}>
                     {t('commandes.line')} {item.lineNumber}
                   </div>
-                  {!!item.reference && (
+                  {!!getArticleReference(item) && (
                     <div style={{ fontSize: '0.85rem', color: 'var(--color-muted)' }}>
-                      {t('inventory.reference')}: {item.reference}
+                      {t('inventory.reference')}: {getArticleReference(item)}
                     </div>
                   )}
                 </div>
@@ -262,43 +254,40 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
 
               <div className="order-item-fields">
                 <div>
-                  <label className="commande-field-label">{t('commandes.material')}</label>
-                  <Dropdown
-                    value={item.materialType}
-                    onChange={(e) => onItemChange(index, 'materialType', e.value)}
-                    options={materials}
-                    optionLabel="label"
-                    optionValue="value"
-                    placeholder={t('commandes.selectMaterial')}
-                    filter
-                    showClear={false}
+                  <ArticleSelector
+                    id={`article-${item.lineNumber}-${index}`}
+                    label={t('inventory.reference')}
+                    options={articles}
+                    value={item.article ?? getArticleId(item)}
+                    placeholder={t('commandes.selectArticle') || t('inventory.reference')}
                     disabled={disabled}
+                    onChange={(article) => handleArticleChange(index, article)}
                   />
                 </div>
 
                 <div>
                   <label className="commande-field-label">{t('commandes.plies')}</label>
                   <InputNumber
-                    value={item.nbPlis}
-                    onValueChange={(e) => onItemChange(index, 'nbPlis', e.value || 0)}
+                    value={getArticleNbPlis(item)}
+                    onValueChange={() => undefined}
                     min={1}
                     max={50}
-                    disabled={disabled}
+                    disabled
                   />
                 </div>
 
                 <div>
                   <label className="commande-field-label">{t('commandes.thickness')}</label>
                   <InputNumber
-                    value={item.thicknessMm}
-                    onValueChange={(e) => onItemChange(index, 'thicknessMm', e.value || 0)}
+                    value={getArticleThicknessMm(item)}
+                    onValueChange={() => undefined}
                     min={0.1}
                     max={100}
                     step={0.1}
                     mode="decimal"
                     minFractionDigits={1}
                     maxFractionDigits={3}
-                    disabled={disabled}
+                    disabled
                   />
                 </div>
 
@@ -329,12 +318,10 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
                 </div>
 
                 <div>
-                  <label className="commande-field-label">{t('inventory.reference')}</label>
+                  <label className="commande-field-label">{t('commandes.material')}</label>
                   <InputText
-                    value={item.reference || ''}
-                    onChange={(e) => onItemChange(index, 'reference', e.target.value)}
-                    placeholder={t('inventory.reference')}
-                    disabled={disabled}
+                    value={getArticleMaterialType(item) ?? ''}
+                    disabled
                   />
                 </div>
 
@@ -415,12 +402,11 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
       ) : (
         <DataTable value={items} className="p-datatable-sm">
           <Column field="lineNumber" header={t('commandes.lineNumber')} />
-          <Column field="materialType" header={t('commandes.material')} body={materialBodyTemplate} />
+          <Column field="articleId" header={t('inventory.reference')} body={articleBodyTemplate} />
           <Column field="nbPlis" header={t('commandes.plies')} body={nbPlisBodyTemplate} />
           <Column field="thicknessMm" header={t('commandes.thickness')} body={thicknessBodyTemplate} />
           <Column field="longueurM" header={t('commandes.length')} body={longueurBodyTemplate} />
           <Column field="largeurMm" header={t('commandes.width')} body={largeurBodyTemplate} />
-          <Column field="reference" header={t('inventory.reference')} body={referenceBodyTemplate} />
           <Column field="colorId" header={t('inventory.color')} body={colorBodyTemplate} />
           <Column field="quantite" header={t('commandes.quantity')} body={quantiteBodyTemplate} />
           <Column field="typeMouvement" header={t('commandes.movement')} body={mouvementBodyTemplate} />

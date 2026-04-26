@@ -18,9 +18,11 @@ public interface OptimizationPlacementRepository extends JpaRepository<Optimizat
     @Query("""
         select op from OptimizationPlacement op
         left join fetch op.roll r
-        left join fetch r.color
+        left join fetch r.article ra
+        left join fetch ra.color
         left join fetch op.wastePiece w
-        left join fetch w.color
+        left join fetch w.article wa
+        left join fetch wa.color
         where op.plan.id = :planId
         order by op.createdAt asc
         """)

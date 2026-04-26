@@ -60,6 +60,7 @@
     "purchaseBons": "Purchase Bons",
     "materialChute": "Material Thresholds",
     "colors": "Colors",
+    "articles": "Articles",
     "orders": "Orders"
   },
   "sidebar": {
@@ -883,6 +884,7 @@
     "orderUpdatedSuccessfully": "Order updated successfully",
     "updateError": "Failed to update order. Please check your input and try again.",
     "selectMaterial": "Select Material",
+    "selectArticle": "Select Article",
     "selectMouvement": "Select Movement",
     "lineNumber": "Line #",
     "movement": "Movement",
@@ -979,6 +981,7 @@
     "orderNumberHint": "Enter or auto-generate a unique order number",
     "descriptionHint": "Briefly describe the order contents and purpose",
     "itemsRequired": "At least one item is required",
+    "articleRequired": "Select an article for each item",
     "itemCount": "Items",
     "totalQuantity": "Total Qty",
     "totalSurface": "Total Surface",

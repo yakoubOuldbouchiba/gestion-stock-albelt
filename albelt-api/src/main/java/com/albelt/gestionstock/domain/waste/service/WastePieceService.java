@@ -2,6 +2,7 @@ package com.albelt.gestionstock.domain.waste.service;
 
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.altier.service.AltierService;
+import com.albelt.gestionstock.domain.articles.service.ArticleService;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
 import com.albelt.gestionstock.domain.commandes.entity.Commande;
 import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
@@ -55,6 +56,7 @@ public class WastePieceService {
     private final WastePieceMapper wastePieceMapper;
     private final ColorService colorService;
     private final AltierService altierService;
+    private final ArticleService articleService;
     private final CommandeItemRepository commandeItemRepository;
     private final QrCodeService qrCodeService;
 
@@ -96,21 +98,32 @@ public class WastePieceService {
             throw new IllegalArgumentException("Roll ID or parent waste piece ID is required");
         }
 
-        Color color = null;
-        if (request.getColorId() != null) {
-            color = colorService.getById(request.getColorId());
-        } else if (roll.getColor() != null) {
-            color = roll.getColor();
-        } else if (parentWastePiece != null && parentWastePiece.getColor() != null) {
-            color = parentWastePiece.getColor();
+        UUID colorIdToUse = request.getColorId();
+        if (colorIdToUse == null) {
+             if (roll != null && roll.getArticle() != null && roll.getArticle().getColor() != null) {
+                 colorIdToUse = roll.getArticle().getColor().getId();
+             } else if (parentWastePiece != null && parentWastePiece.getArticle() != null && parentWastePiece.getArticle().getColor() != null) {
+                 colorIdToUse = parentWastePiece.getArticle().getColor().getId();
+             }
         }
 
-        Altier altier = null;
-        if(request.getAltierID() != null){
-            altier = altierService.getById(request.getAltierID());
-        }
         // Create WastePiece with Roll reference
-        WastePiece wastePiece = wastePieceMapper.toEntity(request, roll, color);
+        WastePiece wastePiece = wastePieceMapper.toEntity(request, roll);
+
+        // Inherit article from parent source to ensure consistency in color/reference
+        if (roll != null && roll.getArticle() != null) {
+            wastePiece.setArticle(roll.getArticle());
+        } else if (parentWastePiece != null && parentWastePiece.getArticle() != null) {
+            wastePiece.setArticle(parentWastePiece.getArticle());
+        } else {
+            wastePiece.setArticle(articleService.resolve(
+                request.getMaterialType(),
+                request.getThicknessMm(),
+                request.getNbPlis(),
+                request.getReference(),
+                colorIdToUse
+            ));
+        }
 
         if (parentWastePiece != null) {
             wastePiece.setParentWastePiece(parentWastePiece);
@@ -118,7 +131,10 @@ public class WastePieceService {
         
         // Set the creator
         wastePiece.setCreatedBy(createdBy);
-        wastePiece.setAltier(altier);
+        
+        if (request.getAltierID() != null) {
+            wastePiece.setAltier(altierService.getById(request.getAltierID()));
+        }
         
         // Default status starts as AVAILABLE; placement triggers manage OPENED/EXHAUSTED
         wastePiece.setStatus(WasteStatus.AVAILABLE);
@@ -143,7 +159,7 @@ public class WastePieceService {
      * Get waste pieces with pagination and optional filters
      */
     @Transactional(readOnly = true)
-    public Page<WastePiece> getAllPaged(MaterialType materialType, WasteStatus status, UUID altierId,
+    public Page<WastePiece> getAllPaged(UUID articleId, MaterialType materialType, WasteStatus status, UUID altierId,
                                         UUID colorId, Integer nbPlis, BigDecimal thicknessMm,
                                         WasteType wasteType,
                                         java.time.LocalDateTime fromDate, java.time.LocalDateTime toDate,
@@ -157,7 +173,7 @@ public class WastePieceService {
         java.time.LocalDateTime effectiveFromDate = fromDate != null ? fromDate : java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
         java.time.LocalDateTime effectiveToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return wastePieceRepository.findFiltered(materialType, status, wasteType, altierId, colorId, nbPlis,
+        return wastePieceRepository.findFiltered(articleId, materialType, status, wasteType, altierId, colorId, nbPlis,
             thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
     }
 
@@ -279,6 +295,19 @@ public class WastePieceService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public List<WastePiece> getAvailableByArticle(UUID articleId, int page, int size) {
+        if (articleId == null) {
+            return List.of();
+        }
+        List<WasteStatus> availableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
+        return wastePieceRepository.findAvailableByArticle(
+            articleId,
+            availableStatuses,
+            PageRequest.of(page, size)
+        );
+    }
+
     /**
      * Get waste statistics
      */
@@ -313,6 +342,19 @@ public class WastePieceService {
     }
 
     public WastePiece save(WastePiece wastePiece) {
+        if (wastePiece != null && wastePiece.getArticle() == null) {
+            if (wastePiece.getRoll() != null && wastePiece.getRoll().getArticle() != null) {
+                wastePiece.setArticle(wastePiece.getRoll().getArticle());
+            } else {
+                wastePiece.setArticle(articleService.resolve(
+                    wastePiece.getMaterialType(),
+                    wastePiece.getThicknessMm(),
+                    wastePiece.getNbPlis(),
+                    wastePiece.getReference(),
+                    null
+                ));
+            }
+        }
         return wastePieceRepository.save(wastePiece);
     }
 

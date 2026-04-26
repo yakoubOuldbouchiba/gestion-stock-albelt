@@ -244,9 +244,9 @@ public class ReturnBonService {
 
         Integer nbPlis = roll != null ? roll.getNbPlis() : sourceWaste != null ? sourceWaste.getNbPlis() : null;
         BigDecimal thickness = roll != null ? roll.getThicknessMm() : sourceWaste != null ? sourceWaste.getThicknessMm() : null;
-        UUID colorId = roll != null && roll.getColor() != null
-                ? roll.getColor().getId()
-                : sourceWaste != null && sourceWaste.getColor() != null ? sourceWaste.getColor().getId() : null;
+        UUID colorId = roll != null && roll.getArticle().getColor() != null
+                ? roll.getArticle().getColor().getId()
+                : sourceWaste != null && sourceWaste.getArticle().getColor() != null ? sourceWaste.getArticle().getColor().getId() : null;
         UUID altierId = roll != null && roll.getAltier() != null
                 ? roll.getAltier().getId()
                 : sourceWaste != null && sourceWaste.getAltier() != null ? sourceWaste.getAltier().getId() : null;

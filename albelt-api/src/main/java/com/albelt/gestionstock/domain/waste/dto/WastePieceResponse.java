@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.waste.dto;
 
+import com.albelt.gestionstock.domain.articles.dto.ArticleResponse;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteType;
 import lombok.*;
@@ -20,6 +21,9 @@ import java.util.UUID;
 public class WastePieceResponse {
 
     private UUID id;
+
+    private UUID articleId;
+    private ArticleResponse article;
 
     // Source Reference (ONLY DIFFERENCE from RollResponse)
     private UUID rollId;

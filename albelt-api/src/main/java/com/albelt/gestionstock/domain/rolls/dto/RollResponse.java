@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.rolls.dto;
 
+import com.albelt.gestionstock.domain.articles.dto.ArticleResponse;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
 import lombok.*;
@@ -20,6 +21,9 @@ import java.util.UUID;
 public class RollResponse {
 
     private UUID id;
+
+    private UUID articleId;
+    private ArticleResponse article;
 
     // Reception & Supplier
     private LocalDate receivedDate;

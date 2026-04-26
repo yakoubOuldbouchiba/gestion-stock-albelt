@@ -3,6 +3,7 @@ package com.albelt.gestionstock.domain.rolls.mapper;
 import com.albelt.gestionstock.domain.rolls.dto.RollRequest;
 import com.albelt.gestionstock.domain.rolls.dto.RollResponse;
 import com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse;
+import com.albelt.gestionstock.domain.articles.mapper.ArticleMapper;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
@@ -19,6 +20,12 @@ import java.util.stream.Collectors;
  */
 @Component
 public class RollMapper {
+
+    private final ArticleMapper articleMapper;
+
+    public RollMapper(ArticleMapper articleMapper) {
+        this.articleMapper = articleMapper;
+    }
 
     /**
      * Convert Object[] from groupByAllFields to RollGroupedStatsResponse DTO
@@ -49,7 +56,7 @@ public class RollMapper {
     /**
      * Convert RollRequest DTO to Roll entity
      */
-    public Roll toEntity(RollRequest request, Supplier supplier, Altier altier, Color color, java.util.UUID createdBy) {
+    public Roll toEntity(RollRequest request, Supplier supplier, Altier altier, java.util.UUID createdBy) {
         if (request == null) {
             return null;
         }
@@ -70,7 +77,6 @@ public class RollMapper {
             .availableAreaM2(request.getAreaM2())
             .status(request.getStatus())
             .qrCode(request.getQrCode())
-            .color(color)
             .totalCuts(0)
             .totalWasteAreaM2(BigDecimal.ZERO)
             .createdBy(createdBy)
@@ -82,7 +88,7 @@ public class RollMapper {
     /**
      * Update existing Roll entity with request data
      */
-    public Roll updateEntity(Roll existing, RollRequest request, Supplier supplier, Altier altier, Color color) {
+    public Roll updateEntity(Roll existing, RollRequest request, Supplier supplier, Altier altier) {
         if (request == null) {
             return existing;
         }
@@ -130,9 +136,6 @@ public class RollMapper {
         if (request.getQrCode() != null) {
             existing.setQrCode(request.getQrCode());
         }
-        if (color != null) {
-            existing.setColor(color);
-        }
         
         return existing;
     }
@@ -144,8 +147,12 @@ public class RollMapper {
         if (entity == null) {
             return null;
         }
+        Color color = entity.getArticle() != null ? entity.getArticle().getColor() : null;
+        
         return RollResponse.builder()
                 .id(entity.getId())
+                .articleId(entity.getArticle() != null ? entity.getArticle().getId() : null)
+                .article(entity.getArticle() != null ? articleMapper.toResponse(entity.getArticle()) : null)
                 .reference(entity.getReference())
                 .receivedDate(entity.getReceivedDate())
                 .supplierId(entity.getSupplier() != null ? entity.getSupplier().getId() : null)
@@ -164,9 +171,9 @@ public class RollMapper {
                 .altierId(entity.getAltier() != null ? entity.getAltier().getId() : null)
                 .altierLibelle(entity.getAltier() != null ? entity.getAltier().getLibelle() : null)
                 .qrCode(entity.getQrCode())
-                .colorId(entity.getColor() != null ? entity.getColor().getId() : null)
-                .colorName(entity.getColor() != null ? entity.getColor().getName() : null)
-                .colorHexCode(entity.getColor() != null ? entity.getColor().getHexCode() : null)
+                .colorId(color != null ? color.getId() : null)
+                .colorName(color != null ? color.getName() : null)
+                .colorHexCode(color != null ? color.getHexCode() : null)
                 .totalCuts(entity.getTotalCuts())
                 .totalWasteAreaM2(entity.getTotalWasteAreaM2())
                 .lastProcessingDate(entity.getLastProcessingDate())
