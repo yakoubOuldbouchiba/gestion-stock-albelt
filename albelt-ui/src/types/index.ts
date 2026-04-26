@@ -163,41 +163,7 @@ export interface Roll {
   // Convenience flags
   availableForCutting?: boolean;
   
-  supplierId: string;
-  supplierName?: string;
-  altierId?: string;
-  altierLibelle?: string;
-  altier?: {
-    id: string;
-    libelle: string;
-    adresse: string;
-  };
-  materialType: MaterialType;
-  nbPlis: number;
-  thicknessMm: number;
-  
-  // Dimensions (current state - no "initial" suffix)
-  widthMm: number;
-  widthRemainingMm?: number;
-  lengthM: number;
-  lengthRemainingM?: number;
-  areaM2: number;
-  usedAreaM2?: number;
-  availableAreaM2?: number;
-  
-  status: RollStatus;
-  qrCode?: string;
-  colorId?: string;
-  colorName?: string;
-  colorHexCode?: string;
-  
-  // Processing tracking
-  totalCuts: number;
-  totalWasteAreaM2: number;
-  lastProcessingDate?: string;
-  
-  // Convenience flags
-  availableForCutting?: boolean;
+
   
   // Audit
   createdBy?: string;
