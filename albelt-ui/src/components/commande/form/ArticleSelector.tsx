@@ -13,6 +13,7 @@ interface ArticleSelectorProps {
   disabled?: boolean;
   invalid?: boolean;
   readOnly?: boolean;
+  className?: string;
   onChange: (article: Article | null) => void;
 }
 
@@ -25,11 +26,12 @@ export function ArticleSelector({
   value,
   disabled,
   invalid,
+  className,
   onChange,
 }: ArticleSelectorProps) {
 
   return (
-    <div style={{ display: 'grid', gap: '0.5rem' }}>
+    <div className={className} style={{ display: 'grid', gap: '0.5rem' }}>
       {label ? <label htmlFor={id}>{label}</label> : null}
       <Dropdown
         readOnly={readOnly}

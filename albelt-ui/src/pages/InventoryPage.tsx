@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@hooks/useI18n';
 
-import type { Roll, RollRequest, MaterialType, RollStatus, Supplier, Altier, WastePiece, WasteType, PlacedRectangle, Article, Color } from '../types/index';
+import type { Roll, RollRequest, MaterialType, RollStatus, Supplier, Altier, WastePiece, WasteType, PlacedRectangle, Article } from '../types/index';
 import type { ArticleOption } from './hooks/useCommandeLookups';
 import { RollService } from '../services/rollService';
 import { SupplierService } from '../services/supplierService';
@@ -32,7 +32,7 @@ import { CreateChuteDialog } from '../components/inventory/CreateChuteDialog';
 import { QrCodeCard } from '../components/QrCodeCard';
 import { PageHeader } from '../components/PageHeader';
 import './InventoryPage.css';
-import { ColorService } from '@/services/colorService';
+
 
 export function InventoryPage() {
   type TabKey = 'inventory' | 'reusable' | 'waste';
@@ -88,7 +88,7 @@ export function InventoryPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [altiers, setAltiers] = useState<Altier[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
-  const [colors, setColors] = useState<Color[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>('inventory');
@@ -392,16 +392,14 @@ export function InventoryPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const [suppliersResponse, altiersResponse, colorsResponse, articlesResponse] = await Promise.all([
+      const [suppliersResponse, altiersResponse, articlesResponse] = await Promise.all([
         SupplierService.getAll({ page: 0, size: 200 }),
         AltierService.getAll({ page: 0, size: 200 }),
-        ColorService.getPaged({ page: 0, size: 500, isActive: true }),
         ArticleService.getAll(),
       ]);
 
       if (suppliersResponse.success && suppliersResponse.data) setSuppliers(suppliersResponse.data.items || []);
       if (altiersResponse.success && altiersResponse.data) setAltiers(altiersResponse.data.items || []);
-      if (colorsResponse.success && colorsResponse.data) setColors(colorsResponse.data.items || []);
       if (articlesResponse.success && articlesResponse.data) setArticles(articlesResponse.data || []);
     } catch (err) {
       setError(t('messages.failedToLoad'));

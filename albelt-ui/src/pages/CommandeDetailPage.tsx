@@ -11,7 +11,7 @@ import { Button } from 'primereact/button';
 
 import { CommandeService } from '../services/commandeService';
 import { PlacedRectangleService } from '../services/placedRectangleService';
-import { WastePieceService } from '../services/wastePieceService';
+
 import { useI18n } from '@hooks/useI18n';
 import { formatRollChuteLabel } from '@utils/rollChuteLabel';
 
