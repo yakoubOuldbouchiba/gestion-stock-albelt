@@ -54,6 +54,7 @@ public class WastePiece {
     @EqualsAndHashCode.Exclude
     private WastePiece parentWastePiece;
 
+    @NonNull
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "article_id", nullable = false)
     private Article article;

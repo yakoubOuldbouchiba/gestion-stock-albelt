@@ -24,7 +24,7 @@ const createDefaultRow = (materialType: MaterialType): EditableRow => ({
   minLengthM: 0,
 });
 
-export function MaterialChuteThresholdsPage() {
+export function MaterialChuteThresholdsPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const { t } = useI18n();
   const [rows, setRows] = useState<EditableRow[]>(MATERIAL_TYPES.map(createDefaultRow));
   const [isLoading, setIsLoading] = useState(true);
@@ -127,16 +127,25 @@ export function MaterialChuteThresholdsPage() {
 
   return (
     <div>
-      <PageHeader
-        title={t('materialChuteThresholds.title')}
-        subtitle={t('materialChuteThresholds.hint')}
-        actions={
-          <>
-            <Button icon="pi pi-refresh" label={t('common.refresh')} severity="secondary" onClick={load} disabled={isLocked('threshold-save')} />
-            <Button label={isLocked('threshold-save') ? t('common.saving') : t('common.save')} onClick={saveAll} disabled={isLocked('threshold-save')} loading={isLocked('threshold-save')} />
-          </>
-        }
-      />
+      {!hideHeader && (
+        <PageHeader
+          title={t('materialChuteThresholds.title')}
+          subtitle={t('materialChuteThresholds.hint')}
+          actions={
+            <>
+              <Button icon="pi pi-refresh" label={t('common.refresh')} severity="secondary" onClick={load} disabled={isLocked('threshold-save')} />
+              <Button label={isLocked('threshold-save') ? t('common.saving') : t('common.save')} onClick={saveAll} disabled={isLocked('threshold-save')} loading={isLocked('threshold-save')} />
+            </>
+          }
+        />
+      )}
+
+      {hideHeader && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '1rem' }}>
+          <Button icon="pi pi-refresh" label={t('common.refresh')} severity="secondary" onClick={load} disabled={isLocked('threshold-save')} />
+          <Button label={isLocked('threshold-save') ? t('common.saving') : t('common.save')} onClick={saveAll} disabled={isLocked('threshold-save')} loading={isLocked('threshold-save')} />
+        </div>
+      )}
 
       {error && <Message severity="error" text={error} />}
       {message && <Message severity="success" text={message} />}

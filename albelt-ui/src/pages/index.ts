@@ -18,3 +18,5 @@ export { CommandeCreatePage } from './CommandeCreatePage';
 export { CommandeEditPage } from './CommandeEditPage';
 export { CommandeDetailPage } from './CommandeDetailPage';
 export { CommandeReturnPage } from './CommandeReturnPage';
+export { ConfigurationPage } from './ConfigurationPage';
+export { ArticlesPage } from './ArticlesPage';

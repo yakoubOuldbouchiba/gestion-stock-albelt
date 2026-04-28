@@ -172,7 +172,8 @@
     "filters": "Filters",
     "stockstatus": "Status",
     "totalStock": "Total Stock",
-    "selectArticle": "Select Article"
+    "selectArticle": "Select Article",
+    "totalItems": "Total Items"
   },
   "rolls": {
     "title": "Rolls",

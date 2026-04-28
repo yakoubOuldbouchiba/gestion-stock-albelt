@@ -15,7 +15,6 @@ import { formatDate } from '../utils/date';
 import { getArticleDisplayLabel } from '../utils/article';
 import { formatRollChuteLabel, getRollChuteSummary } from '@utils/rollChuteLabel';
 import { Button } from 'primereact/button';
-import { TabView, TabPanel } from 'primereact/tabview';
 import { Tag } from 'primereact/tag';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -30,12 +29,13 @@ import { WasteTab } from '../components/inventory/WasteTab';
 import { ReceiveRollDialog } from '../components/inventory/ReceiveRollDialog';
 import { CreateChuteDialog } from '../components/inventory/CreateChuteDialog';
 import { QrCodeCard } from '../components/QrCodeCard';
-import { PageHeader } from '../components/PageHeader';
+import { PageHeader, Tabs } from '../components';
+import { ArticlesPage } from './ArticlesPage';
 import './InventoryPage.css';
 
 
 export function InventoryPage() {
-  type TabKey = 'inventory' | 'reusable' | 'waste';
+  type TabKey = 'inventory' | 'reusable' | 'waste' | 'articles';
   type GroupedKey = TabKey;
   type GroupedState = { show: boolean; rows: any[]; loading: boolean };
 
@@ -43,6 +43,7 @@ export function InventoryPage() {
     inventory: { show: false, rows: [], loading: false },
     reusable: { show: false, rows: [], loading: false },
     waste: { show: false, rows: [], loading: false },
+    articles: { show: false, rows: [], loading: false },
   });
 
   const loadGroupedStats = useCallback(async (key: GroupedKey) => {
@@ -634,13 +635,8 @@ export function InventoryPage() {
       }, 'inventory-chute');
     } catch (err) {
       console.error('Error creating waste piece:', err);
-      alert(t('inventory.failedToCreateWastePiece'));
     }
   };
-
-  const reusablePieces = activeTab === 'reusable' ? wastePieces : [];
-  const scrapPieces = activeTab === 'waste' ? wastePieces : [];
-  const tabIndex = activeTab === 'inventory' ? 0 : activeTab === 'reusable' ? 1 : 2;
 
   const statusSeverity = (status: string) => {
     switch (status) {
@@ -906,6 +902,89 @@ export function InventoryPage() {
     );
   };
 
+  const reusablePieces = activeTab === 'reusable' ? wastePieces : [];
+  const scrapPieces = activeTab === 'waste' ? wastePieces : [];
+  const tabIndex = activeTab === 'inventory' ? 0 : activeTab === 'reusable' ? 1 : activeTab === 'waste' ? 2 : 3;
+
+  const inventoryTabs = [
+    {
+      label: t('navigation.rolls'),
+      content: (
+        <InventoryTab
+          t={t}
+          showGrouped={grouped.inventory.show}
+          onToggleGrouped={(v) => setGrouped(p => ({ ...p, inventory: { ...p.inventory, show: v } }))}
+          groupedStats={grouped.inventory.rows}
+          groupedLoading={grouped.inventory.loading}
+          renderGroupedStatsTable={renderGroupedStatsTable}
+          rolls={rolls}
+          selection={selectedRolls}
+          onSelectionChange={(e: any) => setSelectedRolls(e.value)}
+          rollTotalElements={totals.rollTotalElements}
+          rollPage={pagination.rollPage}
+          pageSize={pageSize}
+          onPageChange={(p) => setPagination(prev => ({ ...prev, rollPage: p }))}
+          rollMaterialBody={rollMaterialBody}
+          rollStatusBody={rollStatusBody}
+          rollActionsBody={rollActionsBody}
+          formatDate={formatDate}
+        />
+      ),
+    },
+    {
+      label: t('inventory.chuteReusable') || 'Chute Reusable',
+      content: (
+        <ReusableTab
+          t={t}
+          showGrouped={grouped.reusable.show}
+          onToggleGrouped={(v) => setGrouped(p => ({ ...p, reusable: { ...p.reusable, show: v } }))}
+          groupedStats={grouped.reusable.rows}
+          groupedLoading={grouped.reusable.loading}
+          renderGroupedStatsTable={renderGroupedStatsTable}
+          pieces={reusablePieces}
+          selection={selectedPieces}
+          onSelectionChange={(e: any) => setSelectedPieces(e.value)}
+          wasteMaterialBody={wasteMaterialBody}
+          wasteStatusBody={wasteStatusBody}
+          wasteActionsBody={wasteActionsBody}
+          wastePage={pagination.wastePage}
+          wasteTotalElements={totals.wasteTotalElements}
+          pageSize={pageSize}
+          onPageChange={(p) => setPagination(prev => ({ ...prev, wastePage: p }))}
+          formatDate={formatDate}
+        />
+      ),
+    },
+    {
+      label: t('inventory.chuteDechet') || 'Chute Waste',
+      content: (
+        <WasteTab
+          t={t}
+          showGrouped={grouped.waste.show}
+          onToggleGrouped={(v) => setGrouped(p => ({ ...p, waste: { ...p.waste, show: v } }))}
+          groupedStats={grouped.waste.rows}
+          groupedLoading={grouped.waste.loading}
+          renderGroupedStatsTable={renderGroupedStatsTable}
+          pieces={scrapPieces}
+          selection={selectedPieces}
+          onSelectionChange={(e: any) => setSelectedPieces(e.value)}
+          wasteMaterialBody={wasteMaterialBody}
+          wasteStatusBody={wasteStatusBody}
+          wasteActionsBody={wasteActionsBody}
+          wastePage={pagination.wastePage}
+          wasteTotalElements={totals.wasteTotalElements}
+          pageSize={pageSize}
+          onPageChange={(p) => setPagination(prev => ({ ...prev, wastePage: p }))}
+          formatDate={formatDate}
+        />
+      ),
+    },
+    {
+      label: t('navigation.articles') || 'Articles',
+      content: <ArticlesPage hideHeader />,
+    },
+  ];
+
   if (isLoading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><ProgressSpinner /></div>;
 
   return (
@@ -949,82 +1028,19 @@ export function InventoryPage() {
         </aside>
 
         <main className="inventory-content">
-          <TabView
-            className="inventory-tabs"
+          <Tabs
+            tabs={inventoryTabs}
             activeIndex={tabIndex}
-            onTabChange={(e) => {
-              const nextTab = e.index === 0 ? 'inventory' : e.index === 1 ? 'reusable' : 'waste';
+            onTabChange={(index) => {
+              const keys: TabKey[] = ['inventory', 'reusable', 'waste', 'articles'];
+              const nextTab = keys[index];
               setActiveTab(nextTab);
               setPagination((prev) => ({
                 ...prev,
                 [nextTab === 'inventory' ? 'rollPage' : 'wastePage']: 0
               } as typeof pagination));
             }}
-          >
-            <TabPanel header={t('inventory.title') || 'Inventory'}>
-              <InventoryTab
-                t={t}
-                showGrouped={grouped.inventory.show}
-                onToggleGrouped={(v) => setGrouped(p => ({ ...p, inventory: { ...p.inventory, show: v } }))}
-                groupedStats={grouped.inventory.rows}
-                groupedLoading={grouped.inventory.loading}
-                renderGroupedStatsTable={renderGroupedStatsTable}
-                rolls={rolls}
-                selection={selectedRolls}
-                onSelectionChange={(e: any) => setSelectedRolls(e.value)}
-                rollTotalElements={totals.rollTotalElements}
-                rollPage={pagination.rollPage}
-                pageSize={pageSize}
-                onPageChange={(p) => setPagination(prev => ({ ...prev, rollPage: p }))}
-                rollMaterialBody={rollMaterialBody}
-                rollStatusBody={rollStatusBody}
-                rollActionsBody={rollActionsBody}
-                formatDate={formatDate}
-              />
-            </TabPanel>
-            <TabPanel header={t('inventory.chuteReusable') || 'Chute Reusable'}>
-              <ReusableTab
-                t={t}
-                showGrouped={grouped.reusable.show}
-                onToggleGrouped={(v) => setGrouped(p => ({ ...p, reusable: { ...p.reusable, show: v } }))}
-                groupedStats={grouped.reusable.rows}
-                groupedLoading={grouped.reusable.loading}
-                renderGroupedStatsTable={renderGroupedStatsTable}
-                pieces={reusablePieces}
-                selection={selectedPieces}
-                onSelectionChange={(e: any) => setSelectedPieces(e.value)}
-                wasteMaterialBody={wasteMaterialBody}
-                wasteStatusBody={wasteStatusBody}
-                wasteActionsBody={wasteActionsBody}
-                wastePage={pagination.wastePage}
-                wasteTotalElements={totals.wasteTotalElements}
-                pageSize={pageSize}
-                onPageChange={(p) => setPagination(prev => ({ ...prev, wastePage: p }))}
-                formatDate={formatDate}
-              />
-            </TabPanel>
-            <TabPanel header={t('inventory.chuteDechet') || 'Chute Waste'}>
-              <WasteTab
-                t={t}
-                showGrouped={grouped.waste.show}
-                onToggleGrouped={(v) => setGrouped(p => ({ ...p, waste: { ...p.waste, show: v } }))}
-                groupedStats={grouped.waste.rows}
-                groupedLoading={grouped.waste.loading}
-                renderGroupedStatsTable={renderGroupedStatsTable}
-                pieces={scrapPieces}
-                selection={selectedPieces}
-                onSelectionChange={(e: any) => setSelectedPieces(e.value)}
-                wasteMaterialBody={wasteMaterialBody}
-                wasteStatusBody={wasteStatusBody}
-                wasteActionsBody={wasteActionsBody}
-                wastePage={pagination.wastePage}
-                wasteTotalElements={totals.wasteTotalElements}
-                pageSize={pageSize}
-                onPageChange={(p) => setPagination(prev => ({ ...prev, wastePage: p }))}
-                formatDate={formatDate}
-              />
-            </TabPanel>
-          </TabView>
+          />
         </main>
       </div>
 

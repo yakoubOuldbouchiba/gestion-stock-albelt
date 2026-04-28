@@ -23,7 +23,7 @@ const emptyForm: SupplierRequest = {
   phone: '',
 };
 
-export function SuppliersPage() {
+export function SuppliersPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const { t } = useI18n();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -175,11 +175,19 @@ export function SuppliersPage() {
 
   return (
     <div>
-      <PageHeader
-        title={t('suppliers.management')}
-        subtitle={`${totalElements} ${totalElements !== 1 ? t('suppliers.plural') : t('suppliers.singular')}`}
-        actions={<Button icon="pi pi-plus" label={t('suppliers.addNew')} onClick={() => setShowForm(true)} disabled={isBusy} />}
-      />
+      {!hideHeader && (
+        <PageHeader
+          title={t('suppliers.management')}
+          subtitle={`${totalElements} ${totalElements !== 1 ? t('suppliers.plural') : t('suppliers.singular')}`}
+          actions={<Button icon="pi pi-plus" label={t('suppliers.addNew')} onClick={() => setShowForm(true)} disabled={isBusy} />}
+        />
+      )}
+
+      {hideHeader && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+          <Button icon="pi pi-plus" label={t('suppliers.addNew')} onClick={() => setShowForm(true)} disabled={isBusy} />
+        </div>
+      )}
 
       {error && <Message severity="error" text={error} />}
 

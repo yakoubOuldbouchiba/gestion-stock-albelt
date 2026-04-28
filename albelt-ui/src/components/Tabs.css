@@ -1,0 +1,61 @@
+.albel-tabs-container {
+  width: 100%;
+  background: var(--surface-card);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.custom-tabview .p-tabview-nav {
+  background: var(--surface-section) !important;
+  border-bottom: 1px solid var(--surface-border) !important;
+  padding: 0 1rem;
+}
+
+.custom-tabview .p-tabview-nav li .p-tabview-nav-link {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-color-secondary) !important;
+  padding: 1.25rem 1.5rem !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  border-bottom: 2px solid transparent !important;
+  margin-bottom: -1px;
+}
+
+.custom-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+  color: var(--primary-color) !important;
+  border-bottom: 2px solid var(--primary-color) !important;
+}
+
+.custom-tabview .p-tabview-nav li:not(.p-highlight):hover .p-tabview-nav-link {
+  color: var(--text-color) !important;
+  background: rgba(0, 0, 0, 0.02) !important;
+}
+
+.custom-tabview .p-tabview-panels {
+  padding: 1.5rem !important;
+  background: var(--surface-card) !important;
+}
+
+.tab-content-wrapper {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* RTL Support */
+[dir='rtl'] .custom-tabview .p-tabview-nav li .p-tabview-nav-link .mr-2 {
+  margin-right: 0 !important;
+  margin-left: 0.5rem !important;
+}

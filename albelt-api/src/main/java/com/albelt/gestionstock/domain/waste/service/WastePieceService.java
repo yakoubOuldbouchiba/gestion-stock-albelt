@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.domain.waste.service;
 
 import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.altier.repository.AltierRepository;
 import com.albelt.gestionstock.domain.altier.service.AltierService;
 import com.albelt.gestionstock.domain.articles.service.ArticleService;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
@@ -72,6 +73,7 @@ public class WastePieceService {
 
         WastePiece parentWastePiece = null;
         Roll roll = null;
+        Altier altier = altierService.getById(request.getAltierId());
 
         if (request.getCommandeItemId() != null) {
             CommandeItem item = commandeItemRepository.findById(request.getCommandeItemId())
@@ -107,8 +109,9 @@ public class WastePieceService {
              }
         }
 
+
         // Create WastePiece with Roll reference
-        WastePiece wastePiece = wastePieceMapper.toEntity(request, roll);
+        WastePiece wastePiece = wastePieceMapper.toEntity(request, roll, altier);
 
         // Inherit article from parent source to ensure consistency in color/reference
         if (roll != null && roll.getArticle() != null) {
@@ -132,8 +135,8 @@ public class WastePieceService {
         // Set the creator
         wastePiece.setCreatedBy(createdBy);
         
-        if (request.getAltierID() != null) {
-            wastePiece.setAltier(altierService.getById(request.getAltierID()));
+        if (request.getAltierId() != null) {
+            wastePiece.setAltier(altierService.getById(request.getAltierId()));
         }
         
         // Default status starts as AVAILABLE; placement triggers manage OPENED/EXHAUSTED

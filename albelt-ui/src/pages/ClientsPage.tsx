@@ -23,7 +23,7 @@ import { ProgressSpinner } from 'primereact/progressspinner';
 import { useAsyncLock } from '@hooks/useAsyncLock';
 import { PageHeader } from '../components/PageHeader';
 
-export function ClientsPage() {
+export function ClientsPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const { t } = useI18n();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
@@ -400,11 +400,19 @@ export function ClientsPage() {
 
   return (
     <div>
-      <PageHeader
-        title={t('clients.title')}
-        subtitle={t('clients.subtitle')}
-        actions={<Button icon="pi pi-plus" label={t('clients.addClient')} onClick={() => setShowForm(true)} disabled={isBusy} />}
-      />
+      {!hideHeader && (
+        <PageHeader
+          title={t('clients.title')}
+          subtitle={t('clients.subtitle')}
+          actions={<Button icon="pi pi-plus" label={t('clients.addClient')} onClick={() => setShowForm(true)} disabled={isBusy} />}
+        />
+      )}
+
+      {hideHeader && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+          <Button icon="pi pi-plus" label={t('clients.addClient')} onClick={() => setShowForm(true)} disabled={isBusy} />
+        </div>
+      )}
 
       {error && <Message severity="error" text={error} />}
 

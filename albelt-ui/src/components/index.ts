@@ -10,3 +10,4 @@ export { LanguageSwitcher } from './LanguageSwitcher';
 export { Pagination } from './Pagination';
 export { LazyLoadingFallback } from './LazyLoadingFallback';
 export { PrimeReactDropdown } from './PrimeReactDropdown';
+export { Tabs } from './Tabs';

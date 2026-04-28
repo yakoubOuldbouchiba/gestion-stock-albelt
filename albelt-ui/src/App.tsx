@@ -10,6 +10,7 @@ import Dashboard from '@pages/Dashboard';
 import LazyLoadingFallback from '@components/LazyLoadingFallback';
 import {
   InventoryPage,
+  ConfigurationPage,
 } from '@pages/index';
 
 // Lazy load all other pages
@@ -18,21 +19,15 @@ const RollMovementPage = lazy(() => import('./pages/RollMovementPage'));
 const ChuteDetailPage = lazy(() => import('./pages/ChuteDetailPage'));
 const ChuteMovementPage = lazy(() => import('./pages/ChuteMovementPage'));
 const MovementsListPage = lazy(() => import('./pages/MovementsListPage'));
-const SuppliersPage = lazy(() => import('./pages/SuppliersPage'));
-const UsersPage = lazy(() => import('./pages/UsersPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
-const AltierPage = lazy(() => import('./pages/AltierPage'));
 const TransferBonsPage = lazy(() => import('./pages/TransferBonsPage'));
 const PurchaseBonsPage = lazy(() => import('./pages/PurchaseBonsPage'));
-const MaterialChuteThresholdsPage = lazy(() => import('./pages/MaterialChuteThresholdsPage'));
-const ColorsPage = lazy(() => import('./pages/ColorsPage'));
-const ArticlesPage = lazy(() => import('./pages/ArticlesPage'));
-const ClientsPage = lazy(() => import('./pages/ClientsPage'));
 const CommandesListPage = lazy(() => import('./pages/CommandesListPage'));
 const CommandeCreatePage = lazy(() => import('./pages/CommandeCreatePage'));
 const CommandeEditPage = lazy(() => import('./pages/CommandeEditPage'));
 const CommandeDetailPage = lazy(() => import('./pages/CommandeDetailPage'));
 const CommandeReturnPage = lazy(() => import('./pages/CommandeReturnPage'));
+
 import './App.css';
 
 export function App() {
@@ -168,47 +163,6 @@ export function App() {
           }
         />
 
-
-
-        <Route
-          path="/suppliers"
-          element={
-            <AdminRoute>
-              <Layout>
-                <Suspense fallback={<LazyLoadingFallback />}>
-                  <SuppliersPage />
-                </Suspense>
-              </Layout>
-            </AdminRoute>
-          }
-        />
-
-        <Route
-          path="/articles"
-          element={
-            <AdminRoute>
-              <Layout>
-                <Suspense fallback={<LazyLoadingFallback />}>
-                  <ArticlesPage />
-                </Suspense>
-              </Layout>
-            </AdminRoute>
-          }
-        />
-
-        <Route
-          path="/clients"
-          element={
-            <AdminRoute>
-              <Layout>
-                <Suspense fallback={<LazyLoadingFallback />}>
-                  <ClientsPage />
-                </Suspense>
-              </Layout>
-            </AdminRoute>
-          }
-        />
-
         <Route
           path="/commandes"
           element={
@@ -275,51 +229,12 @@ export function App() {
         />
 
         <Route
-          path="/altiers"
+          path="/configuration"
           element={
             <AdminRoute>
               <Layout>
                 <Suspense fallback={<LazyLoadingFallback />}>
-                  <AltierPage />
-                </Suspense>
-              </Layout>
-            </AdminRoute>
-          }
-        />
-
-        <Route
-          path="/users"
-          element={
-            <AdminRoute>
-              <Layout>
-                <Suspense fallback={<LazyLoadingFallback />}>
-                  <UsersPage />
-                </Suspense>
-              </Layout>
-            </AdminRoute>
-          }
-        />
-
-        <Route
-          path="/material-thresholds"
-          element={
-            <AdminRoute>
-              <Layout>
-                <Suspense fallback={<LazyLoadingFallback />}>
-                  <MaterialChuteThresholdsPage />
-                </Suspense>
-              </Layout>
-            </AdminRoute>
-          }
-        />
-
-        <Route
-          path="/colors"
-          element={
-            <AdminRoute>
-              <Layout>
-                <Suspense fallback={<LazyLoadingFallback />}>
-                  <ColorsPage />
+                  <ConfigurationPage />
                 </Suspense>
               </Layout>
             </AdminRoute>

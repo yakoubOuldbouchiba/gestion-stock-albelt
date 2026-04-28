@@ -16,6 +16,7 @@ import { ColorService } from '../services/colorService';
 import type { Article, ArticleRequest, MaterialType, Color } from '../types';
 import { formatDate } from '../utils/date';
 import { Tag } from 'primereact/tag';
+import './InventoryPage.css';
 
 interface ArticleFormData {
   materialType: MaterialType;
@@ -45,7 +46,7 @@ const materialOptions: { label: MaterialType; value: MaterialType }[] = [
   { label: 'CAOUTCHOUC', value: 'CAOUTCHOUC' },
 ];
 
-export function ArticlesPage() {
+export function ArticlesPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const { t } = useI18n();
   const { run, isLocked } = useAsyncLock();
   const [articles, setArticles] = useState<Article[]>([]);
@@ -186,6 +187,38 @@ export function ArticlesPage() {
     </div>
   );
 
+  const getMaterialColor = (type: string, hexCode?: string) => {
+    if (hexCode) return hexCode;
+    switch (type) {
+      case 'PU': return '#3b82f6';
+      case 'PVC': return '#ef4444';
+      case 'CAOUTCHOUC': return '#10b981';
+      default: return '#6b7280';
+    }
+  };
+
+  const articleInfoBody = (article: Article) => {
+    return (
+      <div className="material-merged-cell">
+        <Tag
+          value={article.materialType}
+          style={{ backgroundColor: getMaterialColor(article.materialType, article.colorHexCode) }}
+        />
+        <div className="merged-reference">{article.reference || article.name || 'N/A'}</div>
+        <div className="merged-details">
+          {article.nbPlis}P • {article.thicknessMm}mm • {article.colorName || 'N/A'}
+        </div>
+        {(article.code || article.externalId) && (
+          <div className="merged-meta">
+            {article.code && <span>{article.code}</span>}
+            {article.code && article.externalId && <span> • </span>}
+            {article.externalId && <span>{article.externalId}</span>}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
@@ -196,11 +229,19 @@ export function ArticlesPage() {
 
   return (
     <div>
-      <PageHeader
-        title={t('navigation.articles') || 'Articles'}
-        subtitle={`${totalRecords} ${t('common.list') || 'items'}`}
-        actions={<Button icon="pi pi-plus" label={t('common.add')} onClick={() => setShowForm(true)} disabled={isBusy} />}
-      />
+      {!hideHeader && (
+        <PageHeader
+          title={t('navigation.articles') || 'Articles'}
+          subtitle={`${totalRecords} ${t('common.list') || 'items'}`}
+          actions={<Button icon="pi pi-plus" label={t('common.add')} onClick={() => setShowForm(true)} disabled={isBusy} />}
+        />
+      )}
+
+      {hideHeader && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+          <Button icon="pi pi-plus" label={t('common.add')} onClick={() => setShowForm(true)} disabled={isBusy} />
+        </div>
+      )}
 
       {error ? <Message severity="error" text={error} /> : null}
 
@@ -236,23 +277,10 @@ export function ArticlesPage() {
         }}
         emptyMessage={t('messages.noData')}
         size="small"
+        className="industrial-table"
       >
-        <Column field="reference" header={t('inventory.reference')} />
-        <Column field="materialType" header={t('commandes.material')} />
-        <Column field="thicknessMm" header={t('commandes.thickness')} body={(row: Article) => `${row.thicknessMm} mm`} />
-        <Column field="nbPlis" header={t('commandes.plies')} />
-        <Column
-          header={t('inventory.color')}
-          body={(row: Article) => (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Tag
-                value={row.colorName || 'N/A'}
-                style={{ backgroundColor: row.colorHexCode || 'var(--surface-border)', color: 'white' }}
-              />
-            </div>
-          )}
-        />
-        <Column field="updatedAt" header={t('common.updated')} body={(row: Article) => formatDate(row.updatedAt || row.createdAt || '')} />
+        <Column header={t('navigation.articles') || 'Article'} body={articleInfoBody} sortable field="reference" />
+        <Column field="updatedAt" header={t('common.updated')} body={(row: Article) => formatDate(row.updatedAt || row.createdAt || '')} sortable />
         <Column
           header={t('common.actions')}
           body={(row: Article) => (

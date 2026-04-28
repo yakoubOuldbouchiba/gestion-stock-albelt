@@ -1,6 +1,6 @@
 package com.albelt.gestionstock.domain.waste.mapper;
 
-import com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse;
+import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.articles.mapper.ArticleMapper;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
@@ -84,10 +84,32 @@ public class WastePieceMapper {
     /**
      * Convert WastePieceRequest DTO to WastePiece entity with Roll reference
      */
-    public WastePiece toEntity(WastePieceRequest request, Roll roll) {
-        WastePiece wastePiece = toEntity(request);
+    public WastePiece toEntity(WastePieceRequest request, Roll roll, Altier altier) {
+        if (request == null) {
+            return null;
+        }
+        WastePiece wastePiece = WastePiece.builder()
+                .materialType(request.getMaterialType())
+                .nbPlis(request.getNbPlis())
+                .thicknessMm(request.getThicknessMm())
+                .widthMm(request.getWidthMm())
+                .lengthM(request.getLengthM())
+                .areaM2(request.getAreaM2())
+                .usedAreaM2(BigDecimal.ZERO)
+                .availableAreaM2(request.getAreaM2())
+                .widthRemainingMm(request.getWidthRemainingMm())
+                .lengthRemainingM(request.getLengthRemainingM())
+                .wasteType(request.getWasteType())
+                .status(request.getStatus() != null ?
+                        WasteStatus.valueOf(request.getStatus()) : WasteStatus.AVAILABLE)
+                .qrCode(request.getQrCode())
+                .commandeItemId(request.getCommandeItemId())
+                .article(roll.getArticle())
+                .altier(altier)
+                .build();
         if (wastePiece != null && roll != null) {
             wastePiece.setRoll(roll);
+            wastePiece.setArticle(roll.getArticle());
         }
         return wastePiece;
     }

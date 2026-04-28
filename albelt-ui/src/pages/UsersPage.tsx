@@ -19,7 +19,7 @@ import { Checkbox } from 'primereact/checkbox';
 import { useAsyncLock } from '@hooks/useAsyncLock';
 import { PageHeader } from '../components/PageHeader';
 
-export function UsersPage() {
+export function UsersPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const { t } = useI18n();
   const [users, setUsers] = useState<UserType[]>([]);
   const [altiers, setAltiers] = useState<Altier[]>([]);
@@ -277,16 +277,26 @@ export function UsersPage() {
 
   return (
     <div>
-      <PageHeader
-        title={t('users.title')}
-        tags={
-          <>
-            <Tag value={`${totalElements} ${t('users.totalUsers')}`} severity="info" />
-            <Tag value={`${activeCount} ${t('users.active')}`} severity="success" />
-            <Tag value={`${inactiveCount} ${t('users.inactive')}`} severity="secondary" />
-          </>
-        }
-      />
+      {!hideHeader && (
+        <PageHeader
+          title={t('users.title')}
+          tags={
+            <>
+              <Tag value={`${totalElements} ${t('users.totalUsers')}`} severity="info" />
+              <Tag value={`${activeCount} ${t('users.active')}`} severity="success" />
+              <Tag value={`${inactiveCount} ${t('users.inactive')}`} severity="secondary" />
+            </>
+          }
+        />
+      )}
+
+      {hideHeader && (
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+          <Tag value={`${totalElements} ${t('users.totalUsers')}`} severity="info" />
+          <Tag value={`${activeCount} ${t('users.active')}`} severity="success" />
+          <Tag value={`${inactiveCount} ${t('users.inactive')}`} severity="secondary" />
+        </div>
+      )}
 
       {error && <Message severity="error" text={error} />}
 

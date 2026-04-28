@@ -62,7 +62,7 @@
     "purchaseBons": "إيصالات  الشراء",
     "materialChute": "حدود المواد",
     "colors": "الألوان",
-    "articles": "المقالات",
+    "articles": "المنتجات",
     "orders": "الطلبات"
   },
   "sidebar": {
@@ -171,7 +171,8 @@
     "placementOverlapsExisting": "التقطيع يتداخل مع تقطيع موجود",
     "rollDetails": "تفاصيل الملف",
     "wastePieceDetails": "تفاصيل قطعة النفايات",
-    "selectArticle": "اختر المادة"
+    "selectArticle": "اختر المادة",
+    "totalItems": "إجمالي العناصر"
   },
   "rolls": {
     "title": "لفائف",
@@ -900,7 +901,7 @@
     "confirmDelete": "هل أنت متأكد من رغبتك في حذف هذا الطلب؟",
     "fillDetailsBelow": "ملء التفاصيل أدناه لإنشاء طلب جديد",
     "selectMaterial": "اختر المادة",
-    "selectArticle": "اختر المقال",
+    "selectArticle": "اختر المنتج",
     "selectMouvement": "اختر الحركة",
     "lineNumber": "خط #",
     "movement": "الحركة",
@@ -1010,7 +1011,7 @@
     "orderNumberHint": "أدخل أو قم بإنشاء رقم طلب فريد تلقائيًا",
     "descriptionHint": "صف محتوى الطلب والغرض منه باختصار",
     "itemsRequired": "مطلوب عنصر واحد على الأقل",
-    "articleRequired": "اختر مقالاً لكل سطر",
+    "articleRequired": "اختر منتجً لكل سطر",
     "itemCount": "عناصر",
     "totalQuantity": "الكمية الإجمالية",
     "totalSurface": "الحد الأدنى للسطح",

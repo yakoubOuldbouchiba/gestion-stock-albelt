@@ -168,6 +168,7 @@
     "filters": "Filtres",
     "stockstatus": "Statut",
     "totalStock": "Stock total",
+    "totalItems": "Nombre total d'articles",
     "placementOverlapsExisting": "Le coupe chevauche un coupe existant",
     "selectArticle": "Sélectionner un article"
   },

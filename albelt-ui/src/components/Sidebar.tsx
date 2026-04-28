@@ -5,13 +5,8 @@ import {
   ArrowRightLeft,
   FileText,
   FilePlus,
-  Factory,
-  Briefcase,
-  Users,
-  AlertCircle,
-  Contact,
   ClipboardList,
-  Palette,
+  Settings,
 } from 'lucide-react';
 import { useAuthStore } from '@hooks/useAuth';
 import { useI18n } from '@hooks/useI18n';
@@ -92,73 +87,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <FilePlus size={20} className="nav-icon" />
             <span>{t('navigation.purchaseBons')}</span>
           </Link>
-
         </div>
 
         {isAdmin && (
           <div className="nav-section">
             <h3 className="nav-title">{t('sidebar.configuration')}</h3>
             <Link
-              to="/suppliers"
-              className={`nav-link ${isActive('/suppliers') ? 'active' : ''}`}
+              to="/configuration"
+              className={`nav-link ${isActive('/configuration') ? 'active' : ''}`}
               onClick={handleNavigate}
             >
-              <Factory size={20} className="nav-icon" />
-              <span>{t('navigation.suppliers')}</span>
-            </Link>
-
-            <Link
-              to="/clients"
-              className={`nav-link ${isActive('/clients') ? 'active' : ''}`}
-              onClick={handleNavigate}
-            >
-              <Contact size={20} className="nav-icon" />
-              <span>{t('navigation.clients')}</span>
-            </Link>
-
-            <Link
-              to="/altiers"
-              className={`nav-link ${isActive('/altiers') ? 'active' : ''}`}
-              onClick={handleNavigate}
-            >
-              <Briefcase size={20} className="nav-icon" />
-              <span>{t('sidebar.workshops')}</span>
-            </Link>
-
-            <Link
-              to="/users"
-              className={`nav-link ${isActive('/users') ? 'active' : ''}`}
-              onClick={handleNavigate}
-            >
-              <Users size={20} className="nav-icon" />
-              <span>{t('navigation.users')}</span>
-            </Link>
-
-            <Link
-              to="/material-thresholds"
-              className={`nav-link ${isActive('/material-thresholds') ? 'active' : ''}`}
-              onClick={handleNavigate}
-            >
-              <AlertCircle size={20} className="nav-icon" />
-              <span>{t('navigation.materialChute')}</span>
-            </Link>
-
-            <Link
-              to="/articles"
-              className={`nav-link ${isActive('/articles') ? 'active' : ''}`}
-              onClick={handleNavigate}
-            >
-              <Package size={20} className="nav-icon" />
-              <span>{t('navigation.articles') || 'Articles'}</span>
-            </Link>
-
-            <Link
-              to="/colors"
-              className={`nav-link ${isActive('/colors') ? 'active' : ''}`}
-              onClick={handleNavigate}
-            >
-              <Palette size={20} className="nav-icon" />
-              <span>{t('navigation.colors') || 'Colors'}</span>
+              <Settings size={20} className="nav-icon" />
+              <span>{t('sidebar.configuration')}</span>
             </Link>
           </div>
         )}

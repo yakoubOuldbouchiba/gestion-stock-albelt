@@ -61,9 +61,11 @@ public class WastePieceRequest {
     // External/Internal Reference
     private String reference;
 
-    // Location (same as Roll)
-    private UUID altierID;
+    // Location (same as Roll) on create
+    @NotNull
+    private UUID altierId;
     private String qrCode;
+    @NotNull
     private UUID colorId;
 
     // Waste-specific tracking

@@ -27,7 +27,7 @@ const defaultForm: ColorFormData = {
   isActive: true,
 };
 
-export function ColorsPage() {
+export function ColorsPage({ hideHeader = false }: { hideHeader?: boolean }) {
   const { t } = useI18n();
   const [colors, setColors] = useState<Color[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,11 +172,19 @@ export function ColorsPage() {
 
   return (
     <div>
-      <PageHeader
-        title={t('navigation.colors') || 'Colors'}
-        subtitle={`${totalRecords} ${t('common.list') || 'items'}`}
-        actions={<Button icon="pi pi-plus" label={t('common.add') || 'Add Color'} onClick={() => setShowForm(true)} disabled={isBusy} />}
-      />
+      {!hideHeader && (
+        <PageHeader
+          title={t('navigation.colors') || 'Colors'}
+          subtitle={`${totalRecords} ${t('common.list') || 'items'}`}
+          actions={<Button icon="pi pi-plus" label={t('common.add') || 'Add Color'} onClick={() => setShowForm(true)} disabled={isBusy} />}
+        />
+      )}
+
+      {hideHeader && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+          <Button icon="pi pi-plus" label={t('common.add') || 'Add Color'} onClick={() => setShowForm(true)} disabled={isBusy} />
+        </div>
+      )}
 
       {error && <Message severity="error" text={error} />}
 

@@ -357,7 +357,7 @@ public class CommandeService {
                         .lengthM(productionItem.getPieceLengthM())
                         .areaM2(productionItem.getAreaPerPieceM2())
                     .wasteType(classifyWasteType(productionItem))
-                        .altierID(altierId)
+                        .altierId(altierId)
                         .colorId(colorId)
                         .reference(reference)
                         .commandeItemId(item.getId());
@@ -511,7 +511,7 @@ public class CommandeService {
                 .lengthM(productionItem.getPieceLengthM())
                 .areaM2(productionItem.getAreaPerPieceM2())
                 .wasteType(classifyWasteType(productionItem))
-                .altierID(altierId)
+                .altierId(altierId)
                 .colorId(colorId)
                 .reference(reference)
                 .commandeItemId(item.getId());
