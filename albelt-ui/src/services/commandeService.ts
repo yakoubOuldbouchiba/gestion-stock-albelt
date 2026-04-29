@@ -244,7 +244,7 @@ export const CommandeService = {
    * Adopt a suggested optimization plan, replacing existing placements
    */
   async adoptOptimization(itemId: string, suggestionId: string): Promise<ApiResponse<void>> {
-    return ApiService.post<void>(`/commandes/items/${itemId}/optimization/adopt`, null, { params: { suggestionId } });
+    return ApiService.post<void>(`/commandes/items/${itemId}/optimization/adopt`, { suggestionId });
   },
 };
 
