@@ -741,6 +741,7 @@ export function InventoryPage() {
     return (
       <div style={{ display: 'grid', gap: '1rem' }}>
         <div style={{ display: 'grid', gap: '0.5rem' }}>
+          <div><strong>{t('inventory.lotId') || 'Lot ID'}:</strong> {roll.lotId || 'N/A'}</div>
           <div><strong>{t('rollDetail.rollId')}:</strong> {roll.id}</div>
           <div><strong>{t('inventory.reference') || 'Reference'}:</strong> {summary.reference}</div>
           <div><strong>{t('rollDetail.material')}:</strong> {roll.materialType}</div>
@@ -781,6 +782,7 @@ export function InventoryPage() {
     return (
       <div style={{ display: 'grid', gap: '1rem' }}>
         <div style={{ display: 'grid', gap: '0.5rem' }}>
+          <div><strong>{t('inventory.lotId') || 'Lot ID'}:</strong> {piece.lotId || 'N/A'}</div>
           <div><strong>{t('waste.detailWasteId') || 'Waste ID'}:</strong> {piece.id}</div>
           <div><strong>{t('inventory.reference') || 'Reference'}:</strong> {summary.reference}</div>
           <div><strong>{t('rollDetail.material')}:</strong> {piece.materialType}</div>

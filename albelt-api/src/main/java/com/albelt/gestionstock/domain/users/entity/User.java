@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.users.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.albelt.gestionstock.shared.enums.UserRole;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import jakarta.persistence.*;
@@ -24,6 +25,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = "passwordHash")
 public class User {
 
     @Id
@@ -37,6 +39,7 @@ public class User {
     private String email;
 
     @Column(name = "password_hash", nullable = false)
+    @JsonIgnore
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)

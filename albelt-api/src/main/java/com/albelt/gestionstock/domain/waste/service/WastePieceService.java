@@ -20,6 +20,7 @@ import com.albelt.gestionstock.shared.enums.*;
 import com.albelt.gestionstock.shared.enums.WasteType;
 import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
+import com.albelt.gestionstock.shared.persistence.LotIdAllocator;
 import com.albelt.gestionstock.shared.utils.QrCodeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +60,7 @@ public class WastePieceService {
     private final AltierService altierService;
     private final ArticleService articleService;
     private final CommandeItemRepository commandeItemRepository;
+    private final LotIdAllocator lotIdAllocator;
     private final QrCodeService qrCodeService;
 
     /**
@@ -131,6 +133,7 @@ public class WastePieceService {
         if (parentWastePiece != null) {
             wastePiece.setParentWastePiece(parentWastePiece);
         }
+        wastePiece.setLotId(lotIdAllocator.nextLotId());
         
         // Set the creator
         wastePiece.setCreatedBy(createdBy);

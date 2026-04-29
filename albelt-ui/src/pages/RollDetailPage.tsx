@@ -132,7 +132,8 @@ export function RollDetailPage() {
           <div>
             <h1 className="detail-dashboard__title text-2xl">{t('rollDetail.title')}</h1>
             <div className="flex gap-2 text-sm text-muted">
-              <span>ID: {roll.id}</span>
+              <span>Lot: {roll.lotId || 'N/A'}</span>
+              <span>• ID: {roll.id}</span>
               {rollSummary.reference && <span>• Ref: {rollSummary.reference}</span>}
             </div>
           </div>
@@ -195,10 +196,28 @@ export function RollDetailPage() {
         <aside className="detail-sidebar">
           <Card title={t('rollDetail.basicInfo')} className="mb-4">
             <div className="flex flex-col gap-2 text-sm">
+              <div className="flex justify-between"><strong>{t('inventory.lotId') || 'Lot ID'}:</strong><span>{roll.lotId || 'N/A'}</span></div>
               <div className="flex justify-between"><strong>{t('rollDetail.supplier')}:</strong><span>{roll.supplierName || 'N/A'}</span></div>
               <div className="flex justify-between"><strong>{t('rollDetail.workshop')}:</strong><span>{roll.altierLibelle || t('rollDetail.unassigned')}</span></div>
               <div className="flex justify-between"><strong>{t('rollDetail.receivedDate')}:</strong><span>{formatDate(roll.receivedDate)}</span></div>
-              <div className="flex justify-between"><strong>{t('inventory.color')}:</strong><span>{rollSummary.color}</span></div>
+              <div className="flex justify-between">
+                <strong>{t('inventory.color')}:</strong>
+                <span className="flex align-items-center gap-2">
+                  {roll.colorName || roll.article?.color?.name || 'N/A'}
+                  {(roll.colorHexCode || roll.article?.color?.hexCode) && (
+                    <span 
+                      className="inline-block" 
+                      style={{ 
+                        width: '12px', 
+                        height: '12px', 
+                        borderRadius: '50%', 
+                        backgroundColor: roll.colorHexCode || roll.article?.color?.hexCode,
+                        border: '1px solid var(--surface-border)'
+                      }} 
+                    />
+                  )}
+                </span>
+              </div>
             </div>
           </Card>
 
@@ -224,6 +243,7 @@ export function RollDetailPage() {
             <Message severity="info" text={t('rollDetail.chutesEmpty')} />
           ) : (
             <DataTable value={wastePieces} dataKey="id" size="small" responsiveLayout="scroll" className="p-datatable-sm">
+              <Column field="lotId" header={t('inventory.lotId') || 'Lot ID'} sortable />
               <Column field="id" header={t('waste.tableWasteId')} sortable />
               <Column header={t('waste.tableDimensions')} body={p => `${p.widthMm}mm × ${p.lengthM.toFixed(2)}m`} />
               <Column field="areaM2" header={t('waste.tableArea')} body={p => `${p.areaM2.toFixed(2)} m²`} sortable />

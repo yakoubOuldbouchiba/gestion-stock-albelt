@@ -79,6 +79,7 @@ export function WasteTab({
           removableSort
         >
           <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+          <Column header={t('inventory.lotId') || 'Lot ID'} field="lotId" sortable style={{ width: '100px' }} />
           <Column header={t('inventory.material')} body={wasteMaterialBody} sortable field="materialType" />
           <Column 
             header={t('inventory.area')} 

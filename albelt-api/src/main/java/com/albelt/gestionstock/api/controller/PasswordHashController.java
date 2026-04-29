@@ -1,6 +1,7 @@
 package com.albelt.gestionstock.api.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/public/hash")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')")
 public class PasswordHashController {
 
     private final PasswordEncoder passwordEncoder;
@@ -24,9 +26,9 @@ public class PasswordHashController {
     @GetMapping
     public PasswordHashResponse generateHash(@RequestParam String password) {
         String hash = passwordEncoder.encode(password);
-        return new PasswordHashResponse(password, hash);
+        return new PasswordHashResponse(hash);
     }
 
-    public record PasswordHashResponse(String password, String hash) {
+    public record PasswordHashResponse(String hash) {
     }
 }

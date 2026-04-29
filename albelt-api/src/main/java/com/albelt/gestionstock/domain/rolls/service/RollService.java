@@ -5,8 +5,6 @@ import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.rolls.mapper.RollMapper;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.domain.articles.service.ArticleService;
-import com.albelt.gestionstock.domain.colors.entity.Color;
-import com.albelt.gestionstock.domain.colors.service.ColorService;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
 import com.albelt.gestionstock.domain.suppliers.service.SupplierService;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
@@ -15,6 +13,7 @@ import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
 import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
+import com.albelt.gestionstock.shared.persistence.LotIdAllocator;
 import com.albelt.gestionstock.shared.utils.QrCodeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,8 +57,8 @@ public class RollService {
     private final RollMapper rollMapper;
     private final SupplierService supplierService;
     private final AltierService altierService;
-    private final ColorService colorService;
     private final ArticleService articleService;
+    private final LotIdAllocator lotIdAllocator;
     private final QrCodeService qrCodeService;
 
     /**
@@ -86,6 +85,7 @@ public class RollService {
         }
 
         Roll roll = rollMapper.toEntity(request, supplier, altier, createdBy);
+        roll.setLotId(lotIdAllocator.nextLotId());
         roll.setArticle(articleService.resolve(
             request.getMaterialType(),
             request.getThicknessMm(),
@@ -110,7 +110,7 @@ public class RollService {
     public Optional<Roll> selectByFifo(MaterialType materialType) {
         log.debug("FIFO Selection: Looking for oldest available roll with material={}", materialType);
         
-        Optional<Roll> roll = rollRepository.findOldestAvailableByMaterial(materialType, RollStatus.AVAILABLE);
+        Optional<Roll> roll = rollRepository.findFirstByMaterialTypeAndStatusOrderByReceivedDateAsc(materialType, RollStatus.AVAILABLE);
         
         if (roll.isPresent()) {
             Roll selected = roll.get();
@@ -373,19 +373,32 @@ public class RollService {
         log.info("Recording waste consumption: roll_id={}, waste_area_m2={}", rollId, wasteAreaM2);
         
         Roll roll = getById(rollId);
+        BigDecimal currentUsedArea = roll.getUsedAreaM2() != null ? roll.getUsedAreaM2() : BigDecimal.ZERO;
+        BigDecimal currentAvailableArea = roll.getAvailableAreaM2() != null ? roll.getAvailableAreaM2() : roll.getAreaM2();
+        if (currentAvailableArea == null) {
+            currentAvailableArea = BigDecimal.ZERO;
+        }
+        if (wasteAreaM2.compareTo(currentAvailableArea) > 0) {
+            throw new BusinessException("Waste area exceeds the remaining roll area");
+        }
+
         // Update total waste tracking
         BigDecimal newTotalWaste = roll.getTotalWasteAreaM2().add(wasteAreaM2);
-        if (newTotalWaste.compareTo(roll.getAreaM2()) > 0) {
-            log.warn("Warning: total waste {} exceeds roll area {}", newTotalWaste, roll.getAreaM2());
-        }
         roll.setTotalWasteAreaM2(newTotalWaste);
-        
+        roll.setUsedAreaM2(currentUsedArea.add(wasteAreaM2));
+        roll.setAvailableAreaM2(currentAvailableArea.subtract(wasteAreaM2).max(BigDecimal.ZERO));
+
         // Increment cut count
         roll.setTotalCuts(roll.getTotalCuts() + 1);
-        
+
         // Update last processing date
         roll.setLastProcessingDate(LocalDateTime.now());
-        
+        if (roll.getAvailableAreaM2().compareTo(BigDecimal.ZERO) == 0) {
+            roll.setStatus(RollStatus.EXHAUSTED);
+        } else if (RollStatus.AVAILABLE.equals(roll.getStatus())) {
+            roll.setStatus(RollStatus.OPENED);
+        }
+
         Roll updated = rollRepository.save(roll);
 
         log.info("Consumption recorded: roll_id={}, total_waste={}m², cuts={}", 

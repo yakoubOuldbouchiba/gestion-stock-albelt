@@ -1,6 +1,6 @@
 package com.albelt.gestionstock.api.dto;
 
-import com.albelt.gestionstock.domain.users.entity.User;
+import com.albelt.gestionstock.domain.users.dto.UserDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +18,6 @@ import java.util.UUID;
 @Builder
 public class LoginResponse {
     private String token;
-    private User user;
+    private UserDTO user;
     private List<UUID> altierIds;  // List of altiers user has access to
 }

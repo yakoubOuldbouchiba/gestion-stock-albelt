@@ -21,6 +21,7 @@ import java.util.UUID;
 public class RollResponse {
 
     private UUID id;
+    private Integer lotId;
 
     private UUID articleId;
     private ArticleResponse article;

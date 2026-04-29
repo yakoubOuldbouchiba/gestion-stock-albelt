@@ -172,6 +172,7 @@ public class WastePieceMapper {
 
         return WastePieceResponse.builder()
                 .id(entity.getId())
+                .lotId(entity.getLotId())
                 .articleId(entity.getArticle() != null ? entity.getArticle().getId() : null)
                 .article(entity.getArticle() != null ? articleMapper.toResponse(entity.getArticle()) : null)
                 .rollId(entity.getRoll() != null ? entity.getRoll().getId() : null)

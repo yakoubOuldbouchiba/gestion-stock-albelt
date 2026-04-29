@@ -391,6 +391,7 @@ export function WastePage() {
             size="small"
             emptyMessage={t('waste.noPiecesFound')}
           >
+            <Column header={t('inventory.lotId') || 'Lot ID'} field="lotId" sortable style={{ width: '100px' }} />
             <Column header={t('waste.tableWasteId')} body={(waste: WastePiece) => waste.id.substring(0, 8)} />
             <Column
               header={t('waste.tableMaterial')}
@@ -472,6 +473,7 @@ export function WastePage() {
       >
         {selectedWaste && (
           <div style={{ display: 'grid', gap: '0.5rem' }}>
+            <div><strong>{t('inventory.lotId') || 'Lot ID'}:</strong> {selectedWaste.lotId || 'N/A'}</div>
             <div><strong>{t('waste.detailWasteId')}:</strong> {selectedWaste.id.substring(0, 8)}</div>
             {selectedWaste.parentWastePieceId && (
               <div><strong>{t('waste.detailParentWaste') || 'Parent Waste Piece'}:</strong> {selectedWaste.parentWastePieceId.substring(0, 8)}</div>

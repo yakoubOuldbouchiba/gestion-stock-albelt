@@ -75,13 +75,14 @@ public class OptimizationService {
         if (item == null) {
             return null;
         }
+        assertCommandeStatusAllowsOptimization(item.getCommande() != null ? item.getCommande().getStatus() : null);
         return generateAndSaveSuggestion(item.getId(), true);
     }
 
     @Transactional
     public OptimizationComparisonResponse getComparison(UUID commandeItemId, boolean forceRegenerate) {
         OptimizationItemSnapshot item = snapshotLoader.loadItem(commandeItemId);
-        OptimizationPlan plan = generateAndSaveSuggestion(commandeItemId, forceRegenerate);
+        OptimizationPlan plan = resolveSuggestionPlan(commandeItemId, item, forceRegenerate);
 
         OptimizationMetrics actualMetrics = computeActualMetrics(item);
         OptimizationMetricsResponse actualResponse = toMetricsResponse(actualMetrics);
@@ -113,8 +114,28 @@ public class OptimizationService {
             .build();
     }
 
+    private OptimizationPlan resolveSuggestionPlan(UUID commandeItemId,
+                                                   OptimizationItemSnapshot item,
+                                                   boolean forceRegenerate) {
+        if (forceRegenerate) {
+            assertCommandeStatusAllowsOptimization(item.commandeStatus());
+            return generateAndSaveSuggestion(commandeItemId, true);
+        }
+
+        OptimizationPlan existingPlan = planRepository
+            .findFirstByCommandeItemIdAndStatusOrderByCreatedAtDesc(commandeItemId, OptimizationPlanStatus.ACTIVE)
+            .orElse(null);
+        if (existingPlan != null) {
+            return existingPlan;
+        }
+
+        assertCommandeStatusAllowsOptimization(item.commandeStatus());
+        return generateAndSaveSuggestion(commandeItemId, false);
+    }
+
     private OptimizationPlan generateAndSaveSuggestion(UUID commandeItemId, boolean forceRegenerate) {
         OptimizationItemSnapshot item = snapshotLoader.loadItem(commandeItemId);
+        assertCommandeStatusAllowsOptimization(item.commandeStatus());
         var planningContext = snapshotLoader.loadPlanningContext(item);
 
         if (!forceRegenerate) {
@@ -271,6 +292,9 @@ public class OptimizationService {
         if (items.isEmpty() && !commandeRepository.existsById(commandeId)) {
             throw new ResourceNotFoundException("Order not found: " + commandeId);
         }
+        if (!items.isEmpty()) {
+            assertCommandeStatusAllowsOptimization(items.get(0).commandeStatus());
+        }
 
         int totalPieces = items.stream()
             .map(OptimizationItemSnapshot::quantite)
@@ -321,6 +345,15 @@ public class OptimizationService {
         );
 
         return results;
+    }
+
+    private void assertCommandeStatusAllowsOptimization(String commandeStatus) {
+        String normalizedStatus = normalize(commandeStatus);
+        if (normalizedStatus == null || !ACTIVE_COMMANDE_STATUSES.contains(normalizedStatus.toUpperCase(Locale.ROOT))) {
+            throw new com.albelt.gestionstock.shared.exceptions.BusinessException(
+                "Optimization can only run when commande status is PENDING or ENCOURS"
+            );
+        }
     }
 
     private OptimizationRun optimizePieces(List<Piece> pieces,
@@ -1004,9 +1037,8 @@ public class OptimizationService {
     }
 
     private String renderSvg(List<SvgGroup> groups, boolean includeWaste) {
-
-        int totalHeight = groups.stream().mapToInt(g -> g.heightMm).sum();
-        int maxWidth = groups.stream().mapToInt(g -> g.widthMm).max().orElse(0);
+        int totalHeight = groups.stream().mapToInt(this::resolveGroupHeight).sum();
+        int maxWidth = groups.stream().mapToInt(this::resolveGroupWidth).max().orElse(0);
         int paddedHeight = totalHeight + Math.max(0, groups.size() - 1) * SVG_PADDING;
 
         StringBuilder svg = new StringBuilder();
@@ -1016,7 +1048,9 @@ public class OptimizationService {
         int offsetY = 0;
         int index = 1;
         for (SvgGroup group : groups) {
-            int headerHeight = Math.min(group.heightMm, Math.max(120, group.heightMm / 12));
+            int groupWidth = resolveGroupWidth(group);
+            int groupHeight = resolveGroupHeight(group);
+            int headerHeight = Math.min(groupHeight, Math.max(120, groupHeight / 12));
             int titleFont = Math.max(28, headerHeight / 2);
             int detailsFont = Math.max(20, headerHeight / 3);
             int titleY = Math.min(headerHeight - (detailsFont + 10), titleFont + 8);
@@ -1024,11 +1058,11 @@ public class OptimizationService {
 
             svg.append("<g transform=\"translate(0,").append(offsetY).append(")\">");
             svg.append("<rect x=\"0\" y=\"0\" width=\"")
-                .append(group.widthMm).append("\" height=\"")
-                .append(group.heightMm)
+                .append(groupWidth).append("\" height=\"")
+                .append(groupHeight)
                 .append("\" fill=\"#f4f4f4\" stroke=\"#333\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/>");
             svg.append("<rect x=\"0\" y=\"0\" width=\"")
-                .append(group.widthMm).append("\" height=\"").append(headerHeight)
+                .append(groupWidth).append("\" height=\"").append(headerHeight)
                 .append("\" fill=\"#ffffff\" opacity=\"0.85\"/>");
             svg.append("<text x=\"8\" y=\"").append(titleY)
                 .append("\" font-size=\"").append(titleFont)
@@ -1052,12 +1086,36 @@ public class OptimizationService {
             }
 
             svg.append("</g>");
-            offsetY += group.heightMm + SVG_PADDING;
+            offsetY += groupHeight + SVG_PADDING;
             index++;
         }
 
         svg.append("</svg>");
         return svg.toString();
+    }
+
+    private int resolveGroupWidth(SvgGroup group) {
+        int placementsMaxX = group.placements.stream()
+            .mapToInt(rect -> rect.x + rect.width)
+            .max()
+            .orElse(0);
+        int wasteMaxX = group.wasteRects.stream()
+            .mapToInt(rect -> rect.x + rect.width)
+            .max()
+            .orElse(0);
+        return Math.max(group.widthMm, Math.max(placementsMaxX, wasteMaxX));
+    }
+
+    private int resolveGroupHeight(SvgGroup group) {
+        int placementsMaxY = group.placements.stream()
+            .mapToInt(rect -> rect.y + rect.height)
+            .max()
+            .orElse(0);
+        int wasteMaxY = group.wasteRects.stream()
+            .mapToInt(rect -> rect.y + rect.height)
+            .max()
+            .orElse(0);
+        return Math.max(group.heightMm, Math.max(placementsMaxY, wasteMaxY));
     }
 
     private SvgRect buildWasteRect(int xMm, int yMm, int widthMm, int heightMm, ThresholdSpec spec) {
@@ -1557,8 +1615,8 @@ public class OptimizationService {
         }
 
         static SvgGroupBuilder fromRoll(Roll roll) {
-            int width = roll.getWidthRemainingMm() != null ? roll.getWidthRemainingMm() : roll.getWidthMm();
-            int length = SourceCandidate.toLengthMmStatic(roll.getLengthRemainingM() != null ? roll.getLengthRemainingM() : roll.getLengthM());
+            int width = roll.getWidthMm();
+            int length = SourceCandidate.toLengthMmStatic(roll.getLengthM());
             String reference = roll.getReference() != null ? roll.getReference() : roll.getId().toString();
             String details = buildSourceDetails(reference, roll.getNbPlis(), roll.getThicknessMm(), width, length);
             // Render length on X axis and width on Y axis.
@@ -1566,8 +1624,8 @@ public class OptimizationService {
         }
 
         static SvgGroupBuilder fromWaste(WastePiece wastePiece) {
-            int width = wastePiece.getWidthRemainingMm() != null ? wastePiece.getWidthRemainingMm() : wastePiece.getWidthMm();
-            int length = SourceCandidate.toLengthMmStatic(wastePiece.getLengthRemainingM() != null ? wastePiece.getLengthRemainingM() : wastePiece.getLengthM());
+            int width = wastePiece.getWidthMm();
+            int length = SourceCandidate.toLengthMmStatic(wastePiece.getLengthM());
             String reference = wastePiece.getReference() != null ? wastePiece.getReference() : wastePiece.getId().toString();
             String details = buildSourceDetails(reference, wastePiece.getNbPlis(), wastePiece.getThicknessMm(), width, length);
             // Render length on X axis and width on Y axis.

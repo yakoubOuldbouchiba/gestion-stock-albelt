@@ -4,6 +4,8 @@ import com.albelt.gestionstock.shared.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final List<String> allowedOrigins;
@@ -62,16 +65,11 @@ public class SecurityConfig {
             
             // Permit public endpoints
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/health").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
-                // Allow public read access to inventory/operations/users data for demo
-                .requestMatchers("/api/rolls", "/api/rolls/**").permitAll()
-                .requestMatchers("/api/cutting-operations", "/api/cutting-operations/**").permitAll()
-                .requestMatchers("/api/users/operators", "/api/users/*").permitAll()
-                .requestMatchers("/api/suppliers", "/api/suppliers/**").permitAll()
-                .requestMatchers("/api/waste-pieces", "/api/waste-pieces/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/users/operators").authenticated()
+                .requestMatchers("/api/users/**", "/api/user-altiers/**").hasRole("ADMIN")
                 // All other requests require authentication
                 .anyRequest().authenticated()
             )

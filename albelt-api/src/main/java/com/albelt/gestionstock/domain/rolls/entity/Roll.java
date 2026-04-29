@@ -1,14 +1,16 @@
 package com.albelt.gestionstock.domain.rolls.entity;
 
-import com.albelt.gestionstock.domain.articles.entity.Article;
-import com.albelt.gestionstock.shared.enums.MaterialType;
-import com.albelt.gestionstock.shared.enums.RollStatus;
-import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
+import com.albelt.gestionstock.shared.enums.RollStatus;
+import com.albelt.gestionstock.shared.persistence.ReferencedArticleSnapshotEntity;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,42 +31,30 @@ import java.util.UUID;
         @Index(name = "idx_rolls_material_status", columnList = "material_type,status"),
         @Index(name = "idx_rolls_altier_id", columnList = "altier_id"),
         @Index(name = "idx_rolls_created_by", columnList = "created_by"),
-        @Index(name = "idx_rolls_article_id", columnList = "article_id")
+        @Index(name = "idx_rolls_article_id", columnList = "article_id"),
+        @Index(name = "idx_rolls_lot_id", columnList = "lot_id", unique = true)
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class Roll {
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class Roll extends ReferencedArticleSnapshotEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    // Reception & Supplier Info
     @Column(name = "received_date", nullable = false)
     private LocalDate receivedDate;
+
+    @Column(name = "lot_id", nullable = false)
+    private Integer lotId;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "article_id", nullable = false)
-    private Article article;
-
-    // Material Specifications
-    @Enumerated(EnumType.STRING)
-    @Column(name = "material_type", nullable = false)
-    private MaterialType materialType;
-
-    @Column(name = "nb_plis", nullable = false)
-    private Integer nbPlis;
-
-    @Column(name = "thickness_mm", nullable = false, columnDefinition = "DECIMAL(8,3)")
-    private BigDecimal thicknessMm;
-
-    // Dimensions (current state - no "initial" suffix)
     @Column(name = "width_mm", nullable = false)
     private Integer widthMm;
 
@@ -88,12 +78,10 @@ public class Roll {
     @Builder.Default
     private BigDecimal availableAreaM2 = BigDecimal.ZERO;
 
-    // Status & Classification
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private RollStatus status;
 
-    // Location & Tracking
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "altier_id")
     private Altier altier;
@@ -101,7 +89,6 @@ public class Roll {
     @Column(name = "qr_code")
     private String qrCode;
 
-    // Processing tracking (same as waste_pieces)
     @Column(name = "total_cuts", nullable = false)
     @Builder.Default
     private Integer totalCuts = 0;
@@ -113,90 +100,14 @@ public class Roll {
     @Column(name = "last_processing_date")
     private LocalDateTime lastProcessingDate;
 
-    // Audit
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
-    // External/Internal Reference
-    @Column(name = "reference", length = 100)
-    private String reference;
-
-    @PrePersist
-    @PreUpdate
-    private void syncLegacyFieldsFromArticleLifecycle() {
-        syncLegacyFieldsFromArticle();
-    }
-
-    public void setArticle(Article article) {
-        this.article = article;
-        syncLegacyFieldsFromArticle();
-    }
-
-    public MaterialType getMaterialType() {
-        MaterialType fromArticle = parseMaterialType(article != null ? article.getMaterialType() : null);
-        return fromArticle != null ? fromArticle : materialType;
-    }
-
-    public Integer getNbPlis() {
-        return article != null && article.getNbPlis() != null ? article.getNbPlis() : nbPlis;
-    }
-
-    public BigDecimal getThicknessMm() {
-        return article != null && article.getThicknessMm() != null ? article.getThicknessMm() : thicknessMm;
-    }
-
-    public String getReference() {
-        String articleReference = article != null ? article.getReference() : null;
-        return articleReference != null ? articleReference : reference;
-    }
-
-    public void syncLegacyFieldsFromArticle() {
-        if (article == null) {
-            return;
-        }
-        MaterialType articleMaterialType = parseMaterialType(article.getMaterialType());
-        if (articleMaterialType != null) {
-            this.materialType = articleMaterialType;
-        }
-        if (article.getNbPlis() != null) {
-            this.nbPlis = article.getNbPlis();
-        }
-        if (article.getThicknessMm() != null) {
-            this.thicknessMm = article.getThicknessMm();
-        }
-        this.reference = article.getReference();
-    }
-
-    private MaterialType parseMaterialType(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return MaterialType.valueOf(value.trim().toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
-    }
-
-    /**
-     * Check if roll has enough area for a requested size
-     */
     public boolean hasEnoughArea(BigDecimal requiredArea) {
         BigDecimal available = this.availableAreaM2 != null ? this.availableAreaM2 : this.areaM2;
         return available != null && available.compareTo(requiredArea) >= 0;
     }
 
-    /**
-     * Check if roll is available for cutting
-     */
     public boolean isAvailableForCutting() {
         return RollStatus.AVAILABLE.equals(this.status) || RollStatus.OPENED.equals(this.status);
     }

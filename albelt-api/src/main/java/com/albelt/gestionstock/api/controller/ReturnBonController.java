@@ -4,7 +4,6 @@ import com.albelt.gestionstock.api.response.ApiResponse;
 import com.albelt.gestionstock.domain.returns.dto.ReturnBonRequest;
 import com.albelt.gestionstock.domain.returns.dto.ReturnBonResponse;
 import com.albelt.gestionstock.domain.returns.service.ReturnBonService;
-import com.albelt.gestionstock.domain.users.entity.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,9 +52,9 @@ public class ReturnBonController {
 
     private UUID getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof UUID userId)) {
             throw new RuntimeException("User not authenticated");
         }
-        return user.getId();
+        return userId;
     }
 }

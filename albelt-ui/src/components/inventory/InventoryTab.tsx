@@ -102,6 +102,7 @@ export function InventoryTab({
           emptyMessage={t('inventory.noRollsFound')}
         >
           <Column selectionMode="multiple" headerStyle={{ width: '3rem' }}></Column>
+          <Column header={t('inventory.lotId') || 'Lot ID'} field="lotId" sortable style={{ width: '100px' }} />
           <Column header={t('waste.tableMaterial')} body={rollMaterialBody} sortable field="materialType" />
           <Column
             header={t('inventory.stockstatus') || 'Stock Level'}

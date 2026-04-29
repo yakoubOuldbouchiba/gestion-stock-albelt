@@ -2,7 +2,8 @@ package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
 import com.albelt.gestionstock.api.response.PagedResponse;
-import com.albelt.gestionstock.domain.users.entity.User;
+import com.albelt.gestionstock.domain.users.dto.UserDTO;
+import com.albelt.gestionstock.domain.users.mapper.UserMapper;
 import com.albelt.gestionstock.domain.users.service.UserService;
 import com.albelt.gestionstock.shared.enums.UserRole;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +24,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class UserController {
+    private final UserService userService;
+    private final UserMapper userMapper;
+
     /**
      * Get users with pagination and filters
      * GET /api/users?page={page}&size={size}
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<PagedResponse<User>>> getAll(
+    public ResponseEntity<ApiResponse<PagedResponse<UserDTO>>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String search,
@@ -41,8 +45,8 @@ public class UserController {
         var fromDate = parseDateStart(dateFrom);
         var toDate = parseDateEnd(dateTo);
         var users = userService.getAllPaged(search, role, isActive, fromDate, toDate, page, size);
-        var paged = PagedResponse.<User>builder()
-                .items(users.getContent())
+        var paged = PagedResponse.<UserDTO>builder()
+                .items(users.getContent().stream().map(userMapper::toDTO).toList())
                 .page(users.getNumber())
                 .size(users.getSize())
                 .totalElements(users.getTotalElements())
@@ -69,18 +73,15 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(count));
     }
 
-
-    private final UserService userService;
-
     /**
      * Get user by ID
      * GET /api/users/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<User>> getById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<UserDTO>> getById(@PathVariable UUID id) {
         log.debug("Fetching user: {}", id);
         var user = userService.getById(id);
-        return ResponseEntity.ok(ApiResponse.success(user));
+        return ResponseEntity.ok(ApiResponse.success(userMapper.toDTO(user)));
     }
 
     /**
@@ -88,12 +89,12 @@ public class UserController {
      * GET /api/users/search/username?username={username}
      */
     @GetMapping("/search/username")
-    public ResponseEntity<ApiResponse<User>> getByUsername(@RequestParam String username) {
+    public ResponseEntity<ApiResponse<UserDTO>> getByUsername(@RequestParam String username) {
         log.debug("Searching user by username: {}", username);
         var userOpt = userService.getByUsername(username);
         
         if (userOpt.isPresent()) {
-            return ResponseEntity.ok(ApiResponse.success(userOpt.get()));
+            return ResponseEntity.ok(ApiResponse.success(userMapper.toDTO(userOpt.get())));
         }
         return ResponseEntity.ok(ApiResponse.error("User not found: " + username));
     }
@@ -103,10 +104,10 @@ public class UserController {
      * GET /api/users/active
      */
     @GetMapping("/active")
-    public ResponseEntity<ApiResponse<List<User>>> getAllActive() {
+    public ResponseEntity<ApiResponse<List<UserDTO>>> getAllActive() {
         log.debug("Fetching active users");
         var users = userService.getAllActive();
-        return ResponseEntity.ok(ApiResponse.success(users));
+        return ResponseEntity.ok(ApiResponse.success(users.stream().map(userMapper::toDTO).toList()));
     }
 
     /**
@@ -114,10 +115,10 @@ public class UserController {
      * GET /api/users/by-role?role={role}
      */
     @GetMapping("/by-role")
-    public ResponseEntity<ApiResponse<List<User>>> getByRole(@RequestParam UserRole role) {
+    public ResponseEntity<ApiResponse<List<UserDTO>>> getByRole(@RequestParam UserRole role) {
         log.debug("Fetching users by role: {}", role);
         var users = userService.getByRole(role);
-        return ResponseEntity.ok(ApiResponse.success(users));
+        return ResponseEntity.ok(ApiResponse.success(users.stream().map(userMapper::toDTO).toList()));
     }
 
     /**
@@ -125,10 +126,10 @@ public class UserController {
      * GET /api/users/operators
      */
     @GetMapping("/operators")
-    public ResponseEntity<ApiResponse<List<User>>> getActiveOperators() {
+    public ResponseEntity<ApiResponse<List<UserDTO>>> getActiveOperators() {
         log.debug("Fetching active operators");
         var users = userService.getActiveOperators();
-        return ResponseEntity.ok(ApiResponse.success(users));
+        return ResponseEntity.ok(ApiResponse.success(users.stream().map(userMapper::toDTO).toList()));
     }
 
     /**

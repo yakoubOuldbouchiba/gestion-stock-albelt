@@ -1,16 +1,18 @@
 package com.albelt.gestionstock.domain.waste.entity;
 
-import com.albelt.gestionstock.domain.articles.entity.Article;
-import com.albelt.gestionstock.shared.enums.MaterialType;
-import com.albelt.gestionstock.shared.enums.WasteStatus;
-import com.albelt.gestionstock.domain.colors.entity.Color;
-import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.rolls.entity.Roll;
+import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;
+import com.albelt.gestionstock.shared.persistence.ReferencedArticleSnapshotEntity;
 import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -19,8 +21,7 @@ import java.util.UUID;
 
 /**
  * WastePiece entity - Byproduct tracking from roll processing
- * SAME STRUCTURE as Roll, plus roll_id reference
- * Waste pieces inherit material specifications and dimensions, tracked as reusable inventory
+ * Waste pieces inherit material specifications and dimensions, tracked as reusable inventory.
  */
 @Entity
 @Table(name = "waste_pieces", indexes = {
@@ -31,19 +32,23 @@ import java.util.UUID;
     @Index(name = "idx_waste_pieces_commande_item", columnList = "commande_item_id"),
     @Index(name = "idx_waste_pieces_created_by", columnList = "created_by"),
     @Index(name = "idx_waste_pieces_altier_id", columnList = "altier_id"),
-    @Index(name = "idx_waste_pieces_article_id", columnList = "article_id")
+    @Index(name = "idx_waste_pieces_article_id", columnList = "article_id"),
+    @Index(name = "idx_waste_pieces_lot_id", columnList = "lot_id", unique = true)
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class WastePiece {
+@SuperBuilder
+@EqualsAndHashCode(callSuper = true)
+public class WastePiece extends ReferencedArticleSnapshotEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    // Source Reference (ONLY DIFFERENCE from rolls)
+    @Column(name = "lot_id", nullable = false)
+    private Integer lotId;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "roll_id", nullable = false)
     private Roll roll;
@@ -54,23 +59,6 @@ public class WastePiece {
     @EqualsAndHashCode.Exclude
     private WastePiece parentWastePiece;
 
-    @NonNull
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "article_id", nullable = false)
-    private Article article;
-
-    // Material Specifications (same as rolls)
-    @Enumerated(EnumType.STRING)
-    @Column(name = "material_type", nullable = false)
-    private MaterialType materialType;
-
-    @Column(name = "nb_plis", nullable = false)
-    private Integer nbPlis;
-
-    @Column(name = "thickness_mm", nullable = false, columnDefinition = "DECIMAL(8,3)")
-    private BigDecimal thicknessMm;
-
-    // Dimensions (same as rolls)
     @Column(name = "width_mm", nullable = false)
     private Integer widthMm;
 
@@ -94,16 +82,14 @@ public class WastePiece {
     @Builder.Default
     private BigDecimal availableAreaM2 = BigDecimal.ZERO;
 
-    // Status & Classification (same as rolls)
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private WasteStatus status;
 
     @Column(name = "waste_type", length = 50)
     @Enumerated(EnumType.STRING)
-    private WasteType wasteType; // CHUTE_EXPLOITABLE, DECHET
+    private WasteType wasteType;
 
-    // Location & Tracking (same as rolls)
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "altier_id")
     private Altier altier;
@@ -111,7 +97,6 @@ public class WastePiece {
     @Column(name = "qr_code")
     private String qrCode;
 
-    // Processing tracking (same as rolls)
     @Column(name = "total_cuts", nullable = false)
     @Builder.Default
     private Integer totalCuts = 0;
@@ -123,105 +108,25 @@ public class WastePiece {
     @Column(name = "last_processing_date")
     private LocalDateTime lastProcessingDate;
 
-    // Waste-specific tracking
     @Column(name = "commande_item_id")
     private UUID commandeItemId;
 
     @Column(name = "classification_date")
     private LocalDateTime classificationDate;
 
-    // Audit (same as rolls)
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
-    // External/Internal Reference
-    @Column(name = "reference", length = 100)
-    private String reference;
-
-    @PrePersist
-    @PreUpdate
-    private void syncLegacyFieldsFromArticleLifecycle() {
-        syncLegacyFieldsFromArticle();
-    }
-
-    public void setArticle(Article article) {
-        this.article = article;
-        syncLegacyFieldsFromArticle();
-    }
-
-    public MaterialType getMaterialType() {
-        MaterialType fromArticle = parseMaterialType(article != null ? article.getMaterialType() : null);
-        return fromArticle != null ? fromArticle : materialType;
-    }
-
-    public Integer getNbPlis() {
-        return article != null && article.getNbPlis() != null ? article.getNbPlis() : nbPlis;
-    }
-
-    public BigDecimal getThicknessMm() {
-        return article != null && article.getThicknessMm() != null ? article.getThicknessMm() : thicknessMm;
-    }
-
-    public String getReference() {
-        String articleReference = article != null ? article.getReference() : null;
-        return articleReference != null ? articleReference : reference;
-    }
-
-    public void syncLegacyFieldsFromArticle() {
-        if (article == null) {
-            return;
-        }
-        MaterialType articleMaterialType = parseMaterialType(article.getMaterialType());
-        if (articleMaterialType != null) {
-            this.materialType = articleMaterialType;
-        }
-        if (article.getNbPlis() != null) {
-            this.nbPlis = article.getNbPlis();
-        }
-        if (article.getThicknessMm() != null) {
-            this.thicknessMm = article.getThicknessMm();
-        }
-        this.reference = article.getReference();
-    }
-
-    private MaterialType parseMaterialType(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return MaterialType.valueOf(value.trim().toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            return null;
-        }
-    }
-
-    /**
-     * Check if waste piece is large enough for reuse (> 3m²)
-     */
     public boolean isLargeWaste() {
         BigDecimal available = this.availableAreaM2 != null ? this.availableAreaM2 : this.areaM2;
         return available != null && available.compareTo(BigDecimal.valueOf(3.0)) >= 0;
     }
 
-    /**
-     * Check if waste piece can potentially be reused
-     */
     public boolean isReuseCandidate() {
-        return (WasteStatus.AVAILABLE.equals(this.status) || WasteStatus.OPENED.equals(this.status)) &&
-               this.isLargeWaste();
+        return (WasteStatus.AVAILABLE.equals(this.status) || WasteStatus.OPENED.equals(this.status))
+               && this.isLargeWaste();
     }
 
-    /**
-     * Mark waste piece as archived and update classification date
-     */
     public void markAsArchived(LocalDate classificationDate) {
         this.status = WasteStatus.ARCHIVED;
         this.classificationDate = classificationDate != null ? classificationDate.atStartOfDay() : LocalDateTime.now();

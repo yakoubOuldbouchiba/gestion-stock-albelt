@@ -117,7 +117,8 @@ export function ChuteDetailPage() {
           <div>
             <h1 className="detail-dashboard__title text-2xl">{t('waste.wasteDetailsTitle')}</h1>
             <div className="flex gap-2 text-sm text-muted">
-              <span>ID: {wastePiece.id}</span>
+              <span>Lot: {wastePiece.lotId || 'N/A'}</span>
+              <span>• ID: {wastePiece.id}</span>
               {wastePiece.reference && <span>• Ref: {wastePiece.reference}</span>}
             </div>
           </div>
@@ -170,9 +171,28 @@ export function ChuteDetailPage() {
         <aside className="detail-sidebar">
           <Card title={t('rollDetail.basicInfo')} className="mb-4">
             <div className="flex flex-col gap-2 text-sm">
+              <div className="flex justify-between"><strong>{t('inventory.lotId') || 'Lot ID'}:</strong><span>{wastePiece.lotId || 'N/A'}</span></div>
               <div className="flex justify-between"><strong>{t('rollDetail.supplier')}:</strong><span>{wastePiece.supplierName || 'N/A'}</span></div>
               <div className="flex justify-between"><strong>{t('rollDetail.workshop')}:</strong><span>{wastePiece.altierLibelle || t('rollDetail.unassigned')}</span></div>
               <div className="flex justify-between"><strong>{t('waste.detailCreated')}:</strong><span>{formatDate(wastePiece.createdAt)}</span></div>
+              <div className="flex justify-between">
+                <strong>{t('inventory.color')}:</strong>
+                <span className="flex align-items-center gap-2">
+                  {wastePiece.colorName || wastePiece.article?.color?.name || 'N/A'}
+                  {(wastePiece.colorHexCode || wastePiece.article?.color?.hexCode) && (
+                    <span 
+                      className="inline-block" 
+                      style={{ 
+                        width: '12px', 
+                        height: '12px', 
+                        borderRadius: '50%', 
+                        backgroundColor: wastePiece.colorHexCode || wastePiece.article?.color?.hexCode,
+                        border: '1px solid var(--surface-border)'
+                      }} 
+                    />
+                  )}
+                </span>
+              </div>
             </div>
           </Card>
 

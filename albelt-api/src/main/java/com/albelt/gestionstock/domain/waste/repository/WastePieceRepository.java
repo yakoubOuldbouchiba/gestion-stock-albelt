@@ -4,7 +4,6 @@ import com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFin
 import com.albelt.gestionstock.domain.optimization.data.OptimizationSourceSnapshot;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.shared.enums.MaterialType;
-import com.albelt.gestionstock.shared.enums.RollStatus;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;
 import org.springframework.data.domain.Page;
@@ -26,10 +25,15 @@ import java.util.UUID;
 @Repository
 public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
 
+    @Override
+    @EntityGraph(attributePaths = {"article", "article.color", "altier", "roll"})
+    java.util.Optional<WastePiece> findById(UUID id);
+
     /**
      * Find available waste pieces for a specific material (potential for reuse)
      * Uses composite index: (material_type, status, area_m2 DESC)
      */
+    @EntityGraph(attributePaths = {"article", "article.color", "altier", "roll"})
     @Query("SELECT wp FROM WastePiece wp " +
            "JOIN FETCH wp.article ra " +
            "LEFT JOIN FETCH ra.color " +
@@ -39,6 +43,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
                                              @Param("statuses") List<WasteStatus> statuses,
                                              Pageable pageable);
 
+    @EntityGraph(attributePaths = {"article", "article.color", "altier", "roll"})
     @Query("SELECT wp FROM WastePiece wp " +
            "JOIN FETCH wp.article ra " +
            "LEFT JOIN FETCH ra.color " +
@@ -53,6 +58,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     /**
      * Find available waste pieces for a specific material, optionally restricted to an altier.
      */
+    @EntityGraph(attributePaths = {"article", "article.color", "altier", "roll"})
     @Query("SELECT wp FROM WastePiece wp " +
            "JOIN FETCH wp.article ra " +
            "LEFT JOIN FETCH ra.color " +
@@ -69,6 +75,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
      * Find large waste pieces (> 3m²) ready for reuse
      * Critical for waste reuse workflow
      */
+    @EntityGraph(attributePaths = {"article", "article.color", "altier", "roll"})
     @Query("SELECT wp FROM WastePiece wp " +
            "JOIN FETCH wp.article ra " +
            "LEFT JOIN FETCH ra.color " +
@@ -93,6 +100,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
            "AND wp.createdAt >= :fromDate " +
            "AND wp.createdAt <= :toDate " +
            "AND (:search = '' OR " +
+           "CAST(wp.lotId AS string) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(wp.qrCode) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(wp.materialType) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(wp.article.reference) LIKE CONCAT('%', :search, '%')) ")
@@ -113,6 +121,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     /**
      * Find reuse candidates with sufficient area
      */
+    @EntityGraph(attributePaths = {"article", "article.color", "altier", "roll"})
     @Query("SELECT wp FROM WastePiece wp " +
            "JOIN FETCH wp.article ra " +
            "LEFT JOIN FETCH ra.color " +
@@ -230,7 +239,8 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     @Query("SELECT w.roll.materialType, COUNT(w), SUM(w.availableAreaM2) FROM WastePiece w " +
             "WHERE w.status IN (:activeStatuses) and w.wasteType = :wasteType " +
             "GROUP BY w.roll.materialType")
-    List<Object[]> getStatsByMaterial(WasteType wasteType,List<WasteStatus> activeStatuses);
+    List<Object[]> getStatsByMaterial(@Param("wasteType") WasteType wasteType,
+                                      @Param("activeStatuses") List<WasteStatus> activeStatuses);
 
     @Query("""
         select new com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint(
@@ -262,6 +272,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
             coalesce(wp.lengthRemainingM, wp.lengthM),
             coalesce(wp.availableAreaM2, wp.areaM2),
             wp.areaM2,
+            cast(wp.status as string),
             article.nbPlis,
             article.thicknessMm,
             color.id,

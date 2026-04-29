@@ -21,6 +21,7 @@ import java.util.UUID;
 public class WastePieceResponse {
 
     private UUID id;
+    private Integer lotId;
 
     private UUID articleId;
     private ArticleResponse article;

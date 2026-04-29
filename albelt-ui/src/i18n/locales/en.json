@@ -173,7 +173,8 @@
     "stockstatus": "Status",
     "totalStock": "Total Stock",
     "selectArticle": "Select Article",
-    "totalItems": "Total Items"
+    "totalItems": "Total Items",
+    "lotId": "Lot ID"
   },
   "rolls": {
     "title": "Rolls",

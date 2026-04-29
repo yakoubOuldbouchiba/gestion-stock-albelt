@@ -123,6 +123,7 @@ export interface ArticleRequest {
 
 export interface Roll {
   id: string;
+  lotId?: number;
   reference: string;
   articleId?: string | null;
   article?: Article | null;
@@ -255,6 +256,7 @@ export interface CuttingOperationRequest {
  */
 export interface WastePiece {
   id: string;
+  lotId?: number;
   reference: string;
   articleId?: string | null;
   article?: Article | null;

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -102,6 +103,7 @@ public class OptimizationSnapshotLoader {
         List<OptimizationSourceSnapshot> sources = new ArrayList<>();
         sources.addAll(candidateCacheService.getWasteCandidates(filter, wasteFingerprint));
         sources.addAll(candidateCacheService.getRollCandidates(filter, rollFingerprint));
+        sources.sort(buildSourcePriorityComparator(itemSnapshot));
 
         List<UUID> rollIds = sources.stream()
             .map(OptimizationSourceSnapshot::rollId)
@@ -171,6 +173,7 @@ public class OptimizationSnapshotLoader {
                     + safe(source.lengthM()) + "|"
                     + safe(source.availableAreaM2()) + "|"
                     + safe(source.fullAreaM2()) + "|"
+                    + safe(source.sourceStatus()) + "|"
                     + safe(source.updatedAt())
             ));
 
@@ -208,6 +211,69 @@ public class OptimizationSnapshotLoader {
 
     private String safe(Object value) {
         return value == null ? "null" : value.toString();
+    }
+
+    private Comparator<OptimizationSourceSnapshot> buildSourcePriorityComparator(OptimizationItemSnapshot itemSnapshot) {
+        return Comparator
+            .comparingInt((OptimizationSourceSnapshot source) -> sourcePriority(source, itemSnapshot))
+            .thenComparing((OptimizationSourceSnapshot source) -> fittingWasteArea(source, itemSnapshot))
+            .thenComparing((OptimizationSourceSnapshot source) -> source.effectiveAreaM2(), Comparator.nullsLast(BigDecimal::compareTo))
+            .thenComparing(source -> source.receivedDate(), Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(source -> source.updatedAt(), Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(source -> source.sourceId() != null ? source.sourceId().toString() : "");
+    }
+
+    private int sourcePriority(OptimizationSourceSnapshot source, OptimizationItemSnapshot itemSnapshot) {
+        boolean fits = canFit(source, itemSnapshot);
+        if (source.sourceType() == com.albelt.gestionstock.domain.optimization.entity.OptimizationSourceType.WASTE) {
+            if (source.isOpened()) {
+                return fits ? 0 : 4;
+            }
+            return fits ? 1 : 5;
+        }
+        if (source.isOpened()) {
+            return fits ? 2 : 6;
+        }
+        return fits ? 3 : 7;
+    }
+
+    private BigDecimal fittingWasteArea(OptimizationSourceSnapshot source, OptimizationItemSnapshot itemSnapshot) {
+        BigDecimal area = source.effectiveAreaM2();
+        if (area == null) {
+            return BigDecimal.valueOf(Double.MAX_VALUE);
+        }
+
+        BigDecimal requiredArea = requiredArea(itemSnapshot);
+        if (requiredArea == null) {
+            return area;
+        }
+        return area.subtract(requiredArea).max(BigDecimal.ZERO);
+    }
+
+    private BigDecimal requiredArea(OptimizationItemSnapshot itemSnapshot) {
+        if (itemSnapshot.largeurMm() == null || itemSnapshot.longueurM() == null) {
+            return null;
+        }
+        return BigDecimal.valueOf(itemSnapshot.largeurMm())
+            .multiply(itemSnapshot.longueurM().multiply(BigDecimal.valueOf(1000)))
+            .divide(BigDecimal.valueOf(1_000_000), 4, java.math.RoundingMode.HALF_UP);
+    }
+
+    private boolean canFit(OptimizationSourceSnapshot source, OptimizationItemSnapshot itemSnapshot) {
+        if (source.widthMm() == null || source.lengthM() == null
+            || itemSnapshot.largeurMm() == null || itemSnapshot.longueurM() == null) {
+            return false;
+        }
+
+        int sourceWidth = source.widthMm();
+        int sourceLength = source.lengthMm();
+        int pieceWidth = itemSnapshot.largeurMm();
+        int pieceLength = itemSnapshot.longueurM().multiply(BigDecimal.valueOf(1000))
+            .setScale(0, java.math.RoundingMode.HALF_UP)
+            .intValue();
+
+        return (pieceWidth <= sourceWidth && pieceLength <= sourceLength)
+            || (pieceLength <= sourceWidth && pieceWidth <= sourceLength);
     }
 
     private String digest(List<String> parts) {

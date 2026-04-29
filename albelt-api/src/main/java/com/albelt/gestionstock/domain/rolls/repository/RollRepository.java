@@ -26,18 +26,22 @@ import java.util.UUID;
 @Repository
 public interface RollRepository extends JpaRepository<Roll, UUID> {
 
+    @Override
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
+    Optional<Roll> findById(UUID id);
+
     /**
      * FIFO Query: Get oldest available roll for a specific material
      * Critical performance query - uses composite index (material_type, status, received_date)
      */
-    @Query("SELECT r FROM Roll r WHERE r.materialType = :materialType AND r.status = :status " +
-           "ORDER BY r.receivedDate ASC LIMIT 1")
-    Optional<Roll> findOldestAvailableByMaterial(@Param("materialType") MaterialType materialType,
-                                                  @Param("status") RollStatus status);
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
+    Optional<Roll> findFirstByMaterialTypeAndStatusOrderByReceivedDateAsc(MaterialType materialType,
+                                                                          RollStatus status);
 
     /**
      * Get all available rolls for a material, sorted by received date (FIFO order)
      */
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r WHERE r.materialType = :materialType AND r.status IN (:statuses) " +
            "ORDER BY r.receivedDate ASC")
     List<Roll> findFifoQueue(@Param("materialType") MaterialType materialType,
@@ -46,6 +50,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
     /**
      * Get available rolls for a material in FIFO order, optionally restricted to a specific altier.
      */
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r WHERE r.materialType = :materialType AND r.status IN (:statuses) " +
            "AND (:altierId IS NULL OR r.altier.id = :altierId) " +
            "ORDER BY r.receivedDate ASC")
@@ -56,6 +61,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
     /**
      * Find rolls with sufficient area for cutting
      */
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r WHERE r.materialType = :materialType " +
            "AND r.status IN (:statuses) " +
            "AND r.availableAreaM2 >= :requiredArea " +
@@ -157,6 +163,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
            "AND r.receivedDate >= :fromDate " +
            "AND r.receivedDate <= :toDate " +
            "AND (:search = '' OR " +
+           "CAST(r.lotId AS string) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(r.qrCode) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(r.supplier.name) LIKE CONCAT('%', :search, '%') OR " +
            "LOWER(r.altier.libelle) LIKE CONCAT('%', :search, '%') OR " +
@@ -297,6 +304,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
             coalesce(r.lengthRemainingM, r.lengthM),
             coalesce(r.availableAreaM2, r.areaM2),
             r.areaM2,
+            cast(r.status as string),
             article.nbPlis,
             article.thicknessMm,
             color.id,

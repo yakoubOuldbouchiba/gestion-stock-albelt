@@ -44,6 +44,7 @@ public interface CommandeItemRepository extends JpaRepository<CommandeItem, UUID
         select new com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot(
             ci.id,
             c.id,
+            c.status,
             a.id,
             article.id,
             article.materialType,
@@ -70,6 +71,7 @@ public interface CommandeItemRepository extends JpaRepository<CommandeItem, UUID
         select new com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot(
             ci.id,
             c.id,
+            c.status,
             a.id,
             article.id,
             article.materialType,

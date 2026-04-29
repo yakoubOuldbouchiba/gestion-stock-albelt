@@ -305,81 +305,131 @@ export function ArticlesPage({ hideHeader = false }: { hideHeader?: boolean }) {
         visible={showForm}
         onHide={handleCancel}
         footer={formFooter}
-        style={{ width: 'min(680px, 95vw)' }}
+        style={{ width: 'min(720px, 95vw)' }}
+        className="industrial-dialog"
       >
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          <div style={{ display: 'grid', gap: '0.5rem' }}>
+        <div className="albel-grid albel-grid--min280" style={{ gap: '1.25rem', padding: '0.5rem 0' }}>
+          {/* Identity Section */}
+          <div style={{ gridColumn: '1 / -1', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem', marginBottom: '0.25rem' }}>
+            <h4 style={{ margin: 0, color: 'var(--color-ink)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {t('common.details') || 'Article Identity'}
+            </h4>
+          </div>
+
+          <div className="albel-field">
             <label htmlFor="reference">{t('inventory.reference')} *</label>
-            <InputText id="reference" value={formData.reference} onChange={(e) => setFormData((prev) => ({ ...prev, reference: e.target.value }))} />
+            <InputText 
+              id="reference" 
+              value={formData.reference} 
+              onChange={(e) => setFormData((prev) => ({ ...prev, reference: e.target.value }))} 
+              placeholder="e.g. REF-12345"
+              className="w-full"
+            />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              <label htmlFor="materialType">{t('commandes.material')} *</label>
-              <Dropdown
-                inputId="materialType"
-                value={formData.materialType}
-                options={materialOptions}
-                optionLabel="label"
-                optionValue="value"
-                onChange={(e) => setFormData((prev) => ({ ...prev, materialType: e.value }))}
-              />
-            </div>
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              <label htmlFor="thicknessMm">{t('commandes.thickness')} *</label>
-              <InputNumber
-                inputId="thicknessMm"
-                value={formData.thicknessMm}
-                onValueChange={(e) => setFormData((prev) => ({ ...prev, thicknessMm: e.value ?? 0 }))}
-                min={0.1}
-                step={0.1}
-                mode="decimal"
-                minFractionDigits={1}
-                maxFractionDigits={3}
-              />
-            </div>
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              <label htmlFor="nbPlis">{t('commandes.plies')} *</label>
-              <InputNumber inputId="nbPlis" value={formData.nbPlis} onValueChange={(e) => setFormData((prev) => ({ ...prev, nbPlis: e.value ?? 0 }))} min={1} />
-            </div>
+          <div className="albel-field">
+            <label htmlFor="name">{t('common.name')}</label>
+            <InputText 
+              id="name" 
+              value={formData.name} 
+              onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} 
+              placeholder="e.g. Premium PU Fabric"
+              className="w-full"
+            />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              <label htmlFor="name">{t('common.name')}</label>
-              <InputText id="name" value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} />
-            </div>
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              <label htmlFor="code">Code</label>
-              <InputText id="code" value={formData.code} onChange={(e) => setFormData((prev) => ({ ...prev, code: e.target.value }))} />
-            </div>
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              <label htmlFor="externalId">External ID</label>
-              <InputText id="externalId" value={formData.externalId} onChange={(e) => setFormData((prev) => ({ ...prev, externalId: e.target.value }))} />
-            </div>
-            <div style={{ display: 'grid', gap: '0.5rem' }}>
-              <label htmlFor="colorId">{t('inventory.color')}</label>
-              <Dropdown
-                id="colorId"
-                value={formData.colorId}
-                options={colors}
-                optionLabel="name"
-                optionValue="id"
-                onChange={(e) => setFormData((prev) => ({ ...prev, colorId: e.value }))}
-                placeholder={t('inventory.selectColor')}
-                filter
-                showClear
-                itemTemplate={(option: Color) => (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '1rem', height: '1rem', borderRadius: '50%', backgroundColor: option.hexCode }} />
-                    <span>{option.name}</span>
-                  </div>
-                )}
-              />
-            </div>
+          <div className="albel-field">
+            <label htmlFor="code">Code</label>
+            <InputText 
+              id="code" 
+              value={formData.code} 
+              onChange={(e) => setFormData((prev) => ({ ...prev, code: e.target.value }))} 
+              placeholder="Internal ID"
+              className="w-full"
+            />
+          </div>
+
+          <div className="albel-field">
+            <label htmlFor="externalId">External ID</label>
+            <InputText 
+              id="externalId" 
+              value={formData.externalId} 
+              onChange={(e) => setFormData((prev) => ({ ...prev, externalId: e.target.value }))} 
+              placeholder="ERP Sync ID"
+              className="w-full"
+            />
+          </div>
+
+          {/* Specifications Section */}
+          <div style={{ gridColumn: '1 / -1', borderBottom: '1px solid var(--color-border)', paddingBottom: '0.5rem', marginBottom: '0.25rem', marginTop: '0.5rem' }}>
+            <h4 style={{ margin: 0, color: 'var(--color-ink)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {t('commandes.material') || 'Technical Specifications'}
+            </h4>
+          </div>
+
+          <div className="albel-field">
+            <label htmlFor="materialType">{t('commandes.material')} *</label>
+            <Dropdown
+              inputId="materialType"
+              value={formData.materialType}
+              options={materialOptions}
+              optionLabel="label"
+              optionValue="value"
+              onChange={(e) => setFormData((prev) => ({ ...prev, materialType: e.value }))}
+              className="w-full"
+            />
+          </div>
+
+          <div className="albel-field">
+            <label htmlFor="colorId">{t('inventory.color')}</label>
+            <Dropdown
+              id="colorId"
+              value={formData.colorId}
+              options={colors}
+              optionLabel="name"
+              optionValue="id"
+              onChange={(e) => setFormData((prev) => ({ ...prev, colorId: e.value }))}
+              placeholder={t('inventory.selectColor')}
+              filter
+              showClear
+              className="w-full"
+              itemTemplate={(option: Color) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '4px', backgroundColor: option.hexCode, border: '1px solid var(--color-border)' }} />
+                  <span>{option.name}</span>
+                </div>
+              )}
+            />
+          </div>
+
+          <div className="albel-field">
+            <label htmlFor="thicknessMm">{t('commandes.thickness')} (mm) *</label>
+            <InputNumber
+              inputId="thicknessMm"
+              value={formData.thicknessMm}
+              onValueChange={(e) => setFormData((prev) => ({ ...prev, thicknessMm: e.value ?? 0 }))}
+              min={0.1}
+              step={0.1}
+              mode="decimal"
+              minFractionDigits={1}
+              maxFractionDigits={3}
+              className="w-full"
+            />
+          </div>
+
+          <div className="albel-field">
+            <label htmlFor="nbPlis">{t('commandes.plies')} *</label>
+            <InputNumber 
+              inputId="nbPlis" 
+              value={formData.nbPlis} 
+              onValueChange={(e) => setFormData((prev) => ({ ...prev, nbPlis: e.value ?? 0 }))} 
+              min={1} 
+              className="w-full"
+            />
           </div>
         </div>
       </Dialog>
+
     </div>
   );
 }

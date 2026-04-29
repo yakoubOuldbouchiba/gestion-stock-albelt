@@ -7,6 +7,7 @@ import java.util.UUID;
 public record OptimizationItemSnapshot(
     UUID itemId,
     UUID commandeId,
+    String commandeStatus,
     UUID altierId,
     UUID articleId,
     String materialType,
@@ -37,6 +38,40 @@ public record OptimizationItemSnapshot(
         this(
             itemId,
             commandeId,
+            null,
+            altierId,
+            null,
+            materialType,
+            nbPlis,
+            thicknessMm,
+            longueurM,
+            largeurMm,
+            quantite,
+            colorId,
+            reference,
+            itemUpdatedAt,
+            commandeUpdatedAt
+        );
+    }
+
+    public OptimizationItemSnapshot(UUID itemId,
+                                    UUID commandeId,
+                                    String commandeStatus,
+                                    UUID altierId,
+                                    String materialType,
+                                    Integer nbPlis,
+                                    BigDecimal thicknessMm,
+                                    BigDecimal longueurM,
+                                    Integer largeurMm,
+                                    Integer quantite,
+                                    UUID colorId,
+                                    String reference,
+                                    LocalDateTime itemUpdatedAt,
+                                    LocalDateTime commandeUpdatedAt) {
+        this(
+            itemId,
+            commandeId,
+            commandeStatus,
             altierId,
             null,
             materialType,
@@ -56,6 +91,7 @@ public record OptimizationItemSnapshot(
         return new OptimizationItemSnapshot(
             itemId,
             commandeId,
+            commandeStatus,
             overriddenAltierId,
             articleId,
             materialType,

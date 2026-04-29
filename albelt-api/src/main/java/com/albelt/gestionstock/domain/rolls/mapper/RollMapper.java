@@ -156,6 +156,7 @@ public class RollMapper {
 
         return RollResponse.builder()
                 .id(entity.getId())
+                .lotId(entity.getLotId())
                 .articleId(entity.getArticle() != null ? entity.getArticle().getId() : null)
                 .article(entity.getArticle() != null ? articleMapper.toResponse(entity.getArticle()) : null)
                 .reference(entity.getReference())
