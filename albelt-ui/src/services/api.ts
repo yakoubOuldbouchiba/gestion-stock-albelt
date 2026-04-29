@@ -87,7 +87,7 @@ class ApiService {
   /**
    * Generic POST request
    */
-  async post<T>(endpoint: string, data?: unknown, p0?: { params: { suggestionId: string; }; }): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, data?: unknown): Promise<ApiResponse<T>> {
     const response = await this.api.post<ApiResponse<T>>(this.normalizeEndpoint(endpoint), data);
     return response.data;
   }
