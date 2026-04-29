@@ -53,4 +53,13 @@ public class CommandeOptimizationController {
             .contentType(MediaType.parseMediaType("text/html;charset=UTF-8"))
             .body(html);
     }
+
+    @PostMapping("/{itemId}/optimization/adopt")
+    public ResponseEntity<ApiResponse<Void>> adoptOptimization(
+            @PathVariable UUID itemId,
+            @RequestParam UUID suggestionId) {
+        log.info("POST /api/commandes/items/{}/optimization/adopt?suggestionId={} - Adopting plan", itemId, suggestionId);
+        optimizationService.adoptPlan(itemId, suggestionId);
+        return ResponseEntity.ok(ApiResponse.success(null, "Optimization plan adopted successfully"));
+    }
 }

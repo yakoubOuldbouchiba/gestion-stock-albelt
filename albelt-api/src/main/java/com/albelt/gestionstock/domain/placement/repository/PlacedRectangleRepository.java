@@ -19,6 +19,8 @@ public interface PlacedRectangleRepository extends JpaRepository<PlacedRectangle
     List<PlacedRectangle> findByWastePieceIdOrderByCreatedAtAsc(UUID wastePieceId);
     List<PlacedRectangle> findByCommandeItemIdOrderByCreatedAtAsc(UUID commandeItemId);
 
+    void deleteByCommandeItemId(UUID commandeItemId);
+
     @Query("""
         select pr from PlacedRectangle pr
         left join fetch pr.roll

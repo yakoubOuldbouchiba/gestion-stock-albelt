@@ -114,6 +114,62 @@ public class OptimizationService {
             .build();
     }
 
+    @Transactional
+    public void adoptPlan(UUID itemId, UUID suggestionId) {
+        log.info("Adopting optimization plan {} for item {}", suggestionId, itemId);
+        
+        OptimizationPlan plan = planRepository.findById(suggestionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Optimization plan not found: " + suggestionId));
+            
+        if (!plan.getCommandeItemId().equals(itemId)) {
+            throw new com.albelt.gestionstock.shared.exceptions.BusinessException("Plan does not belong to this item");
+        }
+        
+        // 1. Check for existing productions
+        long producedCount = productionItemRepository.countByCommandeItemId(itemId);
+        if (producedCount > 0) {
+            throw new com.albelt.gestionstock.shared.exceptions.BusinessException(
+                "Cannot adopt new plan: item already has " + producedCount + " produced pieces."
+            );
+        }
+        
+        // 2. Clear existing placements
+        placedRectangleRepository.deleteByCommandeItemId(itemId);
+        
+        // 3. Load suggested placements
+        List<OptimizationPlacement> suggested = placementRepository.findByPlanIdWithSourcesOrderByCreatedAtAsc(suggestionId);
+        
+        // 4. Fetch the CommandeItem to get the color
+        CommandeItem item = itemRepository.findById(itemId)
+            .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + itemId));
+        var color = item.getArticle() != null ? item.getArticle().getColor() : null;
+        
+        // 5. Convert to PlacedRectangle
+        List<PlacedRectangle> actuals = suggested.stream()
+            .map(sp -> PlacedRectangle.builder()
+                .commandeItemId(itemId)
+                .roll(sp.getRoll())
+                .wastePiece(sp.getWastePiece())
+                .xMm(sp.getXMm())
+                .yMm(sp.getYMm())
+                .widthMm(sp.getWidthMm())
+                .heightMm(sp.getHeightMm())
+                .color(color)
+                .build())
+            .toList();
+            
+        placedRectangleRepository.saveAll(actuals);
+        
+        // 6. Mark item as ENCOURS if it was PENDING
+        if ("PENDING".equalsIgnoreCase(item.getStatus())) {
+            item.setStatus("ENCOURS");
+            itemRepository.save(item);
+        }
+        
+        log.info("Successfully adopted plan {} for item {}. Created {} placements.", 
+            suggestionId, itemId, actuals.size());
+    }
+
     private OptimizationPlan resolveSuggestionPlan(UUID commandeItemId,
                                                    OptimizationItemSnapshot item,
                                                    boolean forceRegenerate) {
@@ -236,7 +292,7 @@ public class OptimizationService {
         MaterialType materialType = parseMaterialType(item.getMaterialType());
         Integer nbPlis = item.getNbPlis();
         BigDecimal thickness = item.getThicknessMm();
-        UUID colorId = item.getArticle().getColor()  != null ? item.getArticle().getColor() .getId() : null;
+        UUID colorId = (item.getArticle() != null && item.getArticle().getColor() != null) ? item.getArticle().getColor().getId() : null;
         String reference = normalize(item.getReference());
         UUID articleId = item.getArticle() != null ? item.getArticle().getId() : null;
 
@@ -259,8 +315,8 @@ public class OptimizationService {
             .filter(wp -> matchesCommonFilters(articleId, materialType, nbPlis, thickness, colorId, reference,
                 wp.getArticle() != null ? wp.getArticle().getId() : null,
                 wp.getMaterialType(), wp.getNbPlis(), wp.getThicknessMm(),
-                wp.getArticle().getColor()  != null ? wp.getArticle().getColor() .getId() : null, wp.getReference()))
-            .map(wp -> SourceCandidate.fromWaste(wp))
+                (wp.getArticle() != null && wp.getArticle().getColor() != null) ? wp.getArticle().getColor().getId() : null, wp.getReference()))
+            .map(SourceCandidate::fromWaste)
             .filter(sc -> sc.canFit(item))
             .sorted(Comparator.comparing(SourceCandidate::effectiveAreaM2).reversed())
             .collect(Collectors.toList());
@@ -274,7 +330,7 @@ public class OptimizationService {
             .filter(r -> matchesCommonFilters(articleId, materialType, nbPlis, thickness, colorId, reference,
                 r.getArticle() != null ? r.getArticle().getId() : null,
                 r.getMaterialType(), r.getNbPlis(), r.getThicknessMm(),
-                r.getArticle().getColor()  != null ? r.getArticle().getColor() .getId() : null, r.getReference()))
+                (r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getId() : null, r.getReference()))
             .map(SourceCandidate::fromRoll)
             .filter(sc -> sc.canFit(item))
             .sorted(Comparator.comparing(SourceCandidate::fifoScore).reversed())
@@ -858,12 +914,13 @@ public class OptimizationService {
                     .sourceId(id)
                     .label("ROLL")
                     .reference(r.getReference())
+                    .lotId(r.getLotId())
                     .nbPlis(r.getNbPlis())
                     .thicknessMm(r.getThicknessMm())
                     .widthMm(r.getWidthMm())
                     .lengthM(r.getLengthM())
-                    .colorName(r.getArticle().getColor()  != null ? r.getArticle().getColor() .getName() : null)
-                    .colorHexCode(r.getArticle().getColor()  != null ? r.getArticle().getColor() .getHexCode() : null)
+                    .colorName((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getName() : null)
+                    .colorHexCode((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getHexCode() : null)
                     .qrCode(r.getQrCode())
                     .build());
             } else if (pr.getWastePiece() != null) {
@@ -874,12 +931,13 @@ public class OptimizationService {
                     .sourceId(id)
                     .label("CHUTE")
                     .reference(w.getReference())
+                    .lotId(w.getLotId())
                     .nbPlis(w.getNbPlis())
                     .thicknessMm(w.getThicknessMm())
                     .widthMm(w.getWidthMm())
                     .lengthM(w.getLengthM())
-                    .colorName(w.getArticle().getColor()  != null ? w.getArticle().getColor() .getName() : null)
-                    .colorHexCode(w.getArticle().getColor()  != null ? w.getArticle().getColor() .getHexCode() : null)
+                    .colorName((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getName() : null)
+                    .colorHexCode((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getHexCode() : null)
                     .qrCode(w.getQrCode())
                     .build());
             }
@@ -904,8 +962,8 @@ public class OptimizationService {
                 .yMm(pr.getYMm())
                 .widthMm(pr.getWidthMm())
                 .heightMm(pr.getHeightMm())
-                .placementColorName(pr.getColor()  != null ? pr.getColor() .getName() : null)
-                .placementColorHexCode(pr.getColor()  != null ? pr.getColor() .getHexCode() : null)
+                .placementColorName(pr.getColor() != null ? pr.getColor().getName() : null)
+                .placementColorHexCode(pr.getColor() != null ? pr.getColor().getHexCode() : null)
                 .qrCode(buildPlacementQrCode(
                     sourceType,
                     sourceId,
@@ -917,8 +975,8 @@ public class OptimizationService {
                     null,
                     null,
                     null,
-                    pr.getColor()  != null ? pr.getColor() .getName() : null,
-                    pr.getColor()  != null ? pr.getColor() .getHexCode() : null
+                    pr.getColor() != null ? pr.getColor().getName() : null,
+                    pr.getColor() != null ? pr.getColor().getHexCode() : null
                 ))
                 .build());
         }
@@ -939,12 +997,13 @@ public class OptimizationService {
                     .sourceId(id)
                     .label("ROLL")
                     .reference(r.getReference())
+                    .lotId(r.getLotId())
                     .nbPlis(r.getNbPlis())
                     .thicknessMm(r.getThicknessMm())
                     .widthMm(r.getWidthMm())
                     .lengthM(r.getLengthM())
-                    .colorName(r.getArticle().getColor()  != null ? r.getArticle().getColor() .getName() : null)
-                    .colorHexCode(r.getArticle().getColor()  != null ? r.getArticle().getColor() .getHexCode() : null)
+                    .colorName((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getName() : null)
+                    .colorHexCode((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getHexCode() : null)
                     .qrCode(r.getQrCode())
                     .build());
             } else if (op.getWastePiece() != null) {
@@ -955,12 +1014,13 @@ public class OptimizationService {
                     .sourceId(id)
                     .label("CHUTE")
                     .reference(w.getReference())
+                    .lotId(w.getLotId())
                     .nbPlis(w.getNbPlis())
                     .thicknessMm(w.getThicknessMm())
                     .widthMm(w.getWidthMm())
                     .lengthM(w.getLengthM())
-                    .colorName(w.getArticle().getColor()  != null ? w.getArticle().getColor() .getName() : null)
-                    .colorHexCode(w.getArticle().getColor()  != null ? w.getArticle().getColor() .getHexCode() : null)
+                    .colorName((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getName() : null)
+                    .colorHexCode((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getHexCode() : null)
                     .qrCode(w.getQrCode())
                     .build());
             }
@@ -1292,26 +1352,44 @@ public class OptimizationService {
         }
 
         static SourceCandidate fromRoll(Roll roll) {
-            int width = roll.getWidthRemainingMm() != null ? roll.getWidthRemainingMm() : roll.getWidthMm();
-            int height = toLengthMmStatic(roll.getLengthRemainingM() != null ? roll.getLengthRemainingM() : roll.getLengthM());
-            BigDecimal available = roll.getAvailableAreaM2() != null ? roll.getAvailableAreaM2() : roll.getAreaM2();
-            BigDecimal full = roll.getAreaM2() != null ? roll.getAreaM2() : BigDecimal.ZERO;
-            Long age = roll.getReceivedDate() != null
-                ? ChronoUnit.DAYS.between(roll.getReceivedDate(), LocalDate.now())
-                : 0L;
-            String reference = roll.getReference() != null ? roll.getReference() : roll.getId().toString();
-            return new SourceCandidate(OptimizationSourceType.ROLL, roll, null, width, height, available, full,
-                "ROLL", reference, roll.getNbPlis(), roll.getThicknessMm(), age);
+            long age = roll.getCreatedAt() != null ? ChronoUnit.DAYS.between(roll.getCreatedAt().toLocalDate(), LocalDate.now()) : 0;
+            return new SourceCandidate(
+                OptimizationSourceType.ROLL,
+                roll,
+                null,
+                roll.getWidthMm(),
+                toLengthMmStatic(roll.getLengthM()),
+                roll.getAreaM2(),
+                roll.getAreaM2(),
+                "ROLL",
+                roll.getReference(),
+                roll.getNbPlis(),
+                roll.getThicknessMm(),
+                age
+            );
         }
 
-        static SourceCandidate fromWaste(WastePiece wastePiece) {
-            int width = wastePiece.getWidthRemainingMm() != null ? wastePiece.getWidthRemainingMm() : wastePiece.getWidthMm();
-            int height = toLengthMmStatic(wastePiece.getLengthRemainingM() != null ? wastePiece.getLengthRemainingM() : wastePiece.getLengthM());
-            BigDecimal available = wastePiece.getAvailableAreaM2() != null ? wastePiece.getAvailableAreaM2() : wastePiece.getAreaM2();
-            BigDecimal full = wastePiece.getAreaM2() != null ? wastePiece.getAreaM2() : BigDecimal.ZERO;
-            String reference = wastePiece.getReference() != null ? wastePiece.getReference() : wastePiece.getId().toString();
-            return new SourceCandidate(OptimizationSourceType.WASTE, null, wastePiece, width, height, available, full,
-                "CHUTE", reference, wastePiece.getNbPlis(), wastePiece.getThicknessMm(), 0L);
+        static SourceCandidate fromWaste(WastePiece wp) {
+            long age = wp.getCreatedAt() != null ? ChronoUnit.DAYS.between(wp.getCreatedAt().toLocalDate(), LocalDate.now()) : 0;
+            return new SourceCandidate(
+                OptimizationSourceType.WASTE,
+                null,
+                wp,
+                wp.getWidthMm(),
+                toLengthMmStatic(wp.getLengthM()),
+                wp.getAreaM2(),
+                wp.getAreaM2(),
+                "CHUTE",
+                wp.getReference(),
+                wp.getNbPlis(),
+                wp.getThicknessMm(),
+                age
+            );
+        }
+
+        boolean canFit(Piece piece) {
+            return (piece.widthMm <= widthMm && piece.lengthMm <= heightMm)
+                || (piece.lengthMm <= widthMm && piece.widthMm <= heightMm);
         }
 
         boolean canFit(CommandeItem item) {
@@ -1530,10 +1608,6 @@ public class OptimizationService {
             this.label = label;
         }
 
-        /**
-         * Placement coordinates are stored as (x along source width, y along source length).
-         * For visualization we render length on X axis and width on Y axis, so we swap axes.
-         */
         private static SvgRect fromPlacement(int xMm, int yMm, int widthMm, int heightMm, String fill, String stroke, String label) {
             return new SvgRect(yMm, xMm, heightMm, widthMm, fill, stroke, label);
         }
@@ -1554,7 +1628,6 @@ public class OptimizationService {
                 .append("\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\" opacity=\"").append(opacity).append("\"/>");
 
             if (label != null && !label.isBlank()) {
-                // Only draw inline text when the rectangle is big enough; tooltip is always present.
                 int fontSize = Math.max(14, Math.min(60, Math.min(width, height) / 6));
                 int minTextWidth = Math.min(520, Math.max(140, (int) Math.ceil(label.length() * (fontSize * 0.55))));
                 if (width < minTextWidth || height < (fontSize + 10)) {
@@ -1619,7 +1692,6 @@ public class OptimizationService {
             int length = SourceCandidate.toLengthMmStatic(roll.getLengthM());
             String reference = roll.getReference() != null ? roll.getReference() : roll.getId().toString();
             String details = buildSourceDetails(reference, roll.getNbPlis(), roll.getThicknessMm(), width, length);
-            // Render length on X axis and width on Y axis.
             return new SvgGroupBuilder("ROLL", details, length, width);
         }
 
@@ -1628,7 +1700,6 @@ public class OptimizationService {
             int length = SourceCandidate.toLengthMmStatic(wastePiece.getLengthM());
             String reference = wastePiece.getReference() != null ? wastePiece.getReference() : wastePiece.getId().toString();
             String details = buildSourceDetails(reference, wastePiece.getNbPlis(), wastePiece.getThicknessMm(), width, length);
-            // Render length on X axis and width on Y axis.
             return new SvgGroupBuilder("CHUTE", details, length, width);
         }
 

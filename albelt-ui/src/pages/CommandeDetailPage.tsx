@@ -103,8 +103,6 @@ export function CommandeDetailPage() {
   const showError = useCallback((detail: string) => showToast('error', t('common.error'), detail), [showToast, t]);
   const showWarning = useCallback((detail: string) => showToast('warn', t('common.warning'), detail), [showToast, t]);
 
-
-
   const {
     wasteForItem,
     availableWasteByArticle,
@@ -291,8 +289,6 @@ export function CommandeDetailPage() {
     return items.filter(item => [item.lineNumber ? `line ${item.lineNumber}` : '', item.reference, item.materialType, item.colorName, item.typeMouvement].join(' ').toLowerCase().includes(query));
   }, [commande?.items, itemSearchQuery]);
 
-
-
   const selectedItem = useMemo(() => commande?.items.find(i => i.id === selectedItemId) ?? null, [commande?.items, selectedItemId]);
   const orderTotals = useMemo(() => {
     return (commande?.items ?? []).reduce((acc, item) => {
@@ -409,8 +405,6 @@ export function CommandeDetailPage() {
         const parts = vbMatch[1].split(/[\s,]+/).map(Number);
         const vbW = parts[2];
         if (vbW > 0) {
-          // Heuristic: font size should be about 1/80th of the viewbox width
-          // to be readable but not overwhelming.
           const fontSize = Math.max(12, Math.round(vbW / 80));
           const strokeWidth = Math.max(0.5, fontSize / 12);
           extraStyles = `
@@ -453,10 +447,8 @@ export function CommandeDetailPage() {
       if (vbW <= 0 || vbH <= 0 || Number.isNaN(vbW)) return null;
 
       const ratio = vbW / vbH;
-      // Only slice if it's too long
       if (ratio <= maxAspectRatio) return null;
 
-      // Calculate how many slices we need
       const count = Math.min(Math.ceil(ratio / maxAspectRatio), 12);
       const sliceW = vbW / count;
       
@@ -468,7 +460,6 @@ export function CommandeDetailPage() {
         const sliceViewBox = `${startX} ${minY} ${sliceW} ${vbH}`;
         const sliceSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${sliceViewBox}">${innerSvg}</svg>`;
         
-        // Create a human-friendly label (assuming dimensions are in mm)
         const startM = (startX / 1000).toFixed(1);
         const endM = ((startX + sliceW) / 1000).toFixed(1);
         
@@ -605,8 +596,45 @@ export function CommandeDetailPage() {
                           isBusy={isBusy}
                           isCommandeLocked={isCommandeLocked}
                           onRegenerate={(itemId) => loadOptimizationForItem(itemId, true)}
+                          onAdoptPlan={async (itemId, suggestionId) => {
+                            try {
+                              await CommandeService.adoptOptimization(itemId, suggestionId);
+                              showSuccess(t('commandes.planAdoptedSuccess') || 'Plan adopted successfully');
+                              loadPlacementsForItem(itemId);
+                              loadOptimizationForItem(itemId);
+                            } catch {
+                              showError(t('messages.operationFailed'));
+                            }
+                          }}
                           onEnlarge={(title, svg) => setSvgZoomPreview({ title, svg })}
                           onPrint={printServerGeneratedLayout}
+                          onPrintTiled={(svgString, variant) => {
+                            if (!svgString) {
+                              alert('No SVG to print.');
+                              return;
+                            }
+                            const printWindow = window.open('', '_blank');
+                            if (printWindow) {
+                              printWindow.document.write(`
+                                <html>
+                                  <head>
+                                    <title>Print SVG (${variant})</title>
+                                    <style>
+                                      body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+                                      svg { width: 100%; height: auto; }
+                                    </style>
+                                  </head>
+                                  <body>
+                                    ${svgString}
+                                    <script>
+                                      window.onload = function() { window.print(); }
+                                    <\/script>
+                                  </body>
+                                </html>
+                              `);
+                              printWindow.document.close();
+                            }
+                          }}
                           formatMetricValue={(v, d) => (v != null && !Number.isNaN(v)) ? Number(v).toFixed(d ?? 2) : '-'}
                           normalizeOptimizationSvg={normalizeOptimizationSvg}
                           buildOptimizationSvgSlices={buildOptimizationSvgSlices}
@@ -769,9 +797,17 @@ export function CommandeDetailPage() {
         {svgZoomPreview && (() => {
           const slices = buildOptimizationSvgSlices(svgZoomPreview.svg);
           const isSliced = Array.isArray(slices) && slices.length > 1;
-          
+          if (isSliced) {
+            console.log('ZOOM MODAL DEBUG: SLICED', { count: slices.length, firstSlice: slices[0]?.html?.slice(0, 200) });
+          } else {
+            const normalized = normalizeOptimizationSvg(svgZoomPreview.svg);
+            console.log('ZOOM MODAL DEBUG: NOT SLICED', { normalizedStart: normalized?.slice(0, 200) });
+          }
           return (
-            <div className={`albel-svg-viewer albel-svg-viewer--zoom${isSliced ? ' albel-svg-viewer--sliced' : ''}`}>
+            <div
+              className={`albel-svg-viewer albel-svg-viewer--zoom${isSliced ? ' albel-svg-viewer--sliced' : ''}`}
+              style={{ border: '3px solid red', minHeight: 400, background: '#fffbe6' }}
+            >
               {isSliced ? (
                 <div className="albel-svg-slices">
                   {slices!.map((slice, idx) => (

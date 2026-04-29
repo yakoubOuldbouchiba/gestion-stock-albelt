@@ -4,6 +4,8 @@ import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import type { CommandeItem, OptimizationComparison } from '../../types';
 import { useI18n } from '@hooks/useI18n';
+import './OptimizationSection.css';
+import { IndustrialRollVisualizer } from '../detail/IndustrialRollVisualizer';
 
 interface OptimizationSectionProps {
   item: CommandeItem;
@@ -14,8 +16,10 @@ interface OptimizationSectionProps {
   isBusy: boolean;
   isCommandeLocked: boolean;
   onRegenerate: (itemId: string) => void;
+  onAdoptPlan: (itemId: string, suggestionId: string) => void;
   onEnlarge: (title: string, svg: string) => void;
   onPrint: (variant: 'actual' | 'suggested') => void;
+  onPrintTiled: (svg: string, variant: 'actual' | 'suggested') => void;
   formatMetricValue: (value?: number, digits?: number) => string;
   normalizeOptimizationSvg: (rawSvg: string) => string;
   buildOptimizationSvgSlices: (rawSvg: string) => { html: string; label: string }[] | null;
@@ -30,11 +34,13 @@ export function OptimizationSection({
   isBusy,
   isCommandeLocked,
   onRegenerate,
-  onEnlarge,
+  onAdoptPlan,
+  onEnlarge: _onEnlarge,
   onPrint,
+  onPrintTiled,
   formatMetricValue,
-  normalizeOptimizationSvg,
-  buildOptimizationSvgSlices,
+  normalizeOptimizationSvg: _normalizeOptimizationSvg,
+  buildOptimizationSvgSlices: _buildOptimizationSvgSlices,
 }: OptimizationSectionProps) {
   const { t } = useI18n();
 
@@ -63,70 +69,126 @@ export function OptimizationSection({
       ? suggested.sourceCount - actual.sourceCount
       : null;
 
+  const renderPlacementVisualizers = (
+    variant: 'actual' | 'suggested'
+  ) => {
+    const sources = variant === 'actual' ? optimizationComparison?.actualSources : optimizationComparison?.suggested?.sources;
+    const allPlacements = variant === 'actual' ? optimizationComparison?.actualPlacements : optimizationComparison?.suggested?.placements;
+
+    if (!sources || sources.length === 0) {
+      return <Message severity="info" text={t('messages.noDataAvailable')} />;
+    }
+
+    return (
+      <div className="optimization-visualizers-list">
+        {sources.map((source, idx) => {
+          const sourcePlacements = (allPlacements ?? []).filter(p => p.sourceId === source.sourceId);
+          // Convert lengthM to mm if needed
+          const lengthMm = source.lengthM ? source.lengthM * 1000 : 0;
+
+          // Always use the raw SVG for the current variant
+          const rawSvg = variant === 'actual'
+            ? optimizationComparison?.actualSvg
+            : optimizationComparison?.suggested?.svg;
+
+          return (
+            <div key={`${variant}-source-vis-${idx}`} className="source-visualizer-block">
+              <div className="source-vis-header">
+                <span className="vis-source-label">{t(`inventory.${source.sourceType.toLowerCase()}`)} #{idx + 1}</span>
+                <span className="vis-source-ref">
+                  {source.lotId ? `Lot #${source.lotId}` : source.reference || 'N/A'}
+                </span>
+              </div>
+              <div style={{ height: '500px' }}>
+                <IndustrialRollVisualizer
+                  widthMm={source.widthMm ?? 0}
+                  lengthMm={lengthMm}
+                  placements={sourcePlacements}
+                  baseColor={source.colorHexCode || (source.sourceType === 'ROLL' ? '#e2e8f0' : '#fef3c7')}
+                  onEnlarge={_onEnlarge}
+                  svgString={rawSvg || ''}
+                  title={
+                    `${t(`inventory.${source.sourceType.toLowerCase()}`)} #${idx + 1} - ${source.lotId ? `Lot #${source.lotId}` : source.reference || 'N/A'}`
+                  }
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderSvgPanel = (
     title: string,
-    variant: 'actual' | 'suggested',
-    svg?: string | null,
-    emptyMessage?: string
+    variant: 'actual' | 'suggested'
   ) => {
-    const svgSlices = svg ? buildOptimizationSvgSlices(svg) : null;
-    const isSliced = Array.isArray(svgSlices) && svgSlices.length > 1;
     return (
       <Card
         title={
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>{title}</span>
-            {svg && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Button
-                  icon="pi pi-search-plus"
-                  text
-                  size="small"
-                  tooltip={t('common.enlarge') || 'Enlarge'}
-                  tooltipOptions={{ position: 'left' }}
-                  onClick={() => onEnlarge(title, svg)}
-                />
-                <Button
-                  icon="pi pi-print"
-                  text
-                  size="small"
-                  tooltip={t('common.print') || 'Print'}
-                  tooltipOptions={{ position: 'left' }}
-                  onClick={() => onPrint(variant)}
-                />
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Button
+                icon="pi pi-print"
+                text
+                size="small"
+                tooltip={t('common.print') || 'Print'}
+                tooltipOptions={{ position: 'left' }}
+                onClick={() => onPrint(variant)}
+              />
+              <Button
+                icon="pi pi-th-large"
+                text
+                size="small"
+                tooltip={t('commandes.tiledPrint') || 'Tiled Print'}
+                tooltipOptions={{ position: 'left' }}
+                onClick={() => {
+                  let svgString = '';
+                  if (variant === 'suggested') {
+                    console.log('DEBUG suggested:', optimizationComparison?.suggested);
+                  }
+                  const rawSvg = variant === 'actual'
+                    ? optimizationComparison?.actualSvg
+                    : optimizationComparison?.suggested?.svg;
+                  if (_buildOptimizationSvgSlices && rawSvg) {
+                    const slices = _buildOptimizationSvgSlices(rawSvg);
+                    if (slices && slices.length > 0) {
+                      svgString = slices.map(s => s.html).join('\n');
+                    } else {
+                      svgString = rawSvg; // fallback to raw SVG if no slices
+                    }
+                  } else if (rawSvg) {
+                    svgString = rawSvg;
+                  }
+                  onPrintTiled(svgString, variant);
+                }}
+              />
+              {/* Enlarge button for SVG panel */}
+              <Button
+                icon="pi pi-search-plus"
+                text
+                size="small"
+                tooltip={t('common.enlarge') || 'Enlarge'}
+                tooltipOptions={{ position: 'left' }}
+                onClick={() => {
+                  const rawSvg = variant === 'actual'
+                    ? optimizationComparison?.actualSvg
+                    : optimizationComparison?.suggested?.svg;
+                  console.log('ENLARGE BUTTON DEBUG', { variant, title, rawSvg, rawSvgLength: rawSvg?.length, rawSvgStart: rawSvg?.slice(0, 200) });
+                  _onEnlarge(
+                    title,
+                    rawSvg || ''
+                  );
+                }}
+              />
+            </div>
           </div>
         }
         className="albel-svg-card"
-        style={{ minHeight: '280px' }}
+        style={{ minHeight: '400px' }}
       >
-        {svg ? (
-          <div
-            className={`albel-svg-viewer${isSliced ? ' albel-svg-viewer--sliced' : ''}`}
-          >
-            {isSliced ? (
-              <div className="albel-svg-slices">
-                {svgSlices!.map((slice, idx) => (
-                  <div key={`${variant}-slice-${idx}`} className="albel-svg-slice-container">
-                    <div className="albel-svg-slice-header">
-                      <span>{t('commandes.slice')} {idx + 1}</span>
-                      <span className="albel-svg-slice-label">{slice.label}</span>
-                    </div>
-                    <div
-                      className="albel-svg-slice"
-                      dangerouslySetInnerHTML={{ __html: slice.html }}
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div dangerouslySetInnerHTML={{ __html: normalizeOptimizationSvg(svg) }} />
-            )}
-          </div>
-        ) : (
-          <Message severity="info" text={emptyMessage ?? t('messages.noDataAvailable')} />
-        )}
+        {renderPlacementVisualizers(variant)}
       </Card>
     );
   };
@@ -256,18 +318,27 @@ export function OptimizationSection({
           <div className="albel-grid albel-grid--min280" style={{ gap: '0.75rem' }}>
             {renderSvgPanel(
               t('commandes.actualLayout'),
-              'actual',
-              optimizationComparison.actualSvg,
-              t('commandes.noActualSvg')
+              'actual'
             )}
             {renderSvgPanel(
               t('commandes.suggestedLayout'),
-              'suggested',
-              optimizationComparison.suggested?.svg,
-              optimizationComparison.suggested?.placements?.length
-                ? t('commandes.noSuggestedSvg')
-                : t('commandes.noFeasibleSuggestedLayout')
+              'suggested'
             )}
+          </div>
+
+
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+            <Button
+              label={t('commandes.adoptSuggestedPlan') || 'Adopt Suggested Plan'}
+              icon="pi pi-check-circle"
+              severity="success"
+              className="adopt-plan-btn"
+              disabled={isBusy || isCommandeLocked || !optimizationComparison.suggested?.placements?.length}
+              onClick={() => {
+                const suggestionId = optimizationComparison.suggested?.suggestionId;
+                if (suggestionId) onAdoptPlan(item.id, suggestionId);
+              }}
+            />
           </div>
         </div>
       )}

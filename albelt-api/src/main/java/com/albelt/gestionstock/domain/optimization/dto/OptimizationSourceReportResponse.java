@@ -23,6 +23,7 @@ public class OptimizationSourceReportResponse {
     private String label;
 
     private String reference;
+    private Integer lotId;
     private Integer nbPlis;
     private BigDecimal thicknessMm;
 

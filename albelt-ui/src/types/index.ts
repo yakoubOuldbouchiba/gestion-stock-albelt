@@ -868,6 +868,7 @@ export interface OptimizationSourceReport {
   sourceId: string;
   label: 'ROLL' | 'CHUTE';
   reference?: string | null;
+  lotId?: number | null;
   nbPlis?: number | null;
   thicknessMm?: number | null;
   widthMm?: number | null;

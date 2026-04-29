@@ -21,12 +21,13 @@ const normalizeCommande = (commande: Commande): Commande => ({
  * Commande (Order) API Service
  */
 export const CommandeService = {
-    /**
-     * Get summary statistics for orders and items
-     */
-    async getSummaryStats(): Promise<ApiResponse<OrderSummaryStats>> {
-      return ApiService.get<OrderSummaryStats>('/commandes/summary-stats');
-    },
+  /**
+   * Get summary statistics for orders and items
+   */
+  async getSummaryStats(): Promise<ApiResponse<OrderSummaryStats>> {
+    return ApiService.get<OrderSummaryStats>('/commandes/summary-stats');
+  },
+
   /**
    * Get all orders
    */
@@ -216,7 +217,7 @@ export const CommandeService = {
     return ApiService.delete<void>(`/commandes/items/${itemId}`);
   },
 
-
+  // ==================== OPTIMIZATION ====================
 
   /**
    * Get optimization comparison (actual vs suggested)
@@ -232,8 +233,18 @@ export const CommandeService = {
     return ApiService.post<OptimizationComparison>(`/commandes/items/${itemId}/optimization/regenerate`, {});
   },
 
+  /**
+   * Open server-generated print view for optimization layout
+   */
   async printOptimization(itemId: string, variant: 'actual' | 'suggested', lang: string): Promise<Blob> {
     return ApiService.getBlob(`/commandes/items/${itemId}/optimization/print`, { variant, lang });
+  },
+
+  /**
+   * Adopt a suggested optimization plan, replacing existing placements
+   */
+  async adoptOptimization(itemId: string, suggestionId: string): Promise<ApiResponse<void>> {
+    return ApiService.post<void>(`/commandes/items/${itemId}/optimization/adopt`, null, { params: { suggestionId } });
   },
 };
 

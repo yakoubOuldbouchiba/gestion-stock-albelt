@@ -16,6 +16,9 @@ import java.util.UUID;
 @Repository
 public interface ProductionItemRepository extends JpaRepository<ProductionItem, UUID> {
 
+    @Query("SELECT COUNT(pi) FROM ProductionItem pi WHERE pi.placedRectangle.commandeItemId = :commandeItemId")
+    long countByCommandeItemId(@Param("commandeItemId") UUID commandeItemId);
+
     @Query("SELECT COALESCE(SUM(pi.totalAreaM2), 0) FROM ProductionItem pi " +
            "WHERE pi.placedRectangle.id = :placedRectangleId " +
            "AND (:excludeId IS NULL OR pi.id <> :excludeId)")

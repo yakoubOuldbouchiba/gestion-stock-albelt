@@ -43,6 +43,9 @@ public class PlacedRectangleMapper {
         }
         Roll roll = entity.getRoll();
         WastePiece wastePiece = entity.getWastePiece();
+        Color entityColor = entity.getColor();
+        boolean colorInitialized = entityColor != null && org.hibernate.Hibernate.isInitialized(entityColor);
+
         return PlacedRectangleResponse.builder()
                 .id(entity.getId())
                 .rollId(roll != null ? roll.getId() : null)
@@ -55,9 +58,9 @@ public class PlacedRectangleMapper {
                 .yMm(entity.getYMm())
                 .widthMm(entity.getWidthMm())
                 .heightMm(entity.getHeightMm())
-                .colorId(entity.getColor() != null ? entity.getColor().getId() : null)
-                .colorName(entity.getColor() != null ? entity.getColor().getName() : null)
-                .colorHexCode(entity.getColor() != null ? entity.getColor().getHexCode() : null)
+                .colorId(entityColor != null ? entityColor.getId() : null)
+                .colorName(colorInitialized ? entityColor.getName() : null)
+                .colorHexCode(colorInitialized ? entityColor.getHexCode() : null)
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
@@ -94,6 +97,9 @@ public class PlacedRectangleMapper {
         if (roll == null) {
             return null;
         }
+        Color color = roll.getArticle() != null ? roll.getArticle().getColor() : null;
+        boolean colorInitialized = color != null && org.hibernate.Hibernate.isInitialized(color);
+
         return RollSummaryResponse.builder()
                 .id(roll.getId())
                 .reference(roll.getReference())
@@ -108,9 +114,9 @@ public class PlacedRectangleMapper {
                 .usedAreaM2(roll.getUsedAreaM2())
                 .availableAreaM2(roll.getAvailableAreaM2())
                 .status(roll.getStatus())
-                .colorId(roll.getArticle() != null ? roll.getArticle().getColor().getId() : null)
-                .colorName(roll.getArticle() != null ? roll.getArticle().getColor().getName() : null)
-                .colorHexCode(roll.getArticle() != null ? roll.getArticle().getColor().getHexCode() : null)
+                .colorId(color != null ? color.getId() : null)
+                .colorName(colorInitialized ? color.getName() : null)
+                .colorHexCode(colorInitialized ? color.getHexCode() : null)
                 .build();
     }
 
@@ -118,6 +124,9 @@ public class PlacedRectangleMapper {
         if (wastePiece == null) {
             return null;
         }
+        Color color = wastePiece.getArticle() != null ? wastePiece.getArticle().getColor() : null;
+        boolean colorInitialized = color != null && org.hibernate.Hibernate.isInitialized(color);
+
         return WastePieceSummaryResponse.builder()
                 .id(wastePiece.getId())
                 .rollId(wastePiece.getRoll() != null ? wastePiece.getRoll().getId() : null)
@@ -137,9 +146,9 @@ public class PlacedRectangleMapper {
                 .availableAreaM2(wastePiece.getAvailableAreaM2())
                 .status(wastePiece.getStatus())
                 .wasteType(wastePiece.getWasteType())
-                .colorId(wastePiece.getArticle().getColor() != null ? wastePiece.getArticle().getColor().getId() : null)
-                .colorName(wastePiece.getArticle().getColor() != null ? wastePiece.getArticle().getColor().getName() : null)
-                .colorHexCode(wastePiece.getArticle().getColor() != null ? wastePiece.getArticle().getColor().getHexCode() : null)
+                .colorId(color != null ? color.getId() : null)
+                .colorName(colorInitialized ? color.getName() : null)
+                .colorHexCode(colorInitialized ? color.getHexCode() : null)
                 .build();
     }
 
@@ -147,6 +156,9 @@ public class PlacedRectangleMapper {
         if (item == null) {
             return null;
         }
+        Color color = item.getArticle() != null ? item.getArticle().getColor() : null;
+        boolean colorInitialized = color != null && org.hibernate.Hibernate.isInitialized(color);
+
         return CommandeItemSummaryResponse.builder()
                 .id(item.getId())
                 .lineNumber(item.getLineNumber())
@@ -160,9 +172,9 @@ public class PlacedRectangleMapper {
                 .status(item.getStatus())
                 .typeMouvement(item.getTypeMouvement())
                 .reference(item.getReference())
-                .colorId(item.getArticle().getColor() != null ? item.getArticle().getColor().getId() : null)
-                .colorName(item.getArticle().getColor() != null ? item.getArticle().getColor().getName() : null)
-                .colorHexCode(item.getArticle().getColor() != null ? item.getArticle().getColor().getHexCode() : null)
+                .colorId(color != null ? color.getId() : null)
+                .colorName(colorInitialized ? color.getName() : null)
+                .colorHexCode(colorInitialized ? color.getHexCode() : null)
                 .build();
     }
 }

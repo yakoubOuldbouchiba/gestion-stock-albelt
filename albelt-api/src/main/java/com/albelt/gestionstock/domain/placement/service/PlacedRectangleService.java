@@ -255,7 +255,7 @@ public class PlacedRectangleService {
         UUID requestedColorId = request.getColorId();
 
         if (commandeItem != null) {
-            Color itemColor = commandeItem.getArticle().getColor();
+            Color itemColor = commandeItem.getArticle() != null ? commandeItem.getArticle().getColor() : null;
             if (itemColor != null) {
                 if (requestedColorId != null && !itemColor.getId().equals(requestedColorId)) {
                     throw new IllegalArgumentException("Placed rectangle color must match commande item color");
@@ -279,10 +279,18 @@ public class PlacedRectangleService {
             return existing.map(PlacedRectangle::getColor).orElse(null);
         }
 
-        Color sourceColor = roll != null ? roll.getArticle().getColor() : wastePiece != null ? wastePiece.getArticle().getColor() : null;
+        Color sourceColor = null;
+        if (roll != null && roll.getArticle() != null) {
+            sourceColor = roll.getArticle().getColor();
+        } else if (wastePiece != null && wastePiece.getArticle() != null) {
+            sourceColor = wastePiece.getArticle().getColor();
+        }
+
         Optional<PlacedRectangle> existingForSource = roll != null
                 ? placedRectangleRepository.findFirstByRollIdAndCommandeItemIdIsNullAndColorIsNotNullOrderByCreatedAtAsc(roll.getId())
-                : placedRectangleRepository.findFirstByWastePieceIdAndCommandeItemIdIsNullAndColorIsNotNullOrderByCreatedAtAsc(wastePiece.getId());
+                : wastePiece != null
+                    ? placedRectangleRepository.findFirstByWastePieceIdAndCommandeItemIdIsNullAndColorIsNotNullOrderByCreatedAtAsc(wastePiece.getId())
+                    : Optional.empty();
 
         if (sourceColor != null) {
             if (requestedColorId != null && !sourceColor.getId().equals(requestedColorId)) {

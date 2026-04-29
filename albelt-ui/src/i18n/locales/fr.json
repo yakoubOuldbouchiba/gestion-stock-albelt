@@ -38,6 +38,7 @@
     "list": "Liste",
     "refresh": "Actualiser",
     "enlarge": "Grandir",
+    "tiledPrint": "Impression tuilée",
     "saving": "Enregistrement…",
     "noData": "Aucune donnée disponible",
     "loading_data": "Chargement des données...",
@@ -786,7 +787,9 @@
     "operationFailed": "L'opération a échoué",
     "operationSuccess": "Opération complétée avec succès",
     "noSuppliersFound": "Aucun fournisseur trouvé",
-    "loading": "Chargement..."
+    "loading": "Chargement...",
+    "noDataToPrint": "Aucune donnée disponible pour l'impression",
+    "noItems": "Aucun article"
   },
   "clients": {
     "title": "Gestion des Clients",
