@@ -54,15 +54,15 @@ export function CommandeDetailPage() {
   const [itemSearchQuery, setItemSearchQuery] = useState('');
   const [activeItemDetailTabIndex, setActiveItemDetailTabIndex] = useState(0);
   const [svgZoomPreview, setSvgZoomPreview] = useState<{ title: string; svg: string } | null>(null);
-  
+
   const [showPlacementModal, setShowPlacementModal] = useState(false);
   const [placementTargetItem, setPlacementTargetItem] = useState<CommandeItem | null>(null);
   const [showPlacementPreview, setShowPlacementPreview] = useState(false);
   const [previewPlacement, setPreviewPlacement] = useState<PlacedRectangle | null>(null);
-  
+
   const [showProductionModal, setShowProductionModal] = useState(false);
   const [productionTargetItem, setProductionTargetItem] = useState<CommandeItem | null>(null);
-  
+
   const [showChuteForm, setShowChuteForm] = useState(false);
   const [chuteTargetItem, setChuteTargetItem] = useState<CommandeItem | null>(null);
   const [parentWastePieces, setParentWastePieces] = useState<any[]>([]);
@@ -325,7 +325,7 @@ export function CommandeDetailPage() {
     if (source?.nbPlis != null && source.nbPlis !== item.nbPlis) warnings.push(t('commandes.productionMismatchPlies', { expected: item.nbPlis, actual: source.nbPlis }));
     if (source?.thicknessMm != null && item.thicknessMm != null && source.thicknessMm !== item.thicknessMm) warnings.push(t('commandes.productionMismatchThickness', { expected: item.thicknessMm, actual: source.thicknessMm }));
     if (item.largeurMm != null && pieceWidth !== item.largeurMm) warnings.push(t('commandes.productionMismatchWidth', { expected: item.largeurMm, actual: pieceWidth }));
-    
+
     const itemLength = item.longueurM;
     const tolerance = item.longueurToleranceM ?? 0;
     if (itemLength != null && (pieceLength < itemLength - tolerance || pieceLength > itemLength + tolerance)) {
@@ -397,7 +397,7 @@ export function CommandeDetailPage() {
 
   const normalizeOptimizationSvg = (rawSvg: string) => {
     if (!rawSvg) return '';
-    
+
     let extraStyles = '';
     try {
       const vbMatch = rawSvg.match(/viewBox=["']([^"']+)["']/);
@@ -451,7 +451,7 @@ export function CommandeDetailPage() {
 
       const count = Math.min(Math.ceil(ratio / maxAspectRatio), 12);
       const sliceW = vbW / count;
-      
+
       const slices: { html: string; label: string }[] = [];
       const innerSvg = svgEl.innerHTML;
 
@@ -459,10 +459,10 @@ export function CommandeDetailPage() {
         const startX = minX + i * sliceW;
         const sliceViewBox = `${startX} ${minY} ${sliceW} ${vbH}`;
         const sliceSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${sliceViewBox}">${innerSvg}</svg>`;
-        
+
         const startM = (startX / 1000).toFixed(1);
         const endM = ((startX + sliceW) / 1000).toFixed(1);
-        
+
         slices.push({
           html: normalizeOptimizationSvg(sliceSvg),
           label: `${startM}m — ${endM}m`
@@ -495,8 +495,8 @@ export function CommandeDetailPage() {
           t={t}
         />
 
-        <div className="commande-detail-overview">
-          <div className="commande-detail-overview__main">
+        <div >
+          <div className="commande-detail-overview__side">
             <OrderInfoCard commande={commande} t={t} />
             <div className="commande-detail-summary-grid">
               {[
@@ -512,12 +512,14 @@ export function CommandeDetailPage() {
               ))}
             </div>
           </div>
+        </div>
 
+        <div className="commande-detail-overview">
           <div className="commande-detail-overview__side">
             <Card title={t('rollDetail.workshop')}>
               <div className="commande-detail-form-stack">
-                <select 
-                  value={selectedAltierId ?? ''} 
+                <select
+                  value={selectedAltierId ?? ''}
                   onChange={e => setSelectedAltierId(e.target.value || null)}
                   disabled={altierScoresLoading || altierSaving || isCommandeLocked}
                   className="p-dropdown p-component p-inputwrapper p-inputwrapper-filled commande-detail-input-full"
@@ -532,18 +534,18 @@ export function CommandeDetailPage() {
                 </div>
               </div>
             </Card>
-
-            <StatusUpdateCard
-              updating={updating}
-              disabled={isCommandeLocked}
-              selectedStatus={selectedStatus}
-              onStart={() => handleStatusUpdate('ENCOURS')}
-              onUndoStart={() => handleStatusUpdate('PENDING')}
-              onCancel={() => handleStatusUpdate('CANCELLED')}
-              onCompleted={() => handleStatusUpdate('COMPLETED')}
-              t={t}
-            />
           </div>
+
+          <StatusUpdateCard
+            updating={updating}
+            disabled={isCommandeLocked}
+            selectedStatus={selectedStatus}
+            onStart={() => handleStatusUpdate('ENCOURS')}
+            onUndoStart={() => handleStatusUpdate('PENDING')}
+            onCancel={() => handleStatusUpdate('CANCELLED')}
+            onCompleted={() => handleStatusUpdate('COMPLETED')}
+            t={t}
+          />
         </div>
 
         {error && <Message severity="error" text={error} className="mb-4" />}
@@ -786,11 +788,11 @@ export function CommandeDetailPage() {
         creatingProduction={creatingProduction}
       />
 
-      <Dialog 
-        visible={!!svgZoomPreview} 
-        onHide={() => setSvgZoomPreview(null)} 
-        header={svgZoomPreview?.title} 
-        maximizable 
+      <Dialog
+        visible={!!svgZoomPreview}
+        onHide={() => setSvgZoomPreview(null)}
+        header={svgZoomPreview?.title}
+        maximizable
         style={{ width: '90vw' }}
         className="albel-svg-zoom-dialog"
       >

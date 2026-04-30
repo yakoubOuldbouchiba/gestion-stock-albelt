@@ -140,7 +140,7 @@ export interface Roll {
   materialType: MaterialType;
   nbPlis: number;
   thicknessMm: number;
-  
+
   // Dimensions (current state - no "initial" suffix)
   widthMm: number;
   widthRemainingMm?: number;
@@ -149,23 +149,23 @@ export interface Roll {
   areaM2: number;
   usedAreaM2?: number;
   availableAreaM2?: number;
-  
+
   status: RollStatus;
   qrCode?: string;
   colorId?: string;
   colorName?: string;
   colorHexCode?: string;
-  
+
   // Processing tracking
   totalCuts: number;
   totalWasteAreaM2: number;
   lastProcessingDate?: string;
-  
+
   // Convenience flags
   availableForCutting?: boolean;
-  
 
-  
+
+
   // Audit
   createdBy?: string;
   createdAt: string;
@@ -344,6 +344,8 @@ export interface PlacedRectangle {
   commandeItem?: CommandeItemSummary | null;
   xMm: number;
   yMm: number;
+  xmm: number;
+  ymm: number;
   widthMm: number;
   heightMm: number;
   colorId?: string | null;
@@ -883,6 +885,8 @@ export interface OptimizationPlacementReport {
   sourceId?: string | null;
   xMm: number;
   yMm: number;
+  xmm: number;
+  ymm: number;
   widthMm: number;
   heightMm: number;
   rotated?: boolean | null;

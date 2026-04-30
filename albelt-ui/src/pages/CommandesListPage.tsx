@@ -5,7 +5,7 @@ import { useI18n } from '@hooks/useI18n';
 import { CommandesWorkbenchFilters } from '../components/commande/CommandesWorkbenchFilters';
 import { CommandesWorkbenchHeader } from '../components/commande/CommandesWorkbenchHeader';
 import { CommandesWorkbenchOrderCard } from '../components/commande/CommandesWorkbenchOrderCard';
-import { CommandesWorkbenchWorkspace } from '../components/commande/CommandesWorkbenchWorkspace';
+// import { CommandesWorkbenchWorkspace } from '../components/commande/CommandesWorkbenchWorkspace';
 import { useCommandesWorkbench } from './hooks/useCommandesWorkbench';
 import './CommandesListPage.css';
 
@@ -65,13 +65,14 @@ function CommandesListPage() {
                     metrics={workbench.getOrderMetrics(order)}
                     isSelected={workbench.highlightedOrder?.id === order.id}
                     onSelect={() => workbench.setSelectedOrderId(order.id)}
+                    onOpenOrder={(orderId) => navigate(`/commandes/${orderId}`)}
                   />
                 ))}
               </div>
             )}
           </div>
         </section>
-
+{/* 
         <section className="orders-workbench__panel orders-workbench__panel--workspace">
           <div className="orders-workbench__panel-header">
             <div>
@@ -87,7 +88,7 @@ function CommandesListPage() {
               onOpenOrder={(orderId) => navigate(`/commandes/${orderId}`)}
             />
           </div>
-        </section>
+        </section> */}
       </div>
     </div>
   );

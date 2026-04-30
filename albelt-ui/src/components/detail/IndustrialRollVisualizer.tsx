@@ -32,7 +32,7 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
   title,
 }) => {
   // Debug log for enlarge button props
-  console.log('ENLARGE DEBUG', { onEnlarge, svgString, title });
+  console.log('ENLARGE DEBUG', { onEnlarge, svgString, title, placements });
   const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentM, setCurrentM] = useState(0);
@@ -59,7 +59,7 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
       <div className="ux-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
           <div className="ux-header-main">
-            <h2>{t('inventory.roll')} {printSegment ? `(Segment ${printSegment.startMm/1000}m - ${printSegment.endMm/1000}m)` : `#${(lengthMm / 1000).toFixed(0)}m`}</h2>
+            <h2>{t('inventory.roll')} {printSegment ? `(Segment ${printSegment.startMm / 1000}m - ${printSegment.endMm / 1000}m)` : `#${(lengthMm / 1000).toFixed(0)}m`}</h2>
             <div className="ux-stats">
               <span className="ux-badge"><i className="pi pi-arrows-h" /> {widthMm}mm</span>
               <span className="ux-badge primary"><i className="pi pi-tag" /> {placements.length} {t('rollDetail.placements')}</span>
@@ -100,38 +100,44 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
 
             {/* Placements */}
             {placements
+              .map(p => ({
+                ...p,
+                xMm: p.xMm ?? p.xmm,
+                yMm: p.yMm ?? p.ymm
+              }))
               .filter(p => printSegment ? (p.yMm < printSegment.endMm && (p.yMm + p.heightMm) > printSegment.startMm) : true)
               .map((p, idx) => {
-              const adjustedY = printSegment ? p.yMm - printSegment.startMm : p.yMm;
-              const top = (adjustedY / 1000) * 150;
-              const height = (p.heightMm / 1000) * 150;
-              const left = (p.xMm / widthMm) * 100;
-              const width = (p.widthMm / widthMm) * 100;
+                console.log('placement', idx, p.yMm);
+                const adjustedY = printSegment ? p.yMm - printSegment.startMm : p.yMm;
+                const top = (adjustedY / 1000) * 150;
+                const height = (p.heightMm / 1000) * 150;
+                const left = (p.xMm / widthMm) * 100;
+                const width = (p.widthMm / widthMm) * 100;
 
-              return (
-                <div
-                  key={(p as any).id || `opt-${idx}`}
-                  className="ux-placement-card"
-                  style={{
-                    top: `${top}px`,
-                    height: `${height}px`,
-                    left: `${left}%`,
-                    width: `${width}%`,
-                    backgroundColor: ((p as any).colorHexCode || (p as any).placementColorHexCode) || '#3b82f6'
-                  }}
-                  onClick={() => onPlacementClick?.(p)}
-                >
-                  <div className="ux-placement-info">
-                    <span className="dim">{p.heightMm}</span>
-                    <span className="sep">×</span>
-                    <span className="dim">{p.widthMm}</span>
+                return (
+                  <div
+                    key={(p as any).id || `opt-${idx}`}
+                    className="ux-placement-card"
+                    style={{
+                      top: `${top}px`,
+                      height: `${height}px`,
+                      left: `${left}%`,
+                      width: `${width}%`,
+                      backgroundColor: ((p as any).colorHexCode || (p as any).placementColorHexCode) || '#3b82f6'
+                    }}
+                    onClick={() => onPlacementClick?.(p)}
+                  >
+                    <div className="ux-placement-info">
+                      <span className="dim">{p.heightMm}</span>
+                      <span className="sep">×</span>
+                      <span className="dim">{p.widthMm}</span>
+                    </div>
+                    <div className="ux-placement-tooltip">
+                      {p.heightMm}x{p.widthMm}mm @ {p.yMm}mm
+                    </div>
                   </div>
-                  <div className="ux-placement-tooltip">
-                    {p.heightMm}x{p.widthMm}mm @ {p.yMm}mm
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
 

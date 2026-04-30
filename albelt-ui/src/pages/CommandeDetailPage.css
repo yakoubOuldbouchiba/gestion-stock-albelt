@@ -82,7 +82,6 @@
 .commande-detail-summary-card strong,
 .commande-detail-kpi-card strong {
   color: var(--commande-ink);
-  font-size: 1.25rem;
 }
 
 .commande-detail-form-stack {
@@ -248,7 +247,7 @@
 .commande-detail-main__hero {
   padding: 1.2rem;
   border-radius: 20px;
-  background: linear-gradient(135deg, #1f4f41 0%, #3f7b69 100%);
+  background: linear-gradient(135deg, #1f4f41 0%, #85d5bd 100%);
   color: #fff;
 }
 
@@ -467,8 +466,6 @@
   /* Full width for maximum data visibility */
   gap: 1.25rem;
   max-width: 900px;
-  /* Prevent it from getting TOO wide on massive monitors */
-  margin: 0 auto;
 }
 
 .operator-card {

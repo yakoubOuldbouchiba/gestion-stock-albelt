@@ -5,6 +5,7 @@ import type { Commande } from '../../types';
 import type { WorkbenchOrderMetrics } from './CommandesWorkbench.types';
 import { getStatusSeverity } from './commandesWorkbench.utils';
 import { getArticleDisplayLabel } from '../../utils/article';
+import { Button } from 'primereact/button';
 
 interface CommandesWorkbenchOrderCardProps {
   t: TFunction;
@@ -12,6 +13,7 @@ interface CommandesWorkbenchOrderCardProps {
   metrics: WorkbenchOrderMetrics;
   isSelected: boolean;
   onSelect: () => void;
+  onOpenOrder: (orderId: string) => void;
 }
 
 export function CommandesWorkbenchOrderCard({
@@ -20,6 +22,7 @@ export function CommandesWorkbenchOrderCard({
   metrics,
   isSelected,
   onSelect,
+  onOpenOrder
 }: CommandesWorkbenchOrderCardProps) {
   return (
     <button
@@ -71,14 +74,21 @@ export function CommandesWorkbenchOrderCard({
 
       <div className="orders-workbench__footer-actions">
         <div className="orders-workbench__next-step">
-          <span className="orders-workbench__detail-label">
+          <Button
+            label={t('ordersWorkbench.openFullOrder', 'Open full order')}
+            icon="pi pi-external-link"
+            severity="secondary"
+            outlined
+            onClick={() => onOpenOrder(order.id)}
+          />
+          {/* <span className="orders-workbench__detail-label">
             {t('ordersWorkbench.nextStep', 'Next step')}
-          </span>
-          <strong>
+          </span> */}
+          {/* <strong>
             {metrics.nextItem
               ? `${t('ordersWorkbench.line', 'Line')} ${metrics.nextItem.lineNumber}`
               : t('ordersWorkbench.noItems', 'No items')}
-          </strong>
+          </strong> */}
         </div>
         <span className="orders-workbench__progress-text">{metrics.progress}%</span>
       </div>

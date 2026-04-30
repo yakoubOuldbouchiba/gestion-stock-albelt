@@ -38,36 +38,36 @@ export function OptimizationSection({
   onEnlarge: _onEnlarge,
   onPrint,
   onPrintTiled,
-  formatMetricValue,
+  //formatMetricValue,
   normalizeOptimizationSvg: _normalizeOptimizationSvg,
   buildOptimizationSvgSlices: _buildOptimizationSvgSlices,
 }: OptimizationSectionProps) {
   const { t } = useI18n();
 
-  const actual = optimizationComparison?.actualMetrics;
-  const suggested = optimizationComparison?.suggested?.metrics;
-  const actualConforme = item.totalItemsConforme ?? 0;
-  const actualNonConforme = item.totalItemsNonConforme ?? 0;
-  const actualSourceMix = (optimizationComparison?.actualSources ?? []).reduce(
-    (acc, source) => {
-      if (source.sourceType === 'ROLL') acc.rolls += 1;
-      if (source.sourceType === 'WASTE_PIECE') acc.chutes += 1;
-      return acc;
-    },
-    { rolls: 0, chutes: 0 }
-  );
-  const suggestedSourceMix = (optimizationComparison?.suggested?.sources ?? []).reduce(
-    (acc, source) => {
-      if (source.sourceType === 'ROLL') acc.rolls += 1;
-      if (source.sourceType === 'WASTE_PIECE') acc.chutes += 1;
-      return acc;
-    },
-    { rolls: 0, chutes: 0 }
-  );
-  const rollsDelta =
-    actual?.sourceCount != null && suggested?.sourceCount != null
-      ? suggested.sourceCount - actual.sourceCount
-      : null;
+  // const actual = optimizationComparison?.actualMetrics;
+  // const suggested = optimizationComparison?.suggested?.metrics;
+  // const actualConforme = item.totalItemsConforme ?? 0;
+  // const actualNonConforme = item.totalItemsNonConforme ?? 0;
+  // const actualSourceMix = (optimizationComparison?.actualSources ?? []).reduce(
+  //   (acc, source) => {
+  //     if (source.sourceType === 'ROLL') acc.rolls += 1;
+  //     if (source.sourceType === 'WASTE_PIECE') acc.chutes += 1;
+  //     return acc;
+  //   },
+  //   { rolls: 0, chutes: 0 }
+  // );
+  // const suggestedSourceMix = (optimizationComparison?.suggested?.sources ?? []).reduce(
+  //   (acc, source) => {
+  //     if (source.sourceType === 'ROLL') acc.rolls += 1;
+  //     if (source.sourceType === 'WASTE_PIECE') acc.chutes += 1;
+  //     return acc;
+  //   },
+  //   { rolls: 0, chutes: 0 }
+  // );
+  // const rollsDelta =
+  //   actual?.sourceCount != null && suggested?.sourceCount != null
+  //     ? suggested.sourceCount - actual.sourceCount
+  //     : null;
 
   const renderPlacementVisualizers = (
     variant: 'actual' | 'suggested'
@@ -246,7 +246,7 @@ export function OptimizationSection({
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           <Message severity="info" text={t('commandes.sourcePriorityHint')} />
 
-          <div
+          {/* <div
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
@@ -271,9 +271,9 @@ export function OptimizationSection({
                 {rollsDelta == null ? '-' : `${rollsDelta > 0 ? '+' : ''}${rollsDelta}`}
               </div>
             </Card>
-          </div>
+          </div> */}
 
-          <Card>
+          {/* <Card>
             <div className="albel-compare-grid">
               <div>
                 <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('commandes.metric')}</div>
@@ -313,7 +313,7 @@ export function OptimizationSection({
                 <div>-</div>
               </div>
             </div>
-          </Card>
+          </Card> */}
 
           <div className="albel-grid albel-grid--min280" style={{ gap: '0.75rem' }}>
             {renderSvgPanel(
