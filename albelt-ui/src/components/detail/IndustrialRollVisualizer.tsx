@@ -133,7 +133,10 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
                       <span className="dim">{p.widthMm}</span>
                     </div>
                     <div className="ux-placement-tooltip">
-                      {p.heightMm}x{p.widthMm}mm @ {p.yMm}mm
+                      <div><strong>Size:</strong> {p.widthMm} × {p.heightMm} mm</div>
+                      <div><strong>Position:</strong> {(p.yMm / 1000).toFixed(2)} m</div>
+                      <div><strong>X:</strong> {p.xMm} mm</div>
+                      {(p as any).id && <div><strong>ID:</strong> {(p as any).id}</div>}
                     </div>
                   </div>
                 );
