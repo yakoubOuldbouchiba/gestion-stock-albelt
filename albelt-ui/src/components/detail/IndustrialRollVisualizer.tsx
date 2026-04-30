@@ -31,8 +31,6 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
   svgString,
   title,
 }) => {
-  // Debug log for enlarge button props
-  console.log('ENLARGE DEBUG', { onEnlarge, svgString, title, placements });
   const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentM, setCurrentM] = useState(0);
@@ -107,7 +105,6 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
               }))
               .filter(p => printSegment ? (p.yMm < printSegment.endMm && (p.yMm + p.heightMm) > printSegment.startMm) : true)
               .map((p, idx) => {
-                console.log('placement', idx, p.yMm);
                 const adjustedY = printSegment ? p.yMm - printSegment.startMm : p.yMm;
                 const top = (adjustedY / 1000) * 150;
                 const height = (p.heightMm / 1000) * 150;

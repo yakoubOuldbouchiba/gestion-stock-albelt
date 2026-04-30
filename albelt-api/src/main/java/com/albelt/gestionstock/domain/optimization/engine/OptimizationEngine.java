@@ -99,6 +99,28 @@ public class OptimizationEngine {
                 continue;
             }
 
+            // Validation layer: Bounds Check
+            if (choice.xMm() + choice.placedWidthMm() > source.widthMm() ||
+                choice.yMm() + choice.placedHeightMm() > source.lengthMm()) {
+                System.err.println("WARNING: Rejected out-of-bounds placement for piece " + piece.index());
+                continue;
+            }
+
+            // Validation layer: Overlap Check
+            boolean overlapsExisting = false;
+            FreeRect newPlacement = new FreeRect(choice.xMm(), choice.yMm(), choice.placedWidthMm(), choice.placedHeightMm());
+            for (PlacementResult existing : placements) {
+                FreeRect existingRect = new FreeRect(existing.xMm(), existing.yMm(), existing.widthMm(), existing.heightMm());
+                if (overlaps(newPlacement, existingRect)) {
+                    overlapsExisting = true;
+                    System.err.println("WARNING: Rejected overlapping placement for piece " + piece.index());
+                    break;
+                }
+            }
+            if (overlapsExisting) {
+                continue;
+            }
+
             placements.add(new PlacementResult(
                 source,
                 piece.index(),
@@ -112,10 +134,7 @@ public class OptimizationEngine {
                 piece.areaM2()
             ));
 
-            FreeRect selected = choice.freeRect();
-            freeRects.remove(selected);
-            freeRects.addAll(splitRect(selected, choice.placedWidthMm(), choice.placedHeightMm()));
-            freeRects = pruneContainedRectangles(freeRects);
+            freeRects = subtractOccupiedRect(freeRects, newPlacement);
             freeRects.sort(Comparator.comparingInt(FreeRect::yMm).thenComparingInt(FreeRect::xMm));
         }
 

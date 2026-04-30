@@ -469,6 +469,29 @@ public class OptimizationService {
                 continue;
             }
 
+            FreeRect newPlacement = new FreeRect(choice.rect.xMm, choice.rect.yMm, choice.widthMm, choice.heightMm);
+
+            // Validation layer: Bounds Check
+            if (newPlacement.xMm + newPlacement.widthMm > source.widthMm ||
+                newPlacement.yMm + newPlacement.heightMm > source.heightMm) {
+                System.err.println("WARNING: Rejected out-of-bounds placement for piece " + piece.id);
+                continue;
+            }
+
+            // Validation layer: Overlap Check
+            boolean overlapsExisting = false;
+            for (PlacementRecord existing : placements) {
+                FreeRect existingRect = new FreeRect(existing.choice.rect.xMm, existing.choice.rect.yMm, existing.choice.widthMm, existing.choice.heightMm);
+                if (overlaps(newPlacement, existingRect)) {
+                    overlapsExisting = true;
+                    System.err.println("WARNING: Rejected overlapping placement for piece " + piece.id);
+                    break;
+                }
+            }
+            if (overlapsExisting) {
+                continue;
+            }
+
             BigDecimal nextArea = usedArea.add(piece.areaM2);
             if (nextArea.compareTo(sourceArea) > 0) {
                 continue;
@@ -478,9 +501,7 @@ public class OptimizationService {
             placedPieceIds.add(piece.id);
             usedArea = nextArea;
 
-            FreeRect selected = choice.rect;
-            freeRects.remove(selected);
-            freeRects.addAll(splitRect(selected, choice.widthMm, choice.heightMm));
+            freeRects = subtractOccupiedRect(freeRects, newPlacement);
             freeRects.sort(Comparator.comparingInt(FreeRect::area).reversed());
         }
 
