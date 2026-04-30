@@ -5,7 +5,6 @@ import com.albelt.gestionstock.domain.users.dto.UserAltierDTO;
 import com.albelt.gestionstock.domain.users.entity.UserAltier;
 import com.albelt.gestionstock.domain.users.mapper.UserAltierMapper;
 import com.albelt.gestionstock.domain.users.service.UserAltierService;
-import com.albelt.gestionstock.shared.enums.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

@@ -1,9 +1,11 @@
 package com.albelt.gestionstock.domain.commandes.entity;
 
 import com.albelt.gestionstock.domain.articles.entity.Article;
-import com.albelt.gestionstock.domain.colors.entity.Color;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 

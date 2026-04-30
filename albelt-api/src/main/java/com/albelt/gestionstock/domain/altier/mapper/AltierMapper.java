@@ -1,8 +1,8 @@
 package com.albelt.gestionstock.domain.altier.mapper;
 
+import com.albelt.gestionstock.domain.altier.dto.AltierDTO;
 import com.albelt.gestionstock.domain.altier.dto.AltierRequest;
 import com.albelt.gestionstock.domain.altier.dto.AltierResponse;
-import com.albelt.gestionstock.domain.altier.dto.AltierDTO;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import org.springframework.stereotype.Component;
 

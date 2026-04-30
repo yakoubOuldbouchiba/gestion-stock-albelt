@@ -1,10 +1,10 @@
 package com.albelt.gestionstock.domain.clients.service;
 
-import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import com.albelt.gestionstock.domain.clients.dto.*;
 import com.albelt.gestionstock.domain.clients.entity.*;
 import com.albelt.gestionstock.domain.clients.mapper.ClientMapper;
 import com.albelt.gestionstock.domain.clients.repository.*;
+import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Client Service - Business logic for client management

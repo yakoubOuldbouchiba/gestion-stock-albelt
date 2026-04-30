@@ -1,8 +1,8 @@
 package com.albelt.gestionstock.domain.users.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.albelt.gestionstock.shared.enums.UserRole;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.shared.enums.UserRole;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

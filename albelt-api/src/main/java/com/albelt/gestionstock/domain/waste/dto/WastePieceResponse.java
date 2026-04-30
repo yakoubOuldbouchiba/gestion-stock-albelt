@@ -3,7 +3,10 @@ package com.albelt.gestionstock.domain.waste.dto;
 import com.albelt.gestionstock.domain.articles.dto.ArticleResponse;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteType;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

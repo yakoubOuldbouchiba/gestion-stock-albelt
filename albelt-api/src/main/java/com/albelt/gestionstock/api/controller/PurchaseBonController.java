@@ -5,8 +5,8 @@ import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.purchasebons.dto.PurchaseBonRequest;
 import com.albelt.gestionstock.domain.purchasebons.dto.PurchaseBonResponse;
 import com.albelt.gestionstock.domain.purchasebons.service.PurchaseBonService;
-import com.albelt.gestionstock.shared.pdf.PdfExportService;
 import com.albelt.gestionstock.shared.enums.PurchaseBonStatus;
+import com.albelt.gestionstock.shared.pdf.PdfExportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
-import java.util.List;
 import java.util.UUID;
 
 /**

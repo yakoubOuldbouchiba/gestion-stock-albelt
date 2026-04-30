@@ -1,6 +1,5 @@
 package com.albelt.gestionstock.domain.rolls.repository;
 
-import org.springframework.data.jpa.repository.EntityGraph;
 import com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint;
 import com.albelt.gestionstock.domain.optimization.data.OptimizationSourceSnapshot;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
@@ -8,6 +7,7 @@ import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.RollStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

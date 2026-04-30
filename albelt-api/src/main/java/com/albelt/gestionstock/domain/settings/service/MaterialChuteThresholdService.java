@@ -5,7 +5,6 @@ import com.albelt.gestionstock.domain.settings.entity.MaterialChuteThreshold;
 import com.albelt.gestionstock.domain.settings.mapper.MaterialChuteThresholdMapper;
 import com.albelt.gestionstock.domain.settings.repository.MaterialChuteThresholdRepository;
 import com.albelt.gestionstock.shared.enums.MaterialType;
-import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,6 +1,9 @@
 package com.albelt.gestionstock.api.response;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Standardized API response wrapper for all endpoints

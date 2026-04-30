@@ -1,16 +1,20 @@
 package com.albelt.gestionstock.domain.commandes.entity;
 
+import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.clients.entity.Client;
+import com.albelt.gestionstock.domain.users.entity.User;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import com.albelt.gestionstock.domain.clients.entity.Client;
-import com.albelt.gestionstock.domain.altier.entity.Altier;
-import com.albelt.gestionstock.domain.users.entity.User;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Commande Entity - Represents an order/command

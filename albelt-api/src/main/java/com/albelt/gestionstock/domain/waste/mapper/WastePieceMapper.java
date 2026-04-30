@@ -2,12 +2,12 @@ package com.albelt.gestionstock.domain.waste.mapper;
 
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.articles.mapper.ArticleMapper;
+import com.albelt.gestionstock.domain.colors.entity.Color;
+import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceResponse;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
-import com.albelt.gestionstock.domain.colors.entity.Color;
-import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import org.springframework.stereotype.Component;
 

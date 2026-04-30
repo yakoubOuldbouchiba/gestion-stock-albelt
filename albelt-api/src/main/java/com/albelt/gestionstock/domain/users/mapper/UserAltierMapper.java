@@ -1,11 +1,11 @@
 package com.albelt.gestionstock.domain.users.mapper;
 
 import com.albelt.gestionstock.domain.altier.dto.AltierDTO;
+import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.users.dto.UserAltierDTO;
 import com.albelt.gestionstock.domain.users.dto.UserDTO;
-import com.albelt.gestionstock.domain.users.entity.UserAltier;
 import com.albelt.gestionstock.domain.users.entity.User;
-import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.users.entity.UserAltier;
 import org.springframework.stereotype.Component;
 
 /**

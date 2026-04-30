@@ -1,16 +1,16 @@
 package com.albelt.gestionstock.domain.commandes.service;
 
-import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
-import com.albelt.gestionstock.shared.exceptions.BusinessException;
-import com.albelt.gestionstock.domain.articles.service.ArticleService;
-import com.albelt.gestionstock.domain.commandes.dto.*;
-import com.albelt.gestionstock.domain.commandes.entity.*;
-import com.albelt.gestionstock.domain.commandes.mapper.CommandeItemMapper;
-import com.albelt.gestionstock.domain.commandes.repository.*;
-import com.albelt.gestionstock.domain.colors.entity.Color;
-import com.albelt.gestionstock.domain.colors.service.ColorService;
 import com.albelt.gestionstock.domain.articles.entity.Article;
+import com.albelt.gestionstock.domain.articles.service.ArticleService;
+import com.albelt.gestionstock.domain.colors.service.ColorService;
+import com.albelt.gestionstock.domain.commandes.dto.CommandeItemRequest;
+import com.albelt.gestionstock.domain.commandes.entity.Commande;
+import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
+import com.albelt.gestionstock.domain.commandes.mapper.CommandeItemMapper;
+import com.albelt.gestionstock.domain.commandes.repository.CommandeItemRepository;
 import com.albelt.gestionstock.domain.optimization.service.OptimizationService;
+import com.albelt.gestionstock.shared.exceptions.BusinessException;
+import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * CommandeItemService - Business logic for order line items

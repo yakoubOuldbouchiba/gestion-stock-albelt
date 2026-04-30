@@ -2,12 +2,12 @@ package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
 import com.albelt.gestionstock.api.response.PagedResponse;
+import com.albelt.gestionstock.domain.users.service.UserAltierService;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceResponse;
-import com.albelt.gestionstock.domain.waste.service.WastePieceService;
 import com.albelt.gestionstock.domain.waste.mapper.WastePieceMapper;
-import com.albelt.gestionstock.domain.users.service.UserAltierService;
+import com.albelt.gestionstock.domain.waste.service.WastePieceService;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;

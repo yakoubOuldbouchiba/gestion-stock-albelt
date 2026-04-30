@@ -13,20 +13,15 @@ import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.waste.repository.WastePieceRepository;
-import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import com.albelt.gestionstock.shared.exceptions.BusinessException;
+import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 

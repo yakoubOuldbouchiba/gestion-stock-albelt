@@ -2,7 +2,10 @@ package com.albelt.gestionstock.domain.cutting.entity;
 
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;

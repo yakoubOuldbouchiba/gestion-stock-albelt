@@ -1,8 +1,8 @@
 package com.albelt.gestionstock.domain.rolls.entity;
 
 import com.albelt.gestionstock.domain.altier.entity.Altier;
-import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.users.entity.User;
+import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

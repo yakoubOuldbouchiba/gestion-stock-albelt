@@ -1,13 +1,13 @@
 package com.albelt.gestionstock.domain.rolls.mapper;
 
+import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.articles.mapper.ArticleMapper;
+import com.albelt.gestionstock.domain.colors.entity.Color;
+import com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse;
 import com.albelt.gestionstock.domain.rolls.dto.RollRequest;
 import com.albelt.gestionstock.domain.rolls.dto.RollResponse;
-import com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse;
-import com.albelt.gestionstock.domain.articles.mapper.ArticleMapper;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
-import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.suppliers.entity.Supplier;
-import com.albelt.gestionstock.domain.altier.entity.Altier;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;

@@ -1,12 +1,7 @@
 package com.albelt.gestionstock.domain.optimization.service;
 
 import com.albelt.gestionstock.domain.commandes.repository.CommandeItemRepository;
-import com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFilter;
-import com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint;
-import com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot;
-import com.albelt.gestionstock.domain.optimization.data.OptimizationOccupiedRectSnapshot;
-import com.albelt.gestionstock.domain.optimization.data.OptimizationPlanningContext;
-import com.albelt.gestionstock.domain.optimization.data.OptimizationSourceSnapshot;
+import com.albelt.gestionstock.domain.optimization.data.*;
 import com.albelt.gestionstock.domain.optimization.repository.OptimizationPlacementRepository;
 import com.albelt.gestionstock.domain.placement.repository.PlacedRectangleRepository;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
@@ -16,19 +11,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service

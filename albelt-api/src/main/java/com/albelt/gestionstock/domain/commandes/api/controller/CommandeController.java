@@ -3,13 +3,16 @@ package com.albelt.gestionstock.domain.commandes.api.controller;
 import com.albelt.gestionstock.api.response.ApiResponse;
 import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.commandes.dto.*;
-import com.albelt.gestionstock.domain.commandes.entity.*;
-import com.albelt.gestionstock.domain.commandes.mapper.CommandeMapper;
+import com.albelt.gestionstock.domain.commandes.entity.Commande;
+import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
 import com.albelt.gestionstock.domain.commandes.mapper.CommandeItemMapper;
-import com.albelt.gestionstock.domain.commandes.service.*;
-import com.albelt.gestionstock.domain.users.entity.User;
+import com.albelt.gestionstock.domain.commandes.mapper.CommandeMapper;
+import com.albelt.gestionstock.domain.commandes.service.CommandeItemService;
+import com.albelt.gestionstock.domain.commandes.service.CommandeService;
 import com.albelt.gestionstock.domain.optimization.dto.AltierScoreResponse;
 import com.albelt.gestionstock.domain.optimization.service.OptimizationService;
+import com.albelt.gestionstock.domain.users.entity.User;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -19,7 +22,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 

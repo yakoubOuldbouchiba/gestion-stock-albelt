@@ -2,7 +2,10 @@ package com.albelt.gestionstock.domain.purchasebons.dto;
 
 import com.albelt.gestionstock.domain.users.dto.UserDTO;
 import com.albelt.gestionstock.shared.enums.PurchaseBonStatus;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

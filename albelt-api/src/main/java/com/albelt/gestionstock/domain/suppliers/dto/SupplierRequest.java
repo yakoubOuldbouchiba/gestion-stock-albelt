@@ -1,7 +1,10 @@
 package com.albelt.gestionstock.domain.suppliers.dto;
 
 import jakarta.validation.constraints.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * DTO for creating/updating suppliers

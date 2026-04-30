@@ -1,7 +1,6 @@
 package com.albelt.gestionstock.domain.waste.dto;
 
 import com.albelt.gestionstock.shared.enums.MaterialType;
-import com.albelt.gestionstock.shared.enums.RollStatus;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
