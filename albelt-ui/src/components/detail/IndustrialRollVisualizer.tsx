@@ -27,9 +27,6 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
   baseColor = '#f8fafc',
   onPlacementClick,
   printSegment,
-  onEnlarge,
-  svgString,
-  title,
 }) => {
   const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
