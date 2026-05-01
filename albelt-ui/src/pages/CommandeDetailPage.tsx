@@ -843,7 +843,7 @@ export function CommandeDetailPage() {
         })()}
       </Dialog>
 
-      <Toast ref={toastRef} baseZIndex={10000} />
+      <Toast ref={toastRef}  />
     </div>
   );
 }

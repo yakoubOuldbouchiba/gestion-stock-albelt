@@ -87,19 +87,6 @@
   pointer-events: auto;
 }
 
-.layout-main {
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  overflow-y: auto;
-  padding: var(--page-gutter);
-  background: transparent;
-  transition: var(--transition-smooth);
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
 @media (max-width: 1024px) {
   .layout-main {
     padding: clamp(12px, 3vw, 20px);
