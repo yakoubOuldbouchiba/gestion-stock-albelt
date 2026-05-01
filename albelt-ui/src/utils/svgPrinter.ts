@@ -43,7 +43,7 @@ export async function printOptimizationSimple(itemId: string, variant: 'actual' 
  * Focuses on visualization with minimal metadata
  */
 export function printSvgLayout(options: SvgPrintOptions): void {
-  const { title, variant, itemLabel, metrics, svgContent } = options;
+  const { title, itemLabel, metrics, svgContent } = options;
 
   const metricsHtml = metrics ? `
     <div class="print-metrics">
