@@ -54,6 +54,24 @@ public class CommandeOptimizationController {
             .body(html);
     }
 
+    /**
+     * Clean, SVG-focused print with minimal whitespace
+     */
+    @GetMapping(value = "/{itemId}/optimization/print-simple", produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> printOptimizationSimple(
+            @PathVariable UUID itemId,
+            @RequestParam(defaultValue = "actual") String variant,
+            @RequestParam(defaultValue = "fr") String lang,
+            @RequestParam(defaultValue = "false") boolean forceRegenerate) {
+        log.info("GET /api/commandes/items/{}/optimization/print-simple - Clean SVG print for {}", itemId, variant);
+        Locale locale = Locale.forLanguageTag(lang);
+        String html = optimizationPrintService.generateSimplePrintHtml(itemId, variant, locale, forceRegenerate);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"optimization-" + variant + ".html\"")
+            .contentType(MediaType.parseMediaType("text/html;charset=UTF-8"))
+            .body(html);
+    }
+
     @PostMapping("/{itemId}/optimization/adopt")
     public ResponseEntity<ApiResponse<Void>> adoptOptimization(
             @PathVariable UUID itemId,

@@ -4,6 +4,7 @@ import { Message } from 'primereact/message';
 import { ProgressSpinner } from 'primereact/progressspinner';
 import type { CommandeItem, OptimizationComparison } from '../../types';
 import { useI18n } from '@hooks/useI18n';
+import { downloadSvgLayout, printOptimizationSimple } from '../../utils/svgPrinter';
 import './OptimizationSection.css';
 import { IndustrialRollVisualizer } from '../detail/IndustrialRollVisualizer';
 
@@ -96,6 +97,30 @@ export function OptimizationSection({
     title: string,
     variant: 'actual' | 'suggested'
   ) => {
+    const svgContent = variant === 'actual' 
+      ? optimizationComparison?.actualSvg 
+      : optimizationComparison?.suggested?.svg;
+
+    const handlePrintSvgOnly = () => {
+      if (!svgContent) {
+        alert(t('messages.noDataAvailable'));
+        return;
+      }
+      // Use backend simple print endpoint for cleaner, minimal whitespace output
+      printOptimizationSimple(item.id, variant, 'en');
+    };
+
+    const handleDownloadSvg = () => {
+      if (!svgContent) {
+        alert(t('messages.noDataAvailable'));
+        return;
+      }
+      downloadSvgLayout(
+        `roll-layout-${variant}-${Date.now()}.svg`,
+        svgContent
+      );
+    };
+
     return (
       <Card
         title={
@@ -104,6 +129,24 @@ export function OptimizationSection({
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <Button
                 icon="pi pi-print"
+                text
+                size="small"
+                tooltip="Print SVG Layout (focused)"
+                tooltipOptions={{ position: 'left' }}
+                onClick={handlePrintSvgOnly}
+                disabled={!svgContent}
+              />
+              <Button
+                icon="pi pi-download"
+                text
+                size="small"
+                tooltip="Download SVG File"
+                tooltipOptions={{ position: 'left' }}
+                onClick={handleDownloadSvg}
+                disabled={!svgContent}
+              />
+              <Button
+                icon="pi pi-file-pdf"
                 text
                 size="small"
                 tooltip={t('common.print') || 'Print'}

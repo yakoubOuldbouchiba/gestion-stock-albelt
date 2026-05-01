@@ -40,6 +40,421 @@ public class OptimizationPrintService {
         return buildHtml(title, svg, sources, placements, metrics, locale);
     }
 
+    /**
+     * Generate clean, SVG-focused print HTML with minimal whitespace and extra info
+     */
+    public String generateSimplePrintHtml(UUID itemId, String variant, Locale locale, boolean forceRegenerate) {
+        OptimizationComparisonResponse comparison = optimizationService.getComparison(itemId, forceRegenerate);
+        String normalizedVariant = normalizeVariant(variant);
+
+        boolean suggested = "SUGGESTED".equals(normalizedVariant);
+        String title = msg(suggested ? "pdf.optimization.suggestedTitle" : "pdf.optimization.actualTitle", locale);
+        String svg = suggested
+            ? comparison.getSuggested() != null ? comparison.getSuggested().getSvg() : null
+            : comparison.getActualSvg();
+        List<OptimizationSourceReportResponse> sources = suggested
+            ? comparison.getSuggested() != null ? nullSafeSources(comparison.getSuggested().getSources()) : List.of()
+            : nullSafeSources(comparison.getActualSources());
+        List<OptimizationPlacementReportResponse> placements = suggested
+            ? comparison.getSuggested() != null ? nullSafePlacements(comparison.getSuggested().getPlacements()) : List.of()
+            : nullSafePlacements(comparison.getActualPlacements());
+        OptimizationMetricsResponse metrics = suggested && comparison.getSuggested() != null
+            ? comparison.getSuggested().getMetrics()
+            : comparison.getActualMetrics();
+
+        List<SimplePrintPage> printablePages = buildSimplePrintPages(sources, placements, locale);
+        if (printablePages.isEmpty()) {
+            printablePages = toSimplePrintPages(sliceSvgForSimplePrint(svg));
+        }
+        return buildSimpleHtml(title, printablePages, metrics, normalizedVariant, locale);
+    }
+
+    private String buildSimpleHtml(String title, List<SimplePrintPage> pages, OptimizationMetricsResponse metrics, String variant, Locale locale) {
+        String dir = isArabic(locale) ? "rtl" : "ltr";
+        String align = isArabic(locale) ? "right" : "left";
+        String metricsHtml = buildSimpleMetricsHtml(metrics, locale);
+        String pagesHtml = buildSimpleLayoutPages(title, variant, metricsHtml, pages, locale);
+
+        return """
+            <!DOCTYPE html>
+            <html lang="%s" dir="%s">
+              <head>
+                <meta charset="utf-8" />
+                <title>%s</title>
+                <style>
+                  @page { size: A4 landscape; margin: 3mm; }
+                                    :root { --simple-print-height: 204mm; }
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  html, body {
+                    background: #fff;
+                    color: #111827;
+                    font-family: Arial, sans-serif;
+                    direction: %s;
+                  }
+                  body {
+                                        padding: 0;
+                    line-height: 1.2;
+                  }
+                  .print-page {
+                    width: 100%%;
+                                        height: var(--simple-print-height);
+                    display: flex;
+                    flex-direction: column;
+                                        overflow: hidden;
+                                        page-break-inside: avoid;
+                                        break-inside: avoid-page;
+                    page-break-after: always;
+                    break-after: page;
+                  }
+                  .print-page:last-child {
+                    page-break-after: auto;
+                    break-after: auto;
+                  }
+                  .print-header {
+                    margin-bottom: 2mm;
+                    text-align: %s;
+                    padding: 0;
+                    flex-shrink: 0;
+                  }
+                  .print-title {
+                    font-size: 13pt;
+                    font-weight: 700;
+                    margin: 0 0 1px 0;
+                  }
+                  .print-subtitle {
+                    font-size: 8pt;
+                    color: #6b7280;
+                    margin: 0;
+                  }
+                                    .print-source-info {
+                                        margin-top: 1mm;
+                                        display: flex;
+                                        flex-wrap: wrap;
+                                        gap: 2.5mm;
+                                        font-size: 7pt;
+                                        color: #4b5563;
+                                    }
+                                    .print-source-field {
+                                        white-space: nowrap;
+                                    }
+                                    .print-source-label {
+                                        font-weight: 700;
+                                        color: #111827;
+                                    }
+                  .print-metrics {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 1.5mm;
+                    margin-bottom: 1.5mm;
+                    padding: 0;
+                    flex-shrink: 0;
+                  }
+                  .metric-card {
+                    padding: 1.5mm 1mm;
+                    background: #f0f9ff;
+                    border: 0.5px solid #bfdbfe;
+                    border-radius: 1px;
+                    text-align: center;
+                  }
+                  .metric-label {
+                    font-size: 6pt;
+                    color: #1e40af;
+                    font-weight: 600;
+                    display: block;
+                    margin: 0;
+                  }
+                  .metric-value {
+                    font-size: 9pt;
+                    font-weight: 700;
+                    color: #111827;
+                    display: block;
+                    margin-top: 0.5px;
+                  }
+                  .svg-container {
+                    border: 0.5px solid #d1d5db;
+                    border-radius: 1px;
+                    padding: 1.5mm;
+                    background: #fafafa;
+                    display: flex;
+                                        align-items: flex-start;
+                                        justify-content: flex-start;
+                    flex: 1;
+                                        min-height: 0;
+                    overflow: hidden;
+                    width: 100%%;
+                    direction: ltr;
+                  }
+                  .svg-container svg {
+                    width: 100%%;
+                    height: 100%%;
+                    display: block;
+                  }
+                  @media print {
+                                        body { padding: 0; }
+                                        .print-page { margin: 0; }
+                  }
+                </style>
+              </head>
+              <body>
+                %s
+                <script>window.onload = () => { window.print(); };</script>
+              </body>
+            </html>
+            """.formatted(
+            escape(locale.getLanguage()),
+            dir,
+            escape(title),
+            dir,
+            align,
+            pagesHtml
+        );
+    }
+
+    private String buildSimpleLayoutPages(String title,
+                                          String variant,
+                                          String metricsHtml,
+                                          List<SimplePrintPage> pages,
+                                          Locale locale) {
+        List<SimplePrintPage> printablePages = (pages == null || pages.isEmpty())
+            ? List.of(new SimplePrintPage(
+                "<div style=\"color: #999;\">" + escape(msg("pdf.optimization.noLayout", locale)) + "</div>",
+                ""
+            ))
+            : pages;
+        String variantLabel = variant.equals("SUGGESTED")
+            ? msg("pdf.optimization.suggested", locale)
+            : msg("pdf.optimization.actual", locale);
+
+        StringBuilder html = new StringBuilder();
+        int total = printablePages.size();
+        for (int i = 0; i < total; i++) {
+            SimplePrintPage page = printablePages.get(i);
+            String pageTitle = total > 1 ? title + " (" + (i + 1) + "/" + total + ")" : title;
+            html.append("<div class=\"print-page\">")
+                .append("<div class=\"print-header\">")
+                .append("<div class=\"print-title\">")
+                .append(escape(pageTitle))
+                .append("</div>")
+                .append("<div class=\"print-subtitle\">")
+                .append(escape(variantLabel))
+                .append("</div>")
+                .append(page.sourceInfoHtml != null && !page.sourceInfoHtml.isBlank()
+                    ? "<div class=\"print-source-info\">" + page.sourceInfoHtml + "</div>"
+                    : "")
+                .append("</div>");
+            if (i == 0 && metricsHtml != null && !metricsHtml.isBlank()) {
+                html.append(metricsHtml);
+            }
+            html.append("<div class=\"svg-container\">")
+                .append(page.svgContent)
+                .append("</div>")
+                .append("</div>");
+        }
+        return html.toString();
+    }
+
+    private String buildSimpleMetricsHtml(OptimizationMetricsResponse metrics, Locale locale) {
+        if (metrics == null) {
+            return "";
+        }
+        return "<div class=\"print-metrics\">"
+            + simpleMetric(msg("pdf.optimization.utilization", locale), formatNumber(metrics.getUtilizationPct()) + "%")
+            + simpleMetric(msg("pdf.optimization.usedArea", locale), formatNumber(metrics.getUsedAreaM2()) + " m²")
+            + simpleMetric(msg("pdf.optimization.wasteArea", locale), formatNumber(metrics.getWasteAreaM2()) + " m²")
+            + simpleMetric(msg("pdf.optimization.pieces", locale), formatInteger(metrics.getPlacedPieces()))
+            + "</div>";
+    }
+
+    private String simpleMetric(String label, String value) {
+        return "<div class=\"metric-card\"><div class=\"metric-label\">"
+            + escape(label)
+            + "</div><div class=\"metric-value\">"
+            + escape(value)
+            + "</div></div>";
+    }
+
+    private List<SimplePrintPage> buildSimplePrintPages(List<OptimizationSourceReportResponse> sources,
+                                                        List<OptimizationPlacementReportResponse> placements,
+                                                        Locale locale) {
+        if (placements == null || placements.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, OptimizationSourceReportResponse> sourcesByKey = new LinkedHashMap<>();
+        for (OptimizationSourceReportResponse source : nullSafeSources(sources)) {
+            if (source != null && source.getSourceType() != null && source.getSourceId() != null) {
+                sourcesByKey.put(source.getSourceType() + "-" + source.getSourceId(), source);
+            }
+        }
+
+        Map<String, List<OptimizationPlacementReportResponse>> placementsBySource = new LinkedHashMap<>();
+        for (OptimizationPlacementReportResponse placement : nullSafePlacements(placements)) {
+            if (placement == null || placement.getSourceType() == null || placement.getSourceId() == null) {
+                continue;
+            }
+            String key = placement.getSourceType() + "-" + placement.getSourceId();
+            placementsBySource.computeIfAbsent(key, ignored -> new ArrayList<>()).add(placement);
+        }
+
+        List<SimplePrintPage> pages = new ArrayList<>();
+        for (Map.Entry<String, List<OptimizationPlacementReportResponse>> entry : placementsBySource.entrySet()) {
+            OptimizationSourceReportResponse source = sourcesByKey.get(entry.getKey());
+            String pageSvg = buildSimplePrintSourceSvg(source, entry.getValue());
+            if (pageSvg != null && !pageSvg.isBlank()) {
+                pages.add(new SimplePrintPage(pageSvg, buildSimpleSourceInfoHtml(source, locale)));
+            }
+        }
+        return pages;
+    }
+
+    private List<SimplePrintPage> toSimplePrintPages(List<String> svgSlices) {
+        if (svgSlices == null || svgSlices.isEmpty()) {
+            return List.of();
+        }
+        return svgSlices.stream()
+            .map(svg -> new SimplePrintPage(svg, ""))
+            .toList();
+    }
+
+    private String buildSimpleSourceInfoHtml(OptimizationSourceReportResponse source, Locale locale) {
+        if (source == null) {
+            return "";
+        }
+
+        List<String> fields = new ArrayList<>();
+        fields.add(simpleSourceField(msg("pdf.type", locale), localizeSourceType(source.getSourceType(), locale)));
+        fields.add(simpleSourceField(msg("pdf.reference", locale), source.getReference()));
+        fields.add(simpleSourceField(msg("pdf.lotId", locale), formatInteger(source.getLotId())));
+
+        if (source.getWidthMm() != null) {
+            fields.add(simpleSourceField(msg("pdf.optimization.widthMm", locale), formatInteger(source.getWidthMm()) + " mm"));
+        }
+        if (source.getLengthM() != null) {
+            fields.add(simpleSourceField(msg("pdf.optimization.lengthM", locale), formatNumber(source.getLengthM()) + " m"));
+        }
+        if (source.getNbPlis() != null) {
+            fields.add(simpleSourceField(msg("pdf.optimization.plies", locale), formatInteger(source.getNbPlis())));
+        }
+        if (source.getThicknessMm() != null) {
+            fields.add(simpleSourceField(msg("pdf.optimization.thickness", locale), formatNumber(source.getThicknessMm()) + " mm"));
+        }
+
+        return fields.stream()
+            .filter(field -> field != null && !field.isBlank())
+            .collect(java.util.stream.Collectors.joining());
+    }
+
+    private String simpleSourceField(String label, String value) {
+        if (value == null || value.isBlank() || "-".equals(value)) {
+            return "";
+        }
+        return "<span class=\"print-source-field\"><span class=\"print-source-label\">"
+            + escape(label)
+            + ":</span> "
+            + escape(value)
+            + "</span>";
+    }
+
+    private String buildSimplePrintSourceSvg(OptimizationSourceReportResponse source,
+                                             List<OptimizationPlacementReportResponse> placements) {
+        if (placements == null || placements.isEmpty()) {
+            return null;
+        }
+
+        int minX = placements.stream()
+            .map(OptimizationPlacementReportResponse::getXMm)
+            .filter(Objects::nonNull)
+            .min(Integer::compareTo)
+            .orElse(0);
+        int minY = placements.stream()
+            .map(OptimizationPlacementReportResponse::getYMm)
+            .filter(Objects::nonNull)
+            .min(Integer::compareTo)
+            .orElse(0);
+        int maxX = placements.stream()
+            .mapToInt(placement -> safeInt(placement.getXMm()) + Math.max(0, safeInt(placement.getWidthMm())))
+            .max()
+            .orElse(0);
+        int maxY = placements.stream()
+            .mapToInt(placement -> safeInt(placement.getYMm()) + Math.max(0, safeInt(placement.getHeightMm())))
+            .max()
+            .orElse(0);
+
+        int padding = 40;
+        int cropMinX = Math.max(0, minX - padding);
+        int cropMinY = Math.max(0, minY - padding);
+        int sourceWidth = source != null && source.getWidthMm() != null ? source.getWidthMm() : 0;
+        int cropMaxX = sourceWidth > 0 ? Math.min(sourceWidth, maxX + padding) : maxX + padding;
+        int cropMaxY = maxY + padding;
+        int canvasWidth = Math.max(200, cropMaxX - cropMinX);
+        int canvasHeight = Math.max(160, cropMaxY - cropMinY);
+
+        StringBuilder svg = new StringBuilder();
+        svg.append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"")
+            .append(cropMinX).append(" ")
+            .append(cropMinY).append(" ")
+            .append(canvasWidth).append(" ")
+            .append(canvasHeight)
+            .append("\" preserveAspectRatio=\"xMinYMin meet\">");
+        svg.append("<rect x=\"").append(cropMinX)
+            .append("\" y=\"").append(cropMinY)
+            .append("\" width=\"").append(canvasWidth)
+            .append("\" height=\"").append(canvasHeight)
+            .append("\" fill=\"#fcfcfd\" stroke=\"#cbd5e1\" stroke-width=\"4\" vector-effect=\"non-scaling-stroke\"/>");
+
+        for (OptimizationPlacementReportResponse placement : placements) {
+            int x = safeInt(placement.getXMm());
+            int y = safeInt(placement.getYMm());
+            int width = Math.max(0, safeInt(placement.getWidthMm()));
+            int height = Math.max(0, safeInt(placement.getHeightMm()));
+            if (width == 0 || height == 0) {
+                continue;
+            }
+
+            String fill = resolvePlacementFill(placement);
+            svg.append("<rect x=\"").append(x)
+                .append("\" y=\"").append(y)
+                .append("\" width=\"").append(width)
+                .append("\" height=\"").append(height)
+                .append("\" fill=\"").append(escapeAttribute(fill))
+                .append("\" stroke=\"#374151\" stroke-width=\"6\" rx=\"6\" ry=\"6\" vector-effect=\"non-scaling-stroke\"/>");
+
+            String label = buildSimplePlacementLabel(placement);
+            int minDimension = Math.min(width, height);
+            if (label != null && minDimension >= 90) {
+                int fontSize = Math.max(34, Math.min(90, minDimension / 3));
+                svg.append("<text x=\"").append(x + (width / 2))
+                    .append("\" y=\"").append(y + (height / 2))
+                    .append("\" text-anchor=\"middle\" dominant-baseline=\"middle\" font-size=\"")
+                    .append(fontSize)
+                    .append("\" font-weight=\"700\" fill=\"#111827\">")
+                    .append(escape(label))
+                    .append("</text>");
+            }
+        }
+
+        svg.append("</svg>");
+        return svg.toString();
+    }
+
+    private String buildSimplePlacementLabel(OptimizationPlacementReportResponse placement) {
+        if (placement == null || placement.getWidthMm() == null || placement.getHeightMm() == null) {
+            return null;
+        }
+        return placement.getWidthMm() + " x " + placement.getHeightMm() + " mm";
+    }
+
+    private String resolvePlacementFill(OptimizationPlacementReportResponse placement) {
+        if (placement != null && placement.getPlacementColorHexCode() != null && !placement.getPlacementColorHexCode().isBlank()) {
+            return placement.getPlacementColorHexCode().trim();
+        }
+        return "#ffd39c";
+    }
+
+    private int safeInt(Integer value) {
+        return value != null ? value : 0;
+    }
+
     private String buildHtml(String title,
                               String svg,
                               List<OptimizationSourceReportResponse> sources,
@@ -426,22 +841,28 @@ public class OptimizationPrintService {
     }
 
     private List<String> sliceSvgForPrint(String rawSvg) {
-        int maxPages = 3;
+        return sliceSvg(rawSvg, 3, 12.0, "xMidYMid meet");
+    }
+
+    private List<String> sliceSvgForSimplePrint(String rawSvg) {
+        return sliceSvg(rawSvg, 6, 5.0, "xMinYMin meet");
+    }
+
+    private List<String> sliceSvg(String rawSvg, int maxPages, double maxAspectRatio, String preserveAspectRatio) {
         if (rawSvg == null || rawSvg.isBlank()) {
             return List.of();
         }
         ParsedSvg parsed = parseSvg(rawSvg);
         if (parsed == null || parsed.viewBoxWidth <= 0 || parsed.viewBoxHeight <= 0) {
-            String normalized = normalizeSvg(rawSvg);
+            String normalized = normalizeSvg(rawSvg, preserveAspectRatio);
             return normalized != null ? List.of(normalized) : List.of();
         }
 
         double ratioW = parsed.viewBoxWidth / parsed.viewBoxHeight;
         double ratioH = parsed.viewBoxHeight / parsed.viewBoxWidth;
-        double maxAspectRatio = 12.0; // keep layout page count low by default
 
         if (ratioW <= maxAspectRatio && ratioH <= maxAspectRatio) {
-            return List.of(buildSvg(parsed, parsed.minX, parsed.minY, parsed.viewBoxWidth, parsed.viewBoxHeight));
+            return List.of(buildSvg(parsed, parsed.minX, parsed.minY, parsed.viewBoxWidth, parsed.viewBoxHeight, preserveAspectRatio));
         }
 
         boolean sliceAlongX = ratioW >= ratioH;
@@ -452,14 +873,24 @@ public class OptimizationPrintService {
         if (sliceAlongX) {
             double sliceWidth = parsed.viewBoxWidth / slices;
             return java.util.stream.IntStream.range(0, slices)
-                .mapToObj(i -> buildSvg(parsed, parsed.minX + i * sliceWidth, parsed.minY, sliceWidth, parsed.viewBoxHeight))
+                .mapToObj(i -> buildSvg(parsed, parsed.minX + i * sliceWidth, parsed.minY, sliceWidth, parsed.viewBoxHeight, preserveAspectRatio))
                 .toList();
         }
 
         double sliceHeight = parsed.viewBoxHeight / slices;
         return java.util.stream.IntStream.range(0, slices)
-            .mapToObj(i -> buildSvg(parsed, parsed.minX, parsed.minY + i * sliceHeight, parsed.viewBoxWidth, sliceHeight))
+            .mapToObj(i -> buildSvg(parsed, parsed.minX, parsed.minY + i * sliceHeight, parsed.viewBoxWidth, sliceHeight, preserveAspectRatio))
             .toList();
+    }
+
+    private static class SimplePrintPage {
+        private final String svgContent;
+        private final String sourceInfoHtml;
+
+        private SimplePrintPage(String svgContent, String sourceInfoHtml) {
+            this.svgContent = svgContent;
+            this.sourceInfoHtml = sourceInfoHtml;
+        }
     }
 
     private static class ParsedSvg {
@@ -519,13 +950,13 @@ public class OptimizationPrintService {
         }
     }
 
-    private String buildSvg(ParsedSvg parsed, double minX, double minY, double width, double height) {
+    private String buildSvg(ParsedSvg parsed, double minX, double minY, double width, double height, String preserveAspectRatio) {
         String cleanedAttrs = parsed.svgAttributes
             .replaceAll("\\s+width=\"[^\"]*\"", "")
             .replaceAll("\\s+height=\"[^\"]*\"", "")
             .replaceAll("\\s+preserveAspectRatio=\"[^\"]*\"", "");
         String viewBox = " viewBox=\"" + minX + " " + minY + " " + width + " " + height + "\"";
-        return "<svg" + cleanedAttrs + viewBox + " preserveAspectRatio=\"xMidYMid meet\">" + parsed.innerContent + "</svg>";
+        return "<svg" + cleanedAttrs + viewBox + " preserveAspectRatio=\"" + preserveAspectRatio + "\">" + parsed.innerContent + "</svg>";
     }
 
     private String extractAttribute(String attrs, String name) {
@@ -534,11 +965,15 @@ public class OptimizationPrintService {
     }
 
     private String normalizeSvg(String rawSvg) {
+        return normalizeSvg(rawSvg, "xMidYMid meet");
+    }
+
+    private String normalizeSvg(String rawSvg, String preserveAspectRatio) {
         if (rawSvg == null || rawSvg.isBlank()) {
             return null;
         }
         return rawSvg
-            .replaceFirst("<svg([^>]*?)>", "<svg$1 preserveAspectRatio=\"xMidYMid meet\">")
+            .replaceFirst("<svg([^>]*?)>", "<svg$1 preserveAspectRatio=\"" + preserveAspectRatio + "\">")
             .replaceAll("\\s+width=\"[^\"]*\"", "")
             .replaceAll("\\s+height=\"[^\"]*\"", "");
     }

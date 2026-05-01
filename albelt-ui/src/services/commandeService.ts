@@ -241,8 +241,16 @@ export const CommandeService = {
   },
 
   /**
+   * Open server-generated simple print view (SVG-focused, minimal whitespace)
+   */
+  async printOptimizationSimple(itemId: string, variant: 'actual' | 'suggested', lang: string): Promise<Blob> {
+    return ApiService.getBlob(`/commandes/items/${itemId}/optimization/print-simple`, { variant, lang });
+  },
+
+  /**
    * Adopt a suggested optimization plan, replacing existing placements
    */
+
   async adoptOptimization(itemId: string, suggestionId: string): Promise<ApiResponse<void>> {
     return ApiService.post<void>(`/commandes/items/${itemId}/optimization/adopt`, { suggestionId });
   },

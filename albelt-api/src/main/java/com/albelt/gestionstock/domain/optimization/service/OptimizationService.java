@@ -259,31 +259,7 @@ public class OptimizationService {
         return planRepository.save(plan);
     }
 
-    private List<Piece> buildPieces(CommandeItem item) {
-        if (item.getQuantite() == null || item.getQuantite() <= 0) {
-            return List.of();
-        }
 
-        int widthMm = item.getLargeurMm();
-        int lengthMm = toLengthMm(item.getLongueurM());
-        BigDecimal areaM2 = toAreaM2(widthMm, lengthMm);
-
-        List<Piece> pieces = new ArrayList<>();
-        for (int i = 0; i < item.getQuantite(); i++) {
-            pieces.add(new Piece(i, widthMm, lengthMm, item.getLongueurM(), areaM2));
-        }
-
-        pieces.sort(Comparator.comparingInt(Piece::maxSide).reversed());
-        return pieces;
-    }
-
-    private List<SourceCandidate> buildCandidates(CommandeItem item) {
-        UUID commandeAltierId = null;
-        if (item != null && item.getCommande() != null && item.getCommande().getAltier() != null) {
-            commandeAltierId = item.getCommande().getAltier().getId();
-        }
-        return buildCandidates(item, commandeAltierId);
-    }
 
     private List<SourceCandidate> buildCandidates(CommandeItem item, UUID altierId) {
         MaterialType materialType = parseMaterialType(item.getMaterialType());
