@@ -37,37 +37,10 @@ export function OptimizationSection({
   onAdoptPlan,
   onEnlarge: _onEnlarge,
   onPrint,
-  onPrintTiled,
-  //formatMetricValue,
   normalizeOptimizationSvg: _normalizeOptimizationSvg,
   buildOptimizationSvgSlices: _buildOptimizationSvgSlices,
 }: OptimizationSectionProps) {
   const { t } = useI18n();
-
-  // const actual = optimizationComparison?.actualMetrics;
-  // const suggested = optimizationComparison?.suggested?.metrics;
-  // const actualConforme = item.totalItemsConforme ?? 0;
-  // const actualNonConforme = item.totalItemsNonConforme ?? 0;
-  // const actualSourceMix = (optimizationComparison?.actualSources ?? []).reduce(
-  //   (acc, source) => {
-  //     if (source.sourceType === 'ROLL') acc.rolls += 1;
-  //     if (source.sourceType === 'WASTE_PIECE') acc.chutes += 1;
-  //     return acc;
-  //   },
-  //   { rolls: 0, chutes: 0 }
-  // );
-  // const suggestedSourceMix = (optimizationComparison?.suggested?.sources ?? []).reduce(
-  //   (acc, source) => {
-  //     if (source.sourceType === 'ROLL') acc.rolls += 1;
-  //     if (source.sourceType === 'WASTE_PIECE') acc.chutes += 1;
-  //     return acc;
-  //   },
-  //   { rolls: 0, chutes: 0 }
-  // );
-  // const rollsDelta =
-  //   actual?.sourceCount != null && suggested?.sourceCount != null
-  //     ? suggested.sourceCount - actual.sourceCount
-  //     : null;
 
   const renderPlacementVisualizers = (
     variant: 'actual' | 'suggested'
@@ -137,51 +110,6 @@ export function OptimizationSection({
                 tooltipOptions={{ position: 'left' }}
                 onClick={() => onPrint(variant)}
               />
-              <Button
-                icon="pi pi-th-large"
-                text
-                size="small"
-                tooltip={t('commandes.tiledPrint') || 'Tiled Print'}
-                tooltipOptions={{ position: 'left' }}
-                onClick={() => {
-                  let svgString = '';
-                  if (variant === 'suggested') {
-                    console.log('DEBUG suggested:', optimizationComparison?.suggested);
-                  }
-                  const rawSvg = variant === 'actual'
-                    ? optimizationComparison?.actualSvg
-                    : optimizationComparison?.suggested?.svg;
-                  if (_buildOptimizationSvgSlices && rawSvg) {
-                    const slices = _buildOptimizationSvgSlices(rawSvg);
-                    if (slices && slices.length > 0) {
-                      svgString = slices.map(s => s.html).join('\n');
-                    } else {
-                      svgString = rawSvg; // fallback to raw SVG if no slices
-                    }
-                  } else if (rawSvg) {
-                    svgString = rawSvg;
-                  }
-                  onPrintTiled(svgString, variant);
-                }}
-              />
-              {/* Enlarge button for SVG panel */}
-              <Button
-                icon="pi pi-search-plus"
-                text
-                size="small"
-                tooltip={t('common.enlarge') || 'Enlarge'}
-                tooltipOptions={{ position: 'left' }}
-                onClick={() => {
-                  const rawSvg = variant === 'actual'
-                    ? optimizationComparison?.actualSvg
-                    : optimizationComparison?.suggested?.svg;
-                  console.log('ENLARGE BUTTON DEBUG', { variant, title, rawSvg, rawSvgLength: rawSvg?.length, rawSvgStart: rawSvg?.slice(0, 200) });
-                  _onEnlarge(
-                    title,
-                    rawSvg || ''
-                  );
-                }}
-              />
             </div>
           </div>
         }
@@ -245,76 +173,6 @@ export function OptimizationSection({
       {!optimizationLoading && optimizationComparison && (
         <div style={{ display: 'grid', gap: '0.75rem' }}>
           <Message severity="info" text={t('commandes.sourcePriorityHint')} />
-
-          {/* <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-              gap: '0.75rem',
-            }}
-          >
-            <Card>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>{t('commandes.wasteSavedM2')}</div>
-              <div style={{ marginTop: '0.25rem', fontSize: '1.35rem', fontWeight: 700 }}>
-                {formatMetricValue(optimizationComparison.wasteSavedM2)}
-              </div>
-            </Card>
-            <Card>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>{t('commandes.utilizationGainPct')}</div>
-              <div style={{ marginTop: '0.25rem', fontSize: '1.35rem', fontWeight: 700 }}>
-                {formatMetricValue(optimizationComparison.utilizationGainPct)}
-              </div>
-            </Card>
-            <Card>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>{t('commandes.rollsUsedDelta')}</div>
-              <div style={{ marginTop: '0.25rem', fontSize: '1.35rem', fontWeight: 700 }}>
-                {rollsDelta == null ? '-' : `${rollsDelta > 0 ? '+' : ''}${rollsDelta}`}
-              </div>
-            </Card>
-          </div> */}
-
-          {/* <Card>
-            <div className="albel-compare-grid">
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('commandes.metric')}</div>
-                <div>{t('commandes.usedAreaM2')}</div>
-                <div>{t('commandes.wasteAreaM2')}</div>
-                <div>{t('commandes.utilizationPct')}</div>
-                <div>{t('commandes.sources')}</div>
-                <div>{t('commandes.pieces')}</div>
-                <div>{t('commandes.sourceMix')}</div>
-                <div>{t('commandes.conformePieces')}</div>
-                <div>{t('commandes.nonConformePieces')}</div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('commandes.actual')}</div>
-                <div>{formatMetricValue(actual?.usedAreaM2)}</div>
-                <div>{formatMetricValue(actual?.wasteAreaM2)}</div>
-                <div>{formatMetricValue(actual?.utilizationPct)}</div>
-                <div>{actual?.sourceCount ?? '-'}</div>
-                <div>
-                  {actual?.placedPieces ?? '-'}/{actual?.totalPieces ?? '-'}
-                </div>
-                <div>{`${actualSourceMix.chutes} ${t('commandes.chutesLabel')} / ${actualSourceMix.rolls} ${t('commandes.rollsLabel')}`}</div>
-                <div>{actualConforme}</div>
-                <div>{actualNonConforme}</div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>{t('commandes.suggested')}</div>
-                <div>{formatMetricValue(suggested?.usedAreaM2)}</div>
-                <div>{formatMetricValue(suggested?.wasteAreaM2)}</div>
-                <div>{formatMetricValue(suggested?.utilizationPct)}</div>
-                <div>{suggested?.sourceCount ?? '-'}</div>
-                <div>
-                  {suggested?.placedPieces ?? '-'}/{suggested?.totalPieces ?? '-'}
-                </div>
-                <div>{`${suggestedSourceMix.chutes} ${t('commandes.chutesLabel')} / ${suggestedSourceMix.rolls} ${t('commandes.rollsLabel')}`}</div>
-                <div>-</div>
-                <div>-</div>
-              </div>
-            </div>
-          </Card> */}
-
           <div className="albel-grid albel-grid--min280" style={{ gap: '0.75rem' }}>
             {renderSvgPanel(
               t('commandes.actualLayout'),

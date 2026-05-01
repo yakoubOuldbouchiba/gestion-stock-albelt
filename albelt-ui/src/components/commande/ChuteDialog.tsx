@@ -159,30 +159,45 @@ export const ChuteDialog = ({
         </div>
       )}
 
-      <div className="albel-grid albel-grid--min180" style={{ gap: '1rem' }}>
-        <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-            {t('inventory.reference') || 'Reference'}
-          </label>
-          <InputText value={chuteSummary?.reference || ''} disabled />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-            {t('rolls.plies')}
-          </label>
-          <InputText value={chuteSummary?.nbPlis ?? ''} disabled />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-            {t('rolls.thickness')}
-          </label>
-          <InputText value={chuteSummary?.thickness ?? ''} disabled />
-        </div>
-        <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-            {t('inventory.color') || 'Color'}
-          </label>
-          <InputText value={chuteSummary?.color || ''} disabled />
+      <div>
+        <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+          {t('inventory.reference') || 'Reference'} / {t('inventory.color') || 'Color'}
+        </label>
+        <div className="albel-article-meta-block">
+          <div className="albel-article-meta-chip">
+            <span className="albel-article-meta-chip__icon pi pi-tag" />
+            <div>
+              <div className="albel-article-meta-chip__label">{t('inventory.reference') || 'Reference'}</div>
+              <div className="albel-article-meta-chip__value">{chuteSummary?.reference || 'N/A'}</div>
+            </div>
+          </div>
+
+          <div className="albel-article-meta-chip">
+            <span className="albel-article-meta-chip__icon pi pi-th-large" />
+            <div>
+              <div className="albel-article-meta-chip__label">{t('rolls.plies')}</div>
+              <div className="albel-article-meta-chip__value">{chuteSummary?.nbPlis ?? 'N/A'}</div>
+            </div>
+          </div>
+
+          <div className="albel-article-meta-chip">
+            <span className="albel-article-meta-chip__icon pi pi-arrows-v" />
+            <div>
+              <div className="albel-article-meta-chip__label">{t('rolls.thickness')}</div>
+              <div className="albel-article-meta-chip__value">{chuteSummary?.thickness ?? 'N/A'}</div>
+            </div>
+          </div>
+
+          <div className="albel-article-meta-chip">
+            <span
+              className="albel-article-meta-chip__color-dot"
+              style={{ backgroundColor: chuteSource?.colorHexCode || 'var(--surface-border)' }}
+            />
+            <div>
+              <div className="albel-article-meta-chip__label">{t('inventory.color') || 'Color'}</div>
+              <div className="albel-article-meta-chip__value">{chuteSummary?.color || 'N/A'}</div>
+            </div>
+          </div>
         </div>
       </div>
 

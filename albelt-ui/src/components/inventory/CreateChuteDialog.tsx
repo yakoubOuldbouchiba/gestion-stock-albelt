@@ -240,25 +240,47 @@ export function CreateChuteDialog({
             </div>
           </div>
 
-          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
-            <div>
-              <label htmlFor="reference">{t('rolls.reference')}</label>
-              <InputText id="reference" name="reference" value={formData.reference || ''} disabled readOnly />
-            </div>
-            <div>
-              <label htmlFor="colorName">{t('inventory.color') || 'Color'}</label>
-              <InputText id="colorName" value={formData.article?.colorName || ''} disabled readOnly />
-            </div>
-          </div>
+          <div>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              {t('rolls.reference')} / {t('inventory.color') || 'Color'}
+            </label>
+            <div className="albel-article-meta-block">
+              <div className="albel-article-meta-chip">
+                <span className="albel-article-meta-chip__icon pi pi-tag" />
+                <div>
+                  <div className="albel-article-meta-chip__label">{t('rolls.reference')}</div>
+                  <div className="albel-article-meta-chip__value">{formData.reference || 'N/A'}</div>
+                </div>
+              </div>
 
-          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
-            <div>
-              <label htmlFor="nbPlis">{t('rolls.plies')}</label>
-              <InputText type="number" id="nbPlis" name="nbPlis" value={String(formData.nbPlis ?? '')} disabled readOnly />
-            </div>
-            <div>
-              <label htmlFor="thicknessMm">{t('rolls.thickness')}</label>
-              <InputText type="number" id="thicknessMm" name="thicknessMm" value={String(formData.thicknessMm ?? '')} disabled readOnly />
+              <div className="albel-article-meta-chip">
+                <span className="albel-article-meta-chip__icon pi pi-th-large" />
+                <div>
+                  <div className="albel-article-meta-chip__label">{t('rolls.plies')}</div>
+                  <div className="albel-article-meta-chip__value">{String(formData.nbPlis ?? 'N/A')}</div>
+                </div>
+              </div>
+
+              <div className="albel-article-meta-chip">
+                <span className="albel-article-meta-chip__icon pi pi-arrows-v" />
+                <div>
+                  <div className="albel-article-meta-chip__label">{t('rolls.thickness')}</div>
+                  <div className="albel-article-meta-chip__value">
+                    {formData.thicknessMm != null ? `${formData.thicknessMm}mm` : 'N/A'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="albel-article-meta-chip">
+                <span
+                  className="albel-article-meta-chip__color-dot"
+                  style={{ backgroundColor: formData.article?.colorHexCode || 'var(--surface-border)' }}
+                />
+                <div>
+                  <div className="albel-article-meta-chip__label">{t('inventory.color') || 'Color'}</div>
+                  <div className="albel-article-meta-chip__value">{formData.article?.colorName || 'N/A'}</div>
+                </div>
+              </div>
             </div>
           </div>
 
