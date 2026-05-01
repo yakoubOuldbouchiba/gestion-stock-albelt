@@ -10,8 +10,11 @@ type OrderHeaderCardProps = {
   deletingOrder: boolean;
   getStatusSeverity: (status: string) => StatusSeverity;
   onEdit: () => void;
+  canEdit: boolean;
   onDelete: () => void;
+  canDelete: boolean;
   onReturn: () => void;
+  canReturn: boolean;
   onBack: () => void;
   t: Translate;
 };
@@ -22,9 +25,12 @@ export const OrderHeaderCard = ({
   deletingOrder,
   getStatusSeverity,
   onEdit,
+  canEdit,
   onDelete,
+  canDelete,
   onReturn,
   onBack,
+  canReturn,
   t,
 }: OrderHeaderCardProps) => {
 
@@ -35,7 +41,7 @@ export const OrderHeaderCard = ({
     <Card className="commande-header-card">
       <div className="commande-header-card__top">
         <div className="commande-header-card__title">
-          <span className="commande-header-card__eyebrow">Manage order</span>
+          <span className="commande-header-card__eyebrow">{t('commandes.manageOrder')}</span>
           <span className="commande-header-card__number">{commande.numeroCommande}</span>
           <div>
             <Tag value={t('statuses.' + commande.status)} severity={getStatusSeverity(commande.status)} />
@@ -47,13 +53,15 @@ export const OrderHeaderCard = ({
             icon="pi pi-pencil"
             label={t('commandes.editOrder')}
             onClick={onEdit}
-            disabled={isBusy || isCommandeLocked}
+            disabled={isBusy || isCommandeLocked || !canEdit}
+            visible={canEdit}
           />
           <Button
             icon="pi pi-undo"
             label={t('returns.createReturn')}
             onClick={onReturn}
-            disabled={isBusy || isCommandeLocked}
+            disabled={isBusy || !canReturn}
+            visible={canReturn}
           />
           <Button
             icon="pi pi-trash"
@@ -62,6 +70,7 @@ export const OrderHeaderCard = ({
             onClick={onDelete}
             disabled={isBusy || isCommandeLocked}
             loading={deletingOrder}
+            visible={canDelete}
           />
           <Button
             icon="pi pi-arrow-left"

@@ -349,12 +349,13 @@
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  color: black;
 }
 
 .commande-header-card__number {
   font-size: clamp(1.5rem, 2.5vw, 2rem);
   font-weight: 700;
+  color: black;
 }
 
 .commande-header-card__actions {

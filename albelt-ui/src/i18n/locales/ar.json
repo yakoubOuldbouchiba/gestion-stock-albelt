@@ -1082,7 +1082,7 @@
     "noActualSvg": "لا يوجد تخطيط حالي متاح.",
     "noSuggestedSvg": "لا يوجد تخطيط مقترح متاح.",
     "commandes": "الطلبات",
-    "orderLines": "سطور الطلب",
+    "orderLines": "منتجات",
     "piecesOrdered": "القطع المطلوبة",
     "produced": "المنتجة",
     "stillToCut": "المتبقي للتقطيع",
@@ -1109,7 +1109,8 @@
     "widthMm": "العرض (مم)",
     "selectItemToContinue": "اختر منتجاً للمتابعة لعملية الإنتاج",
     "position": "الموقع",
-    "adoptSuggestedPlan": "تبني الخطة المقترحة"
+    "adoptSuggestedPlan": "تبني الخطة المقترحة",
+    "manageOrder": "إدارة الطلب"
   },
   "ordersWorkbench": {
     "operatorWorkbench": "مساحة عمل المشغل",

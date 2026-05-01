@@ -1096,7 +1096,8 @@
     },
     "coupe": "Coupe",
     "position": "Position",
-    "adoptSuggestedPlan": "Adopter le plan suggéré"
+    "adoptSuggestedPlan": "Adopter le plan suggéré",
+    "manageOrder": "Gérer la commande"
   },
   "returns": {
     "title": "Retours de commande",

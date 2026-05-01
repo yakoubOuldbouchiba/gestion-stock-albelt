@@ -11,6 +11,10 @@ type StatusUpdateCardProps = {
   onUndoStart: () => void;
   onCancel: () => void;
   onCompleted: () => void;
+  canStart?: boolean;
+  canUndoStart?: boolean;
+  canCancel?: boolean;
+  canCompleted?: boolean;
   t: Translate;
 };
 
@@ -22,6 +26,10 @@ export const StatusUpdateCard = ({
   onUndoStart,
   onCancel,
   onCompleted,
+  canStart,
+  canUndoStart,
+  canCancel,
+  canCompleted,
   t,
 }: StatusUpdateCardProps) => {
   // Normalize status for comparison
@@ -30,7 +38,7 @@ export const StatusUpdateCard = ({
     <Card title={t('commandes.updateOrderStatus')} style={{ marginBottom: '1rem' }}>
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
         {/* Show Start if status is PENDING */}
-        {status === 'PENDING' && (
+        {canStart && status === 'PENDING' && (
           <Button
             label={t('commandes.start') || 'Start'}
             onClick={onStart}
@@ -38,7 +46,7 @@ export const StatusUpdateCard = ({
           />
         )}
         {/* Show Undo Start if status is ENCOURS */}
-        {status === 'ENCOURS' && (
+        {canUndoStart && status === 'ENCOURS' && (
           <Button
             label={t('commandes.undoStart') || 'Undo Start'}
             onClick={onUndoStart}
@@ -47,14 +55,16 @@ export const StatusUpdateCard = ({
           />
         )}
         {/* Cancel always visible */}
-        <Button
-          label={t('commandes.cancel') || 'Cancel'}
-          onClick={onCancel}
-          disabled={Boolean(disabled) || updating}
-          severity="danger"
-        />
+        {canCancel && (
+          <Button
+            label={t('commandes.cancel') || 'Cancel'}
+            onClick={onCancel}
+            disabled={Boolean(disabled) || updating}
+            severity="danger"
+          />
+        )}
         {/* Completed only if ENCOURS */}
-        {status === 'ENCOURS' && (
+        {canCompleted && status === 'ENCOURS' && (
           <Button
             label={t('commandes.completed') || 'Completed'}
             onClick={onCompleted}

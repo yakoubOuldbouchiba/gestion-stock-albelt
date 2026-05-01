@@ -489,8 +489,11 @@ export function CommandeDetailPage() {
           deletingOrder={deletingOrder}
           getStatusSeverity={getStatusSeverity}
           onEdit={() => navigate(`/commandes/${id}/edit`)}
+          canEdit={commande.status === 'ENCOURS' || commande.status === 'PENDING'}
           onDelete={handleDeleteOrder}
+          canDelete={commande.status === 'PENDING'}
           onReturn={() => navigate(`/commandes/${id}/returns`)}
+          canReturn={commande.status === 'COMPLETED'}
           onBack={() => navigate('/commandes')}
           t={t}
         />
@@ -517,7 +520,7 @@ export function CommandeDetailPage() {
         <div className="commande-detail-overview">
           <div className="commande-detail-overview__side">
             <Card title={t('rollDetail.workshop')}>
-              <div className="commande-detail-form-stack">
+              {(commande?.status === "PENDING" || commande?.status === "ENCOURS") && <div className="commande-detail-form-stack">
                 <select
                   value={selectedAltierId ?? ''}
                   onChange={e => setSelectedAltierId(e.target.value || null)}
@@ -532,7 +535,10 @@ export function CommandeDetailPage() {
                 <div className="commande-detail-actions-end">
                   <Button label={altierSaving ? t('common.saving') : t('common.save')} icon="pi pi-check" onClick={handleAltierSave} disabled={altierSaving || isCommandeLocked} />
                 </div>
-              </div>
+              </div>}
+              {(commande?.status !== "PENDING" && commande?.status !== "ENCOURS") && <div className="commande-detail-form-stack">
+                <p>{commande?.altierLibelle}</p>
+              </div>}
             </Card>
           </div>
 
@@ -541,9 +547,13 @@ export function CommandeDetailPage() {
             disabled={isCommandeLocked}
             selectedStatus={selectedStatus}
             onStart={() => handleStatusUpdate('ENCOURS')}
+            canStart={commande?.status === "PENDING" && (commande.hasOwnProperty( 'altierId') && commande.altierId !== null)}
             onUndoStart={() => handleStatusUpdate('PENDING')}
+            canUndoStart={commande?.status === "ENCOURS" && (commande.hasOwnProperty( 'altierId') && commande.altierId !== null)}
             onCancel={() => handleStatusUpdate('CANCELLED')}
+            canCancel={(commande?.status === "PENDING" || commande?.status === "ENCOURS") && (commande.hasOwnProperty('altierId') && commande.altierId !== null)}
             onCompleted={() => handleStatusUpdate('COMPLETED')}
+            canCompleted={commande?.status === "ENCOURS" && (commande.hasOwnProperty( 'altierId') && commande.altierId !== null)}
             t={t}
           />
         </div>

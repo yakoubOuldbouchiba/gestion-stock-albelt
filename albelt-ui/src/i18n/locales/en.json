@@ -1088,7 +1088,8 @@
     "reusableLeftovers": "Reusable leftovers",
     "lengthM": "Length (m)",
     "widthMm": "Width (mm)",
-    "selectItemToContinue": "Select an item to continue processing"
+    "selectItemToContinue": "Select an item to continue processing",
+    "manageOrder": "Manage order"
   },
   "ordersWorkbench": {
     "operatorWorkbench": "Operator Workbench",

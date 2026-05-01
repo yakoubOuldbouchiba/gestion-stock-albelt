@@ -4,7 +4,6 @@ import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { Dropdown } from 'primereact/dropdown';
 import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
 import type { Article, CommandeItemRequest, TypeMouvement } from '../../../types';
 import { calculateSurfaceM2, calculateTotalSurfaceM2 } from '../../../pages/hooks/useCommandeItems';
 import type { ArticleOption, ColorOption } from '../../../pages/hooks/useCommandeLookups';
@@ -53,6 +52,8 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
     onItemChange(rowIndex, 'nbPlis', nextItem.nbPlis);
     onItemChange(rowIndex, 'thicknessMm', nextItem.thicknessMm);
     onItemChange(rowIndex, 'reference', nextItem.reference);
+    onItemChange(rowIndex, 'colorId', article?.colorId ?? null);
+
   };
 
   const articleBodyTemplate = (rowData: TItem, rowIndex: any) => (
@@ -194,6 +195,7 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
 
   const actionsBodyTemplate = (_: any, rowIndex: any) => (
     <Button
+      type="button"
       icon="pi pi-trash"
       severity="danger"
       rounded
@@ -228,6 +230,7 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
                   )}
                 </div>
                 <Button
+                  type="button"
                   icon="pi pi-trash"
                   severity="danger"
                   text
@@ -252,8 +255,8 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
                 </div>
               </div>
 
-              <div className="order-item-fields">
-                <div>
+              <div className="order-item-fields" style={{ gridTemplateColumns: '1fr' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <ArticleSelector
                     id={`article-${item.lineNumber}-${index}`}
                     label={t('inventory.reference')}
@@ -265,29 +268,74 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
                   />
                 </div>
 
-                <div>
-                  <label className="commande-field-label">{t('commandes.plies')}</label>
-                  <InputNumber
-                    value={getArticleNbPlis(item)}
-                    onValueChange={() => undefined}
-                    min={1}
-                    max={50}
-                    disabled
-                  />
-                </div>
+                {(getArticleReference(item) || getArticleMaterialType(item) || getArticleNbPlis(item) != null || getArticleThicknessMm(item) != null || item.article?.colorName || (item as any).colorName) && (
+                  <div className="article-info-block" style={{ gridColumn: '1 / -1' }}>
+                    {getArticleReference(item) && (
+                      <div className="article-info-chip">
+                        <span className="article-info-chip__icon pi pi-tag" />
+                        <div>
+                          <div className="article-info-chip__label">{t('inventory.reference')}</div>
+                          <div className="article-info-chip__value">{getArticleReference(item)}</div>
+                        </div>
+                      </div>
+                    )}
+                    {getArticleMaterialType(item) && (
+                      <div className="article-info-chip">
+                        <span className="article-info-chip__icon pi pi-box" />
+                        <div>
+                          <div className="article-info-chip__label">{t('commandes.material')}</div>
+                          <div className="article-info-chip__value">{getArticleMaterialType(item)}</div>
+                        </div>
+                      </div>
+                    )}
+                    {getArticleNbPlis(item) != null && (
+                      <div className="article-info-chip">
+                        <span className="article-info-chip__icon pi pi-th-large" />
+                        <div>
+                          <div className="article-info-chip__label">{t('commandes.plies')}</div>
+                          <div className="article-info-chip__value">{getArticleNbPlis(item)}</div>
+                        </div>
+                      </div>
+                    )}
+                    {getArticleThicknessMm(item) != null && (
+                      <div className="article-info-chip">
+                        <span className="article-info-chip__icon pi pi-arrows-v" />
+                        <div>
+                          <div className="article-info-chip__label">{t('commandes.thickness')}</div>
+                          <div className="article-info-chip__value">{getArticleThicknessMm(item)} mm</div>
+                        </div>
+                      </div>
+                    )}
+                    {(() => {
+                      const colorName = item.article?.colorName ?? (item as any).colorName;
+                      const colorHex = item.article?.colorHexCode ?? (item as any).colorHexCode;
+                      if (!colorName) return null;
+                      return (
+                        <div className="article-info-chip">
+                          <span
+                            className="article-info-chip__color-dot"
+                            style={{ backgroundColor: colorHex || 'var(--surface-border)' }}
+                          />
+                          <div>
+                            <div className="article-info-chip__label">{t('inventory.color')}</div>
+                            <div className="article-info-chip__value">{colorName}</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
 
+              <div className="order-item-fields">
                 <div>
-                  <label className="commande-field-label">{t('commandes.thickness')}</label>
+                  <label className="commande-field-label">{t('commandes.quantity')}</label>
                   <InputNumber
-                    value={getArticleThicknessMm(item)}
-                    onValueChange={() => undefined}
-                    min={0.1}
-                    max={100}
-                    step={0.1}
-                    mode="decimal"
-                    minFractionDigits={1}
-                    maxFractionDigits={3}
-                    disabled
+                    value={item.quantite}
+                    onValueChange={(e) => onItemChange(index, 'quantite', e.value || 0)}
+                    min={1}
+                    max={1000}
+                    disabled={disabled}
                   />
                 </div>
 
@@ -313,70 +361,6 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
                     onValueChange={(e) => onItemChange(index, 'largeurMm', e.value || 0)}
                     min={1}
                     max={10000}
-                    disabled={disabled}
-                  />
-                </div>
-
-                <div>
-                  <label className="commande-field-label">{t('commandes.material')}</label>
-                  <InputText
-                    value={getArticleMaterialType(item) ?? ''}
-                    disabled
-                  />
-                </div>
-
-                <div>
-                  <label className="commande-field-label">{t('inventory.color')}</label>
-                  <Dropdown
-                    value={item.colorId}
-                    onChange={(e) => onItemChange(index, 'colorId', e.value)}
-                    options={colors}
-                    optionLabel="label"
-                    optionValue="value"
-                    placeholder={t('inventory.selectColor')}
-                    showClear
-                    disabled={disabled}
-                    itemTemplate={(option: any) => (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span
-                          style={{
-                            width: '12px',
-                            height: '12px',
-                            borderRadius: '3px',
-                            backgroundColor: option.hexCode || 'transparent',
-                            border: '1px solid var(--surface-border)',
-                          }}
-                        />
-                        <span>{option.label}</span>
-                      </div>
-                    )}
-                    valueTemplate={(option: any, props) => {
-                      if (!option) return <span>{props.placeholder}</span>;
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span
-                            style={{
-                              width: '12px',
-                              height: '12px',
-                              borderRadius: '3px',
-                              backgroundColor: option.hexCode || 'transparent',
-                              border: '1px solid var(--surface-border)',
-                            }}
-                          />
-                          <span>{option.label}</span>
-                        </div>
-                      );
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="commande-field-label">{t('commandes.quantity')}</label>
-                  <InputNumber
-                    value={item.quantite}
-                    onValueChange={(e) => onItemChange(index, 'quantite', e.value || 0)}
-                    min={1}
-                    max={1000}
                     disabled={disabled}
                   />
                 </div>

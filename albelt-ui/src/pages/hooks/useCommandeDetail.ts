@@ -59,7 +59,7 @@ export function useCommandeDetail(id: string | undefined) {
   }, [id, t]);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !commande?.id || !(commande?.status === "PENDING" || commande?.status === "ENCOURS")) return;
 
     const fetchScores = async () => {
       setAltierScoresLoading(true);
@@ -75,7 +75,7 @@ export function useCommandeDetail(id: string | undefined) {
     };
 
     fetchScores();
-  }, [id]);
+  }, [id, commande?.id, commande?.status]);
 
   const handleAltierSave = async () => {
     if (!commande || !id) return;
