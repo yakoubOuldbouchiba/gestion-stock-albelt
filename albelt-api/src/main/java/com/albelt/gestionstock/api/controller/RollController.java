@@ -34,6 +34,10 @@ import java.util.UUID;
 @Slf4j
 public class RollController {
 
+    private final RollService rollService;
+    private final RollMapper rollMapper;
+    private final UserAltierService userAltierService;
+
     /**
      * Get grouped roll statistics by color, nbPlis, thicknessMm, materialType, altierId, status
      * GET /api/rolls/grouped
@@ -43,10 +47,6 @@ public class RollController {
         var grouped = rollService.getGroupedByAllFields();
         return ResponseEntity.ok(ApiResponse.success(grouped));
     }
-
-    private final RollService rollService;
-    private final RollMapper rollMapper;
-    private final UserAltierService userAltierService;
 
     /**
      * Get all rolls
@@ -71,10 +71,10 @@ public class RollController {
             @RequestParam(required = false) String dateTo) {
         UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         log.debug("Fetching rolls for user: {}", currentUser);
-        
+
         // Get accessible altiers for current user
         var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
-        
+
         // If user has no accessible altiers, return empty list
         if (accessibleAltierIds.isEmpty()) {
             log.warn("User {} has no accessible altiers", currentUser);
@@ -87,7 +87,7 @@ public class RollController {
                     .build();
             return ResponseEntity.ok(ApiResponse.success(empty, "No accessible rolls"));
         }
-        
+
         var fromDate = parseDate(dateFrom);
         var toDate = parseDate(dateTo);
 
@@ -98,9 +98,9 @@ public class RollController {
                 materialType,
                 supplierId,
                 altierId,
-            colorId,
-            nbPlis,
-            thicknessMm,
+                colorId,
+                nbPlis,
+                thicknessMm,
                 fromDate,
                 toDate,
                 search,
@@ -181,17 +181,17 @@ public class RollController {
     public ResponseEntity<ApiResponse<RollResponse>> receive(
             @Valid @RequestBody RollRequest request) {
         log.info("Receiving roll: material={}", request.getMaterialType());
-        
+
         // Get current user from SecurityContext (JWT token)
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
             log.error("No authentication found in SecurityContext!");
             throw new IllegalStateException("User not authenticated");
         }
-        
+
         UUID currentUser = (UUID) authentication.getPrincipal();
         log.info("Roll receive request: currentUser={}, type={}", currentUser, authentication.getPrincipal().getClass().getName());
-        
+
         var roll = rollService.receive(request, currentUser);
         var response = rollMapper.toResponse(roll);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -206,12 +206,12 @@ public class RollController {
     public ResponseEntity<ApiResponse<RollResponse>> selectByFifo(@RequestParam MaterialType material) {
         log.info("FIFO Selection for material: {}", material);
         var rollOpt = rollService.selectByFifo(material);
-        
+
         if (rollOpt.isPresent()) {
             var response = rollMapper.toResponse(rollOpt.get());
             return ResponseEntity.ok(ApiResponse.success(response, "FIFO roll selected"));
         }
-        
+
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error("No available rolls for material: " + material));
     }
@@ -328,7 +328,7 @@ public class RollController {
      * Record waste consumption on a roll after cutting operation
      * POST /api/rolls/{id}/record-consumption
      * Body: { "wasteAreaM2": 2.50 }
-     * 
+     * <p>
      * Updates:
      * - Total waste area
      * - Cut count (incremented)
@@ -340,13 +340,13 @@ public class RollController {
             @PathVariable UUID id,
             @RequestBody Map<String, BigDecimal> payload) {
         log.info("Recording consumption for roll: {}", id);
-        
+
         BigDecimal wasteArea = payload.getOrDefault("wasteAreaM2", BigDecimal.ZERO);
         if (wasteArea == null || wasteArea.compareTo(BigDecimal.ZERO) < 0) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("wasteAreaM2 must be a non-negative value"));
         }
-        
+
         var roll = rollService.recordConsumption(id, wasteArea);
         var response = rollMapper.toResponse(roll);
         return ResponseEntity.ok(ApiResponse.success(response, "Consumption recorded successfully"));
@@ -375,7 +375,7 @@ public class RollController {
     @GetMapping("/stats/by-material")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStatsByMaterial() {
         log.debug("Fetching stats by material type");
-        
+
         var stats = rollService.getStatsByMaterial();
         return ResponseEntity.ok(ApiResponse.success(stats, "Stats retrieved"));
     }

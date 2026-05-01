@@ -15,14 +15,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ClientEmailRequest {
-    
+
     @NotBlank(message = "Email address is required")
     @Email(message = "Email address must be valid")
     private String emailAddress;
-    
+
     private Boolean isMain = false;
-    
+
     private String emailType = "BUSINESS";
-    
+
     private String notes;
 }

@@ -101,7 +101,7 @@ public class ClientController {
             return ResponseEntity.ok(ApiResponse.success(response));
         } catch (Exception e) {
             log.error("Error retrieving client", e);
-            throw e;  
+            throw e;
         }
     }
 
@@ -122,7 +122,7 @@ public class ClientController {
     @PutMapping("/{id}")
     @Operation(summary = "Update client", description = "Updates an existing client and all its details")
     public ResponseEntity<ApiResponse<ClientResponse>> update(@PathVariable UUID id,
-                                                               @Valid @RequestBody ClientRequest request) {
+                                                              @Valid @RequestBody ClientRequest request) {
         log.info("PUT /api/clients/{} - Update client", id);
         try {
             var client = clientService.update(id, request);
@@ -196,7 +196,7 @@ public class ClientController {
     @PostMapping("/{clientId}/phones")
     @Operation(summary = "Add phone to client", description = "Adds a new phone number to a client")
     public ResponseEntity<ApiResponse<ClientPhoneResponse>> addPhone(@PathVariable UUID clientId,
-                                                                       @Valid @RequestBody ClientPhoneRequest request) {
+                                                                     @Valid @RequestBody ClientPhoneRequest request) {
         log.info("POST /api/clients/{}/phones - Add phone", clientId);
         try {
             var phone = clientService.addPhone(clientId, request);
@@ -228,8 +228,8 @@ public class ClientController {
     @PutMapping("/{clientId}/phones/{phoneId}")
     @Operation(summary = "Update phone", description = "Updates a phone number for a client")
     public ResponseEntity<ApiResponse<ClientPhoneResponse>> updatePhone(@PathVariable UUID clientId,
-                                                                          @PathVariable UUID phoneId,
-                                                                          @Valid @RequestBody ClientPhoneRequest request) {
+                                                                        @PathVariable UUID phoneId,
+                                                                        @Valid @RequestBody ClientPhoneRequest request) {
         log.info("PUT /api/clients/{}/phones/{} - Update phone", clientId, phoneId);
         try {
             var phone = clientService.updatePhone(clientId, phoneId, request);
@@ -244,7 +244,7 @@ public class ClientController {
     @DeleteMapping("/{clientId}/phones/{phoneId}")
     @Operation(summary = "Delete phone", description = "Removes a phone number from a client")
     public ResponseEntity<ApiResponse<String>> deletePhone(@PathVariable UUID clientId,
-                                                            @PathVariable UUID phoneId) {
+                                                           @PathVariable UUID phoneId) {
         log.info("DELETE /api/clients/{}/phones/{} - Delete phone", clientId, phoneId);
         try {
             clientService.deletePhone(clientId, phoneId);
@@ -260,7 +260,7 @@ public class ClientController {
     @PostMapping("/{clientId}/emails")
     @Operation(summary = "Add email to client", description = "Adds a new email address to a client")
     public ResponseEntity<ApiResponse<ClientEmailResponse>> addEmail(@PathVariable UUID clientId,
-                                                                       @Valid @RequestBody ClientEmailRequest request) {
+                                                                     @Valid @RequestBody ClientEmailRequest request) {
         log.info("POST /api/clients/{}/emails - Add email", clientId);
         try {
             var email = clientService.addEmail(clientId, request);
@@ -292,8 +292,8 @@ public class ClientController {
     @PutMapping("/{clientId}/emails/{emailId}")
     @Operation(summary = "Update email", description = "Updates an email address for a client")
     public ResponseEntity<ApiResponse<ClientEmailResponse>> updateEmail(@PathVariable UUID clientId,
-                                                                          @PathVariable UUID emailId,
-                                                                          @Valid @RequestBody ClientEmailRequest request) {
+                                                                        @PathVariable UUID emailId,
+                                                                        @Valid @RequestBody ClientEmailRequest request) {
         log.info("PUT /api/clients/{}/emails/{} - Update email", clientId, emailId);
         try {
             var email = clientService.updateEmail(clientId, emailId, request);
@@ -308,7 +308,7 @@ public class ClientController {
     @DeleteMapping("/{clientId}/emails/{emailId}")
     @Operation(summary = "Delete email", description = "Removes an email address from a client")
     public ResponseEntity<ApiResponse<String>> deleteEmail(@PathVariable UUID clientId,
-                                                            @PathVariable UUID emailId) {
+                                                           @PathVariable UUID emailId) {
         log.info("DELETE /api/clients/{}/emails/{} - Delete email", clientId, emailId);
         try {
             clientService.deleteEmail(clientId, emailId);
@@ -324,7 +324,7 @@ public class ClientController {
     @PostMapping("/{clientId}/addresses")
     @Operation(summary = "Add address to client", description = "Adds a new address to a client")
     public ResponseEntity<ApiResponse<ClientAddressResponse>> addAddress(@PathVariable UUID clientId,
-                                                                           @Valid @RequestBody ClientAddressRequest request) {
+                                                                         @Valid @RequestBody ClientAddressRequest request) {
         log.info("POST /api/clients/{}/addresses - Add address", clientId);
         try {
             var address = clientService.addAddress(clientId, request);
@@ -356,8 +356,8 @@ public class ClientController {
     @PutMapping("/{clientId}/addresses/{addressId}")
     @Operation(summary = "Update address", description = "Updates an address for a client")
     public ResponseEntity<ApiResponse<ClientAddressResponse>> updateAddress(@PathVariable UUID clientId,
-                                                                              @PathVariable UUID addressId,
-                                                                              @Valid @RequestBody ClientAddressRequest request) {
+                                                                            @PathVariable UUID addressId,
+                                                                            @Valid @RequestBody ClientAddressRequest request) {
         log.info("PUT /api/clients/{}/addresses/{} - Update address", clientId, addressId);
         try {
             var address = clientService.updateAddress(clientId, addressId, request);
@@ -372,7 +372,7 @@ public class ClientController {
     @DeleteMapping("/{clientId}/addresses/{addressId}")
     @Operation(summary = "Delete address", description = "Removes an address from a client")
     public ResponseEntity<ApiResponse<String>> deleteAddress(@PathVariable UUID clientId,
-                                                              @PathVariable UUID addressId) {
+                                                             @PathVariable UUID addressId) {
         log.info("DELETE /api/clients/{}/addresses/{} - Delete address", clientId, addressId);
         try {
             clientService.deleteAddress(clientId, addressId);
@@ -388,7 +388,7 @@ public class ClientController {
     @PostMapping("/{clientId}/representatives")
     @Operation(summary = "Add representative to client", description = "Adds a new representative/contact person to a client")
     public ResponseEntity<ApiResponse<ClientRepresentativeResponse>> addRepresentative(@PathVariable UUID clientId,
-                                                                                         @Valid @RequestBody ClientRepresentativeRequest request) {
+                                                                                       @Valid @RequestBody ClientRepresentativeRequest request) {
         log.info("POST /api/clients/{}/representatives - Add representative", clientId);
         try {
             var rep = clientService.addRepresentative(clientId, request);
@@ -420,8 +420,8 @@ public class ClientController {
     @PutMapping("/{clientId}/representatives/{repId}")
     @Operation(summary = "Update representative", description = "Updates a representative for a client")
     public ResponseEntity<ApiResponse<ClientRepresentativeResponse>> updateRepresentative(@PathVariable UUID clientId,
-                                                                                            @PathVariable UUID repId,
-                                                                                            @Valid @RequestBody ClientRepresentativeRequest request) {
+                                                                                          @PathVariable UUID repId,
+                                                                                          @Valid @RequestBody ClientRepresentativeRequest request) {
         log.info("PUT /api/clients/{}/representatives/{} - Update representative", clientId, repId);
         try {
             var rep = clientService.updateRepresentative(clientId, repId, request);
@@ -436,7 +436,7 @@ public class ClientController {
     @DeleteMapping("/{clientId}/representatives/{repId}")
     @Operation(summary = "Delete representative", description = "Removes a representative from a client")
     public ResponseEntity<ApiResponse<String>> deleteRepresentative(@PathVariable UUID clientId,
-                                                                     @PathVariable UUID repId) {
+                                                                    @PathVariable UUID repId) {
         log.info("DELETE /api/clients/{}/representatives/{} - Delete representative", clientId, repId);
         try {
             clientService.deleteRepresentative(clientId, repId);

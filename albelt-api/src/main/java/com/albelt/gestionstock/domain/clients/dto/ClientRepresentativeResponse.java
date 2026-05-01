@@ -16,22 +16,22 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class ClientRepresentativeResponse {
-    
+
     private UUID id;
-    
+
     private String name;
-    
+
     private String position;
-    
+
     private String phone;
-    
+
     private String email;
-    
+
     private Boolean isPrimary;
-    
+
     private String notes;
-    
+
     private LocalDateTime createdAt;
-    
+
     private LocalDateTime updatedAt;
 }

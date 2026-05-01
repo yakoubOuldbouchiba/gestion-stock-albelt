@@ -80,19 +80,32 @@ CREATE INDEX IF NOT EXISTS idx_material_chute_thresholds_material ON material_ch
 -- ============================================================================
 -- Query Statistics
 -- ============================================================================
-ANALYZE users;
-ANALYZE suppliers;
-ANALYZE altier;
-ANALYZE rolls;
-ANALYZE waste_pieces;
-ANALYZE clients;
-ANALYZE commandes;
-ANALYZE commande_items;
-ANALYZE user_altier;
-ANALYZE roll_movements;
-ANALYZE transfer_bons;
-ANALYZE client_audit_log;
-ANALYZE material_chute_thresholds;
+ANALYZE
+users;
+ANALYZE
+suppliers;
+ANALYZE
+altier;
+ANALYZE
+rolls;
+ANALYZE
+waste_pieces;
+ANALYZE
+clients;
+ANALYZE
+commandes;
+ANALYZE
+commande_items;
+ANALYZE
+user_altier;
+ANALYZE
+roll_movements;
+ANALYZE
+transfer_bons;
+ANALYZE
+client_audit_log;
+ANALYZE
+material_chute_thresholds;
 
 -- ============================================================================
 -- End V6: Performance Indexes Created

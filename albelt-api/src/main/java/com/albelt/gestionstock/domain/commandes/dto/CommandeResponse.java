@@ -17,36 +17,36 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class CommandeResponse {
-    
+
     private UUID id;
-    
+
     private String numeroCommande;
-    
+
     private UUID clientId;
-    
+
     private String clientName;
 
     private UUID altierId;
 
     private String altierLibelle;
-    
+
     private String status;
-    
+
     private String description;
-    
+
     private String notes;
-    
+
     private UUID createdBy;
-    
+
     private String createdByName;
-    
+
     private UUID updatedBy;
-    
+
     private String updatedByName;
-    
+
     private List<CommandeItemResponse> items;
-    
+
     private LocalDateTime createdAt;
-    
+
     private LocalDateTime updatedAt;
 }

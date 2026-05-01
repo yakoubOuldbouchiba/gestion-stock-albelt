@@ -15,7 +15,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "articles", indexes = {
-    @Index(name = "idx_articles_external_id", columnList = "external_id", unique = true)
+        @Index(name = "idx_articles_external_id", columnList = "external_id", unique = true)
 })
 @Data
 @NoArgsConstructor

@@ -22,9 +22,9 @@ public class OptimizationCandidateCacheService {
     public List<OptimizationSourceSnapshot> getRollCandidates(OptimizationCandidateFilter filter,
                                                               OptimizationCandidateFingerprint fingerprint) {
         return rollRepository.findOptimizationCandidates(
-            filter.articleId(),
-            filter.colorId(),
-            filter.altierId()
+                filter.articleId(),
+                filter.colorId(),
+                filter.altierId()
         );
     }
 
@@ -32,9 +32,9 @@ public class OptimizationCandidateCacheService {
     public List<OptimizationSourceSnapshot> getWasteCandidates(OptimizationCandidateFilter filter,
                                                                OptimizationCandidateFingerprint fingerprint) {
         return wastePieceRepository.findOptimizationCandidates(
-            filter.articleId(),
-            filter.colorId(),
-            filter.altierId()
+                filter.articleId(),
+                filter.colorId(),
+                filter.altierId()
         );
     }
 }

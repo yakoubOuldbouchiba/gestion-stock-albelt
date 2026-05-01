@@ -15,11 +15,22 @@ import java.util.Map;
 /**
  * Render provides DATABASE_URL in the form: postgres://user:pass@host:port/dbname
  * Spring Boot expects a JDBC URL (jdbc:postgresql://host:port/dbname) plus username/password.
- *
+ * <p>
  * This post-processor runs before the ApplicationContext is created and maps DATABASE_URL
  * into spring.datasource.* if those properties are not already set.
  */
 public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
+
+    private static boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private static boolean looksLikeLocalDefault(String jdbcUrl) {
+        String normalized = jdbcUrl.trim().toLowerCase();
+        return normalized.contains("jdbc:postgresql://localhost")
+                || normalized.contains("jdbc:postgresql://127.0.0.1")
+                || normalized.contains("jdbc:postgresql://0.0.0.0");
+    }
 
     @Override
     public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
@@ -70,17 +81,6 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
     public int getOrder() {
         // Ensure this runs as early as possible.
         return Ordered.HIGHEST_PRECEDENCE;
-    }
-
-    private static boolean hasText(String value) {
-        return value != null && !value.trim().isEmpty();
-    }
-
-    private static boolean looksLikeLocalDefault(String jdbcUrl) {
-        String normalized = jdbcUrl.trim().toLowerCase();
-        return normalized.contains("jdbc:postgresql://localhost")
-                || normalized.contains("jdbc:postgresql://127.0.0.1")
-                || normalized.contains("jdbc:postgresql://0.0.0.0");
     }
 
     private static final class ParsedDbUrl {

@@ -27,33 +27,33 @@ public class CommandeItemRequest {
     private Integer nbPlis;
 
     private BigDecimal thicknessMm;
-    
+
     @NotNull(message = "Length is required")
     @Positive(message = "Length must be positive")
     private BigDecimal longueurM;
-    
+
     private BigDecimal longueurToleranceM;
-    
+
     @NotNull(message = "Width is required")
     @Positive(message = "Width must be positive")
     private Integer largeurMm;
-    
+
     @NotNull(message = "Quantity is required")
     @Positive(message = "Quantity must be positive")
     private Integer quantite;
-    
+
     @NotNull(message = "Surface consumed is required")
     private BigDecimal surfaceConsommeeM2;
-    
+
     @jakarta.validation.constraints.NotBlank(message = "Movement type is required")
     private String typeMouvement;  // ENCOURS, COUPE, SORTIE, RETOUR
-    
+
     private String observations;
 
     private String reference;
 
     private UUID colorId;
-    
+
     @NotNull(message = "Line number is required")
     @Positive(message = "Line number must be positive")
     private Integer lineNumber;

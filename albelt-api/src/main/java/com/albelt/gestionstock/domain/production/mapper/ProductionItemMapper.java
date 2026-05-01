@@ -31,14 +31,14 @@ public class ProductionItemMapper {
         }
 
         return ProductionItem.builder()
-            .placedRectangle(placedRectangle)
-            .pieceLengthM(request.getPieceLengthM())
-            .pieceWidthMm(request.getPieceWidthMm())
-            .quantity(request.getQuantity())
-            .areaPerPieceM2(areaPerPiece)
-            .totalAreaM2(totalArea)
-            .notes(request.getNotes())
-            .build();
+                .placedRectangle(placedRectangle)
+                .pieceLengthM(request.getPieceLengthM())
+                .pieceWidthMm(request.getPieceWidthMm())
+                .quantity(request.getQuantity())
+                .areaPerPieceM2(areaPerPiece)
+                .totalAreaM2(totalArea)
+                .notes(request.getNotes())
+                .build();
     }
 
     public ProductionItemResponse toResponse(ProductionItem entity) {
@@ -53,17 +53,17 @@ public class ProductionItemMapper {
                 .id(entity.getId())
                 .placedRectangleId(placedRectangle != null ? placedRectangle.getId() : null)
                 .placedRectangle(placedRectangleMapper.toResponse(placedRectangle, commandeItem))
-            .pieceLengthM(entity.getPieceLengthM())
-            .pieceWidthMm(entity.getPieceWidthMm())
-            .quantity(entity.getQuantity())
-            .areaPerPieceM2(entity.getAreaPerPieceM2())
-            .totalAreaM2(entity.getTotalAreaM2())
-            .notes(entity.getNotes())
-            .goodProduction(entity.getGoodProduction())
-            .productionMiss(entity.getProductionMiss())
-            .createdAt(entity.getCreatedAt())
-            .updatedAt(entity.getUpdatedAt())
-            .build();
+                .pieceLengthM(entity.getPieceLengthM())
+                .pieceWidthMm(entity.getPieceWidthMm())
+                .quantity(entity.getQuantity())
+                .areaPerPieceM2(entity.getAreaPerPieceM2())
+                .totalAreaM2(entity.getTotalAreaM2())
+                .notes(entity.getNotes())
+                .goodProduction(entity.getGoodProduction())
+                .productionMiss(entity.getProductionMiss())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .build();
     }
 
     private CommandeItem getCommandeItemForPlacement(PlacedRectangle placedRectangle) {

@@ -222,11 +222,11 @@ public class PurchaseBonService {
                     .qrCode(request.getQrCode())
                     .build();
             item.setArticle(articleService.resolve(
-                request.getMaterialType(),
-                request.getThicknessMm(),
-                request.getNbPlis(),
-                request.getReference(),
-                request.getColorId()
+                    request.getMaterialType(),
+                    request.getThicknessMm(),
+                    request.getNbPlis(),
+                    request.getReference(),
+                    request.getColorId()
             ));
             items.add(item);
         }

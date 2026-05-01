@@ -14,13 +14,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ClientPhoneRequest {
-    
+
     @NotBlank(message = "Phone number is required")
     private String phoneNumber;
-    
+
     private Boolean isMain = false;
-    
+
     private String phoneType = "MOBILE";
-    
+
     private String notes;
 }

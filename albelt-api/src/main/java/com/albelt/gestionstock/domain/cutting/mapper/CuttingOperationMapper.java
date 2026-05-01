@@ -20,7 +20,7 @@ public class CuttingOperationMapper {
 
     /**
      * Convert CuttingOperationRequest DTO to CuttingOperation entity
-     * Supports both nesting algorithm workflow (piecesRequested) 
+     * Supports both nesting algorithm workflow (piecesRequested)
      * and UI recording workflow (quantity, utilization, wasteArea)
      */
     public CuttingOperation toEntity(CuttingOperationRequest request, Roll roll, java.util.UUID operatorId) {
@@ -32,23 +32,23 @@ public class CuttingOperationMapper {
             if (request.getPiecesRequested() != null && !request.getPiecesRequested().isEmpty()) {
                 piecesJson = objectMapper.writeValueAsString(request.getPiecesRequested());
             }
-            
+
             CuttingOperation.CuttingOperationBuilder builder = CuttingOperation.builder()
                     .roll(roll)
                     .piecesRequested(piecesJson)
                     .nestingResult("{}") // Will be populated by nesting algorithm
                     .operatorId(operatorId)
                     .notes(request.getNotes());
-            
+
             // If UI sends simplified metrics, set them directly
             if (request.getUtilization() != null) {
                 builder.finalUtilizationPct(request.getUtilization());
             }
-            
+
             if (request.getWasteArea() != null) {
                 builder.finalWasteAreaM2(request.getWasteArea());
             }
-            
+
             return builder.build();
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize pieces requested", e);

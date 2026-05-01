@@ -92,7 +92,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserDTO>> getByUsername(@RequestParam String username) {
         log.debug("Searching user by username: {}", username);
         var userOpt = userService.getByUsername(username);
-        
+
         if (userOpt.isPresent()) {
             return ResponseEntity.ok(ApiResponse.success(userMapper.toDTO(userOpt.get())));
         }

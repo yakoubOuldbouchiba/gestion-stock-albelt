@@ -34,6 +34,10 @@ import java.util.UUID;
 @Slf4j
 public class WastePieceController {
 
+    private final WastePieceService wastePieceService;
+    private final WastePieceMapper wastePieceMapper;
+    private final UserAltierService userAltierService;
+
     /**
      * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
      * GET /api/waste-pieces/grouped
@@ -43,10 +47,6 @@ public class WastePieceController {
         var grouped = wastePieceService.getGroupedByAllFields(type);
         return ResponseEntity.ok(ApiResponse.success(grouped));
     }
-
-    private final WastePieceService wastePieceService;
-    private final WastePieceMapper wastePieceMapper;
-    private final UserAltierService userAltierService;
 
     /**
      * Get all waste pieces (paginated)
@@ -72,7 +72,7 @@ public class WastePieceController {
         var fromDate = parseDateStart(dateFrom);
         var toDate = parseDateEnd(dateTo);
         var wastePieces = wastePieceService.getAllPaged(articleId, materialType, status, altierId, colorId, nbPlis,
-            thicknessMm, wasteType, fromDate, toDate, search, page, size);
+                thicknessMm, wasteType, fromDate, toDate, search, page, size);
         var responses = wastePieceMapper.toResponseList(wastePieces.getContent());
         var paged = PagedResponse.<WastePieceResponse>builder()
                 .items(responses)
@@ -133,19 +133,19 @@ public class WastePieceController {
     @PostMapping
     public ResponseEntity<ApiResponse<WastePieceResponse>> recordWaste(
             @RequestBody WastePieceRequest request) {
-        log.info("Recording waste piece: material={}, area_m2={}", 
-                 request.getMaterialType(), request.getLengthM());
-        
+        log.info("Recording waste piece: material={}, area_m2={}",
+                request.getMaterialType(), request.getLengthM());
+
         // Get current user from SecurityContext (JWT token)
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
             log.error("No authentication found in SecurityContext!");
             throw new IllegalStateException("User not authenticated");
         }
-        
+
         UUID currentUser = (UUID) authentication.getPrincipal();
         log.info("Waste piece request: currentUser={}", currentUser);
-        
+
         var wastePiece = wastePieceService.recordWaste(request, currentUser);
         var response = wastePieceMapper.toResponse(wastePiece);
         return ResponseEntity.ok(ApiResponse.success(response, "Waste piece recorded successfully"));
@@ -211,12 +211,12 @@ public class WastePieceController {
             @RequestParam BigDecimal requiredArea) {
         log.debug("Finding reuse candidate: material={}, area={}", material, requiredArea);
         var wasteOpt = wastePieceService.findReuseCandidate(material, requiredArea);
-        
+
         if (wasteOpt.isPresent()) {
             var response = wastePieceMapper.toResponse(wasteOpt.get());
             return ResponseEntity.ok(ApiResponse.success(response, "Reuse candidate found"));
         }
-        
+
         return ResponseEntity.ok(ApiResponse.error("No suitable waste piece found for reuse"));
     }
 
@@ -252,8 +252,8 @@ public class WastePieceController {
     }
 
     /**
-    * Archive waste piece
-    * PATCH /api/waste-pieces/{id}/mark-scrap
+     * Archive waste piece
+     * PATCH /api/waste-pieces/{id}/mark-scrap
      */
     @PatchMapping("/{id}/mark-scrap")
     public ResponseEntity<ApiResponse<WastePieceResponse>> markAsScrap(@PathVariable UUID id) {
@@ -305,7 +305,7 @@ public class WastePieceController {
      * GET /api/rolls/stats/by-material
      */
     @GetMapping("/stats/by-material")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStatsDechetByMaterialDechet(WasteType type     ) {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStatsDechetByMaterialDechet(WasteType type) {
         log.debug("Fetching stats by material type");
 
         var stats = wastePieceService.getStatsByMaterial(type);

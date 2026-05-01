@@ -38,14 +38,14 @@ public class CommandeMapper {
         }
 
         return Commande.builder()
-            .numeroCommande(request.getNumeroCommande())
-            .client(client)
-            .altier(altier)
-            .status(status)
-            .description(request.getDescription())
-            .notes(request.getNotes())
-            .createdBy(createdBy)
-            .build();
+                .numeroCommande(request.getNumeroCommande())
+                .client(client)
+                .altier(altier)
+                .status(status)
+                .description(request.getDescription())
+                .notes(request.getNotes())
+                .createdBy(createdBy)
+                .build();
     }
 
     /**
@@ -67,8 +67,8 @@ public class CommandeMapper {
                 .numeroCommande(commande.getNumeroCommande())
                 .clientId(commande.getClient().getId())
                 .clientName(commande.getClient().getName())
-            .altierId(commande.getAltier() != null ? commande.getAltier().getId() : null)
-            .altierLibelle(commande.getAltier() != null ? commande.getAltier().getLibelle() : null)
+                .altierId(commande.getAltier() != null ? commande.getAltier().getId() : null)
+                .altierLibelle(commande.getAltier() != null ? commande.getAltier().getLibelle() : null)
                 .status(commande.getStatus())
                 .description(commande.getDescription())
                 .notes(commande.getNotes())

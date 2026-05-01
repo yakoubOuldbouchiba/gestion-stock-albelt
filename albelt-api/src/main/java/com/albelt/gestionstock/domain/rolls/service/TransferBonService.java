@@ -29,13 +29,13 @@ import java.util.stream.Collectors;
 /**
  * Service for Transfer Bon management
  * Implements batch roll transfer workflow between altiers (workshops)
- * 
+ * <p>
  * TransferBon represents a batch transfer document:
  * - Groups multiple roll movements under one transfer operation
  * - Tracks sortie (departure) and entree (receipt) phases
  * - Maintains audit trail with operator and timestamps
  * - Linked to individual RollMovement records for detailed tracking
- * 
+ * <p>
  * Status workflow:
  * - NEW: Created but not yet departed
  * - statusSortie: Set when first movement departs
@@ -57,7 +57,7 @@ public class TransferBonService {
 
     @Transactional
     public TransferBonDTO createBon(UUID fromAltierId, UUID toAltierId, LocalDateTime dateSortie, LocalDateTime dateEntree,
-                                   UUID operatorId, String notes) {
+                                    UUID operatorId, String notes) {
         Altier fromAltier = altierService.getById(fromAltierId);
         Altier toAltier = altierService.getById(toAltierId);
         User operator = userService.getById(operatorId);
@@ -139,7 +139,7 @@ public class TransferBonService {
         bon = transferBonRepository.save(bon);
 
         List<RollMovement> pendingMovements = rollMovementRepository
-            .findByTransferBon_IdAndDateEntreeIsNullOrderByCreatedAtDesc(bonId);
+                .findByTransferBon_IdAndDateEntreeIsNullOrderByCreatedAtDesc(bonId);
 
         for (RollMovement movement : pendingMovements) {
             movement.setDateEntree(dateEntree);

@@ -39,9 +39,9 @@ public class ClientService {
      */
     public Client create(ClientRequest request) {
         log.info("Creating new client: {}", request.getName());
-        
+
         Client client = clientMapper.toEntity(request);
-        
+
         // Set the client reference for all nested entities
         if (client.getPhones() != null) {
             client.getPhones().forEach(phone -> phone.setClient(client));
@@ -55,7 +55,7 @@ public class ClientService {
         if (client.getRepresentatives() != null) {
             client.getRepresentatives().forEach(rep -> rep.setClient(client));
         }
-        
+
         return clientRepository.save(client);
     }
 
@@ -117,10 +117,10 @@ public class ClientService {
      */
     public Client update(UUID id, ClientRequest request) {
         log.info("Updating client with ID: {}", id);
-        
+
         Client existing = getById(id);
         Client updated = clientMapper.updateEntity(existing, request);
-        
+
         // Set the client reference for all nested entities
         if (updated.getPhones() != null) {
             updated.getPhones().forEach(phone -> phone.setClient(updated));
@@ -134,7 +134,7 @@ public class ClientService {
         if (updated.getRepresentatives() != null) {
             updated.getRepresentatives().forEach(rep -> rep.setClient(updated));
         }
-        
+
         return clientRepository.save(updated);
     }
 
@@ -143,7 +143,7 @@ public class ClientService {
      */
     public void deactivate(UUID id) {
         log.info("Deactivating client with ID: {}", id);
-        
+
         Client client = getById(id);
         client.setIsActive(false);
         clientRepository.save(client);
@@ -154,7 +154,7 @@ public class ClientService {
      */
     public void activate(UUID id) {
         log.info("Activating client with ID: {}", id);
-        
+
         Client client = getById(id);
         client.setIsActive(true);
         clientRepository.save(client);
@@ -165,7 +165,7 @@ public class ClientService {
      */
     public void delete(UUID id) {
         log.info("Deleting client with ID: {}", id);
-        
+
         Client client = getById(id);
         clientRepository.delete(client);
     }
@@ -183,16 +183,16 @@ public class ClientService {
      */
     public ClientPhone addPhone(UUID clientId, ClientPhoneRequest request) {
         log.info("Adding phone to client: {}", clientId);
-        
+
         Client client = getById(clientId);
         ClientPhone phone = clientMapper.toPhoneEntity(request);
         phone.setClient(client);
-        
+
         // If marking as main, unmark others
         if (request.getIsMain() != null && request.getIsMain()) {
             client.getPhones().forEach(p -> p.setIsMain(false));
         }
-        
+
         return phoneRepository.save(phone);
     }
 
@@ -201,15 +201,15 @@ public class ClientService {
      */
     public ClientPhone updatePhone(UUID clientId, UUID phoneId, ClientPhoneRequest request) {
         log.info("Updating phone {} for client {}", phoneId, clientId);
-        
+
         getById(clientId); // Verify client exists
         ClientPhone phone = phoneRepository.findById(phoneId)
                 .orElseThrow(() -> new ResourceNotFoundException("ClientPhone not found with id: " + phoneId));
-        
+
         phone.setPhoneNumber(request.getPhoneNumber());
         phone.setPhoneType(request.getPhoneType());
         phone.setNotes(request.getNotes());
-        
+
         // If marking as main, unmark others
         if (request.getIsMain() != null && request.getIsMain()) {
             phoneRepository.findByClientId(clientId).forEach(p -> {
@@ -219,7 +219,7 @@ public class ClientService {
                 }
             });
         }
-        
+
         phone.setIsMain(request.getIsMain() != null ? request.getIsMain() : phone.getIsMain());
         return phoneRepository.save(phone);
     }
@@ -229,7 +229,7 @@ public class ClientService {
      */
     public void deletePhone(UUID clientId, UUID phoneId) {
         log.info("Deleting phone {} for client {}", phoneId, clientId);
-        
+
         getById(clientId); // Verify client exists
         phoneRepository.deleteById(phoneId);
     }
@@ -250,16 +250,16 @@ public class ClientService {
      */
     public ClientEmail addEmail(UUID clientId, ClientEmailRequest request) {
         log.info("Adding email to client: {}", clientId);
-        
+
         Client client = getById(clientId);
         ClientEmail email = clientMapper.toEmailEntity(request);
         email.setClient(client);
-        
+
         // If marking as main, unmark others
         if (request.getIsMain() != null && request.getIsMain()) {
             client.getEmails().forEach(e -> e.setIsMain(false));
         }
-        
+
         return emailRepository.save(email);
     }
 
@@ -268,15 +268,15 @@ public class ClientService {
      */
     public ClientEmail updateEmail(UUID clientId, UUID emailId, ClientEmailRequest request) {
         log.info("Updating email {} for client {}", emailId, clientId);
-        
+
         getById(clientId); // Verify client exists
         ClientEmail email = emailRepository.findById(emailId)
                 .orElseThrow(() -> new ResourceNotFoundException("ClientEmail not found with id: " + emailId));
-        
+
         email.setEmailAddress(request.getEmailAddress());
         email.setEmailType(request.getEmailType());
         email.setNotes(request.getNotes());
-        
+
         // If marking as main, unmark others
         if (request.getIsMain() != null && request.getIsMain()) {
             emailRepository.findByClientId(clientId).forEach(e -> {
@@ -286,7 +286,7 @@ public class ClientService {
                 }
             });
         }
-        
+
         email.setIsMain(request.getIsMain() != null ? request.getIsMain() : email.getIsMain());
         return emailRepository.save(email);
     }
@@ -296,7 +296,7 @@ public class ClientService {
      */
     public void deleteEmail(UUID clientId, UUID emailId) {
         log.info("Deleting email {} for client {}", emailId, clientId);
-        
+
         getById(clientId); // Verify client exists
         emailRepository.deleteById(emailId);
     }
@@ -317,16 +317,16 @@ public class ClientService {
      */
     public ClientAddress addAddress(UUID clientId, ClientAddressRequest request) {
         log.info("Adding address to client: {}", clientId);
-        
+
         Client client = getById(clientId);
         ClientAddress address = clientMapper.toAddressEntity(request);
         address.setClient(client);
-        
+
         // If marking as main, unmark others
         if (request.getIsMain() != null && request.getIsMain()) {
             client.getAddresses().forEach(a -> a.setIsMain(false));
         }
-        
+
         return addressRepository.save(address);
     }
 
@@ -335,18 +335,18 @@ public class ClientService {
      */
     public ClientAddress updateAddress(UUID clientId, UUID addressId, ClientAddressRequest request) {
         log.info("Updating address {} for client {}", addressId, clientId);
-        
+
         getById(clientId); // Verify client exists
         ClientAddress address = addressRepository.findById(addressId)
                 .orElseThrow(() -> new ResourceNotFoundException("ClientAddress not found with id: " + addressId));
-        
+
         address.setStreetAddress(request.getStreetAddress());
         address.setCity(request.getCity());
         address.setPostalCode(request.getPostalCode());
         address.setCountry(request.getCountry());
         address.setAddressType(request.getAddressType());
         address.setNotes(request.getNotes());
-        
+
         // If marking as main, unmark others
         if (request.getIsMain() != null && request.getIsMain()) {
             addressRepository.findByClientId(clientId).forEach(a -> {
@@ -356,7 +356,7 @@ public class ClientService {
                 }
             });
         }
-        
+
         address.setIsMain(request.getIsMain() != null ? request.getIsMain() : address.getIsMain());
         return addressRepository.save(address);
     }
@@ -366,7 +366,7 @@ public class ClientService {
      */
     public void deleteAddress(UUID clientId, UUID addressId) {
         log.info("Deleting address {} for client {}", addressId, clientId);
-        
+
         getById(clientId); // Verify client exists
         addressRepository.deleteById(addressId);
     }
@@ -387,16 +387,16 @@ public class ClientService {
      */
     public ClientRepresentative addRepresentative(UUID clientId, ClientRepresentativeRequest request) {
         log.info("Adding representative to client: {}", clientId);
-        
+
         Client client = getById(clientId);
         ClientRepresentative rep = clientMapper.toRepresentativeEntity(request);
         rep.setClient(client);
-        
+
         // If marking as primary, unmark others
         if (request.getIsPrimary() != null && request.getIsPrimary()) {
             client.getRepresentatives().forEach(r -> r.setIsPrimary(false));
         }
-        
+
         return representativeRepository.save(rep);
     }
 
@@ -405,17 +405,17 @@ public class ClientService {
      */
     public ClientRepresentative updateRepresentative(UUID clientId, UUID repId, ClientRepresentativeRequest request) {
         log.info("Updating representative {} for client {}", repId, clientId);
-        
+
         getById(clientId); // Verify client exists
         ClientRepresentative rep = representativeRepository.findById(repId)
                 .orElseThrow(() -> new ResourceNotFoundException("ClientRepresentative not found with id: " + repId));
-        
+
         rep.setName(request.getName());
         rep.setPosition(request.getPosition());
         rep.setPhone(request.getPhone());
         rep.setEmail(request.getEmail());
         rep.setNotes(request.getNotes());
-        
+
         // If marking as primary, unmark others
         if (request.getIsPrimary() != null && request.getIsPrimary()) {
             representativeRepository.findByClientId(clientId).forEach(r -> {
@@ -425,7 +425,7 @@ public class ClientService {
                 }
             });
         }
-        
+
         rep.setIsPrimary(request.getIsPrimary() != null ? request.getIsPrimary() : rep.getIsPrimary());
         return representativeRepository.save(rep);
     }
@@ -435,7 +435,7 @@ public class ClientService {
      */
     public void deleteRepresentative(UUID clientId, UUID repId) {
         log.info("Deleting representative {} for client {}", repId, clientId);
-        
+
         getById(clientId); // Verify client exists
         representativeRepository.deleteById(repId);
     }

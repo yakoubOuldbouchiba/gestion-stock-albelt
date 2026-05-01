@@ -41,57 +41,57 @@ public interface CommandeItemRepository extends JpaRepository<CommandeItem, UUID
     List<CommandeItem> findByMaterialType(@Param("materialType") String materialType);
 
     @Query("""
-        select new com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot(
-            ci.id,
-            c.id,
-            c.status,
-            a.id,
-            article.id,
-            article.materialType,
-            article.nbPlis,
-            article.thicknessMm,
-            ci.longueurM,
-            ci.largeurMm,
-            ci.quantite,
-            color.id,
-            article.reference,
-            ci.updatedAt,
-            c.updatedAt
-        )
-        from CommandeItem ci
-        join ci.commande c
-        left join c.altier a
-        join ci.article article
-        left join article.color color
-        where ci.id = :itemId
-        """)
+            select new com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot(
+                ci.id,
+                c.id,
+                c.status,
+                a.id,
+                article.id,
+                article.materialType,
+                article.nbPlis,
+                article.thicknessMm,
+                ci.longueurM,
+                ci.largeurMm,
+                ci.quantite,
+                color.id,
+                article.reference,
+                ci.updatedAt,
+                c.updatedAt
+            )
+            from CommandeItem ci
+            join ci.commande c
+            left join c.altier a
+            join ci.article article
+            left join article.color color
+            where ci.id = :itemId
+            """)
     java.util.Optional<OptimizationItemSnapshot> findOptimizationSnapshotById(@Param("itemId") UUID itemId);
 
     @Query("""
-        select new com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot(
-            ci.id,
-            c.id,
-            c.status,
-            a.id,
-            article.id,
-            article.materialType,
-            article.nbPlis,
-            article.thicknessMm,
-            ci.longueurM,
-            ci.largeurMm,
-            ci.quantite,
-            color.id,
-            article.reference,
-            ci.updatedAt,
-            c.updatedAt
-        )
-        from CommandeItem ci
-        join ci.commande c
-        left join c.altier a
-        join ci.article article
-        left join article.color color
-        where c.id = :commandeId
-        order by ci.lineNumber asc
-        """)
+            select new com.albelt.gestionstock.domain.optimization.data.OptimizationItemSnapshot(
+                ci.id,
+                c.id,
+                c.status,
+                a.id,
+                article.id,
+                article.materialType,
+                article.nbPlis,
+                article.thicknessMm,
+                ci.longueurM,
+                ci.largeurMm,
+                ci.quantite,
+                color.id,
+                article.reference,
+                ci.updatedAt,
+                c.updatedAt
+            )
+            from CommandeItem ci
+            join ci.commande c
+            left join c.altier a
+            join ci.article article
+            left join article.color color
+            where c.id = :commandeId
+            order by ci.lineNumber asc
+            """)
     List<OptimizationItemSnapshot> findOptimizationSnapshotsByCommandeId(@Param("commandeId") UUID commandeId);
 }

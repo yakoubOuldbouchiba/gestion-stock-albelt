@@ -5,8 +5,10 @@
 -- ============================================================================
 
 ALTER TABLE commande_items
-    ADD COLUMN IF NOT EXISTS reference VARCHAR(100),
-    ADD COLUMN IF NOT EXISTS color_id UUID REFERENCES colors(id) ON DELETE SET NULL;
+    ADD COLUMN IF NOT EXISTS reference VARCHAR (100),
+    ADD COLUMN IF NOT EXISTS color_id UUID REFERENCES colors(id) ON
+DELETE
+SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_commande_items_color_id ON commande_items(color_id);
 

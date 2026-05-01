@@ -73,7 +73,7 @@ public class ArticleMapper {
         if (entity.getColor() != null) {
             // Accessing ID on a proxy typically doesn't trigger initialization
             builder.colorId(entity.getColor().getId());
-            
+
             // Only access other fields if initialized to avoid LazyInitializationException
             if (org.hibernate.Hibernate.isInitialized(entity.getColor())) {
                 builder.colorName(entity.getColor().getName());

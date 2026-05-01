@@ -265,16 +265,16 @@ public class PdfExportService {
     private BaseFont loadBestFont(Locale locale) {
         List<String> candidates = isArabic(locale)
                 ? List.of(
-                        "C:/Windows/Fonts/arial.ttf",
-                        "C:/Windows/Fonts/tahoma.ttf",
-                        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                        "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
-                        "/usr/share/fonts/truetype/freefont/FreeSans.ttf"
-                )
+                "C:/Windows/Fonts/arial.ttf",
+                "C:/Windows/Fonts/tahoma.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+                "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
+                "/usr/share/fonts/truetype/freefont/FreeSans.ttf"
+        )
                 : List.of(
-                        "C:/Windows/Fonts/arial.ttf",
-                        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-                );
+                "C:/Windows/Fonts/arial.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        );
 
         for (String candidate : candidates) {
             try {
@@ -336,8 +336,6 @@ public class PdfExportService {
     private boolean isArabic(Locale locale) {
         return locale != null && "ar".equalsIgnoreCase(locale.getLanguage());
     }
-
-    private record FontSet(Font title, Font section, Font normal, Font bold) {}
 
     private String shapeArabic(String text) {
         if (text == null) return null;
@@ -407,5 +405,8 @@ public class PdfExportService {
         company.setSpacingAfter(12f);
 
         document.add(company);
+    }
+
+    private record FontSet(Font title, Font section, Font normal, Font bold) {
     }
 }

@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class RollStatusRequest {
-    
+
     @NotNull(message = "Status is required")
     private RollStatus status;
 }

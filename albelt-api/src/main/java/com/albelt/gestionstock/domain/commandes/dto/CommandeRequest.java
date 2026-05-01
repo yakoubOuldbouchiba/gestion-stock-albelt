@@ -19,21 +19,21 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class CommandeRequest {
-    
+
     @NotBlank(message = "Order number is required")
     private String numeroCommande;
-    
+
     @NotNull(message = "Client ID is required")
     private UUID clientId;
 
     private UUID altierId;
-    
+
     private String status = "PENDING";
-    
+
     private String description;
-    
+
     private String notes;
-    
+
     @Valid
     private List<CommandeItemRequest> items;
 }

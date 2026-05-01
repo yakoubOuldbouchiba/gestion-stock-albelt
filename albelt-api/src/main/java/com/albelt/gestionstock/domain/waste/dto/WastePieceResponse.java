@@ -48,7 +48,6 @@ public class WastePieceResponse {
     private BigDecimal availableAreaM2;
 
 
-
     // Status & Classification (same as Roll)
     private String status;
     private WasteType wasteType;

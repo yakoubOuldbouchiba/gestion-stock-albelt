@@ -6,7 +6,7 @@ package com.albelt.gestionstock.shared.enums;
  */
 public enum WasteType {
     CHUTE_EXPLOITABLE("Usable scrap - can be reused in cutting operations"),
-     DECHET("Waste - too small or unusable for cutting");
+    DECHET("Waste - too small or unusable for cutting");
 
     private final String description;
 

@@ -87,15 +87,15 @@ public class CuttingOperation {
      * Check if cutting was highly efficient (>75% utilization)
      */
     public boolean isHighEfficiency() {
-        return this.finalUtilizationPct != null && 
-               this.finalUtilizationPct.compareTo(BigDecimal.valueOf(75)) >= 0;
+        return this.finalUtilizationPct != null &&
+                this.finalUtilizationPct.compareTo(BigDecimal.valueOf(75)) >= 0;
     }
 
     /**
      * Check if significant waste was generated
      */
     public boolean hasSignificantWaste() {
-        return this.finalWasteAreaM2 != null && 
-               this.finalWasteAreaM2.compareTo(BigDecimal.valueOf(3.0)) >= 0;
+        return this.finalWasteAreaM2 != null &&
+                this.finalWasteAreaM2.compareTo(BigDecimal.valueOf(3.0)) >= 0;
     }
 }

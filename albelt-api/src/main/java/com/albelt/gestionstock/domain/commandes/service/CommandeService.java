@@ -359,7 +359,7 @@ public class CommandeService {
                         .widthMm(productionItem.getPieceWidthMm())
                         .lengthM(productionItem.getPieceLengthM())
                         .areaM2(productionItem.getAreaPerPieceM2())
-                    .wasteType(classifyWasteType(productionItem))
+                        .wasteType(classifyWasteType(productionItem))
                         .altierId(altierId)
                         .colorId(colorId)
                         .reference(reference)
@@ -589,8 +589,8 @@ public class CommandeService {
         long waitingItems = commandeRepository.countByStatus("PENDING");
         long cuttingItems = commandeRepository.countByStatus("ENCOURS");
         long completedItems = commandeRepository.countByStatus("COMPLETED");
-        long cancelled  = commandeRepository.countByStatus("CANCELLED");
-        long activeOrders = totals - completedItems - cancelled ;
+        long cancelled = commandeRepository.countByStatus("CANCELLED");
+        long activeOrders = totals - completedItems - cancelled;
         return new OrderSummaryStatsDto(activeOrders, waitingItems, cuttingItems, completedItems);
     }
 }

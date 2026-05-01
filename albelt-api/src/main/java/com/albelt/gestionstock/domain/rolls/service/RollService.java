@@ -31,7 +31,7 @@ import java.util.*;
  * Service for Roll management
  * FIFO-based inventory selection and tracking
  * Clean schema implementation: no initial/remaining duplication
- * 
+ * <p>
  * Key responsibilities:
  * - Receive rolls into inventory (supplier delivery)
  * - FIFO-based roll selection for cutting operations
@@ -44,15 +44,6 @@ import java.util.*;
 @RequiredArgsConstructor
 @Slf4j
 public class RollService {
-    /**
-     * Get grouped roll statistics by color, nbPlis, thicknessMm, materialType, altierId, status
-     */
-    @Transactional(readOnly = true)
-    public List<com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse> getGroupedByAllFields() {
-        List<Object[]> rows = rollRepository.groupByAllFields();
-        return rollMapper.toGroupedStatsResponseList(rows);
-    }
-
     private final RollRepository rollRepository;
     private final RollMapper rollMapper;
     private final SupplierService supplierService;
@@ -62,22 +53,31 @@ public class RollService {
     private final QrCodeService qrCodeService;
 
     /**
+     * Get grouped roll statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+     */
+    @Transactional(readOnly = true)
+    public List<com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse> getGroupedByAllFields() {
+        List<Object[]> rows = rollRepository.groupByAllFields();
+        return rollMapper.toGroupedStatsResponseList(rows);
+    }
+
+    /**
      * Create a new roll from supplier delivery
      * Initializes roll with AVAILABLE status and zero waste tracking
-     * 
-     * @param request RollRequest containing material specs, dimensions, etc.
+     *
+     * @param request   RollRequest containing material specs, dimensions, etc.
      * @param createdBy UUID of user receiving the roll
      * @return Saved Roll entity with generated ID
      * @throws ResourceNotFoundException if supplier not found
      */
     public Roll receive(RollRequest request, UUID createdBy) {
-        log.info("Receiving roll: material={}, supplier_id={}, dimensions={}x{}x{}mm, area_m2={}", 
-                 request.getMaterialType(), request.getSupplierId(),
-                 request.getWidthMm(), request.getNbPlis(), request.getThicknessMm(),
-                 request.getAreaM2());
-        
+        log.info("Receiving roll: material={}, supplier_id={}, dimensions={}x{}x{}mm, area_m2={}",
+                request.getMaterialType(), request.getSupplierId(),
+                request.getWidthMm(), request.getNbPlis(), request.getThicknessMm(),
+                request.getAreaM2());
+
         Supplier supplier = supplierService.getById(request.getSupplierId());
-        
+
         // Resolve altier if provided (optional field)
         Altier altier = null;
         if (request.getAltierId() != null) {
@@ -87,39 +87,39 @@ public class RollService {
         Roll roll = rollMapper.toEntity(request, supplier, altier, createdBy);
         roll.setLotId(lotIdAllocator.nextLotId());
         roll.setArticle(articleService.resolve(
-            request.getMaterialType(),
-            request.getThicknessMm(),
-            request.getNbPlis(),
-            request.getReference(),
-            request.getColorId()
+                request.getMaterialType(),
+                request.getThicknessMm(),
+                request.getNbPlis(),
+                request.getReference(),
+                request.getColorId()
         ));
         Roll saved = rollRepository.save(roll);
-        log.info("Roll received successfully: id={}, material={}, area_m2={}, status=AVAILABLE, totalCuts=0, totalWaste=0m²", 
-                 saved.getId(), saved.getMaterialType(), saved.getAreaM2());
+        log.info("Roll received successfully: id={}, material={}, area_m2={}, status=AVAILABLE, totalCuts=0, totalWaste=0m²",
+                saved.getId(), saved.getMaterialType(), saved.getAreaM2());
         return saved;
     }
 
     /**
      * FIFO Selection: Get oldest available roll for a material
      * Core FIFO inventory selection logic - selects by received_date ASC
-     * 
+     *
      * @param materialType The material to search for
      * @return Optional containing oldest available roll, or empty if none available
      */
     @Transactional(readOnly = true)
     public Optional<Roll> selectByFifo(MaterialType materialType) {
         log.debug("FIFO Selection: Looking for oldest available roll with material={}", materialType);
-        
+
         Optional<Roll> roll = rollRepository.findFirstByMaterialTypeAndStatusOrderByReceivedDateAsc(materialType, RollStatus.AVAILABLE);
-        
+
         if (roll.isPresent()) {
             Roll selected = roll.get();
-            log.info("FIFO Selected: roll_id={}, received_date={}, area_m2={}", 
-                     selected.getId(), selected.getReceivedDate(), selected.getAreaM2());
+            log.info("FIFO Selected: roll_id={}, received_date={}, area_m2={}",
+                    selected.getId(), selected.getReceivedDate(), selected.getAreaM2());
         } else {
             log.warn("No available rolls found for material: {}", materialType);
         }
-        
+
         return roll;
     }
 
@@ -138,7 +138,7 @@ public class RollService {
     @Transactional(readOnly = true)
     public List<Roll> findRollsBySize(MaterialType materialType, BigDecimal requiredArea) {
         log.debug("Finding rolls: material={}, required_area={}", materialType, requiredArea);
-        
+
         List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
         return rollRepository.findRollsBySizeAndMaterial(materialType, requiredArea, availableStatuses);
     }
@@ -198,7 +198,7 @@ public class RollService {
         java.time.LocalDate effectiveToDate = toDate != null ? toDate : java.time.LocalDate.of(2100, 1, 1);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "receivedDate"));
         return rollRepository.findFiltered(userAltierIds, status, articleId, materialType, supplierId, altierId,
-            colorId, nbPlis, thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
+                colorId, nbPlis, thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
     }
 
     /**
@@ -264,18 +264,18 @@ public class RollService {
      */
     public Roll updateStatus(UUID id, RollStatus newStatus) {
         log.info("Updating roll status: id={}, new_status={}", id, newStatus);
-        
+
         Roll roll = getById(id);
         RollStatus oldStatus = roll.getStatus();
-        
+
         // Validate status transitions
         if (!isValidStatusTransition(oldStatus, newStatus)) {
             throw new BusinessException("Invalid status transition from " + oldStatus + " to " + newStatus);
         }
-        
+
         roll.setStatus(newStatus);
         Roll updated = rollRepository.save(roll);
-        
+
         log.info("Roll status updated: id={}, old_status={}, new_status={}", id, oldStatus, newStatus);
         return updated;
     }
@@ -312,7 +312,7 @@ public class RollService {
     public BigDecimal getTotalAreaByMaterial(MaterialType materialType) {
         List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
         List<Object[]> results = rollRepository.getTotalAreaByMaterial(availableStatuses);
-        
+
         for (Object[] row : results) {
             if (row[0].equals(materialType)) {
                 return (BigDecimal) row[1];
@@ -329,9 +329,9 @@ public class RollService {
         // OPENED -> EXHAUSTED, ARCHIVED
         // EXHAUSTED -> ARCHIVED (immutable once exhausted)
         // ARCHIVED -> nowhere (end state)
-        
+
         if (from.equals(to)) return false; // No self-transitions
-        
+
         switch (from) {
             case AVAILABLE:
                 return to.equals(RollStatus.OPENED) || to.equals(RollStatus.EXHAUSTED) || to.equals(RollStatus.ARCHIVED);
@@ -354,24 +354,24 @@ public class RollService {
 
     /**
      * Record consumption/waste on a roll after cutting operation
-    * Updates total waste area, cut count, and last processing date
-     * 
+     * Updates total waste area, cut count, and last processing date
+     * <p>
      * Status transitions:
-    * Status is managed by placement usage rules and manual updates.
-     * 
-     * @param rollId UUID of the roll being processed
+     * Status is managed by placement usage rules and manual updates.
+     *
+     * @param rollId      UUID of the roll being processed
      * @param wasteAreaM2 Area consumed/wasted in this operation (m²)
      * @return Updated Roll with new waste tracking
      * @throws ResourceNotFoundException if roll not found
-     * @throws BusinessException if parameters invalid
+     * @throws BusinessException         if parameters invalid
      */
     public Roll recordConsumption(UUID rollId, BigDecimal wasteAreaM2) {
         if (wasteAreaM2 == null || wasteAreaM2.compareTo(BigDecimal.ZERO) < 0) {
             throw new BusinessException("Waste area must be a non-negative value");
         }
-        
+
         log.info("Recording waste consumption: roll_id={}, waste_area_m2={}", rollId, wasteAreaM2);
-        
+
         Roll roll = getById(rollId);
         BigDecimal currentUsedArea = roll.getUsedAreaM2() != null ? roll.getUsedAreaM2() : BigDecimal.ZERO;
         BigDecimal currentAvailableArea = roll.getAvailableAreaM2() != null ? roll.getAvailableAreaM2() : roll.getAreaM2();
@@ -401,8 +401,8 @@ public class RollService {
 
         Roll updated = rollRepository.save(roll);
 
-        log.info("Consumption recorded: roll_id={}, total_waste={}m², cuts={}", 
-                 rollId, newTotalWaste, updated.getTotalCuts());
+        log.info("Consumption recorded: roll_id={}, total_waste={}m², cuts={}",
+                rollId, newTotalWaste, updated.getTotalCuts());
         return updated;
     }
 
@@ -412,11 +412,11 @@ public class RollService {
     public Roll save(Roll roll) {
         if (roll != null && roll.getArticle() == null) {
             roll.setArticle(articleService.resolve(
-                roll.getMaterialType(),
-                roll.getThicknessMm(),
-                roll.getNbPlis(),
-                roll.getReference(),
-                null // If we are saving an existing roll without an article, we might not have a colorId easily available here unless we fetch it
+                    roll.getMaterialType(),
+                    roll.getThicknessMm(),
+                    roll.getNbPlis(),
+                    roll.getReference(),
+                    null // If we are saving an existing roll without an article, we might not have a colorId easily available here unless we fetch it
             ));
         }
         return rollRepository.save(roll);
@@ -441,18 +441,18 @@ public class RollService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getStatsByMaterial() {
         log.debug("Fetching stats grouped by material type");
-        
+
         List<RollStatus> activeStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
         List<Object[]> results = rollRepository.getStatsByMaterial(activeStatuses);
-        
+
         return results.stream()
-            .map(row -> {
-                Map<String, Object> stat = new java.util.HashMap<>();
-                stat.put("material", row[0]);
-                stat.put("count", ((Number) row[1]).longValue());
-                stat.put("totalArea", row[2] != null ? row[2] : BigDecimal.ZERO);
-                return stat;
-            })
-            .toList();
+                .map(row -> {
+                    Map<String, Object> stat = new java.util.HashMap<>();
+                    stat.put("material", row[0]);
+                    stat.put("count", ((Number) row[1]).longValue());
+                    stat.put("totalArea", row[2] != null ? row[2] : BigDecimal.ZERO);
+                    return stat;
+                })
+                .toList();
     }
 }

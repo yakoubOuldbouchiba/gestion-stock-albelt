@@ -67,6 +67,31 @@ public class OptimizationService {
     private final OptimizationSnapshotLoader snapshotLoader;
     private final OptimizationEngine optimizationEngine;
 
+    private static String buildSourceDetails(String reference, Integer nbPlis, BigDecimal thicknessMm,
+                                             int widthMm, int lengthMm) {
+        String refLabel = reference != null && !reference.isBlank() ? reference : "N/A";
+        String plisLabel = nbPlis != null ? nbPlis.toString() : "-";
+        String thicknessLabel = thicknessMm != null
+                ? thicknessMm.stripTrailingZeros().toPlainString()
+                : "-";
+        BigDecimal lengthM = BigDecimal.valueOf(lengthMm)
+                .divide(BigDecimal.valueOf(1000), 3, RoundingMode.HALF_UP)
+                .stripTrailingZeros();
+        return "Ref: " + refLabel + " | Plis: " + plisLabel + " | Thk: " + thicknessLabel
+                + "mm | W: " + widthMm + "mm | L: " + lengthM + "m";
+    }
+
+    private static String escape(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
+    }
+
     @Transactional
     public OptimizationPlan generateAndSaveSuggestion(CommandeItem item) {
         if (item == null) {
@@ -100,71 +125,71 @@ public class OptimizationService {
         }
 
         return OptimizationComparisonResponse.builder()
-            .commandeItemId(commandeItemId)
-            .actualMetrics(actualResponse)
-            .suggested(suggestedResponse)
-            .actualSvg(actualSvg)
-            .actualSources(actualSources)
-            .actualPlacements(actualPlacements)
-            .wasteSavedM2(wasteSaved)
-            .utilizationGainPct(utilizationGain)
-            .build();
+                .commandeItemId(commandeItemId)
+                .actualMetrics(actualResponse)
+                .suggested(suggestedResponse)
+                .actualSvg(actualSvg)
+                .actualSources(actualSources)
+                .actualPlacements(actualPlacements)
+                .wasteSavedM2(wasteSaved)
+                .utilizationGainPct(utilizationGain)
+                .build();
     }
 
     @Transactional
     public void adoptPlan(UUID itemId, UUID suggestionId) {
         log.info("Adopting optimization plan {} for item {}", suggestionId, itemId);
-        
+
         OptimizationPlan plan = planRepository.findById(suggestionId)
-            .orElseThrow(() -> new ResourceNotFoundException("Optimization plan not found: " + suggestionId));
-            
+                .orElseThrow(() -> new ResourceNotFoundException("Optimization plan not found: " + suggestionId));
+
         if (!plan.getCommandeItemId().equals(itemId)) {
             throw new com.albelt.gestionstock.shared.exceptions.BusinessException("Plan does not belong to this item");
         }
-        
+
         // 1. Check for existing productions
         long producedCount = productionItemRepository.countByCommandeItemId(itemId);
         if (producedCount > 0) {
             throw new com.albelt.gestionstock.shared.exceptions.BusinessException(
-                "Cannot adopt new plan: item already has " + producedCount + " produced pieces."
+                    "Cannot adopt new plan: item already has " + producedCount + " produced pieces."
             );
         }
-        
+
         // 2. Clear existing placements
         placedRectangleRepository.deleteByCommandeItemId(itemId);
-        
+
         // 3. Load suggested placements
         List<OptimizationPlacement> suggested = placementRepository.findByPlanIdWithSourcesOrderByCreatedAtAsc(suggestionId);
-        
+
         // 4. Fetch the CommandeItem to get the color
         CommandeItem item = itemRepository.findById(itemId)
-            .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + itemId));
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + itemId));
         var color = item.getArticle() != null ? item.getArticle().getColor() : null;
-        
+
         // 5. Convert to PlacedRectangle
         List<PlacedRectangle> actuals = suggested.stream()
-            .map(sp -> PlacedRectangle.builder()
-                .commandeItemId(itemId)
-                .roll(sp.getRoll())
-                .wastePiece(sp.getWastePiece())
-                .xMm(sp.getXMm())
-                .yMm(sp.getYMm())
-                .widthMm(sp.getWidthMm())
-                .heightMm(sp.getHeightMm())
-                .color(color)
-                .build())
-            .toList();
-            
+                .map(sp -> PlacedRectangle.builder()
+                        .commandeItemId(itemId)
+                        .roll(sp.getRoll())
+                        .wastePiece(sp.getWastePiece())
+                        .xMm(sp.getXMm())
+                        .yMm(sp.getYMm())
+                        .widthMm(sp.getWidthMm())
+                        .heightMm(sp.getHeightMm())
+                        .color(color)
+                        .build())
+                .toList();
+
         placedRectangleRepository.saveAll(actuals);
-        
+
         // 6. Mark item as ENCOURS if it was PENDING
         if ("PENDING".equalsIgnoreCase(item.getStatus())) {
             item.setStatus("ENCOURS");
             itemRepository.save(item);
         }
-        
-        log.info("Successfully adopted plan {} for item {}. Created {} placements.", 
-            suggestionId, itemId, actuals.size());
+
+        log.info("Successfully adopted plan {} for item {}. Created {} placements.",
+                suggestionId, itemId, actuals.size());
     }
 
     private OptimizationPlan resolveSuggestionPlan(UUID commandeItemId,
@@ -176,8 +201,8 @@ public class OptimizationService {
         }
 
         OptimizationPlan existingPlan = planRepository
-            .findFirstByCommandeItemIdAndStatusOrderByCreatedAtDesc(commandeItemId, OptimizationPlanStatus.ACTIVE)
-            .orElse(null);
+                .findFirstByCommandeItemIdAndStatusOrderByCreatedAtDesc(commandeItemId, OptimizationPlanStatus.ACTIVE)
+                .orElse(null);
         if (existingPlan != null) {
             return existingPlan;
         }
@@ -193,14 +218,14 @@ public class OptimizationService {
 
         if (!forceRegenerate) {
             OptimizationPlan reusable = planRepository
-                .findFirstByCommandeItemIdAndStatusAndAlgorithmVersionAndInputSignatureAndStockSignatureOrderByCreatedAtDesc(
-                    commandeItemId,
-                    OptimizationPlanStatus.ACTIVE,
-                    ALGORITHM_VERSION,
-                    planningContext.inputSignature(),
-                    planningContext.stockSignature()
-                )
-                .orElse(null);
+                    .findFirstByCommandeItemIdAndStatusAndAlgorithmVersionAndInputSignatureAndStockSignatureOrderByCreatedAtDesc(
+                            commandeItemId,
+                            OptimizationPlanStatus.ACTIVE,
+                            ALGORITHM_VERSION,
+                            planningContext.inputSignature(),
+                            planningContext.stockSignature()
+                    )
+                    .orElse(null);
             if (reusable != null) {
                 return reusable;
             }
@@ -209,9 +234,9 @@ public class OptimizationService {
         supersedeActivePlans(commandeItemId);
 
         OptimizationEngine.OptimizationResult result = optimizationEngine.optimize(
-            item,
-            planningContext.sources(),
-            planningContext.occupiedBySource()
+                item,
+                planningContext.sources(),
+                planningContext.occupiedBySource()
         );
 
         if (result.totalPieces() == 0 || planningContext.sources().isEmpty()) {
@@ -226,8 +251,8 @@ public class OptimizationService {
 
     private void supersedeActivePlans(UUID commandeItemId) {
         List<OptimizationPlan> activePlans = planRepository.findByCommandeItemIdAndStatus(
-            commandeItemId,
-            OptimizationPlanStatus.ACTIVE
+                commandeItemId,
+                OptimizationPlanStatus.ACTIVE
         );
         if (activePlans == null || activePlans.isEmpty()) {
             return;
@@ -244,22 +269,20 @@ public class OptimizationService {
                                            String inputSignature,
                                            String stockSignature) {
         OptimizationPlan plan = OptimizationPlan.builder()
-            .commandeItemId(item.itemId())
-            .algorithmVersion(ALGORITHM_VERSION)
-            .inputSignature(inputSignature)
-            .stockSignature(stockSignature)
-            .totalPieces(totalPieces)
-            .placedPieces(0)
-            .sourceCount(0)
-            .usedAreaM2(BigDecimal.ZERO)
-            .wasteAreaM2(BigDecimal.ZERO)
-            .utilizationPct(BigDecimal.ZERO)
-            .svg(null)
-            .build();
+                .commandeItemId(item.itemId())
+                .algorithmVersion(ALGORITHM_VERSION)
+                .inputSignature(inputSignature)
+                .stockSignature(stockSignature)
+                .totalPieces(totalPieces)
+                .placedPieces(0)
+                .sourceCount(0)
+                .usedAreaM2(BigDecimal.ZERO)
+                .wasteAreaM2(BigDecimal.ZERO)
+                .utilizationPct(BigDecimal.ZERO)
+                .svg(null)
+                .build();
         return planRepository.save(plan);
     }
-
-
 
     private List<SourceCandidate> buildCandidates(CommandeItem item, UUID altierId) {
         MaterialType materialType = parseMaterialType(item.getMaterialType());
@@ -271,44 +294,44 @@ public class OptimizationService {
 
         List<WasteStatus> wasteStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
         List<WastePiece> wastePieces = altierId == null
-            ? wastePieceRepository.findAvailableByMaterial(
+                ? wastePieceRepository.findAvailableByMaterial(
                 materialType,
                 wasteStatuses,
                 PageRequest.of(0, MAX_WASTE_CANDIDATES)
-            )
-            : wastePieceRepository.findAvailableByMaterialAndAltier(
+        )
+                : wastePieceRepository.findAvailableByMaterialAndAltier(
                 materialType,
                 wasteStatuses,
                 altierId,
                 PageRequest.of(0, MAX_WASTE_CANDIDATES)
-            );
+        );
 
         List<SourceCandidate> wasteCandidates = wastePieces.stream()
-            .filter(wp -> wp.getWasteType() == WasteType.CHUTE_EXPLOITABLE || wp.getWasteType() == null)
-            .filter(wp -> matchesCommonFilters(articleId, materialType, nbPlis, thickness, colorId, reference,
-                wp.getArticle() != null ? wp.getArticle().getId() : null,
-                wp.getMaterialType(), wp.getNbPlis(), wp.getThicknessMm(),
-                (wp.getArticle() != null && wp.getArticle().getColor() != null) ? wp.getArticle().getColor().getId() : null, wp.getReference()))
-            .map(SourceCandidate::fromWaste)
-            .filter(sc -> sc.canFit(item))
-            .sorted(Comparator.comparing(SourceCandidate::effectiveAreaM2).reversed())
-            .collect(Collectors.toList());
+                .filter(wp -> wp.getWasteType() == WasteType.CHUTE_EXPLOITABLE || wp.getWasteType() == null)
+                .filter(wp -> matchesCommonFilters(articleId, materialType, nbPlis, thickness, colorId, reference,
+                        wp.getArticle() != null ? wp.getArticle().getId() : null,
+                        wp.getMaterialType(), wp.getNbPlis(), wp.getThicknessMm(),
+                        (wp.getArticle() != null && wp.getArticle().getColor() != null) ? wp.getArticle().getColor().getId() : null, wp.getReference()))
+                .map(SourceCandidate::fromWaste)
+                .filter(sc -> sc.canFit(item))
+                .sorted(Comparator.comparing(SourceCandidate::effectiveAreaM2).reversed())
+                .collect(Collectors.toList());
 
         List<RollStatus> rollStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
         List<Roll> rolls = altierId == null
-            ? rollRepository.findFifoQueue(materialType, rollStatuses)
-            : rollRepository.findFifoQueueByAltier(materialType, rollStatuses, altierId);
+                ? rollRepository.findFifoQueue(materialType, rollStatuses)
+                : rollRepository.findFifoQueueByAltier(materialType, rollStatuses, altierId);
 
         List<SourceCandidate> rollCandidates = rolls.stream()
-            .filter(r -> matchesCommonFilters(articleId, materialType, nbPlis, thickness, colorId, reference,
-                r.getArticle() != null ? r.getArticle().getId() : null,
-                r.getMaterialType(), r.getNbPlis(), r.getThicknessMm(),
-                (r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getId() : null, r.getReference()))
-            .map(SourceCandidate::fromRoll)
-            .filter(sc -> sc.canFit(item))
-            .sorted(Comparator.comparing(SourceCandidate::fifoScore).reversed())
-            .limit(MAX_ROLL_CANDIDATES)
-            .collect(Collectors.toList());
+                .filter(r -> matchesCommonFilters(articleId, materialType, nbPlis, thickness, colorId, reference,
+                        r.getArticle() != null ? r.getArticle().getId() : null,
+                        r.getMaterialType(), r.getNbPlis(), r.getThicknessMm(),
+                        (r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getId() : null, r.getReference()))
+                .map(SourceCandidate::fromRoll)
+                .filter(sc -> sc.canFit(item))
+                .sorted(Comparator.comparing(SourceCandidate::fifoScore).reversed())
+                .limit(MAX_ROLL_CANDIDATES)
+                .collect(Collectors.toList());
 
         List<SourceCandidate> candidates = new ArrayList<>(wasteCandidates);
         candidates.addAll(rollCandidates);
@@ -326,10 +349,10 @@ public class OptimizationService {
         }
 
         int totalPieces = items.stream()
-            .map(OptimizationItemSnapshot::quantite)
-            .filter(Objects::nonNull)
-            .mapToInt(Integer::intValue)
-            .sum();
+                .map(OptimizationItemSnapshot::quantite)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
 
         List<Altier> altiers = altierRepository.findAll();
         List<AltierScoreResponse> results = new ArrayList<>();
@@ -340,9 +363,9 @@ public class OptimizationService {
             for (OptimizationItemSnapshot item : items) {
                 var planningContext = snapshotLoader.loadPlanningContext(item.withAltierId(altier.getId()));
                 OptimizationEngine.OptimizationResult result = optimizationEngine.optimize(
-                    item.withAltierId(altier.getId()),
-                    planningContext.sources(),
-                    planningContext.occupiedBySource()
+                        item.withAltierId(altier.getId()),
+                        planningContext.sources(),
+                        planningContext.occupiedBySource()
                 );
                 placedPieces += result.placedPieces();
             }
@@ -350,27 +373,27 @@ public class OptimizationService {
             BigDecimal coveragePct = BigDecimal.ZERO;
             if (totalPieces > 0) {
                 coveragePct = BigDecimal.valueOf(placedPieces)
-                    .divide(BigDecimal.valueOf(totalPieces), 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100));
+                        .divide(BigDecimal.valueOf(totalPieces), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
             }
 
             boolean canFulfill = totalPieces == 0 || placedPieces >= totalPieces;
             double score = (canFulfill ? 1_000_000.0 : 0.0) + coveragePct.doubleValue();
 
             results.add(AltierScoreResponse.builder()
-                .altierId(altier.getId())
-                .altierLibelle(altier.getLibelle())
-                .score(score)
-                .totalPieces(totalPieces)
-                .placedPieces(Math.min(placedPieces, totalPieces))
-                .coveragePct(coveragePct)
-                .canFulfill(canFulfill)
-                .build());
+                    .altierId(altier.getId())
+                    .altierLibelle(altier.getLibelle())
+                    .score(score)
+                    .totalPieces(totalPieces)
+                    .placedPieces(Math.min(placedPieces, totalPieces))
+                    .coveragePct(coveragePct)
+                    .canFulfill(canFulfill)
+                    .build());
         }
 
         results.sort(
-            Comparator.comparingDouble(AltierScoreResponse::getScore).reversed()
-                .thenComparing(r -> r.getAltierLibelle() != null ? r.getAltierLibelle() : "")
+                Comparator.comparingDouble(AltierScoreResponse::getScore).reversed()
+                        .thenComparing(r -> r.getAltierLibelle() != null ? r.getAltierLibelle() : "")
         );
 
         return results;
@@ -380,7 +403,7 @@ public class OptimizationService {
         String normalizedStatus = normalize(commandeStatus);
         if (normalizedStatus == null || !ACTIVE_COMMANDE_STATUSES.contains(normalizedStatus.toUpperCase(Locale.ROOT))) {
             throw new com.albelt.gestionstock.shared.exceptions.BusinessException(
-                "Optimization can only run when commande status is PENDING or ENCOURS"
+                    "Optimization can only run when commande status is PENDING or ENCOURS"
             );
         }
     }
@@ -449,7 +472,7 @@ public class OptimizationService {
 
             // Validation layer: Bounds Check
             if (newPlacement.xMm + newPlacement.widthMm > source.widthMm ||
-                newPlacement.yMm + newPlacement.heightMm > source.heightMm) {
+                    newPlacement.yMm + newPlacement.heightMm > source.heightMm) {
                 System.err.println("WARNING: Rejected out-of-bounds placement for piece " + piece.id);
                 continue;
             }
@@ -484,8 +507,8 @@ public class OptimizationService {
         int placedPieces = placements.size();
         BigDecimal wasteArea = sourceArea.subtract(usedArea).max(BigDecimal.ZERO);
         BigDecimal utilizationPct = sourceArea.compareTo(BigDecimal.ZERO) == 0
-            ? BigDecimal.ZERO
-            : usedArea.divide(sourceArea, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
+                ? BigDecimal.ZERO
+                : usedArea.divide(sourceArea, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
 
         double score = scorePlan(placedPieces, utilizationPct, wasteArea, source);
 
@@ -596,26 +619,26 @@ public class OptimizationService {
         if (source.roll != null) {
             List<PlacedRectangle> placed = placedRectangleRepository.findByRollIdOrderByCreatedAtAsc(source.roll.getId());
             placed.stream()
-                .filter(pr -> commandeItemId == null || !commandeItemId.equals(pr.getCommandeItemId()))
-                .forEach(pr -> addOccupiedRect(occupied, pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm()));
+                    .filter(pr -> commandeItemId == null || !commandeItemId.equals(pr.getCommandeItemId()))
+                    .forEach(pr -> addOccupiedRect(occupied, pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm()));
             if (commandeItemId != null) {
                 List<OptimizationPlacement> optimizations = placementRepository
-                    .findActivePlacementsExcludingItem(source.roll.getId(), null,
-                        OptimizationPlanStatus.ACTIVE, commandeItemId, ACTIVE_COMMANDE_STATUSES);
+                        .findActivePlacementsExcludingItem(source.roll.getId(), null,
+                                OptimizationPlanStatus.ACTIVE, commandeItemId, ACTIVE_COMMANDE_STATUSES);
                 optimizations.forEach(op -> addOccupiedRect(occupied, op.getXMm(), op.getYMm(),
-                    op.getWidthMm(), op.getHeightMm()));
+                        op.getWidthMm(), op.getHeightMm()));
             }
         } else if (source.wastePiece != null) {
             List<PlacedRectangle> placed = placedRectangleRepository.findByWastePieceIdOrderByCreatedAtAsc(source.wastePiece.getId());
             placed.stream()
-                .filter(pr -> commandeItemId == null || !commandeItemId.equals(pr.getCommandeItemId()))
-                .forEach(pr -> addOccupiedRect(occupied, pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm()));
+                    .filter(pr -> commandeItemId == null || !commandeItemId.equals(pr.getCommandeItemId()))
+                    .forEach(pr -> addOccupiedRect(occupied, pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm()));
             if (commandeItemId != null) {
                 List<OptimizationPlacement> optimizations = placementRepository
-                    .findActivePlacementsExcludingItem(null, source.wastePiece.getId(),
-                        OptimizationPlanStatus.ACTIVE, commandeItemId, ACTIVE_COMMANDE_STATUSES);
+                        .findActivePlacementsExcludingItem(null, source.wastePiece.getId(),
+                                OptimizationPlanStatus.ACTIVE, commandeItemId, ACTIVE_COMMANDE_STATUSES);
                 optimizations.forEach(op -> addOccupiedRect(occupied, op.getXMm(), op.getYMm(),
-                    op.getWidthMm(), op.getHeightMm()));
+                        op.getWidthMm(), op.getHeightMm()));
             }
         }
 
@@ -697,16 +720,16 @@ public class OptimizationService {
 
     private boolean containsRect(FreeRect outer, FreeRect inner) {
         return inner.xMm >= outer.xMm
-            && inner.yMm >= outer.yMm
-            && inner.xMm + inner.widthMm <= outer.xMm + outer.widthMm
-            && inner.yMm + inner.heightMm <= outer.yMm + outer.heightMm;
+                && inner.yMm >= outer.yMm
+                && inner.xMm + inner.widthMm <= outer.xMm + outer.widthMm
+                && inner.yMm + inner.heightMm <= outer.yMm + outer.heightMm;
     }
 
     private boolean overlaps(FreeRect first, FreeRect second) {
         return first.xMm < second.xMm + second.widthMm
-            && first.xMm + first.widthMm > second.xMm
-            && first.yMm < second.yMm + second.heightMm
-            && first.yMm + first.heightMm > second.yMm;
+                && first.xMm + first.widthMm > second.xMm
+                && first.yMm < second.yMm + second.heightMm
+                && first.yMm + first.heightMm > second.yMm;
     }
 
     private OptimizationPlan buildPlan(OptimizationItemSnapshot item,
@@ -716,18 +739,18 @@ public class OptimizationService {
         String svg = buildSuggestedSvg(run.sourcePlans(), item);
 
         return OptimizationPlan.builder()
-            .commandeItemId(item.itemId())
-            .algorithmVersion(ALGORITHM_VERSION)
-            .inputSignature(inputSignature)
-            .stockSignature(stockSignature)
-            .totalPieces(run.totalPieces())
-            .placedPieces(run.placedPieces())
-            .sourceCount(run.sourcePlans().size())
-            .usedAreaM2(run.usedAreaM2())
-            .wasteAreaM2(run.wasteAreaM2())
-            .utilizationPct(run.utilizationPct())
-            .svg(svg)
-            .build();
+                .commandeItemId(item.itemId())
+                .algorithmVersion(ALGORITHM_VERSION)
+                .inputSignature(inputSignature)
+                .stockSignature(stockSignature)
+                .totalPieces(run.totalPieces())
+                .placedPieces(run.placedPieces())
+                .sourceCount(run.sourcePlans().size())
+                .usedAreaM2(run.usedAreaM2())
+                .wasteAreaM2(run.wasteAreaM2())
+                .utilizationPct(run.utilizationPct())
+                .svg(svg)
+                .build();
     }
 
     private void persistPlacements(OptimizationPlan plan, List<OptimizationEngine.PlacementResult> placements) {
@@ -736,21 +759,21 @@ public class OptimizationService {
         }
 
         List<OptimizationPlacement> entities = placements.stream()
-            .map(record -> OptimizationPlacement.builder()
-                .plan(plan)
-                .sourceType(record.source().sourceType())
-                .roll(record.source().rollId() != null ? rollRepository.getReferenceById(record.source().rollId()) : null)
-                .wastePiece(record.source().wastePieceId() != null ? wastePieceRepository.getReferenceById(record.source().wastePieceId()) : null)
-                .xMm(record.xMm())
-                .yMm(record.yMm())
-                .widthMm(record.widthMm())
-                .heightMm(record.heightMm())
-                .rotated(record.rotated())
-                .pieceWidthMm(record.pieceWidthMm())
-                .pieceLengthM(record.pieceLengthM())
-                .areaM2(record.areaM2())
-                .build())
-            .toList();
+                .map(record -> OptimizationPlacement.builder()
+                        .plan(plan)
+                        .sourceType(record.source().sourceType())
+                        .roll(record.source().rollId() != null ? rollRepository.getReferenceById(record.source().rollId()) : null)
+                        .wastePiece(record.source().wastePieceId() != null ? wastePieceRepository.getReferenceById(record.source().wastePieceId()) : null)
+                        .xMm(record.xMm())
+                        .yMm(record.yMm())
+                        .widthMm(record.widthMm())
+                        .heightMm(record.heightMm())
+                        .rotated(record.rotated())
+                        .pieceWidthMm(record.pieceWidthMm())
+                        .pieceLengthM(record.pieceLengthM())
+                        .areaM2(record.areaM2())
+                        .build())
+                .toList();
 
         placementRepository.saveAll(entities);
     }
@@ -775,56 +798,56 @@ public class OptimizationService {
         }
 
         BigDecimal totalSourceArea = sourceAreas.values().stream()
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal wasteArea = totalSourceArea.subtract(usedArea).max(BigDecimal.ZERO);
         BigDecimal utilization = totalSourceArea.compareTo(BigDecimal.ZERO) == 0
-            ? BigDecimal.ZERO
-            : usedArea.divide(totalSourceArea, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
+                ? BigDecimal.ZERO
+                : usedArea.divide(totalSourceArea, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100));
 
         return new OptimizationMetrics(
-            item.quantite() != null ? item.quantite() : 0,
-            placedPieces,
-            sourceAreas.size(),
-            usedArea,
-            wasteArea,
-            utilization
+                item.quantite() != null ? item.quantite() : 0,
+                placedPieces,
+                sourceAreas.size(),
+                usedArea,
+                wasteArea,
+                utilization
         );
     }
 
     private OptimizationMetricsResponse toMetricsResponse(OptimizationMetrics metrics) {
         return OptimizationMetricsResponse.builder()
-            .totalPieces(metrics.totalPieces)
-            .placedPieces(metrics.placedPieces)
-            .sourceCount(metrics.sourceCount)
-            .usedAreaM2(metrics.usedAreaM2)
-            .wasteAreaM2(metrics.wasteAreaM2)
-            .utilizationPct(metrics.utilizationPct)
-            .build();
+                .totalPieces(metrics.totalPieces)
+                .placedPieces(metrics.placedPieces)
+                .sourceCount(metrics.sourceCount)
+                .usedAreaM2(metrics.usedAreaM2)
+                .wasteAreaM2(metrics.wasteAreaM2)
+                .utilizationPct(metrics.utilizationPct)
+                .build();
     }
 
     private OptimizationPlanResponse toPlanResponse(OptimizationPlan plan) {
         OptimizationMetricsResponse metrics = OptimizationMetricsResponse.builder()
-            .totalPieces(plan.getTotalPieces())
-            .placedPieces(plan.getPlacedPieces())
-            .sourceCount(plan.getSourceCount())
-            .usedAreaM2(plan.getUsedAreaM2())
-            .wasteAreaM2(plan.getWasteAreaM2())
-            .utilizationPct(plan.getUtilizationPct())
-            .build();
+                .totalPieces(plan.getTotalPieces())
+                .placedPieces(plan.getPlacedPieces())
+                .sourceCount(plan.getSourceCount())
+                .usedAreaM2(plan.getUsedAreaM2())
+                .wasteAreaM2(plan.getWasteAreaM2())
+                .utilizationPct(plan.getUtilizationPct())
+                .build();
 
         List<OptimizationPlacement> placementsRaw = placementRepository.findByPlanIdWithSourcesOrderByCreatedAtAsc(plan.getId());
         List<OptimizationSourceReportResponse> sources = buildSuggestedSources(placementsRaw);
         List<OptimizationPlacementReportResponse> placements = buildSuggestedPlacements(placementsRaw);
 
         return OptimizationPlanResponse.builder()
-            .suggestionId(plan.getId())
-            .status(plan.getStatus().name())
-            .metrics(metrics)
-            .svg(plan.getSvg())
-            .sources(sources)
-            .placements(placements)
-            .build();
+                .suggestionId(plan.getId())
+                .status(plan.getStatus().name())
+                .metrics(metrics)
+                .svg(plan.getSvg())
+                .sources(sources)
+                .placements(placements)
+                .build();
     }
 
     private String buildSuggestedSvg(List<OptimizationEngine.SourcePlan> plans, OptimizationItemSnapshot item) {
@@ -834,32 +857,32 @@ public class OptimizationService {
         MaterialType materialType = parseMaterialType(item.materialType());
         MaterialChuteThreshold threshold = thresholdRepository.findByMaterialType(materialType).orElse(null);
         ThresholdSpec spec = threshold != null
-            ? new ThresholdSpec(threshold.getMinWidthMm(), toLengthMm(threshold.getMinLengthM()))
-            : new ThresholdSpec(0, 0);
+                ? new ThresholdSpec(threshold.getMinWidthMm(), toLengthMm(threshold.getMinLengthM()))
+                : new ThresholdSpec(0, 0);
 
         List<SvgGroup> groups = new ArrayList<>();
         for (OptimizationEngine.SourcePlan plan : plans) {
             List<SvgRect> placements = plan.placements().stream()
-                .map(record -> SvgRect.fromPlacement(record.xMm(), record.yMm(),
-                    record.widthMm(), record.heightMm(), "#8fd3ff", "#004d7a",
-                    buildPlacementLabel(record.xMm(), record.yMm(),
-                        record.widthMm(), record.heightMm())))
-                .toList();
+                    .map(record -> SvgRect.fromPlacement(record.xMm(), record.yMm(),
+                            record.widthMm(), record.heightMm(), "#8fd3ff", "#004d7a",
+                            buildPlacementLabel(record.xMm(), record.yMm(),
+                                    record.widthMm(), record.heightMm())))
+                    .toList();
 
             List<SvgRect> wasteRects = plan.freeRects().stream()
-                .map(rect -> buildWasteRect(rect.xMm(), rect.yMm(), rect.widthMm(), rect.heightMm(), spec))
-                .toList();
+                    .map(rect -> buildWasteRect(rect.xMm(), rect.yMm(), rect.widthMm(), rect.heightMm(), spec))
+                    .toList();
 
             String sourceLabel = plan.source().sourceType() == OptimizationSourceType.WASTE ? "CHUTE" : "ROLL";
             String sourceDetails = buildSourceDetails(
-                plan.source().reference(),
-                plan.source().nbPlis(),
-                plan.source().thicknessMm(),
-                plan.source().widthMm(),
-                toLengthMm(plan.source().lengthM())
+                    plan.source().reference(),
+                    plan.source().nbPlis(),
+                    plan.source().thicknessMm(),
+                    plan.source().widthMm(),
+                    toLengthMm(plan.source().lengthM())
             );
             groups.add(new SvgGroup(sourceLabel, sourceDetails,
-                toLengthMm(plan.source().lengthM()), plan.source().widthMm(), placements, wasteRects));
+                    toLengthMm(plan.source().lengthM()), plan.source().widthMm(), placements, wasteRects));
         }
 
         return renderSvg(groups, false);
@@ -876,20 +899,20 @@ public class OptimizationService {
                 String key = "ROLL-" + pr.getRoll().getId();
                 builders.computeIfAbsent(key, k -> SvgGroupBuilder.fromRoll(pr.getRoll()));
                 builders.get(key).placements.add(SvgRect.fromPlacement(pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm(),
-                    "#ffd39c", "#7a4a00", buildPlacementLabel(pr.getXMm(), pr.getYMm(),
-                        pr.getWidthMm(), pr.getHeightMm())));
+                        "#ffd39c", "#7a4a00", buildPlacementLabel(pr.getXMm(), pr.getYMm(),
+                                pr.getWidthMm(), pr.getHeightMm())));
             } else if (pr.getWastePiece() != null) {
                 String key = "WASTE-" + pr.getWastePiece().getId();
                 builders.computeIfAbsent(key, k -> SvgGroupBuilder.fromWaste(pr.getWastePiece()));
                 builders.get(key).placements.add(SvgRect.fromPlacement(pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm(),
-                    "#ffd39c", "#7a4a00", buildPlacementLabel(pr.getXMm(), pr.getYMm(),
-                        pr.getWidthMm(), pr.getHeightMm())));
+                        "#ffd39c", "#7a4a00", buildPlacementLabel(pr.getXMm(), pr.getYMm(),
+                                pr.getWidthMm(), pr.getHeightMm())));
             }
         }
 
         List<SvgGroup> groups = builders.values().stream()
-            .map(SvgGroupBuilder::build)
-            .toList();
+                .map(SvgGroupBuilder::build)
+                .toList();
 
         return renderSvg(groups, false);
     }
@@ -904,36 +927,36 @@ public class OptimizationService {
                 Roll r = pr.getRoll();
                 String id = r.getId().toString();
                 sources.putIfAbsent("ROLL-" + id, OptimizationSourceReportResponse.builder()
-                    .sourceType("ROLL")
-                    .sourceId(id)
-                    .label("ROLL")
-                    .reference(r.getReference())
-                    .lotId(r.getLotId())
-                    .nbPlis(r.getNbPlis())
-                    .thicknessMm(r.getThicknessMm())
-                    .widthMm(r.getWidthMm())
-                    .lengthM(r.getLengthM())
-                    .colorName((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getName() : null)
-                    .colorHexCode((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getHexCode() : null)
-                    .qrCode(r.getQrCode())
-                    .build());
+                        .sourceType("ROLL")
+                        .sourceId(id)
+                        .label("ROLL")
+                        .reference(r.getReference())
+                        .lotId(r.getLotId())
+                        .nbPlis(r.getNbPlis())
+                        .thicknessMm(r.getThicknessMm())
+                        .widthMm(r.getWidthMm())
+                        .lengthM(r.getLengthM())
+                        .colorName((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getName() : null)
+                        .colorHexCode((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getHexCode() : null)
+                        .qrCode(r.getQrCode())
+                        .build());
             } else if (pr.getWastePiece() != null) {
                 WastePiece w = pr.getWastePiece();
                 String id = w.getId().toString();
                 sources.putIfAbsent("WASTE-" + id, OptimizationSourceReportResponse.builder()
-                    .sourceType("WASTE_PIECE")
-                    .sourceId(id)
-                    .label("CHUTE")
-                    .reference(w.getReference())
-                    .lotId(w.getLotId())
-                    .nbPlis(w.getNbPlis())
-                    .thicknessMm(w.getThicknessMm())
-                    .widthMm(w.getWidthMm())
-                    .lengthM(w.getLengthM())
-                    .colorName((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getName() : null)
-                    .colorHexCode((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getHexCode() : null)
-                    .qrCode(w.getQrCode())
-                    .build());
+                        .sourceType("WASTE_PIECE")
+                        .sourceId(id)
+                        .label("CHUTE")
+                        .reference(w.getReference())
+                        .lotId(w.getLotId())
+                        .nbPlis(w.getNbPlis())
+                        .thicknessMm(w.getThicknessMm())
+                        .widthMm(w.getWidthMm())
+                        .lengthM(w.getLengthM())
+                        .colorName((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getName() : null)
+                        .colorHexCode((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getHexCode() : null)
+                        .qrCode(w.getQrCode())
+                        .build());
             }
         }
         return new ArrayList<>(sources.values());
@@ -947,32 +970,32 @@ public class OptimizationService {
         for (PlacedRectangle pr : placements) {
             String sourceType = pr.getRoll() != null ? "ROLL" : "WASTE_PIECE";
             String sourceId = pr.getRoll() != null
-                ? pr.getRoll().getId().toString()
-                : pr.getWastePiece() != null ? pr.getWastePiece().getId().toString() : null;
+                    ? pr.getRoll().getId().toString()
+                    : pr.getWastePiece() != null ? pr.getWastePiece().getId().toString() : null;
             results.add(OptimizationPlacementReportResponse.builder()
-                .sourceType(sourceType)
-                .sourceId(sourceId)
-                .xMm(pr.getXMm())
-                .yMm(pr.getYMm())
-                .widthMm(pr.getWidthMm())
-                .heightMm(pr.getHeightMm())
-                .placementColorName(pr.getColor() != null ? pr.getColor().getName() : null)
-                .placementColorHexCode(pr.getColor() != null ? pr.getColor().getHexCode() : null)
-                .qrCode(buildPlacementQrCode(
-                    sourceType,
-                    sourceId,
-                    pr.getXMm(),
-                    pr.getYMm(),
-                    pr.getWidthMm(),
-                    pr.getHeightMm(),
-                    null,
-                    null,
-                    null,
-                    null,
-                    pr.getColor() != null ? pr.getColor().getName() : null,
-                    pr.getColor() != null ? pr.getColor().getHexCode() : null
-                ))
-                .build());
+                    .sourceType(sourceType)
+                    .sourceId(sourceId)
+                    .xMm(pr.getXMm())
+                    .yMm(pr.getYMm())
+                    .widthMm(pr.getWidthMm())
+                    .heightMm(pr.getHeightMm())
+                    .placementColorName(pr.getColor() != null ? pr.getColor().getName() : null)
+                    .placementColorHexCode(pr.getColor() != null ? pr.getColor().getHexCode() : null)
+                    .qrCode(buildPlacementQrCode(
+                            sourceType,
+                            sourceId,
+                            pr.getXMm(),
+                            pr.getYMm(),
+                            pr.getWidthMm(),
+                            pr.getHeightMm(),
+                            null,
+                            null,
+                            null,
+                            null,
+                            pr.getColor() != null ? pr.getColor().getName() : null,
+                            pr.getColor() != null ? pr.getColor().getHexCode() : null
+                    ))
+                    .build());
         }
         return results;
     }
@@ -987,36 +1010,36 @@ public class OptimizationService {
                 Roll r = op.getRoll();
                 String id = r.getId().toString();
                 sources.putIfAbsent("ROLL-" + id, OptimizationSourceReportResponse.builder()
-                    .sourceType("ROLL")
-                    .sourceId(id)
-                    .label("ROLL")
-                    .reference(r.getReference())
-                    .lotId(r.getLotId())
-                    .nbPlis(r.getNbPlis())
-                    .thicknessMm(r.getThicknessMm())
-                    .widthMm(r.getWidthMm())
-                    .lengthM(r.getLengthM())
-                    .colorName((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getName() : null)
-                    .colorHexCode((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getHexCode() : null)
-                    .qrCode(r.getQrCode())
-                    .build());
+                        .sourceType("ROLL")
+                        .sourceId(id)
+                        .label("ROLL")
+                        .reference(r.getReference())
+                        .lotId(r.getLotId())
+                        .nbPlis(r.getNbPlis())
+                        .thicknessMm(r.getThicknessMm())
+                        .widthMm(r.getWidthMm())
+                        .lengthM(r.getLengthM())
+                        .colorName((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getName() : null)
+                        .colorHexCode((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getHexCode() : null)
+                        .qrCode(r.getQrCode())
+                        .build());
             } else if (op.getWastePiece() != null) {
                 WastePiece w = op.getWastePiece();
                 String id = w.getId().toString();
                 sources.putIfAbsent("WASTE-" + id, OptimizationSourceReportResponse.builder()
-                    .sourceType("WASTE_PIECE")
-                    .sourceId(id)
-                    .label("CHUTE")
-                    .reference(w.getReference())
-                    .lotId(w.getLotId())
-                    .nbPlis(w.getNbPlis())
-                    .thicknessMm(w.getThicknessMm())
-                    .widthMm(w.getWidthMm())
-                    .lengthM(w.getLengthM())
-                    .colorName((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getName() : null)
-                    .colorHexCode((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getHexCode() : null)
-                    .qrCode(w.getQrCode())
-                    .build());
+                        .sourceType("WASTE_PIECE")
+                        .sourceId(id)
+                        .label("CHUTE")
+                        .reference(w.getReference())
+                        .lotId(w.getLotId())
+                        .nbPlis(w.getNbPlis())
+                        .thicknessMm(w.getThicknessMm())
+                        .widthMm(w.getWidthMm())
+                        .lengthM(w.getLengthM())
+                        .colorName((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getName() : null)
+                        .colorHexCode((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getHexCode() : null)
+                        .qrCode(w.getQrCode())
+                        .build());
             }
         }
         return new ArrayList<>(sources.values());
@@ -1030,34 +1053,34 @@ public class OptimizationService {
         for (OptimizationPlacement op : placements) {
             String sourceType = op.getRoll() != null ? "ROLL" : "WASTE_PIECE";
             String sourceId = op.getRoll() != null
-                ? op.getRoll().getId().toString()
-                : op.getWastePiece() != null ? op.getWastePiece().getId().toString() : null;
+                    ? op.getRoll().getId().toString()
+                    : op.getWastePiece() != null ? op.getWastePiece().getId().toString() : null;
             results.add(OptimizationPlacementReportResponse.builder()
-                .sourceType(sourceType)
-                .sourceId(sourceId)
-                .xMm(op.getXMm())
-                .yMm(op.getYMm())
-                .widthMm(op.getWidthMm())
-                .heightMm(op.getHeightMm())
-                .rotated(op.getRotated())
-                .pieceWidthMm(op.getPieceWidthMm())
-                .pieceLengthM(op.getPieceLengthM())
-                .areaM2(op.getAreaM2())
-                .qrCode(buildPlacementQrCode(
-                    sourceType,
-                    sourceId,
-                    op.getXMm(),
-                    op.getYMm(),
-                    op.getWidthMm(),
-                    op.getHeightMm(),
-                    op.getRotated(),
-                    op.getPieceWidthMm(),
-                    op.getPieceLengthM(),
-                    op.getAreaM2(),
-                    null,
-                    null
-                ))
-                .build());
+                    .sourceType(sourceType)
+                    .sourceId(sourceId)
+                    .xMm(op.getXMm())
+                    .yMm(op.getYMm())
+                    .widthMm(op.getWidthMm())
+                    .heightMm(op.getHeightMm())
+                    .rotated(op.getRotated())
+                    .pieceWidthMm(op.getPieceWidthMm())
+                    .pieceLengthM(op.getPieceLengthM())
+                    .areaM2(op.getAreaM2())
+                    .qrCode(buildPlacementQrCode(
+                            sourceType,
+                            sourceId,
+                            op.getXMm(),
+                            op.getYMm(),
+                            op.getWidthMm(),
+                            op.getHeightMm(),
+                            op.getRotated(),
+                            op.getPieceWidthMm(),
+                            op.getPieceLengthM(),
+                            op.getAreaM2(),
+                            null,
+                            null
+                    ))
+                    .build());
         }
         return results;
     }
@@ -1075,18 +1098,18 @@ public class OptimizationService {
                                         String colorName,
                                         String colorHexCode) {
         return qrCodeService.generateForPlacement(
-            sourceType,
-            sourceId,
-            xMm,
-            yMm,
-            widthMm,
-            heightMm,
-            rotated,
-            pieceWidthMm,
-            pieceLengthM,
-            areaM2,
-            colorName,
-            colorHexCode
+                sourceType,
+                sourceId,
+                xMm,
+                yMm,
+                widthMm,
+                heightMm,
+                rotated,
+                pieceWidthMm,
+                pieceLengthM,
+                areaM2,
+                colorName,
+                colorHexCode
         );
     }
 
@@ -1097,7 +1120,7 @@ public class OptimizationService {
 
         StringBuilder svg = new StringBuilder();
         svg.append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ")
-            .append(maxWidth).append(" ").append(paddedHeight).append("\">");
+                .append(maxWidth).append(" ").append(paddedHeight).append("\">");
 
         int offsetY = 0;
         int index = 1;
@@ -1112,21 +1135,21 @@ public class OptimizationService {
 
             svg.append("<g transform=\"translate(0,").append(offsetY).append(")\">");
             svg.append("<rect x=\"0\" y=\"0\" width=\"")
-                .append(groupWidth).append("\" height=\"")
-                .append(groupHeight)
-                .append("\" fill=\"#f4f4f4\" stroke=\"#333\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/>");
+                    .append(groupWidth).append("\" height=\"")
+                    .append(groupHeight)
+                    .append("\" fill=\"#f4f4f4\" stroke=\"#333\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/>");
             svg.append("<rect x=\"0\" y=\"0\" width=\"")
-                .append(groupWidth).append("\" height=\"").append(headerHeight)
-                .append("\" fill=\"#ffffff\" opacity=\"0.85\"/>");
+                    .append(groupWidth).append("\" height=\"").append(headerHeight)
+                    .append("\" fill=\"#ffffff\" opacity=\"0.85\"/>");
             svg.append("<text x=\"8\" y=\"").append(titleY)
-                .append("\" font-size=\"").append(titleFont)
-                .append("\" fill=\"#222\" font-weight=\"700\">")
-                .append(escape(group.label)).append(" #").append(index).append("</text>");
+                    .append("\" font-size=\"").append(titleFont)
+                    .append("\" fill=\"#222\" font-weight=\"700\">")
+                    .append(escape(group.label)).append(" #").append(index).append("</text>");
             if (group.details != null && !group.details.isBlank()) {
                 svg.append("<text x=\"8\" y=\"").append(detailsY)
-                    .append("\" font-size=\"").append(detailsFont)
-                    .append("\" fill=\"#444\">")
-                    .append(escape(group.details)).append("</text>");
+                        .append("\" font-size=\"").append(detailsFont)
+                        .append("\" fill=\"#444\">")
+                        .append(escape(group.details)).append("</text>");
             }
 
             if (includeWaste) {
@@ -1150,25 +1173,25 @@ public class OptimizationService {
 
     private int resolveGroupWidth(SvgGroup group) {
         int placementsMaxX = group.placements.stream()
-            .mapToInt(rect -> rect.x + rect.width)
-            .max()
-            .orElse(0);
+                .mapToInt(rect -> rect.x + rect.width)
+                .max()
+                .orElse(0);
         int wasteMaxX = group.wasteRects.stream()
-            .mapToInt(rect -> rect.x + rect.width)
-            .max()
-            .orElse(0);
+                .mapToInt(rect -> rect.x + rect.width)
+                .max()
+                .orElse(0);
         return Math.max(group.widthMm, Math.max(placementsMaxX, wasteMaxX));
     }
 
     private int resolveGroupHeight(SvgGroup group) {
         int placementsMaxY = group.placements.stream()
-            .mapToInt(rect -> rect.y + rect.height)
-            .max()
-            .orElse(0);
+                .mapToInt(rect -> rect.y + rect.height)
+                .max()
+                .orElse(0);
         int wasteMaxY = group.wasteRects.stream()
-            .mapToInt(rect -> rect.y + rect.height)
-            .max()
-            .orElse(0);
+                .mapToInt(rect -> rect.y + rect.height)
+                .max()
+                .orElse(0);
         return Math.max(group.heightMm, Math.max(placementsMaxY, wasteMaxY));
     }
 
@@ -1177,7 +1200,7 @@ public class OptimizationService {
         String fill = reusable ? "#c8f7c5" : "#e0e0e0";
         String stroke = reusable ? "#2f7a2f" : "#9a9a9a";
         return SvgRect.fromPlacement(xMm, yMm, widthMm, heightMm, fill, stroke, 0.3,
-            buildPlacementLabel(xMm, yMm, widthMm, heightMm));
+                buildPlacementLabel(xMm, yMm, widthMm, heightMm));
     }
 
     private String buildPlacementLabel(int xMm, int yMm, int widthMm, int heightMm) {
@@ -1185,20 +1208,6 @@ public class OptimizationService {
             return null;
         }
         return "x:" + xMm + " y:" + yMm + " " + widthMm + "x" + heightMm + "mm";
-    }
-
-    private static String buildSourceDetails(String reference, Integer nbPlis, BigDecimal thicknessMm,
-                                             int widthMm, int lengthMm) {
-        String refLabel = reference != null && !reference.isBlank() ? reference : "N/A";
-        String plisLabel = nbPlis != null ? nbPlis.toString() : "-";
-        String thicknessLabel = thicknessMm != null
-            ? thicknessMm.stripTrailingZeros().toPlainString()
-            : "-";
-        BigDecimal lengthM = BigDecimal.valueOf(lengthMm)
-            .divide(BigDecimal.valueOf(1000), 3, RoundingMode.HALF_UP)
-            .stripTrailingZeros();
-        return "Ref: " + refLabel + " | Plis: " + plisLabel + " | Thk: " + thicknessLabel
-            + "mm | W: " + widthMm + "mm | L: " + lengthM + "m";
     }
 
     private MaterialType parseMaterialType(String materialType) {
@@ -1222,7 +1231,7 @@ public class OptimizationService {
                                          String reference) {
         if (requiredArticleId != null) {
             return requiredArticleId.equals(articleId)
-                && (requiredColorId == null || requiredColorId.equals(colorId));
+                    && (requiredColorId == null || requiredColorId.equals(colorId));
         }
         if (material != requiredMaterial) {
             return false;
@@ -1260,29 +1269,18 @@ public class OptimizationService {
             return 0;
         }
         return lengthM.multiply(BigDecimal.valueOf(1000))
-            .setScale(0, RoundingMode.HALF_UP)
-            .intValue();
+                .setScale(0, RoundingMode.HALF_UP)
+                .intValue();
     }
 
     private BigDecimal toAreaM2(int widthMm, int lengthMm) {
         return BigDecimal.valueOf(widthMm)
-            .multiply(BigDecimal.valueOf(lengthMm))
-            .divide(BigDecimal.valueOf(1_000_000), 4, RoundingMode.HALF_UP);
+                .multiply(BigDecimal.valueOf(lengthMm))
+                .divide(BigDecimal.valueOf(1_000_000), 4, RoundingMode.HALF_UP);
     }
 
     private BigDecimal safeArea(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
-    }
-
-    private static String escape(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
-            .replace("'", "&apos;");
     }
 
     private static class Piece {
@@ -1348,49 +1346,58 @@ public class OptimizationService {
         static SourceCandidate fromRoll(Roll roll) {
             long age = roll.getCreatedAt() != null ? ChronoUnit.DAYS.between(roll.getCreatedAt().toLocalDate(), LocalDate.now()) : 0;
             return new SourceCandidate(
-                OptimizationSourceType.ROLL,
-                roll,
-                null,
-                roll.getWidthMm(),
-                toLengthMmStatic(roll.getLengthM()),
-                roll.getAreaM2(),
-                roll.getAreaM2(),
-                "ROLL",
-                roll.getReference(),
-                roll.getNbPlis(),
-                roll.getThicknessMm(),
-                age
+                    OptimizationSourceType.ROLL,
+                    roll,
+                    null,
+                    roll.getWidthMm(),
+                    toLengthMmStatic(roll.getLengthM()),
+                    roll.getAreaM2(),
+                    roll.getAreaM2(),
+                    "ROLL",
+                    roll.getReference(),
+                    roll.getNbPlis(),
+                    roll.getThicknessMm(),
+                    age
             );
         }
 
         static SourceCandidate fromWaste(WastePiece wp) {
             long age = wp.getCreatedAt() != null ? ChronoUnit.DAYS.between(wp.getCreatedAt().toLocalDate(), LocalDate.now()) : 0;
             return new SourceCandidate(
-                OptimizationSourceType.WASTE,
-                null,
-                wp,
-                wp.getWidthMm(),
-                toLengthMmStatic(wp.getLengthM()),
-                wp.getAreaM2(),
-                wp.getAreaM2(),
-                "CHUTE",
-                wp.getReference(),
-                wp.getNbPlis(),
-                wp.getThicknessMm(),
-                age
+                    OptimizationSourceType.WASTE,
+                    null,
+                    wp,
+                    wp.getWidthMm(),
+                    toLengthMmStatic(wp.getLengthM()),
+                    wp.getAreaM2(),
+                    wp.getAreaM2(),
+                    "CHUTE",
+                    wp.getReference(),
+                    wp.getNbPlis(),
+                    wp.getThicknessMm(),
+                    age
             );
+        }
+
+        static int toLengthMmStatic(BigDecimal lengthM) {
+            if (lengthM == null) {
+                return 0;
+            }
+            return lengthM.multiply(BigDecimal.valueOf(1000))
+                    .setScale(0, RoundingMode.HALF_UP)
+                    .intValue();
         }
 
         boolean canFit(Piece piece) {
             return (piece.widthMm <= widthMm && piece.lengthMm <= heightMm)
-                || (piece.lengthMm <= widthMm && piece.widthMm <= heightMm);
+                    || (piece.lengthMm <= widthMm && piece.widthMm <= heightMm);
         }
 
         boolean canFit(CommandeItem item) {
             int pieceWidth = item.getLargeurMm();
             int pieceLength = toLengthMmStatic(item.getLongueurM());
             return (pieceWidth <= widthMm && pieceLength <= heightMm)
-                || (pieceLength <= widthMm && pieceWidth <= heightMm);
+                    || (pieceLength <= widthMm && pieceWidth <= heightMm);
         }
 
         BigDecimal effectiveAreaM2() {
@@ -1428,15 +1435,6 @@ public class OptimizationService {
                 return wastePiece.getId().toString();
             }
             return "unknown";
-        }
-
-        static int toLengthMmStatic(BigDecimal lengthM) {
-            if (lengthM == null) {
-                return 0;
-            }
-            return lengthM.multiply(BigDecimal.valueOf(1000))
-                .setScale(0, RoundingMode.HALF_UP)
-                .intValue();
         }
     }
 
@@ -1535,14 +1533,14 @@ public class OptimizationService {
 
         private BigDecimal usedAreaM2() {
             return placements.stream()
-                .map(record -> record.piece.areaM2)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    .map(record -> record.piece.areaM2)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
         }
 
         private BigDecimal totalSourceAreaM2() {
             return selectedPlans.stream()
-                .map(plan -> plan.source.effectiveAreaM2())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    .map(plan -> plan.source.effectiveAreaM2())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
         }
     }
 
@@ -1617,9 +1615,9 @@ public class OptimizationService {
                 output.append("<title>").append(escape(label)).append("</title>");
             }
             output.append("<rect x=\"").append(x).append("\" y=\"").append(y)
-                .append("\" width=\"").append(width).append("\" height=\"").append(height)
-                .append("\" fill=\"").append(fill).append("\" stroke=\"").append(stroke)
-                .append("\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\" opacity=\"").append(opacity).append("\"/>");
+                    .append("\" width=\"").append(width).append("\" height=\"").append(height)
+                    .append("\" fill=\"").append(fill).append("\" stroke=\"").append(stroke)
+                    .append("\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\" opacity=\"").append(opacity).append("\"/>");
 
             if (label != null && !label.isBlank()) {
                 int fontSize = Math.max(14, Math.min(60, Math.min(width, height) / 6));
@@ -1635,12 +1633,12 @@ public class OptimizationService {
                 int bgWidth = minTextWidth;
                 int bgHeight = fontSize + Math.max(6, fontSize / 3);
                 output.append("<rect x=\"").append(bgX).append("\" y=\"").append(bgY)
-                    .append("\" width=\"").append(bgWidth).append("\" height=\"").append(bgHeight)
-                    .append("\" fill=\"#ffffff\" opacity=\"0.8\"/>" );
+                        .append("\" width=\"").append(bgWidth).append("\" height=\"").append(bgHeight)
+                        .append("\" fill=\"#ffffff\" opacity=\"0.8\"/>");
                 output.append("<text x=\"").append(textX).append("\" y=\"").append(textY)
-                    .append("\" font-size=\"").append(fontSize).append("\" fill=\"#111\" opacity=\"0.95\" font-weight=\"700\">")
-                    .append(escape(label))
-                    .append("</text>");
+                        .append("\" font-size=\"").append(fontSize).append("\" fill=\"#111\" opacity=\"0.95\" font-weight=\"700\">")
+                        .append(escape(label))
+                        .append("</text>");
             }
 
             output.append("</g>");

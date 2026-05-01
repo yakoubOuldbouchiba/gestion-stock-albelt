@@ -5,7 +5,8 @@
 -- ============================================================================
 
 ALTER TABLE waste_pieces
-    DROP CONSTRAINT IF EXISTS waste_pieces_status_check;
+DROP
+CONSTRAINT IF EXISTS waste_pieces_status_check;
 
 ALTER TABLE waste_pieces
     ADD CONSTRAINT waste_pieces_status_check

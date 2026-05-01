@@ -62,14 +62,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * Paged user search with optional filters
      */
     @Query("SELECT u FROM User u " +
-           "WHERE (:search = '' OR " +
-           "LOWER(u.username) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(u.email) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(u.fullName) LIKE CONCAT('%', :search, '%')) " +
-           "AND (u.role = COALESCE(:role, u.role)) " +
-           "AND (u.isActive = COALESCE(:isActive, u.isActive)) " +
-           "AND (u.createdAt >= COALESCE(:fromDate, u.createdAt)) " +
-           "AND (u.createdAt <= COALESCE(:toDate, u.createdAt))")
+            "WHERE (:search = '' OR " +
+            "LOWER(u.username) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(u.email) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(u.fullName) LIKE CONCAT('%', :search, '%')) " +
+            "AND (u.role = COALESCE(:role, u.role)) " +
+            "AND (u.isActive = COALESCE(:isActive, u.isActive)) " +
+            "AND (u.createdAt >= COALESCE(:fromDate, u.createdAt)) " +
+            "AND (u.createdAt <= COALESCE(:toDate, u.createdAt))")
     Page<User> findFiltered(
             @Param("search") String search,
             @Param("role") UserRole role,
@@ -79,14 +79,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             Pageable pageable);
 
     @Query("SELECT COUNT(u) FROM User u " +
-           "WHERE (:search = '' OR " +
-           "LOWER(u.username) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(u.email) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(u.fullName) LIKE CONCAT('%', :search, '%')) " +
-           "AND (u.role = COALESCE(:role, u.role)) " +
-           "AND (u.isActive = COALESCE(:isActive, u.isActive)) " +
-           "AND (u.createdAt >= COALESCE(:fromDate, u.createdAt)) " +
-           "AND (u.createdAt <= COALESCE(:toDate, u.createdAt))")
+            "WHERE (:search = '' OR " +
+            "LOWER(u.username) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(u.email) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(u.fullName) LIKE CONCAT('%', :search, '%')) " +
+            "AND (u.role = COALESCE(:role, u.role)) " +
+            "AND (u.isActive = COALESCE(:isActive, u.isActive)) " +
+            "AND (u.createdAt >= COALESCE(:fromDate, u.createdAt)) " +
+            "AND (u.createdAt <= COALESCE(:toDate, u.createdAt))")
     long countFiltered(
             @Param("search") String search,
             @Param("role") UserRole role,

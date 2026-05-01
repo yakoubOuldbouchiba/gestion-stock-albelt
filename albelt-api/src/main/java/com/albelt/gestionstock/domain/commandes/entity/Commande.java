@@ -24,7 +24,7 @@ import java.util.UUID;
         @Index(name = "idx_commandes_numero", columnList = "numero_commande"),
         @Index(name = "idx_commandes_client_id", columnList = "client_id"),
         @Index(name = "idx_commandes_status", columnList = "status"),
-    @Index(name = "idx_commandes_altier_id", columnList = "altier_id"),
+        @Index(name = "idx_commandes_altier_id", columnList = "altier_id"),
         @Index(name = "idx_commandes_created_at", columnList = "created_at")
 })
 @Data
@@ -32,7 +32,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class Commande {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

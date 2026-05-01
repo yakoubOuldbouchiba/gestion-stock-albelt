@@ -18,35 +18,35 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class CommandeItemResponse {
-    
+
     private UUID id;
-    
+
     private UUID commandeId;
 
     private UUID articleId;
 
     private ArticleResponse article;
-    
+
     private String materialType;
-    
+
     private Integer nbPlis;
-    
+
     private BigDecimal thicknessMm;
-    
+
     private BigDecimal longueurM;
-    
+
     private BigDecimal longueurToleranceM;
-    
+
     private Integer largeurMm;
-    
+
     private Integer quantite;
-    
+
     private BigDecimal surfaceConsommeeM2;
-    
+
     private String typeMouvement;
-    
+
     private String status;
-    
+
     private String observations;
 
     private String reference;
@@ -64,10 +64,10 @@ public class CommandeItemResponse {
     private Integer totalItemsConforme;
 
     private Integer totalItemsNonConforme;
-    
+
     private Integer lineNumber;
-    
+
     private LocalDateTime createdAt;
-    
+
     private LocalDateTime updatedAt;
 }

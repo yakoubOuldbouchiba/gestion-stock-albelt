@@ -8,21 +8,21 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record OptimizationSourceSnapshot(
-    OptimizationSourceType sourceType,
-    UUID rollId,
-    UUID wastePieceId,
-    UUID articleId,
-    Integer widthMm,
-    BigDecimal lengthM,
-    BigDecimal availableAreaM2,
-    BigDecimal fullAreaM2,
-    String sourceStatus,
-    Integer nbPlis,
-    BigDecimal thicknessMm,
-    UUID colorId,
-    String reference,
-    LocalDate receivedDate,
-    LocalDateTime updatedAt
+        OptimizationSourceType sourceType,
+        UUID rollId,
+        UUID wastePieceId,
+        UUID articleId,
+        Integer widthMm,
+        BigDecimal lengthM,
+        BigDecimal availableAreaM2,
+        BigDecimal fullAreaM2,
+        String sourceStatus,
+        Integer nbPlis,
+        BigDecimal thicknessMm,
+        UUID colorId,
+        String reference,
+        LocalDate receivedDate,
+        LocalDateTime updatedAt
 ) {
 
     public OptimizationSourceSnapshot(OptimizationSourceType sourceType,
@@ -39,21 +39,21 @@ public record OptimizationSourceSnapshot(
                                       LocalDate receivedDate,
                                       LocalDateTime updatedAt) {
         this(
-            sourceType,
-            rollId,
-            wastePieceId,
-            null,
-            widthMm,
-            lengthM,
-            availableAreaM2,
-            fullAreaM2,
-            null,
-            nbPlis,
-            thicknessMm,
-            colorId,
-            reference,
-            receivedDate,
-            updatedAt
+                sourceType,
+                rollId,
+                wastePieceId,
+                null,
+                widthMm,
+                lengthM,
+                availableAreaM2,
+                fullAreaM2,
+                null,
+                nbPlis,
+                thicknessMm,
+                colorId,
+                reference,
+                receivedDate,
+                updatedAt
         );
     }
 
@@ -72,21 +72,21 @@ public record OptimizationSourceSnapshot(
                                       LocalDate receivedDate,
                                       LocalDateTime updatedAt) {
         this(
-            sourceType,
-            rollId,
-            wastePieceId,
-            null,
-            widthMm,
-            lengthM,
-            availableAreaM2,
-            fullAreaM2,
-            sourceStatus,
-            nbPlis,
-            thicknessMm,
-            colorId,
-            reference,
-            receivedDate,
-            updatedAt
+                sourceType,
+                rollId,
+                wastePieceId,
+                null,
+                widthMm,
+                lengthM,
+                availableAreaM2,
+                fullAreaM2,
+                sourceStatus,
+                nbPlis,
+                thicknessMm,
+                colorId,
+                reference,
+                receivedDate,
+                updatedAt
         );
     }
 

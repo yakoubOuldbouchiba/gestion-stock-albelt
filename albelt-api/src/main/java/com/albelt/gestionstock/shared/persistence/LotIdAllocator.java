@@ -21,11 +21,11 @@ public class LotIdAllocator {
                 .getSingleResult();
 
         Number currentMax = (Number) entityManager.createNativeQuery("""
-                select greatest(
-                    coalesce((select max(r.lot_id) from rolls r), 0),
-                    coalesce((select max(wp.lot_id) from waste_pieces wp), 0)
-                )
-                """)
+                        select greatest(
+                            coalesce((select max(r.lot_id) from rolls r), 0),
+                            coalesce((select max(wp.lot_id) from waste_pieces wp), 0)
+                        )
+                        """)
                 .getSingleResult();
 
         return currentMax.intValue() + 1;

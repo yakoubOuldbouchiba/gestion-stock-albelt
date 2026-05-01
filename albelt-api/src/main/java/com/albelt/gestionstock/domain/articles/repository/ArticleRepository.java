@@ -20,14 +20,14 @@ public interface ArticleRepository extends JpaRepository<Article, UUID> {
 
     @EntityGraph(attributePaths = {"color"})
     @Query("""
-        select a
-        from Article a
-        where a.materialType = :materialType
-          and a.thicknessMm = :thicknessMm
-          and a.nbPlis = :nbPlis
-          and coalesce(a.reference, '') = :reference
-          and ((:colorId is null and a.color is null) or (a.color.id = :colorId))
-        """)
+            select a
+            from Article a
+            where a.materialType = :materialType
+              and a.thicknessMm = :thicknessMm
+              and a.nbPlis = :nbPlis
+              and coalesce(a.reference, '') = :reference
+              and ((:colorId is null and a.color is null) or (a.color.id = :colorId))
+            """)
     Optional<Article> findBySignature(@Param("materialType") String materialType,
                                       @Param("thicknessMm") BigDecimal thicknessMm,
                                       @Param("nbPlis") Integer nbPlis,
@@ -46,13 +46,13 @@ public interface ArticleRepository extends JpaRepository<Article, UUID> {
 
     @EntityGraph(attributePaths = {"color"})
     @Query(value = """
-        select a
-        from Article a
-        where (:search is null or :search = '' or lower(a.reference) like concat('%', lower(:search), '%') or lower(a.name) like concat('%', lower(:search), '%') or lower(a.code) like concat('%', lower(:search), '%'))
-        """, countQuery = """
-        select count(a)
-        from Article a
-        where (:search is null or :search = '' or lower(a.reference) like concat('%', lower(:search), '%') or lower(a.name) like concat('%', lower(:search), '%') or lower(a.code) like concat('%', lower(:search), '%'))
-        """)
+            select a
+            from Article a
+            where (:search is null or :search = '' or lower(a.reference) like concat('%', lower(:search), '%') or lower(a.name) like concat('%', lower(:search), '%') or lower(a.code) like concat('%', lower(:search), '%'))
+            """, countQuery = """
+            select count(a)
+            from Article a
+            where (:search is null or :search = '' or lower(a.reference) like concat('%', lower(:search), '%') or lower(a.name) like concat('%', lower(:search), '%') or lower(a.code) like concat('%', lower(:search), '%'))
+            """)
     Page<Article> findFiltered(@Param("search") String search, Pageable pageable);
 }

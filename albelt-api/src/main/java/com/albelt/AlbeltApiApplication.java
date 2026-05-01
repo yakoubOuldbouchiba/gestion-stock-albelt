@@ -7,8 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 //@EnableCaching
 public class AlbeltApiApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(AlbeltApiApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(AlbeltApiApplication.class, args);
+    }
 
 }

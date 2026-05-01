@@ -43,7 +43,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      */
     @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r WHERE r.materialType = :materialType AND r.status IN (:statuses) " +
-           "ORDER BY r.receivedDate ASC")
+            "ORDER BY r.receivedDate ASC")
     List<Roll> findFifoQueue(@Param("materialType") MaterialType materialType,
                              @Param("statuses") List<RollStatus> statuses);
 
@@ -52,8 +52,8 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      */
     @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r WHERE r.materialType = :materialType AND r.status IN (:statuses) " +
-           "AND (:altierId IS NULL OR r.altier.id = :altierId) " +
-           "ORDER BY r.receivedDate ASC")
+            "AND (:altierId IS NULL OR r.altier.id = :altierId) " +
+            "ORDER BY r.receivedDate ASC")
     List<Roll> findFifoQueueByAltier(@Param("materialType") MaterialType materialType,
                                      @Param("statuses") List<RollStatus> statuses,
                                      @Param("altierId") UUID altierId);
@@ -63,9 +63,9 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      */
     @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r WHERE r.materialType = :materialType " +
-           "AND r.status IN (:statuses) " +
-           "AND r.availableAreaM2 >= :requiredArea " +
-           "ORDER BY r.receivedDate ASC")
+            "AND r.status IN (:statuses) " +
+            "AND r.availableAreaM2 >= :requiredArea " +
+            "ORDER BY r.receivedDate ASC")
     List<Roll> findRollsBySizeAndMaterial(@Param("materialType") MaterialType materialType,
                                           @Param("requiredArea") BigDecimal requiredArea,
                                           @Param("statuses") List<RollStatus> statuses);
@@ -104,7 +104,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      * Get statistics: total area available by material type
      */
     @Query("SELECT r.materialType, SUM(r.availableAreaM2) FROM Roll r " +
-           "WHERE r.status IN (:statuses) GROUP BY r.materialType")
+            "WHERE r.status IN (:statuses) GROUP BY r.materialType")
     List<Object[]> getTotalAreaByMaterial(@Param("statuses") List<RollStatus> statuses);
 
     /**
@@ -118,57 +118,57 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      */
     @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r WHERE r.altier.id IN (:altierIds) " +
-           "AND r.status IN (:statuses) ORDER BY r.receivedDate ASC")
+            "AND r.status IN (:statuses) ORDER BY r.receivedDate ASC")
     List<Roll> findAvailableByAltierIds(@Param("altierIds") List<UUID> altierIds,
-                                       @Param("statuses") List<RollStatus> statuses);
+                                        @Param("statuses") List<RollStatus> statuses);
 
     @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r " +
-           "JOIN r.article article " +
-           "WHERE r.altier.id IN (:altierIds) " +
-           "AND article.id = :articleId " +
-           "AND r.status IN (:statuses) " +
-           "ORDER BY r.receivedDate ASC")
+            "JOIN r.article article " +
+            "WHERE r.altier.id IN (:altierIds) " +
+            "AND article.id = :articleId " +
+            "AND r.status IN (:statuses) " +
+            "ORDER BY r.receivedDate ASC")
     List<Roll> findAvailableByAltierIdsAndArticle(
-           @Param("altierIds") List<UUID> altierIds,
-           @Param("articleId") UUID articleId,
-           @Param("statuses") List<RollStatus> statuses);
+            @Param("altierIds") List<UUID> altierIds,
+            @Param("articleId") UUID articleId,
+            @Param("statuses") List<RollStatus> statuses);
 
     /**
      * Find available rolls for a specific material in user's assigned altiers.
      */
     @Query("SELECT r FROM Roll r WHERE r.altier.id IN (:altierIds) " +
-           "AND r.materialType = :materialType " +
-           "AND r.status IN (:statuses) " +
-           "ORDER BY r.receivedDate ASC")
+            "AND r.materialType = :materialType " +
+            "AND r.status IN (:statuses) " +
+            "ORDER BY r.receivedDate ASC")
     List<Roll> findAvailableByAltierIdsAndMaterial(
-           @Param("altierIds") List<UUID> altierIds,
-           @Param("materialType") MaterialType materialType,
-           @Param("statuses") List<RollStatus> statuses);
+            @Param("altierIds") List<UUID> altierIds,
+            @Param("materialType") MaterialType materialType,
+            @Param("statuses") List<RollStatus> statuses);
 
     /**
      * Paged roll search with optional filters and altier restriction
      */
     @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r " +
-           "WHERE r.altier.id IN (:altierIds) " +
-           "AND (:status IS NULL OR r.status = :status) " +
-           "AND (:articleId IS NULL OR r.article.id = :articleId) " +
-           "AND (:materialType IS NULL OR r.materialType = :materialType) " +
-           "AND (:supplierId IS NULL OR r.supplier.id = :supplierId) " +
-           "AND (:altierId IS NULL OR r.altier.id = :altierId) " +
-           "AND (:colorId IS NULL OR r.article.color.id = :colorId) " +
-           "AND (:nbPlis IS NULL OR r.nbPlis = :nbPlis) " +
-           "AND (:thicknessMm IS NULL OR r.thicknessMm = :thicknessMm) " +
-           "AND r.receivedDate >= :fromDate " +
-           "AND r.receivedDate <= :toDate " +
-           "AND (:search = '' OR " +
-           "CAST(r.lotId AS string) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(r.qrCode) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(r.supplier.name) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(r.altier.libelle) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(r.materialType) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(r.article.reference) LIKE CONCAT('%', :search, '%'))")
+            "WHERE r.altier.id IN (:altierIds) " +
+            "AND (:status IS NULL OR r.status = :status) " +
+            "AND (:articleId IS NULL OR r.article.id = :articleId) " +
+            "AND (:materialType IS NULL OR r.materialType = :materialType) " +
+            "AND (:supplierId IS NULL OR r.supplier.id = :supplierId) " +
+            "AND (:altierId IS NULL OR r.altier.id = :altierId) " +
+            "AND (:colorId IS NULL OR r.article.color.id = :colorId) " +
+            "AND (:nbPlis IS NULL OR r.nbPlis = :nbPlis) " +
+            "AND (:thicknessMm IS NULL OR r.thicknessMm = :thicknessMm) " +
+            "AND r.receivedDate >= :fromDate " +
+            "AND r.receivedDate <= :toDate " +
+            "AND (:search = '' OR " +
+            "CAST(r.lotId AS string) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(r.qrCode) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(r.supplier.name) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(r.altier.libelle) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(r.materialType) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(r.article.reference) LIKE CONCAT('%', :search, '%'))")
     Page<Roll> findFiltered(
             @Param("altierIds") List<UUID> altierIds,
             @Param("status") RollStatus status,
@@ -190,9 +190,9 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      */
     @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r WHERE r.supplier.id = :supplierId " +
-           "AND r.materialType = :materialType " +
-           "AND r.status IN (:statuses) " +
-           "ORDER BY r.receivedDate ASC")
+            "AND r.materialType = :materialType " +
+            "AND r.status IN (:statuses) " +
+            "ORDER BY r.receivedDate ASC")
     List<Roll> findBySupplierAndMaterial(
             @Param("supplierId") UUID supplierId,
             @Param("materialType") MaterialType materialType,
@@ -203,8 +203,8 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      * Returns count and total area for each material
      */
     @Query("SELECT r.materialType, COUNT(r), SUM(r.availableAreaM2) FROM Roll r " +
-           "WHERE r.status IN (:statuses) " +
-           "GROUP BY r.materialType")
+            "WHERE r.status IN (:statuses) " +
+            "GROUP BY r.materialType")
     List<Object[]> getStatsByMaterial(@Param("statuses") List<RollStatus> statuses);
 
     /**
@@ -212,9 +212,9 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      * Returns: materialType, count, totalArea
      */
     @Query("SELECT r.materialType, COUNT(r), SUM(r.areaM2) FROM Roll r " +
-           "WHERE r.altier.id IN (:altierIds) " +
-           "AND r.status IN (:statuses) " +
-           "GROUP BY r.materialType")
+            "WHERE r.altier.id IN (:altierIds) " +
+            "AND r.status IN (:statuses) " +
+            "GROUP BY r.materialType")
     List<Object[]> getStatsByMaterialForAltiers(
             @Param("altierIds") List<UUID> altierIds,
             @Param("statuses") List<RollStatus> statuses);
@@ -230,101 +230,102 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      * by a pending transfer bon movement (transferBon != null AND dateEntree IS NULL).
      */
     @Query("SELECT r FROM Roll r " +
-           "JOIN FETCH r.article ra " +
-           "LEFT JOIN FETCH ra.color " +
-           "WHERE r.altier.id IN (:accessibleAltierIds) " +
-           "AND r.altier.id = :fromAltierId " +
-           "AND r.status IN (:statuses) " +
-           "AND NOT EXISTS (" +
-           "  SELECT 1 FROM RollMovement rm " +
-           "  WHERE rm.roll = r " +
-           "  AND rm.fromAltier.id = :fromAltierId " +
-           "  AND rm.transferBon IS NOT NULL " +
-           "  AND rm.dateEntree IS NULL" +
-           ")")
+            "JOIN FETCH r.article ra " +
+            "LEFT JOIN FETCH ra.color " +
+            "WHERE r.altier.id IN (:accessibleAltierIds) " +
+            "AND r.altier.id = :fromAltierId " +
+            "AND r.status IN (:statuses) " +
+            "AND NOT EXISTS (" +
+            "  SELECT 1 FROM RollMovement rm " +
+            "  WHERE rm.roll = r " +
+            "  AND rm.fromAltier.id = :fromAltierId " +
+            "  AND rm.transferBon IS NOT NULL " +
+            "  AND rm.dateEntree IS NULL" +
+            ")")
     Page<Roll> findTransferSources(
-           @Param("accessibleAltierIds") List<UUID> accessibleAltierIds,
-           @Param("fromAltierId") UUID fromAltierId,
-           @Param("statuses") List<RollStatus> statuses,
-           Pageable pageable);
-       /**
-        * Group by color, nbPlis, thicknessMm, materialType, altierId, status
-        */
+            @Param("accessibleAltierIds") List<UUID> accessibleAltierIds,
+            @Param("fromAltierId") UUID fromAltierId,
+            @Param("statuses") List<RollStatus> statuses,
+            Pageable pageable);
+
+    /**
+     * Group by color, nbPlis, thicknessMm, materialType, altierId, status
+     */
     @Query("""
-        SELECT 
-               r.article.color.id, 
-               c.name, 
-               c.hexCode, 
-               r.nbPlis, 
-               r.thicknessMm, 
-               r.materialType, 
-               r.altier.id, 
-               a.libelle,
-               r.status, 
-               COUNT(r), 
-               SUM(r.areaM2),
-               SUM(r.usedAreaM2)       
-        FROM Roll r
-        LEFT JOIN r.article.color c
-        LEFT JOIN r.supplier s
-        LEFT JOIN r.altier a
-        GROUP BY 
-               r.article.color.id, c.name, c.hexCode, 
-               r.nbPlis, r.thicknessMm, r.materialType,  
-               r.altier.id, r.status , a.libelle
-        """)
-       List<Object[]> groupByAllFields();
+            SELECT 
+                   r.article.color.id, 
+                   c.name, 
+                   c.hexCode, 
+                   r.nbPlis, 
+                   r.thicknessMm, 
+                   r.materialType, 
+                   r.altier.id, 
+                   a.libelle,
+                   r.status, 
+                   COUNT(r), 
+                   SUM(r.areaM2),
+                   SUM(r.usedAreaM2)       
+            FROM Roll r
+            LEFT JOIN r.article.color c
+            LEFT JOIN r.supplier s
+            LEFT JOIN r.altier a
+            GROUP BY 
+                   r.article.color.id, c.name, c.hexCode, 
+                   r.nbPlis, r.thicknessMm, r.materialType,  
+                   r.altier.id, r.status , a.libelle
+            """)
+    List<Object[]> groupByAllFields();
 
     @Query("""
-        select new com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint(
-            count(r),
-            max(r.updatedAt),
-            coalesce(sum(coalesce(r.availableAreaM2, r.areaM2)), 0)
-        )
-        from Roll r
-        join r.article article
-        where article.id = :articleId
-          and r.status in (com.albelt.gestionstock.shared.enums.RollStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
-          and (:altierId is null or r.altier.id = :altierId)
-          and (:colorId is null or article.color.id = :colorId)
-        """)
+            select new com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint(
+                count(r),
+                max(r.updatedAt),
+                coalesce(sum(coalesce(r.availableAreaM2, r.areaM2)), 0)
+            )
+            from Roll r
+            join r.article article
+            where article.id = :articleId
+              and r.status in (com.albelt.gestionstock.shared.enums.RollStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
+              and (:altierId is null or r.altier.id = :altierId)
+              and (:colorId is null or article.color.id = :colorId)
+            """)
     OptimizationCandidateFingerprint findOptimizationFingerprint(
-        @Param("articleId") UUID articleId,
-        @Param("colorId") UUID colorId,
-        @Param("altierId") UUID altierId
+            @Param("articleId") UUID articleId,
+            @Param("colorId") UUID colorId,
+            @Param("altierId") UUID altierId
     );
 
     @Query("""
-        select new com.albelt.gestionstock.domain.optimization.data.OptimizationSourceSnapshot(
-            com.albelt.gestionstock.domain.optimization.entity.OptimizationSourceType.ROLL,
-            r.id,
-            null,
-            article.id,
-            coalesce(r.widthRemainingMm, r.widthMm),
-            coalesce(r.lengthRemainingM, r.lengthM),
-            coalesce(r.availableAreaM2, r.areaM2),
-            r.areaM2,
-            cast(r.status as string),
-            article.nbPlis,
-            article.thicknessMm,
-            color.id,
-            article.reference,
-            r.receivedDate,
-            r.updatedAt
-        )
-        from Roll r
-        join r.article article
-        left join article.color color
-        where article.id = :articleId
-          and r.status in (com.albelt.gestionstock.shared.enums.RollStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
-          and (:altierId is null or r.altier.id = :altierId)
-          and (:colorId is null or color.id = :colorId)
-        order by r.receivedDate asc, r.createdAt asc
-        """)
+            select new com.albelt.gestionstock.domain.optimization.data.OptimizationSourceSnapshot(
+                com.albelt.gestionstock.domain.optimization.entity.OptimizationSourceType.ROLL,
+                r.id,
+                null,
+                article.id,
+                coalesce(r.widthRemainingMm, r.widthMm),
+                coalesce(r.lengthRemainingM, r.lengthM),
+                coalesce(r.availableAreaM2, r.areaM2),
+                r.areaM2,
+                cast(r.status as string),
+                article.nbPlis,
+                article.thicknessMm,
+                color.id,
+                article.reference,
+                r.receivedDate,
+                r.updatedAt
+            )
+            from Roll r
+            join r.article article
+            left join article.color color
+            where article.id = :articleId
+              and r.status in (com.albelt.gestionstock.shared.enums.RollStatus.AVAILABLE, com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
+              and (:altierId is null or r.altier.id = :altierId)
+              and (:colorId is null or color.id = :colorId)
+            order by r.receivedDate asc, r.createdAt asc
+            """)
     List<OptimizationSourceSnapshot> findOptimizationCandidates(
-        @Param("articleId") UUID articleId,
-        @Param("colorId") UUID colorId,
-        @Param("altierId") UUID altierId
+            @Param("articleId") UUID articleId,
+            @Param("colorId") UUID colorId,
+            @Param("altierId") UUID altierId
     );
 }
 

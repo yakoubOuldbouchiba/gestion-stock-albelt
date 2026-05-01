@@ -7,61 +7,162 @@
 -- ============================================================================
 -- PURCHASE_BONS Table (Bon d'achat header)
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS purchase_bons (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE IF NOT EXISTS purchase_bons
+(
+    id
+    UUID
+    PRIMARY
+    KEY
+    DEFAULT
+    gen_random_uuid
+(
+),
 
     -- Identification
-    reference VARCHAR(80) NOT NULL UNIQUE,
+    reference VARCHAR
+(
+    80
+) NOT NULL UNIQUE,
     bon_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    supplier_id UUID NOT NULL REFERENCES suppliers(id) ON DELETE RESTRICT,
+    supplier_id UUID NOT NULL REFERENCES suppliers
+(
+    id
+) ON DELETE RESTRICT,
 
     -- Status
-    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT'
-        CHECK (status IN ('DRAFT', 'VALIDATED')),
+    status VARCHAR
+(
+    20
+) NOT NULL DEFAULT 'DRAFT'
+    CHECK
+(
+    status
+    IN
+(
+    'DRAFT',
+    'VALIDATED'
+)),
 
     -- Notes
     notes TEXT,
 
     -- Audit
-    created_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_by UUID NOT NULL REFERENCES users
+(
+    id
+)
+  ON DELETE RESTRICT,
     validated_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+    );
 
 -- ============================================================================
 -- PURCHASE_BON_ITEMS Table (Bon d'achat line items)
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS purchase_bon_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    purchase_bon_id UUID NOT NULL REFERENCES purchase_bons(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS purchase_bon_items
+(
+    id
+    UUID
+    PRIMARY
+    KEY
+    DEFAULT
+    gen_random_uuid
+(
+),
+    purchase_bon_id UUID NOT NULL REFERENCES purchase_bons
+(
+    id
+) ON DELETE CASCADE,
 
     -- Line tracking
-    line_number INTEGER NOT NULL CHECK (line_number > 0),
+    line_number INTEGER NOT NULL CHECK
+(
+    line_number >
+    0
+),
 
     -- Material Specifications
-    material_type VARCHAR(20) NOT NULL
-        CHECK (material_type IN ('PU', 'PVC', 'CAOUTCHOUC')),
-    nb_plis INTEGER NOT NULL DEFAULT 1 CHECK (nb_plis > 0),
-    thickness_mm DECIMAL(8,3) NOT NULL CHECK (thickness_mm > 0),
+    material_type VARCHAR
+(
+    20
+) NOT NULL
+    CHECK
+(
+    material_type
+    IN
+(
+    'PU',
+    'PVC',
+    'CAOUTCHOUC'
+)),
+    nb_plis INTEGER NOT NULL DEFAULT 1 CHECK
+(
+    nb_plis >
+    0
+),
+    thickness_mm DECIMAL
+(
+    8,
+    3
+) NOT NULL CHECK
+(
+    thickness_mm >
+    0
+),
 
     -- Dimensions
-    width_mm INTEGER NOT NULL CHECK (width_mm > 0),
-    length_m DECIMAL(10,2) NOT NULL CHECK (length_m > 0),
-    area_m2 DECIMAL(12,4) NOT NULL CHECK (area_m2 > 0),
+    width_mm INTEGER NOT NULL CHECK
+(
+    width_mm >
+    0
+),
+    length_m DECIMAL
+(
+    10,
+    2
+) NOT NULL CHECK
+(
+    length_m >
+    0
+),
+    area_m2 DECIMAL
+(
+    12,
+    4
+) NOT NULL CHECK
+(
+    area_m2 >
+    0
+),
 
     -- Quantity
-    quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    quantity INTEGER NOT NULL DEFAULT 1 CHECK
+(
+    quantity >
+    0
+),
 
     -- Optional references
-    color_id UUID REFERENCES colors(id) ON DELETE SET NULL,
-    altier_id UUID REFERENCES altier(id) ON DELETE SET NULL,
-    qr_code VARCHAR(500),
+    color_id UUID REFERENCES colors
+(
+    id
+)
+  ON DELETE SET NULL,
+    altier_id UUID REFERENCES altier
+(
+    id
+)
+  ON DELETE SET NULL,
+    qr_code VARCHAR
+(
+    500
+),
 
     -- Timestamps
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+    );
 
 -- ============================================================================
 -- Indexes

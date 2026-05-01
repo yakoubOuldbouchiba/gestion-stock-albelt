@@ -34,15 +34,15 @@ public class SupplierService {
      */
     public Supplier create(SupplierRequest request) {
         log.info("Creating new supplier: {}", request.getName());
-        
+
         // Check if supplier already exists
         if (supplierRepository.findByNameIgnoreCase(request.getName()).isPresent()) {
             throw new IllegalArgumentException("Supplier with name '" + request.getName() + "' already exists");
         }
-        
+
         Supplier supplier = supplierMapper.toEntity(request);
         Supplier saved = supplierRepository.save(supplier);
-        
+
         log.info("Supplier created successfully with ID: {}", saved.getId());
         return saved;
     }
@@ -52,13 +52,13 @@ public class SupplierService {
      */
     public Supplier update(UUID id, SupplierRequest request) {
         log.info("Updating supplier: {}", id);
-        
+
         Supplier existing = supplierRepository.findById(id)
                 .orElseThrow(() -> ResourceNotFoundException.supplier(id.toString()));
-        
+
         Supplier updated = supplierMapper.updateEntity(existing, request);
         Supplier saved = supplierRepository.save(updated);
-        
+
         log.info("Supplier updated successfully: {}", id);
         return saved;
     }
@@ -142,10 +142,10 @@ public class SupplierService {
      */
     public void delete(UUID id) {
         log.info("Deleting supplier: {}", id);
-        
+
         Supplier supplier = getById(id);
         supplierRepository.delete(supplier);
-        
+
         log.info("Supplier deleted successfully: {}", id);
     }
 

@@ -18,18 +18,18 @@ public interface TransferBonRepository extends JpaRepository<TransferBon, UUID> 
 
     List<TransferBon> findAllByOrderByCreatedAtDesc();
 
-        /**
-         * Paged transfer bon search with optional filters
-         */
-        @Query("SELECT tb FROM TransferBon tb " +
-           "WHERE (:fromAltierId IS NULL OR tb.fromAltier.id = :fromAltierId) " +
-           "AND (:toAltierId IS NULL OR tb.toAltier.id = :toAltierId) " +
-           "AND (:statusEntree IS NULL OR tb.statusEntree = :statusEntree) " +
-              "AND tb.dateSortie >= :fromDate " +
-              "AND tb.dateSortie <= :toDate " +
-              "AND (:search = '' OR " +
-              "LOWER(tb.notes) LIKE CONCAT('%', :search, '%')) ")
-        Page<TransferBon> findFiltered(
+    /**
+     * Paged transfer bon search with optional filters
+     */
+    @Query("SELECT tb FROM TransferBon tb " +
+            "WHERE (:fromAltierId IS NULL OR tb.fromAltier.id = :fromAltierId) " +
+            "AND (:toAltierId IS NULL OR tb.toAltier.id = :toAltierId) " +
+            "AND (:statusEntree IS NULL OR tb.statusEntree = :statusEntree) " +
+            "AND tb.dateSortie >= :fromDate " +
+            "AND tb.dateSortie <= :toDate " +
+            "AND (:search = '' OR " +
+            "LOWER(tb.notes) LIKE CONCAT('%', :search, '%')) ")
+    Page<TransferBon> findFiltered(
             @Param("fromAltierId") UUID fromAltierId,
             @Param("toAltierId") UUID toAltierId,
             @Param("statusEntree") Boolean statusEntree,
@@ -39,16 +39,16 @@ public interface TransferBonRepository extends JpaRepository<TransferBon, UUID> 
             Pageable pageable);
 
     @EntityGraph(attributePaths = {
-        "movements", 
-        "movements.roll", 
-        "movements.roll.article", 
-        "movements.roll.article.color", 
-        "movements.wastePiece", 
-        "movements.wastePiece.article", 
-        "movements.wastePiece.article.color", 
-        "movements.fromAltier", 
-        "movements.toAltier", 
-        "movements.operator"
+            "movements",
+            "movements.roll",
+            "movements.roll.article",
+            "movements.roll.article.color",
+            "movements.wastePiece",
+            "movements.wastePiece.article",
+            "movements.wastePiece.article.color",
+            "movements.fromAltier",
+            "movements.toAltier",
+            "movements.operator"
     })
     Optional<TransferBon> findWithMovementsById(UUID id);
 }

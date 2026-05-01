@@ -60,28 +60,28 @@ public class RollMapper {
         if (request == null) {
             return null;
         }
-        
+
         Roll roll = Roll.builder()
-            .receivedDate(request.getReceivedDate())
-            .supplier(supplier)
-            .altier(altier)
-            .materialType(request.getMaterialType())
-            .nbPlis(request.getNbPlis())
-            .thicknessMm(request.getThicknessMm())
-            .widthMm(request.getWidthMm())
-            .widthRemainingMm(request.getWidthRemainingMm())
-            .lengthM(request.getLengthM())
-            .lengthRemainingM(request.getLengthRemainingM())
-            .areaM2(request.getAreaM2())
-            .usedAreaM2(BigDecimal.ZERO)
-            .availableAreaM2(request.getAreaM2())
-            .status(request.getStatus())
-            .qrCode(request.getQrCode())
-            .totalCuts(0)
-            .totalWasteAreaM2(BigDecimal.ZERO)
-            .createdBy(createdBy)
-            .reference(request.getReference())
-            .build();
+                .receivedDate(request.getReceivedDate())
+                .supplier(supplier)
+                .altier(altier)
+                .materialType(request.getMaterialType())
+                .nbPlis(request.getNbPlis())
+                .thicknessMm(request.getThicknessMm())
+                .widthMm(request.getWidthMm())
+                .widthRemainingMm(request.getWidthRemainingMm())
+                .lengthM(request.getLengthM())
+                .lengthRemainingM(request.getLengthRemainingM())
+                .areaM2(request.getAreaM2())
+                .usedAreaM2(BigDecimal.ZERO)
+                .availableAreaM2(request.getAreaM2())
+                .status(request.getStatus())
+                .qrCode(request.getQrCode())
+                .totalCuts(0)
+                .totalWasteAreaM2(BigDecimal.ZERO)
+                .createdBy(createdBy)
+                .reference(request.getReference())
+                .build();
         return roll;
     }
 
@@ -92,11 +92,11 @@ public class RollMapper {
         if (request == null) {
             return existing;
         }
-        
+
         if (request.getReceivedDate() != null) {
             existing.setReceivedDate(request.getReceivedDate());
         }
-        if(request.getReference() != null) {
+        if (request.getReference() != null) {
             existing.setReference(request.getReference());
         }
         if (supplier != null) {
@@ -136,7 +136,7 @@ public class RollMapper {
         if (request.getQrCode() != null) {
             existing.setQrCode(request.getQrCode());
         }
-        
+
         return existing;
     }
 
@@ -150,9 +150,9 @@ public class RollMapper {
         Color color = entity.getArticle() != null ? entity.getArticle().getColor() : null;
 
         boolean supplierInitialized = entity.getSupplier() != null
-            && org.hibernate.Hibernate.isInitialized(entity.getSupplier());
+                && org.hibernate.Hibernate.isInitialized(entity.getSupplier());
         boolean altierInitialized = entity.getAltier() != null
-            && org.hibernate.Hibernate.isInitialized(entity.getAltier());
+                && org.hibernate.Hibernate.isInitialized(entity.getAltier());
 
         return RollResponse.builder()
                 .id(entity.getId())
@@ -187,7 +187,7 @@ public class RollMapper {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .availableForCutting(entity.getStatus() == com.albelt.gestionstock.shared.enums.RollStatus.AVAILABLE
-                    || entity.getStatus() == com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
+                        || entity.getStatus() == com.albelt.gestionstock.shared.enums.RollStatus.OPENED)
                 .build();
     }
 

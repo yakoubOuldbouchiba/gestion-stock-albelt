@@ -24,9 +24,10 @@ migration/
 └── README.md
 ```
 
-##  ✨ What Changed
+## ✨ What Changed
 
 ### After (13 Clean Files)
+
 - **V1:** Users, Suppliers, Altiers
 - **V2:** Rolls, Waste Pieces + validation triggers
 - **V3:** Clients, Commandes, Items + Audit
@@ -44,27 +45,28 @@ migration/
 ## 🔧 Migration Notes
 
 All files use `CREATE TABLE IF NOT EXISTS` to support:
+
 - ✅ Fresh database builds
 - ✅ Running against existing database
 - ✅ Idempotent (safe to re-run)
 
 ## 📊 Table Overview
 
-| Phase | Tables | Purpose |
-|-------|--------|---------|
-| V1 | users, suppliers, altier | Core infrastructure |
-| V2 | rolls, waste_pieces | Stock inventory |
-| V3 | clients, commandes, items + audit | Order management |
-| V4 | user_altier, roll_movements, transfer_bons | Tracking |
-| V5 | material_chute_thresholds | Configuration |
-| V6 | (30+ indexes) | Performance |
-| V7 | (triggers/functions) | Automation |
-| V8 | (sample data) | Development |
-| V9 | users | Password fix |
-| V10 | rolls | Column type fix |
-| V11 | waste_pieces | Defaults |
-| V12 | rolls | Sample data |
-| V13 | waste_pieces | Check constraints |
+| Phase | Tables                                     | Purpose             |
+|-------|--------------------------------------------|---------------------|
+| V1    | users, suppliers, altier                   | Core infrastructure |
+| V2    | rolls, waste_pieces                        | Stock inventory     |
+| V3    | clients, commandes, items + audit          | Order management    |
+| V4    | user_altier, roll_movements, transfer_bons | Tracking            |
+| V5    | material_chute_thresholds                  | Configuration       |
+| V6    | (30+ indexes)                              | Performance         |
+| V7    | (triggers/functions)                       | Automation          |
+| V8    | (sample data)                              | Development         |
+| V9    | users                                      | Password fix        |
+| V10   | rolls                                      | Column type fix     |
+| V11   | waste_pieces                               | Defaults            |
+| V12   | rolls                                      | Sample data         |
+| V13   | waste_pieces                               | Check constraints   |
 
 ## 📝 Key Features
 
@@ -72,16 +74,18 @@ All files use `CREATE TABLE IF NOT EXISTS` to support:
 ✅ **Waste Reuse:** idx_waste_pieces_reuse_selection for finding reusable materials  
 ✅ **Auto-timestamps:** Triggers maintain updated_at automatically  
 ✅ **Foreign keys:** Proper ON DELETE CASCADE/RESTRICT rules  
-✅ **Validation:** CHECK constraints on all critical fields  
+✅ **Validation:** CHECK constraints on all critical fields
 
 ## 🚀 Usage
 
 **For new database:**
+
 - Flyway automatically runs V1→V13 in order
 - Sample data is created
 - Ready for development
 
 **For existing database:**
+
 - Flyway will apply the new sequence in order
 - Ensure your Flyway history is reset if you want a clean rebuild
 

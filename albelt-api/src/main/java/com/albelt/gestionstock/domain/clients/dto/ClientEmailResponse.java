@@ -16,18 +16,18 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class ClientEmailResponse {
-    
+
     private UUID id;
-    
+
     private String emailAddress;
-    
+
     private Boolean isMain;
-    
+
     private String emailType;
-    
+
     private String notes;
-    
+
     private LocalDateTime createdAt;
-    
+
     private LocalDateTime updatedAt;
 }

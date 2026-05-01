@@ -29,10 +29,10 @@ import java.util.stream.Collectors;
 /**
  * Service for managing roll movements between altiers (workshops)
  * Tracks location changes and integrates with TransferBon workflow
- * 
+ * <p>
  * Core workflow:
  * 1. Create movement record (from and to altiers, dates)
- * 2. Link to optional TransferBon for batch operations  
+ * 2. Link to optional TransferBon for batch operations
  * 3. Update roll's altier location when movement is confirmed (dateEntree set)
  * 4. Maintain audit trail via operator and timestamps
  */
@@ -121,7 +121,7 @@ public class RollMovementService {
                 .reason(reason)
                 .operator(operator)
                 .notes(notes)
-            .transferBon(transferBon)
+                .transferBon(transferBon)
                 .build();
 
         movement = rollMovementRepository.save(movement);
@@ -136,12 +136,12 @@ public class RollMovementService {
             }
             transferBonRepository.save(transferBon);
         }
-        
+
         // Update item's altier to new location when entry is confirmed
         if (dateEntree != null && movement.getStatusEntree()) {
             updateSourceAltier(movement);
         }
-        
+
         log.info("Movement recorded successfully: {}", movement.getId());
 
         return rollMovementMapper.toDTO(movement);
@@ -315,14 +315,14 @@ public class RollMovementService {
                 transferBonRepository.save(bon);
             }
         }
-        
+
         String sourceId = movement.getRoll() != null
-            ? movement.getRoll().getId().toString()
-            : movement.getWastePiece() != null
+                ? movement.getRoll().getId().toString()
+                : movement.getWastePiece() != null
                 ? movement.getWastePiece().getId().toString()
                 : "N/A";
         log.info("Receipt confirmed for movement {}, source {} now at altier {}",
-            movementId, sourceId, movement.getToAltier().getId());
+                movementId, sourceId, movement.getToAltier().getId());
 
         return rollMovementMapper.toDTO(movement);
     }

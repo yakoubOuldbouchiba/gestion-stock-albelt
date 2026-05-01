@@ -52,7 +52,9 @@ public class DashboardStatsResponse {
     public static class WasteMetrics {
         private long totalWaste;
         private BigDecimal totalArea;
-        /** Percent, 0-100 */
+        /**
+         * Percent, 0-100
+         */
         private double reuseEfficiency;
         private List<ByStatus> byStatus;
 

@@ -14,10 +14,10 @@ public interface ColorRepository extends JpaRepository<Color, UUID> {
     Optional<Color> findByNameIgnoreCase(String name);
 
     @Query("SELECT c FROM Color c " +
-           "WHERE (:search = '' OR " +
-           "LOWER(c.name) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(c.hexCode) LIKE CONCAT('%', :search, '%')) " +
-           "AND (c.isActive = COALESCE(:isActive, c.isActive))")
+            "WHERE (:search = '' OR " +
+            "LOWER(c.name) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(c.hexCode) LIKE CONCAT('%', :search, '%')) " +
+            "AND (c.isActive = COALESCE(:isActive, c.isActive))")
     Page<Color> findFiltered(
             @Param("search") String search,
             @Param("isActive") Boolean isActive,

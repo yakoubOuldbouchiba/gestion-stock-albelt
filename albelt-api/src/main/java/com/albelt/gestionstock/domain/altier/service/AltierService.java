@@ -32,7 +32,7 @@ public class AltierService {
      */
     public Altier create(AltierRequest request) {
         log.info("Creating altier: {}", request.getLibelle());
-        
+
         if (altierRepository.existsByLibelle(request.getLibelle())) {
             throw new BusinessException("Altier with libelle '" + request.getLibelle() + "' already exists");
         }
@@ -97,12 +97,12 @@ public class AltierService {
      */
     public Altier update(UUID id, AltierRequest request) {
         log.info("Updating altier: {}", id);
-        
+
         var altier = getById(id);
 
         // Check if new libelle is unique (if it's being changed)
-        if (!altier.getLibelle().equals(request.getLibelle()) && 
-            altierRepository.existsByLibelle(request.getLibelle())) {
+        if (!altier.getLibelle().equals(request.getLibelle()) &&
+                altierRepository.existsByLibelle(request.getLibelle())) {
             throw new BusinessException("Altier with libelle '" + request.getLibelle() + "' already exists");
         }
 

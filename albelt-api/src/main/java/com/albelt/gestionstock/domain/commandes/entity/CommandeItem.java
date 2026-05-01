@@ -22,15 +22,15 @@ import java.util.UUID;
         @Index(name = "idx_commande_items_roll_id", columnList = "roll_id"),
         @Index(name = "idx_commande_items_status", columnList = "status"),
         @Index(name = "idx_commande_items_type_mouvement", columnList = "type_mouvement"),
-    @Index(name = "idx_commande_items_material_type", columnList = "material_type"),
-    @Index(name = "idx_commande_items_article_id", columnList = "article_id")
+        @Index(name = "idx_commande_items_material_type", columnList = "material_type"),
+        @Index(name = "idx_commande_items_article_id", columnList = "article_id")
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class CommandeItem {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

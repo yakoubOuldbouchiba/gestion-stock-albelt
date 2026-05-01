@@ -47,15 +47,15 @@ public interface ClientRepository extends JpaRepository<Client, UUID> {
     @Query("SELECT c FROM Client c ORDER BY c.createdAt DESC")
     List<Client> findAllRecentFirst();
 
-        /**
-         * Paged client search with optional filters
-         */
-          @Query("SELECT c FROM Client c " +
-              "WHERE (:search = '' OR LOWER(c.name) LIKE CONCAT('%', :search, '%')) " +
-              "AND (:isActive IS NULL OR c.isActive = :isActive) " +
-              "AND c.createdAt >= :fromDate " +
-              "AND c.createdAt <= :toDate")
-        Page<Client> findFiltered(
+    /**
+     * Paged client search with optional filters
+     */
+    @Query("SELECT c FROM Client c " +
+            "WHERE (:search = '' OR LOWER(c.name) LIKE CONCAT('%', :search, '%')) " +
+            "AND (:isActive IS NULL OR c.isActive = :isActive) " +
+            "AND c.createdAt >= :fromDate " +
+            "AND c.createdAt <= :toDate")
+    Page<Client> findFiltered(
             @Param("search") String search,
             @Param("isActive") Boolean isActive,
             @Param("fromDate") java.time.LocalDateTime fromDate,

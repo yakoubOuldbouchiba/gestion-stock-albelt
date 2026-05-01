@@ -67,19 +67,19 @@ class OptimizationServiceTest {
     @BeforeEach
     void setUp() {
         service = new OptimizationService(
-            itemRepository,
-            commandeRepository,
-            altierRepository,
-            rollRepository,
-            wastePieceRepository,
-            placedRectangleRepository,
-            productionItemRepository,
-            thresholdRepository,
-            planRepository,
-            placementRepository,
-            qrCodeService,
-            snapshotLoader,
-            optimizationEngine
+                itemRepository,
+                commandeRepository,
+                altierRepository,
+                rollRepository,
+                wastePieceRepository,
+                placedRectangleRepository,
+                productionItemRepository,
+                thresholdRepository,
+                planRepository,
+                placementRepository,
+                qrCodeService,
+                snapshotLoader,
+                optimizationEngine
         );
     }
 
@@ -88,38 +88,38 @@ class OptimizationServiceTest {
         UUID itemId = UUID.randomUUID();
         UUID planId = UUID.randomUUID();
         OptimizationItemSnapshot item = new OptimizationItemSnapshot(
-            itemId,
-            UUID.randomUUID(),
-            "TERMINE",
-            null,
-            null,
-            "PVC",
-            1,
-            BigDecimal.ONE,
-            BigDecimal.ONE,
-            1000,
-            2,
-            null,
-            "REF-1",
-            LocalDateTime.now(),
-            LocalDateTime.now()
+                itemId,
+                UUID.randomUUID(),
+                "TERMINE",
+                null,
+                null,
+                "PVC",
+                1,
+                BigDecimal.ONE,
+                BigDecimal.ONE,
+                1000,
+                2,
+                null,
+                "REF-1",
+                LocalDateTime.now(),
+                LocalDateTime.now()
         );
         OptimizationPlan plan = OptimizationPlan.builder()
-            .id(planId)
-            .commandeItemId(itemId)
-            .status(OptimizationPlanStatus.ACTIVE)
-            .totalPieces(2)
-            .placedPieces(2)
-            .sourceCount(1)
-            .usedAreaM2(new BigDecimal("2.0000"))
-            .wasteAreaM2(new BigDecimal("0.1000"))
-            .utilizationPct(new BigDecimal("95.00"))
-            .svg("<svg/>")
-            .build();
+                .id(planId)
+                .commandeItemId(itemId)
+                .status(OptimizationPlanStatus.ACTIVE)
+                .totalPieces(2)
+                .placedPieces(2)
+                .sourceCount(1)
+                .usedAreaM2(new BigDecimal("2.0000"))
+                .wasteAreaM2(new BigDecimal("0.1000"))
+                .utilizationPct(new BigDecimal("95.00"))
+                .svg("<svg/>")
+                .build();
 
         when(snapshotLoader.loadItem(itemId)).thenReturn(item);
         when(planRepository.findFirstByCommandeItemIdAndStatusOrderByCreatedAtDesc(itemId, OptimizationPlanStatus.ACTIVE))
-            .thenReturn(Optional.of(plan));
+                .thenReturn(Optional.of(plan));
         when(productionItemRepository.sumTotalAreaByCommandeItemId(itemId)).thenReturn(BigDecimal.ZERO);
         when(productionItemRepository.sumQuantityByCommandeItemIdExcludingId(itemId, null)).thenReturn(0L);
         when(placedRectangleRepository.findByCommandeItemIdWithSources(itemId)).thenReturn(List.of());
@@ -132,9 +132,9 @@ class OptimizationServiceTest {
         assertEquals(planId, response.getSuggested().getSuggestionId());
         assertEquals("ACTIVE", response.getSuggested().getStatus());
         verify(planRepository, never())
-            .findFirstByCommandeItemIdAndStatusAndAlgorithmVersionAndInputSignatureAndStockSignatureOrderByCreatedAtDesc(
-                any(), any(), any(), any(), any()
-            );
+                .findFirstByCommandeItemIdAndStatusAndAlgorithmVersionAndInputSignatureAndStockSignatureOrderByCreatedAtDesc(
+                        any(), any(), any(), any(), any()
+                );
         verify(snapshotLoader, never()).loadPlanningContext(any());
     }
 }

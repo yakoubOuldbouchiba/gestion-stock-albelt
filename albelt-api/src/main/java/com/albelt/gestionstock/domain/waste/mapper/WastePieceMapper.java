@@ -53,6 +53,7 @@ public class WastePieceMapper {
         if (rows == null) return List.of();
         return rows.stream().map(this::toGroupedStatsResponse).collect(Collectors.toList());
     }
+
     /**
      * Convert WastePieceRequest DTO to WastePiece entity
      * NOTE: Roll reference must be set separately after fetching from repository
@@ -68,13 +69,13 @@ public class WastePieceMapper {
                 .widthMm(request.getWidthMm())
                 .lengthM(request.getLengthM())
                 .areaM2(request.getAreaM2())
-            .usedAreaM2(BigDecimal.ZERO)
-            .availableAreaM2(request.getAreaM2())
+                .usedAreaM2(BigDecimal.ZERO)
+                .availableAreaM2(request.getAreaM2())
                 .widthRemainingMm(request.getWidthRemainingMm())
                 .lengthRemainingM(request.getLengthRemainingM())
                 .wasteType(request.getWasteType())
-                .status(request.getStatus() != null ? 
-                    WasteStatus.valueOf(request.getStatus()) : WasteStatus.AVAILABLE)
+                .status(request.getStatus() != null ?
+                        WasteStatus.valueOf(request.getStatus()) : WasteStatus.AVAILABLE)
                 .qrCode(request.getQrCode())
                 .commandeItemId(request.getCommandeItemId())
                 .build();
@@ -121,7 +122,7 @@ public class WastePieceMapper {
         if (request == null) {
             return existing;
         }
-        if(request.getReference() != null) {
+        if (request.getReference() != null) {
             existing.setReference(request.getReference());
         }
         if (request.getMaterialType() != null) {
@@ -176,10 +177,10 @@ public class WastePieceMapper {
                 .articleId(entity.getArticle() != null ? entity.getArticle().getId() : null)
                 .article(entity.getArticle() != null ? articleMapper.toResponse(entity.getArticle()) : null)
                 .rollId(entity.getRoll() != null ? entity.getRoll().getId() : null)
-            .parentWastePieceId(entity.getParentWastePiece() != null ? entity.getParentWastePiece().getId() : null)
+                .parentWastePieceId(entity.getParentWastePiece() != null ? entity.getParentWastePiece().getId() : null)
                 .materialType(entity.getMaterialType())
-                .supplierId(entity.getRoll() != null ? entity.getRoll().getSupplier().getId() : (entity.getParentWastePiece() != null ? entity.getParentWastePiece().getRoll().getSupplier().getId() : null) )
-                .supplierName(entity.getRoll() != null ? entity.getRoll().getSupplier().getName() : (entity.getParentWastePiece() != null ? entity.getParentWastePiece().getRoll().getSupplier().getName() : null) )
+                .supplierId(entity.getRoll() != null ? entity.getRoll().getSupplier().getId() : (entity.getParentWastePiece() != null ? entity.getParentWastePiece().getRoll().getSupplier().getId() : null))
+                .supplierName(entity.getRoll() != null ? entity.getRoll().getSupplier().getName() : (entity.getParentWastePiece() != null ? entity.getParentWastePiece().getRoll().getSupplier().getName() : null))
                 .nbPlis(entity.getNbPlis())
                 .thicknessMm(entity.getThicknessMm())
                 .widthMm(entity.getWidthMm())

@@ -36,13 +36,13 @@ public class ArticleService {
 
         String normalizedReference = normalizeReference(reference);
         return articleRepository.findBySignature(normalizedMaterialType, thicknessMm, nbPlis, normalizedReference, colorId)
-            .orElseGet(() -> articleRepository.save(Article.builder()
-                .materialType(normalizedMaterialType)
-                .thicknessMm(thicknessMm)
-                .nbPlis(nbPlis)
-                .reference(normalizedReference)
-                .color(colorId != null ? colorRepository.findById(colorId).orElse(null) : null)
-                .build()));
+                .orElseGet(() -> articleRepository.save(Article.builder()
+                        .materialType(normalizedMaterialType)
+                        .thicknessMm(thicknessMm)
+                        .nbPlis(nbPlis)
+                        .reference(normalizedReference)
+                        .color(colorId != null ? colorRepository.findById(colorId).orElse(null) : null)
+                        .build()));
     }
 
     @Transactional
@@ -61,11 +61,11 @@ public class ArticleService {
         }
 
         Article article = resolve(
-            request.getMaterialType(),
-            request.getThicknessMm(),
-            request.getNbPlis(),
-            request.getReference(),
-            null // Odoo articles might not have color in the signature yet
+                request.getMaterialType(),
+                request.getThicknessMm(),
+                request.getNbPlis(),
+                request.getReference(),
+                null // Odoo articles might not have color in the signature yet
         );
         if (article == null) {
             return null;
@@ -81,9 +81,9 @@ public class ArticleService {
             return List.of();
         }
         return requests.stream()
-            .map(this::upsertFromOdoo)
-            .filter(Objects::nonNull)
-            .toList();
+                .map(this::upsertFromOdoo)
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     private void applyOdooValues(Article article, OdooArticleUpsertRequest request) {

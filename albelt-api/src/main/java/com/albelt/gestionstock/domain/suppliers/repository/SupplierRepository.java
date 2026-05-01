@@ -32,7 +32,7 @@ public interface SupplierRepository extends JpaRepository<Supplier, UUID> {
     /**
      * Find suppliers by partial name match
      */
-       @Query("SELECT s FROM Supplier s WHERE LOWER(s.name) LIKE CONCAT('%', :namePattern, '%') ORDER BY s.name ASC")
+    @Query("SELECT s FROM Supplier s WHERE LOWER(s.name) LIKE CONCAT('%', :namePattern, '%') ORDER BY s.name ASC")
     List<Supplier> searchByNamePattern(@Param("namePattern") String namePattern);
 
     /**
@@ -45,15 +45,15 @@ public interface SupplierRepository extends JpaRepository<Supplier, UUID> {
      * Paged supplier search with optional filters
      */
     @Query("SELECT s FROM Supplier s " +
-           "WHERE (:search = '' OR " +
-           "LOWER(s.name) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(s.country) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(s.contactPerson) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(s.email) LIKE CONCAT('%', :search, '%') OR " +
-           "LOWER(s.phone) LIKE CONCAT('%', :search, '%')) " +
-           "AND (:country = '' OR LOWER(s.country) = :country) " +
-           "AND s.createdAt >= :fromDate " +
-           "AND s.createdAt <= :toDate")
+            "WHERE (:search = '' OR " +
+            "LOWER(s.name) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(s.country) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(s.contactPerson) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(s.email) LIKE CONCAT('%', :search, '%') OR " +
+            "LOWER(s.phone) LIKE CONCAT('%', :search, '%')) " +
+            "AND (:country = '' OR LOWER(s.country) = :country) " +
+            "AND s.createdAt >= :fromDate " +
+            "AND s.createdAt <= :toDate")
     Page<Supplier> findFiltered(
             @Param("search") String search,
             @Param("country") String country,

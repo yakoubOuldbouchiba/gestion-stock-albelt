@@ -18,7 +18,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "production_items", indexes = {
-    @Index(name = "idx_production_items_placed_rectangle_id", columnList = "placed_rectangle_id")
+        @Index(name = "idx_production_items_placed_rectangle_id", columnList = "placed_rectangle_id")
 })
 @Data
 @NoArgsConstructor

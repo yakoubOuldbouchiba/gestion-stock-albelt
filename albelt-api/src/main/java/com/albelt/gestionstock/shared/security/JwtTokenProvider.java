@@ -19,18 +19,18 @@ import java.util.UUID;
  */
 @Component
 public class JwtTokenProvider {
-    
+
     private static final long EXPIRATION_TIME = 24 * 60 * 60 * 1000; // 24 hours
-    
+
     @Value("${jwt.secret:albel-stock-management-system-secret-key-must-be-at-least-512-bits-2026-stable-persistent-key-for-production-use-please-configure}")
     @Getter
     private String jwtSecret;
-    
+
     @Value("${jwt.expiration:86400000}")
     private long jwtExpirationInMs;
-    
+
     private SecretKey signingKey;
-    
+
     /**
      * Initialize the signing key from the configured secret
      * Ensures consistent key across restarts
@@ -53,19 +53,19 @@ public class JwtTokenProvider {
             }
         }
     }
-    
+
     private SecretKey getSigningKey() {
         initializeSigningKey();
         return signingKey;
     }
-    
+
     /**
      * Generate JWT token for user
      */
     public String generateToken(UUID userId, String username) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
-        
+
         return Jwts.builder()
                 .setSubject(userId.toString())
                 .claim("username", username)
@@ -74,7 +74,7 @@ public class JwtTokenProvider {
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
                 .compact();
     }
-    
+
     /**
      * Get user ID from token
      */
@@ -84,10 +84,10 @@ public class JwtTokenProvider {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-        
+
         return UUID.fromString(claims.getSubject());
     }
-    
+
     /**
      * Validate token
      */

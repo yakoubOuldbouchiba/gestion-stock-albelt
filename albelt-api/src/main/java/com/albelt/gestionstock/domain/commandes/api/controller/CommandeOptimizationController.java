@@ -49,9 +49,9 @@ public class CommandeOptimizationController {
         Locale locale = Locale.forLanguageTag(lang);
         String html = optimizationPrintService.generatePrintHtml(itemId, variant, locale, forceRegenerate);
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"optimization-" + variant + ".html\"")
-            .contentType(MediaType.parseMediaType("text/html;charset=UTF-8"))
-            .body(html);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"optimization-" + variant + ".html\"")
+                .contentType(MediaType.parseMediaType("text/html;charset=UTF-8"))
+                .body(html);
     }
 
     /**
@@ -67,9 +67,9 @@ public class CommandeOptimizationController {
         Locale locale = Locale.forLanguageTag(lang);
         String html = optimizationPrintService.generateSimplePrintHtml(itemId, variant, locale, forceRegenerate);
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"optimization-" + variant + ".html\"")
-            .contentType(MediaType.parseMediaType("text/html;charset=UTF-8"))
-            .body(html);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"optimization-" + variant + ".html\"")
+                .contentType(MediaType.parseMediaType("text/html;charset=UTF-8"))
+                .body(html);
     }
 
     @PostMapping("/{itemId}/optimization/adopt")

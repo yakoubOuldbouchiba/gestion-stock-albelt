@@ -20,25 +20,25 @@ public interface PurchaseBonRepository extends JpaRepository<PurchaseBon, UUID> 
 
     List<PurchaseBon> findAllByOrderByCreatedAtDesc();
 
-        /**
-         * Paged purchase bon search with optional filters
-         */
-          @Query(value = "SELECT DISTINCT pb FROM PurchaseBon pb " +
-              "LEFT JOIN FETCH pb.items i " +
-              "LEFT JOIN FETCH i.article a " +
-              "LEFT JOIN FETCH a.color " +
-              "WHERE (:status IS NULL OR pb.status = :status) " +
-              "AND (:supplierId IS NULL OR pb.supplier.id = :supplierId) " +
-              "AND (:fromDate IS NULL OR pb.bonDate >= :fromDate) " +
-              "AND (:toDate IS NULL OR pb.bonDate <= :toDate) " +
-              "AND (:search = '' OR LOWER(pb.reference) LIKE CONCAT('%', :search, '%')) ",
-              countQuery = "SELECT COUNT(pb) FROM PurchaseBon pb " +
-              "WHERE (:status IS NULL OR pb.status = :status) " +
-              "AND (:supplierId IS NULL OR pb.supplier.id = :supplierId) " +
-              "AND (:fromDate IS NULL OR pb.bonDate >= :fromDate) " +
-              "AND (:toDate IS NULL OR pb.bonDate <= :toDate) " +
-              "AND (:search = '' OR LOWER(pb.reference) LIKE CONCAT('%', :search, '%')) ")
-        Page<PurchaseBon> findFiltered(
+    /**
+     * Paged purchase bon search with optional filters
+     */
+    @Query(value = "SELECT DISTINCT pb FROM PurchaseBon pb " +
+            "LEFT JOIN FETCH pb.items i " +
+            "LEFT JOIN FETCH i.article a " +
+            "LEFT JOIN FETCH a.color " +
+            "WHERE (:status IS NULL OR pb.status = :status) " +
+            "AND (:supplierId IS NULL OR pb.supplier.id = :supplierId) " +
+            "AND (:fromDate IS NULL OR pb.bonDate >= :fromDate) " +
+            "AND (:toDate IS NULL OR pb.bonDate <= :toDate) " +
+            "AND (:search = '' OR LOWER(pb.reference) LIKE CONCAT('%', :search, '%')) ",
+            countQuery = "SELECT COUNT(pb) FROM PurchaseBon pb " +
+                    "WHERE (:status IS NULL OR pb.status = :status) " +
+                    "AND (:supplierId IS NULL OR pb.supplier.id = :supplierId) " +
+                    "AND (:fromDate IS NULL OR pb.bonDate >= :fromDate) " +
+                    "AND (:toDate IS NULL OR pb.bonDate <= :toDate) " +
+                    "AND (:search = '' OR LOWER(pb.reference) LIKE CONCAT('%', :search, '%')) ")
+    Page<PurchaseBon> findFiltered(
             @Param("status") com.albelt.gestionstock.shared.enums.PurchaseBonStatus status,
             @Param("supplierId") UUID supplierId,
             @Param("fromDate") java.time.LocalDate fromDate,

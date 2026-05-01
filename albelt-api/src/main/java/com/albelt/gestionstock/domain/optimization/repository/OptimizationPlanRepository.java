@@ -13,14 +13,14 @@ import java.util.UUID;
 public interface OptimizationPlanRepository extends JpaRepository<OptimizationPlan, UUID> {
 
     Optional<OptimizationPlan> findFirstByCommandeItemIdAndStatusOrderByCreatedAtDesc(UUID commandeItemId,
-                                                                                     OptimizationPlanStatus status);
+                                                                                      OptimizationPlanStatus status);
 
     Optional<OptimizationPlan> findFirstByCommandeItemIdAndStatusAndAlgorithmVersionAndInputSignatureAndStockSignatureOrderByCreatedAtDesc(
-        UUID commandeItemId,
-        OptimizationPlanStatus status,
-        String algorithmVersion,
-        String inputSignature,
-        String stockSignature
+            UUID commandeItemId,
+            OptimizationPlanStatus status,
+            String algorithmVersion,
+            String inputSignature,
+            String stockSignature
     );
 
     List<OptimizationPlan> findByCommandeItemIdAndStatus(UUID commandeItemId, OptimizationPlanStatus status);

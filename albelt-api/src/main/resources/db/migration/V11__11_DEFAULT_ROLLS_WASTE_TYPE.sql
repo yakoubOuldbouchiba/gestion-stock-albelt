@@ -17,4 +17,4 @@ WHERE waste_type IS NULL;
 -- Add DEFAULT constraint to prevent future NULL values
 -- This ensures new records always have a waste_type
 ALTER TABLE waste_pieces
-ALTER COLUMN waste_type SET DEFAULT 'DECHET';
+    ALTER COLUMN waste_type SET DEFAULT 'DECHET';

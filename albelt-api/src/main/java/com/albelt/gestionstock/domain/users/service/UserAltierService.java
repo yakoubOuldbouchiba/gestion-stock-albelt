@@ -35,13 +35,13 @@ public class UserAltierService {
      */
     public List<UUID> getAccessibleAltiers(UUID userId) {
         User user = userService.getById(userId);
-        
+
         // Admin users have access to all altiers
         if (user.getRole() == UserRole.ADMIN) {
             log.debug("User {} is ADMIN - returning all altiers", userId);
             return altierService.getAll().stream().map(Altier::getId).toList();
         }
-        
+
         log.debug("Fetching altiers accessible by user: {}", userId);
         return userAltierRepository.findAltierIdsByUserId(userId);
     }
@@ -53,19 +53,19 @@ public class UserAltierService {
         User user = userService.getById(userId);
         Altier altier = altierService.getById(altierId);
         User admin = userService.getById(assignedBy);
-        
+
         UserAltier userAltier = UserAltier.builder()
                 .user(user)
                 .altier(altier)
                 .assignedBy(admin)
                 .build();
-        
+
         UserAltier saved = userAltierRepository.save(userAltier);
-        
+
         // Re-fetch with eager loading to avoid lazy initialization issues
         UserAltier fetched = userAltierRepository.findByIdWithRelations(saved.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("UserAltier not found after creation"));
-        
+
         log.info("Assigned altier {} to user {}", altierId, userId);
         return fetched;
     }
@@ -97,12 +97,12 @@ public class UserAltierService {
      */
     public boolean hasAccess(UUID userId, UUID altierId) {
         User user = userService.getById(userId);
-        
+
         // Admin users have access to everything
         if (user.getRole() == UserRole.ADMIN) {
             return true;
         }
-        
+
         return userAltierRepository.existsByUserIdAndAltierId(userId, altierId);
     }
 }

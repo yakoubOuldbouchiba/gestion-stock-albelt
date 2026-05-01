@@ -25,30 +25,30 @@ public interface UserAltierRepository extends JpaRepository<UserAltier, UUID> {
      * Find all altier assignments for a user with all relationships eagerly loaded
      */
     @Query("SELECT DISTINCT ua FROM UserAltier ua " +
-           "LEFT JOIN FETCH ua.user " +
-           "LEFT JOIN FETCH ua.altier " +
-           "LEFT JOIN FETCH ua.assignedBy " +
-           "WHERE ua.user.id = ?1")
+            "LEFT JOIN FETCH ua.user " +
+            "LEFT JOIN FETCH ua.altier " +
+            "LEFT JOIN FETCH ua.assignedBy " +
+            "WHERE ua.user.id = ?1")
     List<UserAltier> findByUserId(UUID userId);
 
     /**
      * Find all users assigned to an altier with all relationships eagerly loaded
      */
     @Query("SELECT DISTINCT ua FROM UserAltier ua " +
-           "LEFT JOIN FETCH ua.user " +
-           "LEFT JOIN FETCH ua.altier " +
-           "LEFT JOIN FETCH ua.assignedBy " +
-           "WHERE ua.altier.id = ?1")
+            "LEFT JOIN FETCH ua.user " +
+            "LEFT JOIN FETCH ua.altier " +
+            "LEFT JOIN FETCH ua.assignedBy " +
+            "WHERE ua.altier.id = ?1")
     List<UserAltier> findByAltierId(UUID altierId);
 
     /**
      * Find UserAltier by ID with all relationships eagerly loaded
      */
     @Query("SELECT DISTINCT ua FROM UserAltier ua " +
-           "LEFT JOIN FETCH ua.user " +
-           "LEFT JOIN FETCH ua.altier " +
-           "LEFT JOIN FETCH ua.assignedBy " +
-           "WHERE ua.id = ?1")
+            "LEFT JOIN FETCH ua.user " +
+            "LEFT JOIN FETCH ua.altier " +
+            "LEFT JOIN FETCH ua.assignedBy " +
+            "WHERE ua.id = ?1")
     Optional<UserAltier> findByIdWithRelations(UUID id);
 
     /**

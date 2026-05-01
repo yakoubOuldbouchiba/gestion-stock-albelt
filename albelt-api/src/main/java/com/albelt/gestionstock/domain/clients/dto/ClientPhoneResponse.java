@@ -16,18 +16,18 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class ClientPhoneResponse {
-    
+
     private UUID id;
-    
+
     private String phoneNumber;
-    
+
     private Boolean isMain;
-    
+
     private String phoneType;
-    
+
     private String notes;
-    
+
     private LocalDateTime createdAt;
-    
+
     private LocalDateTime updatedAt;
 }

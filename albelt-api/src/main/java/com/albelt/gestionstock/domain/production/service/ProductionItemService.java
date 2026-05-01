@@ -52,16 +52,16 @@ public class ProductionItemService {
         validateArea(placedRectangle, totalArea, null);
 
         ProductionMatchResult matchResult = evaluateProductionMatch(
-            commandeItem,
-            roll,
-            wastePiece,
-            request.getPieceLengthM(),
-            request.getPieceWidthMm()
+                commandeItem,
+                roll,
+                wastePiece,
+                request.getPieceLengthM(),
+                request.getPieceWidthMm()
         );
 
         ProductionItem item = productionItemMapper.toEntity(
                 request,
-            placedRectangle,
+                placedRectangle,
                 areaPerPiece,
                 totalArea
         );
@@ -94,11 +94,11 @@ public class ProductionItemService {
         validateArea(placedRectangle, totalArea, existing.getId());
 
         ProductionMatchResult matchResult = evaluateProductionMatch(
-            commandeItem,
-            roll,
-            wastePiece,
-            request.getPieceLengthM(),
-            request.getPieceWidthMm()
+                commandeItem,
+                roll,
+                wastePiece,
+                request.getPieceLengthM(),
+                request.getPieceWidthMm()
         );
 
         existing.setPlacedRectangle(placedRectangle);
@@ -272,8 +272,8 @@ public class ProductionItemService {
         UUID itemColorId = itemColor != null ? itemColor.getId() : null;
         if (!matchesUuid(sourceColorId, itemColorId)) {
             mismatches.add(buildMismatch("color",
-                formatColor(itemColor),
-                formatColor(sourceColor)));
+                    formatColor(itemColor),
+                    formatColor(sourceColor)));
         }
 
         if (!matchesDecimal(pieceLengthM, commandeItem.getLongueurM())) {

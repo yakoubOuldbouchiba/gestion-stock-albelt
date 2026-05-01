@@ -48,7 +48,7 @@ public class CommandeItemMapper {
                 .surfaceConsommeeM2(request.getSurfaceConsommeeM2())
                 .typeMouvement(request.getTypeMouvement())
                 .observations(request.getObservations())
-            .reference(request.getReference())
+                .reference(request.getReference())
                 .lineNumber(request.getLineNumber())
                 .build();
     }
@@ -80,10 +80,10 @@ public class CommandeItemMapper {
                 .typeMouvement(item.getTypeMouvement())
                 .status(item.getStatus())
                 .observations(item.getObservations())
-            .reference(item.getReference())
-            .colorId(color != null ? color.getId() : null)
-            .colorName(color != null && org.hibernate.Hibernate.isInitialized(color) ? color.getName() : null)
-            .colorHexCode(color != null && org.hibernate.Hibernate.isInitialized(color) ? color.getHexCode() : null)
+                .reference(item.getReference())
+                .colorId(color != null ? color.getId() : null)
+                .colorName(color != null && org.hibernate.Hibernate.isInitialized(color) ? color.getName() : null)
+                .colorHexCode(color != null && org.hibernate.Hibernate.isInitialized(color) ? color.getHexCode() : null)
                 .goodProduction(matchSummary.goodProduction())
                 .productionMiss(matchSummary.productionMiss())
                 .totalItemsConforme(item.getTotalItemsConforme())

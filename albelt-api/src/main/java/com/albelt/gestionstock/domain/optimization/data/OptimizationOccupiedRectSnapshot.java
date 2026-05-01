@@ -4,13 +4,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record OptimizationOccupiedRectSnapshot(
-    UUID rollId,
-    UUID wastePieceId,
-    Integer xMm,
-    Integer yMm,
-    Integer widthMm,
-    Integer heightMm,
-    LocalDateTime updatedAt
+        UUID rollId,
+        UUID wastePieceId,
+        Integer xMm,
+        Integer yMm,
+        Integer widthMm,
+        Integer heightMm,
+        LocalDateTime updatedAt
 ) {
 
     public UUID sourceId() {

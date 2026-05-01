@@ -17,24 +17,24 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class ClientResponse {
-    
+
     private UUID id;
-    
+
     private String name;
-    
+
     private String description;
-    
+
     private Boolean isActive;
-    
+
     private List<ClientPhoneResponse> phones;
-    
+
     private List<ClientEmailResponse> emails;
-    
+
     private List<ClientAddressResponse> addresses;
-    
+
     private List<ClientRepresentativeResponse> representatives;
-    
+
     private LocalDateTime createdAt;
-    
+
     private LocalDateTime updatedAt;
 }

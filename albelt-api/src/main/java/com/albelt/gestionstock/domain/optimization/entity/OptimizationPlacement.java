@@ -12,9 +12,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "optimization_placements", indexes = {
-    @Index(name = "idx_optimization_placements_plan_id", columnList = "plan_id"),
-    @Index(name = "idx_optimization_placements_roll_id", columnList = "roll_id"),
-    @Index(name = "idx_optimization_placements_waste_id", columnList = "waste_piece_id")
+        @Index(name = "idx_optimization_placements_plan_id", columnList = "plan_id"),
+        @Index(name = "idx_optimization_placements_roll_id", columnList = "roll_id"),
+        @Index(name = "idx_optimization_placements_waste_id", columnList = "waste_piece_id")
 })
 @Data
 @NoArgsConstructor

@@ -72,10 +72,10 @@ public class UserAltierController {
             @RequestParam UUID userId,
             @RequestParam UUID altierId) {
         log.info("ADMIN assigning altier {} to user {}", altierId, userId);
-        
+
         UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         UserAltier assignment = userAltierService.assignAltier(userId, altierId, currentUser);
-        
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(userAltierMapper.toDTO(assignment), "Altier assigned to user successfully"));
     }

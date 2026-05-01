@@ -256,7 +256,7 @@ public class PlacedRectangleService {
                     throw new IllegalArgumentException("Placed rectangle color must match commande item color");
                 }
                 ensureColorMatchesExisting(itemColor.getId(), placedRectangleRepository
-                        .findFirstByCommandeItemIdAndColorIsNotNullOrderByCreatedAtAsc(commandeItem.getId()),
+                                .findFirstByCommandeItemIdAndColorIsNotNullOrderByCreatedAtAsc(commandeItem.getId()),
                         "commande item");
                 return itemColor;
             }
@@ -264,7 +264,7 @@ public class PlacedRectangleService {
             if (requestedColorId != null) {
                 Color requested = colorService.getById(requestedColorId);
                 ensureColorMatchesExisting(requested.getId(), placedRectangleRepository
-                        .findFirstByCommandeItemIdAndColorIsNotNullOrderByCreatedAtAsc(commandeItem.getId()),
+                                .findFirstByCommandeItemIdAndColorIsNotNullOrderByCreatedAtAsc(commandeItem.getId()),
                         "commande item");
                 return requested;
             }
@@ -284,8 +284,8 @@ public class PlacedRectangleService {
         Optional<PlacedRectangle> existingForSource = roll != null
                 ? placedRectangleRepository.findFirstByRollIdAndCommandeItemIdIsNullAndColorIsNotNullOrderByCreatedAtAsc(roll.getId())
                 : wastePiece != null
-                    ? placedRectangleRepository.findFirstByWastePieceIdAndCommandeItemIdIsNullAndColorIsNotNullOrderByCreatedAtAsc(wastePiece.getId())
-                    : Optional.empty();
+                ? placedRectangleRepository.findFirstByWastePieceIdAndCommandeItemIdIsNullAndColorIsNotNullOrderByCreatedAtAsc(wastePiece.getId())
+                : Optional.empty();
 
         if (sourceColor != null) {
             if (requestedColorId != null && !sourceColor.getId().equals(requestedColorId)) {
@@ -309,9 +309,9 @@ public class PlacedRectangleService {
             return;
         }
         UUID existingColorId = existing.get().getColor() != null ? existing.get().getColor().getId() : null;
-            if (!java.util.Objects.equals(existingColorId, newColorId)) {
-                throw new IllegalArgumentException("Placed rectangle color must match existing " + scope + " color");
-            }
+        if (!java.util.Objects.equals(existingColorId, newColorId)) {
+            throw new IllegalArgumentException("Placed rectangle color must match existing " + scope + " color");
+        }
     }
 
 }

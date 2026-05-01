@@ -24,22 +24,22 @@ public class ClientMapper {
                 .name(request.getName())
                 .description(request.getDescription())
                 .isActive(request.getIsActive() != null ? request.getIsActive() : true)
-                .phones(request.getPhones() != null ? 
-                    request.getPhones().stream()
-                        .map(this::toPhoneEntity)
-                        .collect(Collectors.toList()) : Collections.emptyList())
-                .emails(request.getEmails() != null ? 
-                    request.getEmails().stream()
-                        .map(this::toEmailEntity)
-                        .collect(Collectors.toList()) : Collections.emptyList())
-                .addresses(request.getAddresses() != null ? 
-                    request.getAddresses().stream()
-                        .map(this::toAddressEntity)
-                        .collect(Collectors.toList()) : Collections.emptyList())
-                .representatives(request.getRepresentatives() != null ? 
-                    request.getRepresentatives().stream()
-                        .map(this::toRepresentativeEntity)
-                        .collect(Collectors.toList()) : Collections.emptyList())
+                .phones(request.getPhones() != null ?
+                        request.getPhones().stream()
+                                .map(this::toPhoneEntity)
+                                .collect(Collectors.toList()) : Collections.emptyList())
+                .emails(request.getEmails() != null ?
+                        request.getEmails().stream()
+                                .map(this::toEmailEntity)
+                                .collect(Collectors.toList()) : Collections.emptyList())
+                .addresses(request.getAddresses() != null ?
+                        request.getAddresses().stream()
+                                .map(this::toAddressEntity)
+                                .collect(Collectors.toList()) : Collections.emptyList())
+                .representatives(request.getRepresentatives() != null ?
+                        request.getRepresentatives().stream()
+                                .map(this::toRepresentativeEntity)
+                                .collect(Collectors.toList()) : Collections.emptyList())
                 .build();
     }
 
@@ -52,22 +52,22 @@ public class ClientMapper {
                 .name(entity.getName())
                 .description(entity.getDescription())
                 .isActive(entity.getIsActive())
-                .phones(entity.getPhones() != null ? 
-                    entity.getPhones().stream()
-                        .map(this::toPhoneResponse)
-                        .collect(Collectors.toList()) : Collections.emptyList())
-                .emails(entity.getEmails() != null ? 
-                    entity.getEmails().stream()
-                        .map(this::toEmailResponse)
-                        .collect(Collectors.toList()) : Collections.emptyList())
-                .addresses(entity.getAddresses() != null ? 
-                    entity.getAddresses().stream()
-                        .map(this::toAddressResponse)
-                        .collect(Collectors.toList()) : Collections.emptyList())
-                .representatives(entity.getRepresentatives() != null ? 
-                    entity.getRepresentatives().stream()
-                        .map(this::toRepresentativeResponse)
-                        .collect(Collectors.toList()) : Collections.emptyList())
+                .phones(entity.getPhones() != null ?
+                        entity.getPhones().stream()
+                                .map(this::toPhoneResponse)
+                                .collect(Collectors.toList()) : Collections.emptyList())
+                .emails(entity.getEmails() != null ?
+                        entity.getEmails().stream()
+                                .map(this::toEmailResponse)
+                                .collect(Collectors.toList()) : Collections.emptyList())
+                .addresses(entity.getAddresses() != null ?
+                        entity.getAddresses().stream()
+                                .map(this::toAddressResponse)
+                                .collect(Collectors.toList()) : Collections.emptyList())
+                .representatives(entity.getRepresentatives() != null ?
+                        entity.getRepresentatives().stream()
+                                .map(this::toRepresentativeResponse)
+                                .collect(Collectors.toList()) : Collections.emptyList())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();

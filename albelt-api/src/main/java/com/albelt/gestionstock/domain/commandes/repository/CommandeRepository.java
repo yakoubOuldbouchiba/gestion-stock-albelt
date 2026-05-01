@@ -60,20 +60,20 @@ public interface CommandeRepository extends JpaRepository<Commande, UUID> {
      * Paged order search with optional filters
      */
     @Query(value = "SELECT DISTINCT c FROM Commande c " +
-           "LEFT JOIN FETCH c.items i " +
-           "LEFT JOIN FETCH i.article a " +
-           "LEFT JOIN FETCH a.color " +
-           "WHERE (:status IS NULL OR c.status = :status) " +
-           "AND (:clientId IS NULL OR c.client.id = :clientId) " +
-           "AND c.createdAt >= :fromDate " +
-           "AND c.createdAt <= :toDate " +
-           "AND (:search = '' OR LOWER(c.numeroCommande) LIKE CONCAT('%', :search, '%')) ",
-           countQuery = "SELECT COUNT(c) FROM Commande c " +
-           "WHERE (:status IS NULL OR c.status = :status) " +
-           "AND (:clientId IS NULL OR c.client.id = :clientId) " +
-           "AND c.createdAt >= :fromDate " +
-           "AND c.createdAt <= :toDate " +
-           "AND (:search = '' OR LOWER(c.numeroCommande) LIKE CONCAT('%', :search, '%')) ")
+            "LEFT JOIN FETCH c.items i " +
+            "LEFT JOIN FETCH i.article a " +
+            "LEFT JOIN FETCH a.color " +
+            "WHERE (:status IS NULL OR c.status = :status) " +
+            "AND (:clientId IS NULL OR c.client.id = :clientId) " +
+            "AND c.createdAt >= :fromDate " +
+            "AND c.createdAt <= :toDate " +
+            "AND (:search = '' OR LOWER(c.numeroCommande) LIKE CONCAT('%', :search, '%')) ",
+            countQuery = "SELECT COUNT(c) FROM Commande c " +
+                    "WHERE (:status IS NULL OR c.status = :status) " +
+                    "AND (:clientId IS NULL OR c.client.id = :clientId) " +
+                    "AND c.createdAt >= :fromDate " +
+                    "AND c.createdAt <= :toDate " +
+                    "AND (:search = '' OR LOWER(c.numeroCommande) LIKE CONCAT('%', :search, '%')) ")
     Page<Commande> findFiltered(
             @Param("status") String status,
             @Param("clientId") UUID clientId,

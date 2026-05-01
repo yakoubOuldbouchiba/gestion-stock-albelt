@@ -12,4 +12,4 @@ SET reference = md5(random()::text);
 
 
 update waste_pieces
-SET reference = (select reference from rolls r where r.id  = roll_id)
+SET reference = (select reference from rolls r where r.id = roll_id)

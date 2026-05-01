@@ -43,15 +43,6 @@ import java.util.*;
 @RequiredArgsConstructor
 @Slf4j
 public class WastePieceService {
-    /**
-     * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
-     */
-    @Transactional(readOnly = true)
-    public List<WastePieceGroupedStatsResponse> getGroupedByAllFields(WasteType type) {
-        List<Object[]> rows = wastePieceRepository.groupByAllFields(type);
-        return wastePieceMapper.toGroupedStatsResponseList(rows);
-    }
-
     private final WastePieceRepository wastePieceRepository;
     private final RollRepository rollRepository;
     private final WastePieceMapper wastePieceMapper;
@@ -63,14 +54,24 @@ public class WastePieceService {
     private final QrCodeService qrCodeService;
 
     /**
+     * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+     */
+    @Transactional(readOnly = true)
+    public List<WastePieceGroupedStatsResponse> getGroupedByAllFields(WasteType type) {
+        List<Object[]> rows = wastePieceRepository.groupByAllFields(type);
+        return wastePieceMapper.toGroupedStatsResponseList(rows);
+    }
+
+    /**
      * Record a waste piece from a commande item processing
-     * @param request WastePieceRequest containing waste piece details
+     *
+     * @param request   WastePieceRequest containing waste piece details
      * @param createdBy UUID of user creating the waste piece
      * @return Saved WastePiece entity
      */
     public WastePiece recordWaste(WastePieceRequest request, UUID createdBy) {
-        log.info("Recording waste piece: material={}, area_m2={}", 
-                 request.getMaterialType(), request.getLengthM());
+        log.info("Recording waste piece: material={}, area_m2={}",
+                request.getMaterialType(), request.getLengthM());
 
         WastePiece parentWastePiece = null;
         Roll roll = null;
@@ -103,11 +104,11 @@ public class WastePieceService {
 
         UUID colorIdToUse = request.getColorId();
         if (colorIdToUse == null) {
-             if (roll != null && roll.getArticle() != null && roll.getArticle().getColor() != null) {
-                 colorIdToUse = roll.getArticle().getColor().getId();
-             } else if (parentWastePiece != null && parentWastePiece.getArticle() != null && parentWastePiece.getArticle().getColor() != null) {
-                 colorIdToUse = parentWastePiece.getArticle().getColor().getId();
-             }
+            if (roll != null && roll.getArticle() != null && roll.getArticle().getColor() != null) {
+                colorIdToUse = roll.getArticle().getColor().getId();
+            } else if (parentWastePiece != null && parentWastePiece.getArticle() != null && parentWastePiece.getArticle().getColor() != null) {
+                colorIdToUse = parentWastePiece.getArticle().getColor().getId();
+            }
         }
 
 
@@ -121,11 +122,11 @@ public class WastePieceService {
             wastePiece.setArticle(parentWastePiece.getArticle());
         } else {
             wastePiece.setArticle(articleService.resolve(
-                request.getMaterialType(),
-                request.getThicknessMm(),
-                request.getNbPlis(),
-                request.getReference(),
-                colorIdToUse
+                    request.getMaterialType(),
+                    request.getThicknessMm(),
+                    request.getNbPlis(),
+                    request.getReference(),
+                    colorIdToUse
             ));
         }
 
@@ -133,17 +134,17 @@ public class WastePieceService {
             wastePiece.setParentWastePiece(parentWastePiece);
         }
         wastePiece.setLotId(lotIdAllocator.nextLotId());
-        
+
         // Set the creator
         wastePiece.setCreatedBy(createdBy);
-        
+
         if (request.getAltierId() != null) {
             wastePiece.setAltier(altierService.getById(request.getAltierId()));
         }
-        
+
         // Default status starts as AVAILABLE; placement triggers manage OPENED/EXHAUSTED
         wastePiece.setStatus(WasteStatus.AVAILABLE);
-        
+
         wastePiece.setClassificationDate(java.time.LocalDateTime.now());
         WastePiece saved = wastePieceRepository.save(wastePiece);
         saved.setQrCode(qrCodeService.generateForWastePiece(saved));
@@ -179,7 +180,7 @@ public class WastePieceService {
         java.time.LocalDateTime effectiveToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return wastePieceRepository.findFiltered(articleId, materialType, status, wasteType, altierId, colorId, nbPlis,
-            thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
+                thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
     }
 
     /**
@@ -231,20 +232,20 @@ public class WastePieceService {
     @Transactional(readOnly = true)
     public Optional<WastePiece> findReuseCandidate(MaterialType materialType, BigDecimal requiredArea) {
         log.debug("Finding reuse candidate: material={}, required_area={}", materialType, requiredArea);
-        
+
         List<WasteStatus> reuseableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
         List<WastePiece> candidates = wastePieceRepository.findReuseCandidate(
-                materialType, 
-                requiredArea, 
+                materialType,
+                requiredArea,
                 reuseableStatuses
         );
-        
+
         if (!candidates.isEmpty()) {
             WastePiece candidate = candidates.get(0);
             log.info("Reuse candidate found: id={}, area_m2={}", candidate.getId(), candidate.getAreaM2());
             return Optional.of(candidate);
         }
-        
+
         log.debug("No reuse candidates found for material: {}", materialType);
         return Optional.empty();
     }
@@ -259,11 +260,11 @@ public class WastePieceService {
     }
 
     /**
-      * Archive waste piece
+     * Archive waste piece
      */
     public WastePiece markAsScrap(UUID wastePieceId) {
-          log.info("Archiving waste piece: {}", wastePieceId);
-        
+        log.info("Archiving waste piece: {}", wastePieceId);
+
         WastePiece wastePiece = getById(wastePieceId);
         wastePiece.markAsArchived(LocalDate.now());
         WastePiece updated = wastePieceRepository.save(wastePiece);
@@ -294,9 +295,9 @@ public class WastePieceService {
     public List<WastePiece> getAvailableByMaterial(MaterialType materialType, int page, int size) {
         List<WasteStatus> availableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
         return wastePieceRepository.findAvailableByMaterial(
-            materialType,
-            availableStatuses,
-            PageRequest.of(page, size)
+                materialType,
+                availableStatuses,
+                PageRequest.of(page, size)
         );
     }
 
@@ -307,9 +308,9 @@ public class WastePieceService {
         }
         List<WasteStatus> availableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
         return wastePieceRepository.findAvailableByArticle(
-            articleId,
-            availableStatuses,
-            PageRequest.of(page, size)
+                articleId,
+                availableStatuses,
+                PageRequest.of(page, size)
         );
     }
 
@@ -330,10 +331,10 @@ public class WastePieceService {
         if (stats == null || stats.length < 2) {
             return 0.0;
         }
-        
+
         long reused = ((Number) stats[0]).longValue();
         long total = ((Number) stats[1]).longValue();
-        
+
         return total > 0 ? (double) reused / total * 100 : 0.0;
     }
 
@@ -352,11 +353,11 @@ public class WastePieceService {
                 wastePiece.setArticle(wastePiece.getRoll().getArticle());
             } else {
                 wastePiece.setArticle(articleService.resolve(
-                    wastePiece.getMaterialType(),
-                    wastePiece.getThicknessMm(),
-                    wastePiece.getNbPlis(),
-                    wastePiece.getReference(),
-                    null
+                        wastePiece.getMaterialType(),
+                        wastePiece.getThicknessMm(),
+                        wastePiece.getNbPlis(),
+                        wastePiece.getReference(),
+                        null
                 ));
             }
         }
@@ -384,7 +385,7 @@ public class WastePieceService {
         log.debug("Fetching stats grouped by material type");
 
         List<WasteStatus> activeStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
-        List<Object[]> results = wastePieceRepository.getStatsByMaterial(type,activeStatuses);
+        List<Object[]> results = wastePieceRepository.getStatsByMaterial(type, activeStatuses);
 
         return results.stream()
                 .map(row -> {

@@ -5,23 +5,25 @@
 -- ============================================================================
 
 ALTER TABLE roll_movements
-  ADD COLUMN IF NOT EXISTS waste_piece_id UUID REFERENCES waste_pieces(id) ON DELETE RESTRICT;
+    ADD COLUMN IF NOT EXISTS waste_piece_id UUID REFERENCES waste_pieces(id) ON DELETE RESTRICT;
 
 ALTER TABLE roll_movements
-  ALTER COLUMN roll_id DROP NOT NULL;
+    ALTER COLUMN roll_id DROP NOT NULL;
 
-DO $$
+DO
+$$
 BEGIN
-  IF NOT EXISTS (
+  IF
+NOT EXISTS (
     SELECT 1 FROM information_schema.constraint_column_usage
     WHERE constraint_name = 'roll_movements_single_source'
   ) THEN
-    ALTER TABLE roll_movements
-      ADD CONSTRAINT roll_movements_single_source CHECK (
+ALTER TABLE roll_movements
+    ADD CONSTRAINT roll_movements_single_source CHECK (
         (roll_id IS NOT NULL AND waste_piece_id IS NULL)
-        OR (roll_id IS NULL AND waste_piece_id IS NOT NULL)
-      );
-  END IF;
+            OR (roll_id IS NULL AND waste_piece_id IS NOT NULL)
+        );
+END IF;
 END $$;
 
 CREATE INDEX IF NOT EXISTS idx_roll_movements_waste_piece_id ON roll_movements(waste_piece_id);

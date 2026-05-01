@@ -20,15 +20,15 @@ import java.util.UUID;
  */
 @Entity
 @Table(name = "waste_pieces", indexes = {
-    @Index(name = "idx_waste_pieces_roll_id", columnList = "roll_id"),
-    @Index(name = "idx_waste_pieces_parent_id", columnList = "parent_waste_piece_id"),
-    @Index(name = "idx_waste_pieces_material_type", columnList = "material_type"),
-    @Index(name = "idx_waste_pieces_status", columnList = "status"),
-    @Index(name = "idx_waste_pieces_commande_item", columnList = "commande_item_id"),
-    @Index(name = "idx_waste_pieces_created_by", columnList = "created_by"),
-    @Index(name = "idx_waste_pieces_altier_id", columnList = "altier_id"),
-    @Index(name = "idx_waste_pieces_article_id", columnList = "article_id"),
-    @Index(name = "idx_waste_pieces_lot_id", columnList = "lot_id", unique = true)
+        @Index(name = "idx_waste_pieces_roll_id", columnList = "roll_id"),
+        @Index(name = "idx_waste_pieces_parent_id", columnList = "parent_waste_piece_id"),
+        @Index(name = "idx_waste_pieces_material_type", columnList = "material_type"),
+        @Index(name = "idx_waste_pieces_status", columnList = "status"),
+        @Index(name = "idx_waste_pieces_commande_item", columnList = "commande_item_id"),
+        @Index(name = "idx_waste_pieces_created_by", columnList = "created_by"),
+        @Index(name = "idx_waste_pieces_altier_id", columnList = "altier_id"),
+        @Index(name = "idx_waste_pieces_article_id", columnList = "article_id"),
+        @Index(name = "idx_waste_pieces_lot_id", columnList = "lot_id", unique = true)
 })
 @Data
 @NoArgsConstructor
@@ -119,7 +119,7 @@ public class WastePiece extends ReferencedArticleSnapshotEntity {
 
     public boolean isReuseCandidate() {
         return (WasteStatus.AVAILABLE.equals(this.status) || WasteStatus.OPENED.equals(this.status))
-               && this.isLargeWaste();
+                && this.isLargeWaste();
     }
 
     public void markAsArchived(LocalDate classificationDate) {
