@@ -44,7 +44,8 @@
     "actions": "الإجراءات",
     "reason": "السبب",
     "roll": "لفيفة (Roll)",
-    "all": "الكل"
+    "all": "الكل",
+    "navigation": "التنقل"
   },
   "navigation": {
     "dashboard": "لوحة التحكم",
@@ -1106,7 +1107,9 @@
     "reusableLeftovers": "البقايا المتبقية",
     "lengthM": "الطول (م)",
     "widthMm": "العرض (مم)",
-    "selectItemToContinue": "اختر منتجاً للمتابعة لعملية الإنتاج"
+    "selectItemToContinue": "اختر منتجاً للمتابعة لعملية الإنتاج",
+    "position": "الموقع",
+    "adoptSuggestedPlan": "تبني الخطة المقترحة"
   },
   "ordersWorkbench": {
     "operatorWorkbench": "مساحة عمل المشغل",
@@ -1181,7 +1184,9 @@
     "cuttingNow": "قيد التقطيع الآن",
     "itemsDone": "المنتجات المكتملة",
     "searchOrderNumberOrClient": "ابحث برقم الطلب أو اسم الزبون...",
-    "allClients": "جميع الزبائن"
+    "allClients": "جميع الزبائن",
+    "statusFilter": "الحالة",
+    "clientFilter": "الزبون"
   },
   "returns": {
     "title": "مرتجعات الطلبات",

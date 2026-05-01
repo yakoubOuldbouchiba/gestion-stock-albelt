@@ -44,7 +44,8 @@
     "loading_data": "Chargement des données...",
     "created": "Créé",
     "updated": "Mis à jour",
-    "all": "Tous"
+    "all": "Tous",
+    "navigation": "Navigation"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -1093,7 +1094,9 @@
       "CANCELLED": "Annulé",
       "PENDING": "En attente"
     },
-    "coupe": "Coupe"
+    "coupe": "Coupe",
+    "position": "Position",
+    "adoptSuggestedPlan": "Adopter le plan suggéré"
   },
   "returns": {
     "title": "Retours de commande",
@@ -1247,7 +1250,9 @@
     "cuttingNow": "En cours de découpe",
     "itemsDone": "Articles terminés",
     "searchOrderNumberOrClient": "Rechercher par numéro de commande ou nom du client...",
-    "allClients": "Tous les clients"
+    "allClients": "Tous les clients",
+    "statusFilter": "Statut",
+    "clientFilter": "Client"
   },
   "optimizationComparison": "Comparaison d'optimisation",
   "regenerateSuggestion": "Régénérer la suggestion",

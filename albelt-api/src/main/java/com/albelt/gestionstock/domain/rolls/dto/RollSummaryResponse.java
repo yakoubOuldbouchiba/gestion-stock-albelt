@@ -47,4 +47,6 @@ public class RollSummaryResponse {
     private String colorName;
 
     private String colorHexCode;
+
+    private Integer lotId;
 }

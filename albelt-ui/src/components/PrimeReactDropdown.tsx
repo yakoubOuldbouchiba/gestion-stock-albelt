@@ -60,7 +60,7 @@ export function PrimeReactDropdown({
         emptyMessage={isLoading ? loadingMessage : emptyMessage}
         filter={showFilter}
         filterPlaceholder={filterPlaceholder}
-        showClear={true}
+        showClear={false}
         filterInputAutoFocus={false}
         className={`w-100 ${error ? 'p-invalid' : ''}`}
         panelClassName="primereact-dropdown-panel"

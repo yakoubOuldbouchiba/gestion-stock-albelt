@@ -12,7 +12,7 @@ interface CommandesWorkbenchOrderCardProps {
   order: Commande;
   metrics: WorkbenchOrderMetrics;
   isSelected: boolean;
-  onSelect: () => void;
+  //onSelect: () => void;
   onOpenOrder: (orderId: string) => void;
 }
 
@@ -21,14 +21,13 @@ export function CommandesWorkbenchOrderCard({
   order,
   metrics,
   isSelected,
-  onSelect,
+  //onSelect,
   onOpenOrder
 }: CommandesWorkbenchOrderCardProps) {
   return (
-    <button
-      type="button"
+    <div
       className={`orders-workbench__order-card ${isSelected ? 'is-selected' : ''}`}
-      onClick={onSelect}
+    // onClick={onSelect}
     >
       <div className="orders-workbench__card-topline">
         <strong>{order.numeroCommande}</strong>
@@ -92,6 +91,6 @@ export function CommandesWorkbenchOrderCard({
         </div>
         <span className="orders-workbench__progress-text">{metrics.progress}%</span>
       </div>
-    </button>
+    </div>
   );
 }

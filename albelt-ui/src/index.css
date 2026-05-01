@@ -918,3 +918,9 @@ ol {
     padding: 1rem;
   }
 }
+
+.p-dropdown .p-dropdown-label,
+.p-inputtext,
+.p-inputnumber-input {
+  padding: 0.4rem 1.5rem;
+}

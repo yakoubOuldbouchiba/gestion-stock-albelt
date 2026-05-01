@@ -64,7 +64,7 @@ function CommandesListPage() {
                     order={order}
                     metrics={workbench.getOrderMetrics(order)}
                     isSelected={workbench.highlightedOrder?.id === order.id}
-                    onSelect={() => workbench.setSelectedOrderId(order.id)}
+                    //onSelect={() => workbench.setSelectedOrderId(order.id)}
                     onOpenOrder={(orderId) => navigate(`/commandes/${orderId}`)}
                   />
                 ))}
@@ -72,7 +72,7 @@ function CommandesListPage() {
             )}
           </div>
         </section>
-{/* 
+        {/* 
         <section className="orders-workbench__panel orders-workbench__panel--workspace">
           <div className="orders-workbench__panel-header">
             <div>

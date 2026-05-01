@@ -117,6 +117,7 @@ public class PlacedRectangleMapper {
                 .colorId(color != null ? color.getId() : null)
                 .colorName(colorInitialized ? color.getName() : null)
                 .colorHexCode(colorInitialized ? color.getHexCode() : null)
+                .lotId(roll.getLotId())
                 .build();
     }
 

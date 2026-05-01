@@ -11,18 +11,20 @@
   color: #2563eb;
   transition: color 0.2s;
 }
+
 .ux-enlarge-btn:hover {
   color: #1d4ed8;
   background: #e0e7ff;
   border-radius: 50%;
 }
+
 .industrial-roll-ux {
   --primary: #2563eb;
   --secondary: #64748b;
   --bg: #ffffff;
   --strip: #f8fafc;
   --border: #e2e8f0;
-  
+
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -97,6 +99,7 @@
   display: flex;
   overflow: hidden;
   background: #f1f5f9;
+  position: relative;
 }
 
 .ux-scroll-viewport {
@@ -114,14 +117,15 @@
   position: relative;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   border: 1px solid #cbd5e1;
+  overflow: visible;
 }
 
 .ux-grid-overlay {
   position: absolute;
   inset: 0;
-  background-image: 
-    linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
   background-size: 50px 50px;
   pointer-events: none;
 }
@@ -145,53 +149,104 @@
 
 .ux-placement-card {
   position: absolute;
-  border: 1px solid rgba(0,0,0,0.2);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  overflow: visible;
   z-index: 1;
 }
 
-.ux-placement-card:hover {
+.ux-placement-card:hover,
+.ux-placement-card.is-active {
   transform: scale(1.02);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
   z-index: 20;
-  filter: brightness(1.1);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  filter: brightness(1.06);
 }
 
 .ux-placement-info {
   display: flex;
   align-items: center;
   gap: 2px;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 2px 8px;
   border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 900;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.1;
   color: #000;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
-.ux-placement-tooltip {
+.ux-placement-tooltip-overlay {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0,0,0,0.8);
-  color: white;
-  font-size: 0.6rem;
-  padding: 2px;
-  text-align: center;
+  width: min(240px, calc(100% - 16px));
+  background: rgba(12, 18, 28, 0.9);
+  color: #f8fafc;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  padding: 10px 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
+  font-size: 0.72rem;
+  line-height: 1.45;
   opacity: 0;
-  transition: opacity 0.2s;
+  transform: translateY(4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+  z-index: 40;
 }
 
-.ux-placement-card:hover .ux-placement-tooltip {
+.ux-placement-tooltip-overlay.is-visible {
   opacity: 1;
+  transform: translateY(0);
+}
+
+.ux-placement-tooltip-title {
+  margin-bottom: 6px;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  word-break: break-word;
+}
+
+.ux-placement-tooltip-row {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.ux-placement-tooltip-row + .ux-placement-tooltip-row {
+  margin-top: 4px;
+}
+
+.ux-placement-tooltip-row span {
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.62rem;
+}
+
+.ux-placement-tooltip-row strong {
+  color: #f8fafc;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.ux-placement-tooltip-footnote {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  color: #cbd5e1;
+  font-size: 0.64rem;
 }
 
 /* Roll Map Sidebar */
@@ -252,6 +307,34 @@
   margin-top: 12px;
 }
 
+.industrial-roll-ux--print {
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.industrial-roll-ux--print .ux-header {
+  background: #ffffff;
+  backdrop-filter: none;
+}
+
+.industrial-roll-ux--print .ux-placement-card {
+  cursor: default;
+  transition: none;
+}
+
+.industrial-roll-ux--print .ux-placement-card:hover,
+.industrial-roll-ux--print .ux-placement-card.is-active {
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+.industrial-roll-ux--print .ux-placement-info {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: none;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
 .roll-base {
   transition: fill 0.3s ease;
 }
@@ -293,8 +376,14 @@
   border-radius: 50%;
 }
 
-.dot.cut { background: var(--primary-color); }
-.dot.roll { background: #cbd5e1; border: 1px solid #94a3b8; }
+.dot.cut {
+  background: var(--primary-color);
+}
+
+.dot.roll {
+  background: #cbd5e1;
+  border: 1px solid #94a3b8;
+}
 
 .controls-hint kbd {
   background: #f1f5f9;
@@ -326,21 +415,21 @@
 
 .placement-text {
   pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* Print Specific Styles */
 @media print {
-  .industrial-visualizer {
+  .industrial-roll-ux {
     box-shadow: none;
     border: none;
     height: auto;
     min-height: 0;
   }
-  .visualizer-toolbar, .visualizer-footer {
-    display: none;
-  }
-  .svg-stage {
-    background: white;
+
+  .ux-roll-map,
+  .visualizer-toolbar,
+  .visualizer-footer,
+  .ux-placement-tooltip-overlay {
+    display: none !important;
   }
 }

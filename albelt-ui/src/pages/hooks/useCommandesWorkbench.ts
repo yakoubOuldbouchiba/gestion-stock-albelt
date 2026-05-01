@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import type { TFunction } from 'i18next';
 import { ClientService } from '../../services/clientService';
 import { CommandeService } from '../../services/commandeService';
-import type { Client, Commande, CommandeStatus } from '../../types';
+import type { Client, Commande, CommandeStatus, OrderSummaryStats } from '../../types';
 import type { CommandesWorkbenchState, WorkbenchClientOption, WorkbenchStatusOption, WorkbenchSummaryMetric } from '../../components/commande/CommandesWorkbench.types';
-import { getItemCounts, getOrderMetrics } from '../../components/commande/commandesWorkbench.utils';
+import { getOrderMetrics } from '../../components/commande/commandesWorkbench.utils';
 
 interface UseCommandesWorkbenchOptions {
   t: TFunction;
@@ -78,38 +78,51 @@ export function useCommandesWorkbench({ t }: UseCommandesWorkbenchOptions): Comm
     }
   }, [activeOrders, commandes, selectedOrderId]);
 
+  const [summaryStats, setSummaryMetrics] = useState<OrderSummaryStats | null>(null);
+
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const res = await CommandeService.getSummaryStats();
+        setSummaryMetrics(res.data);
+      } catch (err) {
+        console.error('Failed to fetch summary stats', err);
+      }
+    };
+
+    fetchSummary();
+  }, []);
+
   const summaryMetrics = useMemo<WorkbenchSummaryMetric[]>(() => {
-    const waitingItems = commandes.reduce((sum, order) => sum + getItemCounts(order.items).pending, 0);
-    const cuttingItems = commandes.reduce((sum, order) => sum + getItemCounts(order.items).inProgress, 0);
-    const doneItems = commandes.reduce((sum, order) => sum + getItemCounts(order.items).completed, 0);
+    if (!summaryStats) return [];
 
     return [
       {
         key: 'active-orders',
         label: t('ordersWorkbench.activeOrders', 'Active orders'),
-        value: activeOrders.length,
+        value: summaryStats.activeOrders,
         accentClass: 'orders-workbench__summary-card--accent',
       },
       {
         key: 'items-waiting',
         label: t('ordersWorkbench.itemsWaiting', 'Items waiting'),
-        value: waitingItems,
+        value: summaryStats.waitingItems,
         accentClass: 'orders-workbench__summary-card--amber',
       },
       {
         key: 'cutting-now',
         label: t('ordersWorkbench.cuttingNow', 'Cutting now'),
-        value: cuttingItems,
+        value: summaryStats.cuttingItems,
         accentClass: 'orders-workbench__summary-card--cool',
       },
       {
         key: 'items-done',
         label: t('ordersWorkbench.itemsDone', 'Items done'),
-        value: doneItems,
+        value: summaryStats.completedItems,
         accentClass: 'orders-workbench__summary-card--ink',
       },
     ];
-  }, [activeOrders.length, commandes, t]);
+  }, [summaryStats, t]);
 
   return {
     commandes,

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { PlacedRectangle, OptimizationPlacementReport } from '../../types';
 import { useI18n } from '../../hooks/useI18n';
 import './IndustrialRollVisualizer.css';
@@ -9,16 +9,32 @@ interface IndustrialRollVisualizerProps {
   placements: (PlacedRectangle | OptimizationPlacementReport)[];
   baseColor?: string;
   onPlacementClick?: (placement: any) => void;
-  printSegment?: { startMm: number; endMm: number; };
+  printSegment?: { startMm: number; endMm: number };
+  printMode?: boolean;
   onEnlarge?: (title: string, svg: string) => void;
   svgString?: string;
   title?: string;
 }
 
+type NormalizedPlacement = (PlacedRectangle | OptimizationPlacementReport) & {
+  xMm: number;
+  yMm: number;
+  referenceLabel?: string | null;
+  metadataLabel?: string | null;
+};
+
+type TooltipState = {
+  placement: NormalizedPlacement;
+  left: number;
+  top: number;
+  horizontal: 'left' | 'right';
+  vertical: 'above' | 'below';
+  pinned: boolean;
+};
+
 /**
  * IndustrialRollVisualizer (Continuous Scroll & Map UX)
- * A premium, user-friendly way to navigate 120m rolls.
- * Features a "Roll Map" sidebar and a continuous material flow.
+ * Keeps placement geometry untouched and upgrades only the interaction layer.
  */
 export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> = ({
   widthMm,
@@ -27,15 +43,38 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
   baseColor = '#f8fafc',
   onPlacementClick,
   printSegment,
+  printMode = false,
 }) => {
   const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const activeAnchorRef = useRef<HTMLElement | null>(null);
   const [currentM, setCurrentM] = useState(0);
+  const [tooltipState, setTooltipState] = useState<TooltipState | null>(null);
+  const isPrintMode = printMode || Boolean(printSegment);
 
-  // Sync current meter based on scroll
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    const pct = target.scrollTop / (target.scrollHeight - target.clientHeight);
+  const normalizedPlacements = useMemo<NormalizedPlacement[]>(
+    () =>
+      placements.map((placement) => ({
+        ...placement,
+        xMm: placement.xMm ?? placement.xmm,
+        yMm: placement.yMm ?? placement.ymm,
+        referenceLabel: 'commandeItem' in placement ? placement.commandeItem?.reference ?? null : null,
+        metadataLabel:
+          'rotated' in placement && placement.rotated != null
+            ? placement.rotated
+              ? 'Rotated'
+              : 'Standard'
+            : null,
+      })),
+    [placements]
+  );
+
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const target = event.currentTarget;
+    const scrollableHeight = target.scrollHeight - target.clientHeight;
+    const pct = scrollableHeight > 0 ? target.scrollTop / scrollableHeight : 0;
     setCurrentM((pct * lengthMm) / 1000);
   };
 
@@ -44,20 +83,130 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
     const totalHeight = scrollRef.current.scrollHeight;
     scrollRef.current.scrollTo({
       top: (mm / lengthMm) * totalHeight,
-      behavior: 'smooth'
+      behavior: 'smooth',
     });
   };
 
+  const positionTooltip = (
+    placement: NormalizedPlacement,
+    anchor: HTMLElement,
+    pinned: boolean
+  ) => {
+    if (isPrintMode || !bodyRef.current) return;
+
+    activeAnchorRef.current = anchor;
+
+    const bodyRect = bodyRef.current.getBoundingClientRect();
+    const anchorRect = anchor.getBoundingClientRect();
+    const tooltipWidth = tooltipRef.current?.offsetWidth ?? 220;
+    const tooltipHeight = tooltipRef.current?.offsetHeight ?? 108;
+    const gap = 14;
+
+    const spaceRight = bodyRect.right - anchorRect.right;
+    const spaceLeft = anchorRect.left - bodyRect.left;
+    const spaceAbove = anchorRect.top - bodyRect.top;
+
+    const horizontal: TooltipState['horizontal'] =
+      spaceRight >= tooltipWidth + gap || spaceRight >= spaceLeft ? 'right' : 'left';
+    const vertical: TooltipState['vertical'] =
+      spaceAbove >= tooltipHeight + gap ? 'above' : 'below';
+
+    const preferredLeft =
+      horizontal === 'right'
+        ? anchorRect.right - bodyRect.left + gap
+        : anchorRect.left - bodyRect.left - tooltipWidth - gap;
+    const preferredTop =
+      vertical === 'above'
+        ? anchorRect.top - bodyRect.top - tooltipHeight - gap
+        : anchorRect.bottom - bodyRect.top + gap;
+
+    const maxLeft = Math.max(8, bodyRect.width - tooltipWidth - 8);
+    const maxTop = Math.max(8, bodyRect.height - tooltipHeight - 8);
+
+    setTooltipState({
+      placement,
+      left: Math.min(Math.max(8, preferredLeft), maxLeft),
+      top: Math.min(Math.max(8, preferredTop), maxTop),
+      horizontal,
+      vertical,
+      pinned,
+    });
+  };
+
+  const clearTooltip = () => {
+    activeAnchorRef.current = null;
+    setTooltipState(null);
+  };
+
+  const handlePlacementEnter =
+    (placement: NormalizedPlacement) => (event: React.MouseEvent<HTMLDivElement>) => {
+      if (isPrintMode || tooltipState?.pinned) return;
+      positionTooltip(placement, event.currentTarget, false);
+    };
+
+  const handlePlacementLeave = () => {
+    if (isPrintMode || tooltipState?.pinned) return;
+    clearTooltip();
+  };
+
+  const handlePlacementClick =
+    (placement: NormalizedPlacement) => (event: React.MouseEvent<HTMLDivElement>) => {
+      if (!isPrintMode) {
+        const isSamePlacement = tooltipState?.placement === placement;
+        if (tooltipState?.pinned && isSamePlacement) {
+          clearTooltip();
+        } else {
+          positionTooltip(placement, event.currentTarget, true);
+        }
+      }
+      onPlacementClick?.(placement);
+    };
+
+  useEffect(() => {
+    if (!tooltipState || isPrintMode) return;
+
+    const syncTooltip = () => {
+      if (activeAnchorRef.current) {
+        positionTooltip(tooltipState.placement, activeAnchorRef.current, tooltipState.pinned);
+      }
+    };
+
+    syncTooltip();
+
+    const scrollElement = scrollRef.current;
+    scrollElement?.addEventListener('scroll', syncTooltip, { passive: true });
+    window.addEventListener('resize', syncTooltip);
+
+    return () => {
+      scrollElement?.removeEventListener('scroll', syncTooltip);
+      window.removeEventListener('resize', syncTooltip);
+    };
+  }, [isPrintMode, tooltipState]);
+
+  useEffect(() => {
+    if (isPrintMode) {
+      clearTooltip();
+    }
+  }, [isPrintMode]);
+
   return (
-    <div className="industrial-roll-ux">
-      {/* Premium Header */}
+    <div className={`industrial-roll-ux${isPrintMode ? ' industrial-roll-ux--print' : ''}`}>
       <div className="ux-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
           <div className="ux-header-main">
-            <h2>{t('inventory.roll')} {printSegment ? `(Segment ${printSegment.startMm / 1000}m - ${printSegment.endMm / 1000}m)` : `#${(lengthMm / 1000).toFixed(0)}m`}</h2>
+            <h2>
+              {t('inventory.roll')}{' '}
+              {printSegment
+                ? `(Segment ${printSegment.startMm / 1000}m - ${printSegment.endMm / 1000}m)`
+                : `#${(lengthMm / 1000).toFixed(0)}m`}
+            </h2>
             <div className="ux-stats">
-              <span className="ux-badge"><i className="pi pi-arrows-h" /> {widthMm}mm</span>
-              <span className="ux-badge primary"><i className="pi pi-tag" /> {placements.length} {t('rollDetail.placements')}</span>
+              <span className="ux-badge">
+                <i className="pi pi-arrows-h" /> {widthMm}mm
+              </span>
+              <span className="ux-badge primary">
+                <i className="pi pi-tag" /> {placements.length} {t('rollDetail.placements')}
+              </span>
             </div>
           </div>
           {!printSegment && (
@@ -67,70 +216,70 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
             </div>
           )}
         </div>
-        {/* Enlarge button removed: now handled in parent header */}
       </div>
 
-      <div className="ux-body" style={printSegment ? { overflow: 'hidden' } : {}}>
-        {/* Continuous Material Strip */}
-        <div className={printSegment ? "" : "ux-scroll-viewport"} ref={scrollRef} onScroll={printSegment ? undefined : handleScroll}>
+      <div className="ux-body" ref={bodyRef} style={printSegment ? { overflow: 'hidden' } : {}}>
+        <div
+          className={printSegment ? '' : 'ux-scroll-viewport'}
+          ref={scrollRef}
+          onScroll={printSegment ? undefined : handleScroll}
+        >
           <div
             className="ux-material-strip"
             style={{
-              height: `${((printSegment ? printSegment.endMm - printSegment.startMm : lengthMm) / 1000) * 150}px`, // Fixed scale: 150px per meter
+              height: `${((printSegment ? printSegment.endMm - printSegment.startMm : lengthMm) / 1000) * 150}px`,
               backgroundColor: baseColor,
-              position: 'relative'
+              position: 'relative',
             }}
           >
             <div className="ux-grid-overlay" />
 
-            {/* Rulers */}
-            {[...Array(Math.ceil((printSegment ? printSegment.endMm - printSegment.startMm : lengthMm) / 1000))].map((_, i) => {
-              const actualM = printSegment ? (printSegment.startMm / 1000) + i : i;
-              return (
-                <div key={i} className="ux-meter-line" style={{ top: `${i * 150}px` }}>
-                  <span>{actualM}m</span>
-                </div>
-              );
-            })}
+            {[...Array(Math.ceil((printSegment ? printSegment.endMm - printSegment.startMm : lengthMm) / 1000))].map(
+              (_, index) => {
+                const actualM = printSegment ? printSegment.startMm / 1000 + index : index;
+                return (
+                  <div key={index} className="ux-meter-line" style={{ top: `${index * 150}px` }}>
+                    <span>{actualM}m</span>
+                  </div>
+                );
+              }
+            )}
 
-            {/* Placements */}
-            {placements
-              .map(p => ({
-                ...p,
-                xMm: p.xMm ?? p.xmm,
-                yMm: p.yMm ?? p.ymm
-              }))
-              .filter(p => printSegment ? (p.yMm < printSegment.endMm && (p.yMm + p.heightMm) > printSegment.startMm) : true)
-              .map((p, idx) => {
-                const adjustedY = printSegment ? p.yMm - printSegment.startMm : p.yMm;
+            {normalizedPlacements
+              .filter((placement) =>
+                printSegment
+                  ? placement.yMm < printSegment.endMm &&
+                    placement.yMm + placement.heightMm > printSegment.startMm
+                  : true
+              )
+              .map((placement, index) => {
+                const adjustedY = printSegment ? placement.yMm - printSegment.startMm : placement.yMm;
                 const top = (adjustedY / 1000) * 150;
-                const height = (p.heightMm / 1000) * 150;
-                const left = (p.xMm / widthMm) * 100;
-                const width = (p.widthMm / widthMm) * 100;
+                const height = (placement.heightMm / 1000) * 150;
+                const left = (placement.xMm / widthMm) * 100;
+                const width = (placement.widthMm / widthMm) * 100;
+                const cardColor =
+                  ((placement as any).colorHexCode || (placement as any).placementColorHexCode) || '#3b82f6';
 
                 return (
                   <div
-                    key={(p as any).id || `opt-${idx}`}
-                    className="ux-placement-card"
+                    key={(placement as any).id || `opt-${index}`}
+                    className={`ux-placement-card${tooltipState?.placement === placement ? ' is-active' : ''}`}
                     style={{
                       top: `${top}px`,
                       height: `${height}px`,
                       left: `${left}%`,
                       width: `${width}%`,
-                      backgroundColor: ((p as any).colorHexCode || (p as any).placementColorHexCode) || '#3b82f6'
+                      backgroundColor: cardColor,
                     }}
-                    onClick={() => onPlacementClick?.(p)}
+                    onMouseEnter={handlePlacementEnter(placement)}
+                    onMouseLeave={handlePlacementLeave}
+                    onClick={handlePlacementClick(placement)}
                   >
                     <div className="ux-placement-info">
-                      <span className="dim">{p.heightMm}</span>
-                      <span className="sep">×</span>
-                      <span className="dim">{p.widthMm}</span>
-                    </div>
-                    <div className="ux-placement-tooltip">
-                      <div><strong>Size:</strong> {p.widthMm} × {p.heightMm} mm</div>
-                      <div><strong>Position:</strong> {(p.yMm / 1000).toFixed(2)} m</div>
-                      <div><strong>X:</strong> {p.xMm} mm</div>
-                      {(p as any).id && <div><strong>ID:</strong> {(p as any).id}</div>}
+                      <span className="dim">{placement.heightMm}</span>
+                      <span className="sep">x</span>
+                      <span className="dim">{placement.widthMm}</span>
                     </div>
                   </div>
                 );
@@ -138,27 +287,67 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
           </div>
         </div>
 
-        {/* The Roll Map (Navigation Sidebar) - hidden in print mode */}
+        {!isPrintMode && tooltipState && (
+          <div
+            ref={tooltipRef}
+            className={`ux-placement-tooltip-overlay is-visible is-${tooltipState.horizontal} is-${tooltipState.vertical}${
+              tooltipState.pinned ? ' is-pinned' : ''
+            }`}
+            style={{
+              left: `${tooltipState.left}px`,
+              top: `${tooltipState.top}px`,
+            }}
+          >
+            <div className="ux-placement-tooltip-title">
+              {tooltipState.placement.referenceLabel || t('commandes.placement') || 'Placement'}
+            </div>
+            <div className="ux-placement-tooltip-row">
+              <span>{t('commandes.dimensions') || 'Size'}</span>
+              <strong>
+                {tooltipState.placement.widthMm} x {tooltipState.placement.heightMm} mm
+              </strong>
+            </div>
+            <div className="ux-placement-tooltip-row">
+              <span>{t('commandes.position') || 'Position'}</span>
+              <strong>
+                X {Number(tooltipState.placement.xMm / 1000).toFixed(3)} m | Y{' '}
+                {Number(tooltipState.placement.yMm / 1000).toFixed(3)} m
+              </strong>
+            </div>
+            {(tooltipState.placement as any).id && (
+              <div className="ux-placement-tooltip-row">
+                <span>ID</span>
+                <strong>{String((tooltipState.placement as any).id).slice(0, 18)}</strong>
+              </div>
+            )}
+            {tooltipState.placement.metadataLabel && (
+              <div className="ux-placement-tooltip-row">
+                <span>{t('common.details') || 'Details'}</span>
+                <strong>{tooltipState.placement.metadataLabel}</strong>
+              </div>
+            )}
+            {tooltipState.pinned && (
+              <div className="ux-placement-tooltip-footnote">{t('common.click') || 'Click'} to unpin</div>
+            )}
+          </div>
+        )}
+
         {!printSegment && (
           <div className="ux-roll-map">
             <div className="map-track">
-              {placements.map((p, idx) => (
+              {normalizedPlacements.map((placement, index) => (
                 <div
-                  key={`map-${(p as any).id || idx}`}
+                  key={`map-${(placement as any).id || index}`}
                   className="map-marker"
                   style={{
-                    top: `${(p.yMm / lengthMm) * 100}%`,
-                    height: `${Math.max(2, (p.heightMm / lengthMm) * 100)}%`
+                    top: `${(placement.yMm / lengthMm) * 100}%`,
+                    height: `${Math.max(2, (placement.heightMm / lengthMm) * 100)}%`,
                   }}
-                  onClick={() => jumpTo(p.yMm)}
-                  title={`${p.heightMm}x${p.widthMm}`}
+                  onClick={() => jumpTo(placement.yMm)}
+                  title={`${placement.heightMm}x${placement.widthMm}`}
                 />
               ))}
-              {/* Current View Indicator */}
-              <div
-                className="map-indicator"
-                style={{ top: `${(currentM * 1000 / lengthMm) * 100}%` }}
-              />
+              <div className="map-indicator" style={{ top: `${((currentM * 1000) / lengthMm) * 100}%` }} />
             </div>
             <div className="map-label">{t('common.navigation') || 'Map'}</div>
           </div>

@@ -42,7 +42,10 @@
     "noData": "No data available",
     "loading_data": "Loading data...",
     "created": "Created",
-    "updated": "Updated"
+    "updated": "Updated",
+    "navigation": "Navigation",
+    "position": "Position",
+    "adoptSuggestedPlan": "Adopt Suggested Plan"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -174,7 +177,8 @@
     "totalStock": "Total Stock",
     "selectArticle": "Select Article",
     "totalItems": "Total Items",
-    "lotId": "Lot ID"
+    "lotId": "Lot ID",
+    "navigation": "Navigation"
   },
   "rolls": {
     "title": "Rolls",
@@ -1162,7 +1166,9 @@
     "cuttingNow": "Cutting now",
     "itemsDone": "Items done",
     "searchOrderNumberOrClient": "Search by order number or client name...",
-    "allClients": "All Clients"
+    "allClients": "All Clients",
+    "statusFilter": "Status",
+    "clientFilter": "Client"
   },
   "returns": {
     "title": "Order Returns",

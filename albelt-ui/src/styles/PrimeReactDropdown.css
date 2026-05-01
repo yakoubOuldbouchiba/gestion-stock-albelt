@@ -108,6 +108,10 @@
   font-size: 0.875rem;
 }
 
+.p-dropdown-panel .p-dropdown-header .p-dropdown-filter {
+  margin-right: 10px;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .primereact-dropdown-panel {

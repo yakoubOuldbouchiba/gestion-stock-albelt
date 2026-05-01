@@ -151,6 +151,7 @@
 .orders-workbench__filter-pills {
   display: flex;
   gap: 0.5rem;
+  margin-top: 0.85rem;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
