@@ -244,7 +244,9 @@
     "failedToValidate": "فشل اعتماد إيصال الشراء",
     "failedToDelete": "فشل حذف إيصال الشراء",
     "downloadPdf": "تحميل PDF",
-    "failedToDownloadPdf": "فشل تحميل ملف PDF"
+    "failedToDownloadPdf": "فشل تحميل ملف PDF",
+    "listDescription": "عرض إيصالات الشراء الأخيرة، إنشاء إيصال جديد، واعتماد الإيصالات المعلقة.",
+    "purchaseBons": "إيصالات الشراء"
   },
   "dashboard": {
     "title": "لوحة التحكم",

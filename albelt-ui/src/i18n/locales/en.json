@@ -248,7 +248,9 @@
     "failedToValidate": "Failed to validate purchase bon",
     "failedToDelete": "Failed to delete purchase bon",
     "downloadPdf": "Download PDF",
-    "failedToDownloadPdf": "Failed to download PDF"
+    "failedToDownloadPdf": "Failed to download PDF",
+    "listDescription": "View recent purchase bons, create new ones, and validate pending bons.",
+    "purchaseBons":"Purchase Bons"
   },
   "dashboard": {
     "title": "Dashboard",

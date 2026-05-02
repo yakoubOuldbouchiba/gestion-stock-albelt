@@ -243,7 +243,9 @@
     "failedToValidate": "Échec de la validation du bon d'achat",
     "failedToDelete": "Échec de la suppression du bon d'achat",
     "downloadPdf": "Télécharger PDF",
-    "failedToDownloadPdf": "Échec du téléchargement du PDF"
+    "failedToDownloadPdf": "Échec du téléchargement du PDF",
+    "listDescription": "Affichez les bons d'achat récents, créez-en de nouveaux et validez les bons en attente.",
+    "purchaseBons": "Bons d'achat"
   },
   "dashboard": {
     "title": "Tableau de bord",

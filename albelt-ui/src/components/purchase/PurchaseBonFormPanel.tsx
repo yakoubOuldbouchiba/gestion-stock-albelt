@@ -56,7 +56,6 @@ export function PurchaseBonFormPanel({
       <div className="purchase-workbench__panel-header">
         <div>
           <h2>{t('purchaseBons.createTitle')}</h2>
-          <p>Prepare supplier receipt details and purchasing lines in one workspace.</p>
         </div>
         <Tag value={`${items.length} ${t('purchaseBons.itemsCount')}`} severity={items.length > 0 ? 'info' : 'warning'} />
       </div>
@@ -117,7 +116,6 @@ export function PurchaseBonFormPanel({
             <div>
               <span className="purchase-workbench__section-label">{t('purchaseBons.items')}</span>
               <h3>{t('purchaseBons.addItem')}</h3>
-              <p className="purchase-workbench__section-copy">Build each material line before posting the bon.</p>
             </div>
             <Tag value={`${items.length} ${t('purchaseBons.itemsCount')}`} />
           </div>

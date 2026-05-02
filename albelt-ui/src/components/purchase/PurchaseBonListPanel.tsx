@@ -33,7 +33,7 @@ export function PurchaseBonListPanel({
       <div className="purchase-workbench__panel-header">
         <div>
           <h2>{t('purchaseBons.listTitle')}</h2>
-          <p>Track draft supplier bons, validate them, and inspect their purchase lines.</p>
+          <p>{t('purchaseBons.listDescription')}</p>
         </div>
       </div>
 
