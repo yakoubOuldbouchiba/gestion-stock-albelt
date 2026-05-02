@@ -4,18 +4,22 @@ import com.albelt.gestionstock.api.response.ApiResponse;
 import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.rolls.dto.TransferBonDTO;
 import com.albelt.gestionstock.domain.rolls.service.TransferBonService;
+import com.albelt.gestionstock.domain.users.service.UserAltierService;
 import com.albelt.gestionstock.shared.pdf.PdfExportService;
+import com.albelt.gestionstock.shared.security.AltierSecurityContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -31,6 +35,8 @@ public class TransferBonController {
 
     private final TransferBonService transferBonService;
     private final PdfExportService pdfExportService;
+    private final UserAltierService userAltierService;
+    private final AltierSecurityContext altierSecurityContext;
 
     @PostMapping
     public ResponseEntity<ApiResponse<TransferBonDTO>> createBon(
@@ -57,17 +63,15 @@ public class TransferBonController {
     public ResponseEntity<ApiResponse<PagedResponse<TransferBonDTO>>> listBons(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) UUID fromAltierId,
-            @RequestParam(required = false) UUID toAltierId,
+            @RequestParam(defaultValue = "sent") String direction,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) String dateFrom,
-            @RequestParam(required = false) String dateTo) {
+            @RequestParam(required = false) String search) {
         try {
+            // Derive altierIds from the authenticated user — never trust the client for this.
+            UUID currentUser = altierSecurityContext.getCurrentUserId();
+            List<UUID> altierIds = userAltierService.getAccessibleAltiers(currentUser);
             Boolean statusEntree = parseStatusEntree(status);
-            LocalDateTime fromDate = parseDateTimeStart(dateFrom);
-            LocalDateTime toDate = parseDateTimeEnd(dateTo);
-            var pageResult = transferBonService.listBonsPaged(fromAltierId, toAltierId, statusEntree, fromDate, toDate, search, page, size);
+            var pageResult = transferBonService.listBonsForUser(altierIds, direction, statusEntree, search, page, size);
             var paged = PagedResponse.<TransferBonDTO>builder()
                     .items(pageResult.getContent())
                     .page(pageResult.getNumber())

@@ -45,7 +45,12 @@
     "updated": "Updated",
     "navigation": "Navigation",
     "position": "Position",
-    "adoptSuggestedPlan": "Adopt Suggested Plan"
+    "adoptSuggestedPlan": "Adopt Suggested Plan",
+    "dash": "-",
+    "required": "Required",
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "loadMore": "Load more"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -1237,12 +1242,36 @@
     "DELIVERED": "Delivered",
     "ENCOURS": "In Progress",
     "ON_HOLD": "On Hold",
-    "all": "All"
+    "all": "All",
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "pagination": {
     "previous": "Previous",
     "next": "Next",
     "page": "Page",
     "of": "of"
+  },
+  "transferWorkbench":{
+    "transferBons": "Transfer Bons",
+    "totalTransferredItems": "Total Transferred Items",
+    "noTransferBons": "No transfer bons found. Create one to get started!",
+    "entry": "Entry",
+    "tabs": {
+      "sent": "Sent",
+      "received": "Received"
+    },
+    "filters": {
+      "allStatuses": "All statuses",
+      "searchPlaceholder": "Search by atelier, bon id, or operator"
+    },
+    "rolls": "Rolls",
+    "chutes": "Chutes",
+    "itemsReady": "{{count}} ready",
+    "sourceSubtitle": "{{selected}} selected — {{filtered}}/{{loaded}}/{{total}} shown",
+    "movementsCount": "{{count}} items",
+    "refreshSources": "Refresh sources",
+    "createTransferBon": "Create Transfer Bon",
+    "createFormDescription": "Prepare the source workshop, destination, schedule, and materials."
   }
 }

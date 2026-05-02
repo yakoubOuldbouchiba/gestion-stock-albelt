@@ -98,6 +98,19 @@ public class TransferBonService {
     }
 
     @Transactional(readOnly = true)
+    public Page<TransferBonDTO> listBonsForUser(List<UUID> altierIds, String direction, Boolean statusEntree,
+                                                String search, int page, int size) {
+        if (altierIds == null || altierIds.isEmpty()) {
+            return org.springframework.data.domain.Page.empty();
+        }
+        String normalizedSearch = normalizeSearch(search);
+        String safeDirection = "received".equals(direction) ? "received" : "sent";
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return transferBonRepository.findForUser(altierIds, safeDirection, statusEntree, normalizedSearch, pageable)
+                .map(transferBonMapper::toSummaryDTO);
+    }
+
+    @Transactional(readOnly = true)
     public TransferBonDTO getBonDetails(UUID bonId) {
         TransferBon bon = transferBonRepository.findWithMovementsById(bonId)
                 .orElseThrow(() -> new RuntimeException("Transfer bon not found: " + bonId));

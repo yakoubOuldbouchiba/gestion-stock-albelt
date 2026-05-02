@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuthStore } from '@hooks/useAuth';
 import { useAsyncLock } from '@hooks/useAsyncLock';
 import { useI18n } from '@hooks/useI18n';
@@ -19,6 +19,8 @@ import {
   toArray,
   TransferBonDetails,
 } from '../transferBons.utils';
+
+const BONS_PAGE_SIZE = 20;
 
 type TransferBonFormData = {
   fromAltierID: string;
@@ -47,7 +49,10 @@ export function useTransferBonsPage() {
   const [wasteLoading, setWasteLoading] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [bonsLoadingMore, setBonsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bonsPage, setBonsPage] = useState(0);
+  const [bonsTotal, setBonsTotal] = useState(0);
 
   const [formData, setFormData] = useState<TransferBonFormData>({
     fromAltierID: '',
@@ -64,6 +69,10 @@ export function useTransferBonsPage() {
   const [rollSearch, setRollSearch] = useState('');
   const [wasteSearch, setWasteSearch] = useState('');
   const [detailsVisible, setDetailsVisible] = useState(true);
+
+  const [activeTab, setActiveTab] = useState<'sent' | 'received'>('sent');
+  const [bonStatusFilter, setBonStatusFilter] = useState<'all' | 'pending' | 'delivered'>('all');
+  const [bonSearch, setBonSearch] = useState('');
 
   const userAltierIds = user?.altierIds || [];
 
@@ -96,6 +105,7 @@ export function useTransferBonsPage() {
   const bonMovements = Array.isArray(bonDetails?.movements) ? bonDetails.movements : [];
   const rollHasMore = availableRolls.length < rollTotal;
   const wasteHasMore = availableWastePieces.length < wasteTotal;
+  const bonsHasMore = bons.length < bonsTotal;
 
   const filteredRolls = useMemo(
     () =>
@@ -135,7 +145,7 @@ export function useTransferBonsPage() {
 
         const [altResponse, bonsResponse] = await Promise.all([
           AltierService.getAll(),
-          transferBonService.listBons()
+          transferBonService.listBons({ page: 0, size: BONS_PAGE_SIZE, altierIds: userAltierIds, direction: 'sent' })
         ]);
 
         if (altResponse.success && altResponse.data) {
@@ -145,11 +155,15 @@ export function useTransferBonsPage() {
           const firstAltier = altItems.find((altier) => userAltierIds.includes(altier.id));
           if (firstAltier && !formData.fromAltierID) {
             setFormData((prev) => ({ ...prev, fromAltierID: firstAltier.id }));
+            await Promise.all([loadRollSources(0, 'replace', firstAltier.id), loadWasteSources(0, 'replace', firstAltier.id)]);
           }
         }
 
         if (bonsResponse.success && bonsResponse.data) {
-          setBons(toArray<TransferBon>(bonsResponse.data));
+          const items = toArray<TransferBon>(bonsResponse.data);
+          setBons(items);
+          setBonsPage(0);
+          setBonsTotal(bonsResponse.data.totalElements ?? items.length);
         }
       } catch (loadError) {
         console.error(loadError);
@@ -162,6 +176,16 @@ export function useTransferBonsPage() {
     loadBaseData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, userAltierIds.length]);
+
+  const isFirstFilterEffectRef = useRef(true);
+  useEffect(() => {
+    if (isFirstFilterEffectRef.current) {
+      isFirstFilterEffectRef.current = false;
+      return;
+    }
+    void reloadBons();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, bonStatusFilter, bonSearch]);
 
   useEffect(() => {
     if (!formData.fromAltierID) {
@@ -182,13 +206,14 @@ export function useTransferBonsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.fromAltierID]);
 
-  const loadRollSources = async (page: number, mode: LoadMode) => {
-    if (!formData.fromAltierID) return;
+  const loadRollSources = async (page: number, mode: LoadMode, altierId?: string) => {
+    const effectiveAltierId = altierId ?? formData.fromAltierID;
+    if (!effectiveAltierId) return;
 
     try {
       setRollsLoading(true);
       const response = await RollService.getTransferSources({
-        fromAltierId: formData.fromAltierID,
+        fromAltierId: effectiveAltierId,
         page,
         size: SOURCE_PAGE_SIZE
       });
@@ -215,13 +240,14 @@ export function useTransferBonsPage() {
     }
   };
 
-  const loadWasteSources = async (page: number, mode: LoadMode) => {
-    if (!formData.fromAltierID) return;
+  const loadWasteSources = async (page: number, mode: LoadMode, altierId?: string) => {
+    const effectiveAltierId = altierId ?? formData.fromAltierID;
+    if (!effectiveAltierId) return;
 
     try {
       setWasteLoading(true);
       const response = await WastePieceService.getTransferSources({
-        fromAltierId: formData.fromAltierID,
+        fromAltierId: effectiveAltierId,
         page,
         size: SOURCE_PAGE_SIZE
       });
@@ -297,9 +323,52 @@ export function useTransferBonsPage() {
   };
 
   const reloadBons = async () => {
-    const response = await transferBonService.listBons();
+    const statusParam = bonStatusFilter !== 'all' ? bonStatusFilter.toUpperCase() : undefined;
+    const response = await transferBonService.listBons({
+      page: 0,
+      size: BONS_PAGE_SIZE,
+      altierIds: userAltierIds,
+      direction: activeTab,
+      status: statusParam,
+      search: bonSearch || undefined,
+    });
     if (response.success && response.data) {
-      setBons(toArray<TransferBon>(response.data));
+      const items = toArray<TransferBon>(response.data);
+      setBons(items);
+      setBonsPage(0);
+      setBonsTotal(response.data.totalElements ?? items.length);
+    }
+  };
+
+  const loadMoreBons = async () => {
+    if (loading || bonsLoadingMore || !bonsHasMore) return;
+
+    try {
+      setBonsLoadingMore(true);
+      const nextPage = bonsPage + 1;
+      const statusParam = bonStatusFilter !== 'all' ? bonStatusFilter.toUpperCase() : undefined;
+      const response = await transferBonService.listBons({
+        page: nextPage,
+        size: BONS_PAGE_SIZE,
+        altierIds: userAltierIds,
+        direction: activeTab,
+        status: statusParam,
+        search: bonSearch || undefined,
+      });
+
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to load transfer bons');
+      }
+
+      const items = toArray<TransferBon>(response.data);
+      setBons((prev) => mergeById(prev, items));
+      setBonsPage(nextPage);
+      setBonsTotal(response.data.totalElements ?? 0);
+    } catch (loadError) {
+      console.error(loadError);
+      setError(t('transferBons.failedToLoadData'));
+    } finally {
+      setBonsLoadingMore(false);
     }
   };
 
@@ -591,9 +660,11 @@ export function useTransferBonsPage() {
     wasteTotal,
     rollHasMore,
     wasteHasMore,
+    bonsHasMore,
     rollsLoading,
     wasteLoading,
     loading,
+    bonsLoadingMore,
     isActionLocked,
     viewLoadingBonId,
     deleteLoadingBonId,
@@ -606,12 +677,19 @@ export function useTransferBonsPage() {
     setWasteSearch,
     rollDetailsById,
     wasteDetailsById,
+    activeTab,
+    setActiveTab,
+    bonStatusFilter,
+    setBonStatusFilter,
+    bonSearch,
+    setBonSearch,
     handleCreateBon,
     handleSelectBon,
     handleDeleteBon,
     handleConfirmReceipt,
     handleRemoveMovement,
     handleDownloadTransferPdf,
+    loadMoreBons,
     toggleRollSelection,
     toggleWasteSelection,
     refreshSources,

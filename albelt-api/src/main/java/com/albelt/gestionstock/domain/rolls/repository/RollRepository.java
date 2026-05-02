@@ -151,7 +151,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      */
     @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r " +
-            "WHERE r.altier.id IN (:altierIds) " +
+            "WHERE (:unrestricted = true OR r.altier.id IN (:altierIds)) " +
             "AND (:status IS NULL OR r.status = :status) " +
             "AND (:articleId IS NULL OR r.article.id = :articleId) " +
             "AND (:materialType IS NULL OR r.materialType = :materialType) " +
@@ -170,6 +170,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
             "LOWER(r.materialType) LIKE CONCAT('%', :search, '%') OR " +
             "LOWER(r.article.reference) LIKE CONCAT('%', :search, '%'))")
     Page<Roll> findFiltered(
+            @Param("unrestricted") boolean unrestricted,
             @Param("altierIds") List<UUID> altierIds,
             @Param("status") RollStatus status,
             @Param("articleId") UUID articleId,
@@ -212,18 +213,19 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      * Returns: materialType, count, totalArea
      */
     @Query("SELECT r.materialType, COUNT(r), SUM(r.areaM2) FROM Roll r " +
-            "WHERE r.altier.id IN (:altierIds) " +
+            "WHERE (:unrestricted = true OR r.altier.id IN (:altierIds)) " +
             "AND r.status IN (:statuses) " +
             "GROUP BY r.materialType")
     List<Object[]> getStatsByMaterialForAltiers(
+            @Param("unrestricted") boolean unrestricted,
             @Param("altierIds") List<UUID> altierIds,
             @Param("statuses") List<RollStatus> statuses);
 
     /**
      * Fetch recent rolls for a set of altiers (LIMIT via Pageable).
      */
-    @Query("SELECT r FROM Roll r JOIN FETCH r.article ra LEFT JOIN FETCH ra.color WHERE r.altier.id IN (:altierIds) ORDER BY r.receivedDate DESC")
-    List<Roll> findRecentByAltierIds(@Param("altierIds") List<UUID> altierIds, Pageable pageable);
+    @Query("SELECT r FROM Roll r JOIN FETCH r.article ra LEFT JOIN FETCH ra.color WHERE (:unrestricted = true OR r.altier.id IN (:altierIds)) ORDER BY r.receivedDate DESC")
+    List<Roll> findRecentByAltierIds(@Param("unrestricted") boolean unrestricted, @Param("altierIds") List<UUID> altierIds, Pageable pageable);
 
     /**
      * Transfer sources: rolls that are AVAILABLE/OPENED in a given altier and not already reserved
@@ -249,7 +251,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
             Pageable pageable);
 
     /**
-     * Group by color, nbPlis, thicknessMm, materialType, altierId, status
+     * Group by color, nbPlis, thicknessMm, materialType, altierId, status — scoped by atelier access.
      */
     @Query("""
             SELECT 
@@ -269,12 +271,14 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
             LEFT JOIN r.article.color c
             LEFT JOIN r.supplier s
             LEFT JOIN r.altier a
+            WHERE (:unrestricted = true OR r.altier.id IN (:altierIds))
             GROUP BY 
                    r.article.color.id, c.name, c.hexCode, 
                    r.nbPlis, r.thicknessMm, r.materialType,  
                    r.altier.id, r.status , a.libelle
             """)
-    List<Object[]> groupByAllFields();
+    List<Object[]> groupByAllFields(@Param("unrestricted") boolean unrestricted,
+                                    @Param("altierIds") List<UUID> altierIds);
 
     @Query("""
             select new com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint(

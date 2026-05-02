@@ -140,6 +140,27 @@
   color: var(--transfer-muted);
 }
 
+.transfer-workbench__history-filters {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.transfer-workbench__history-tabs,
+.transfer-workbench__history-filter-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.transfer-workbench__history-status-filter {
+  min-width: 160px;
+}
+
+.transfer-workbench__history-search .p-inputtext {
+  min-width: 220px;
+}
+
 .transfer-workbench__form {
   padding: 1rem 1.2rem 1.2rem;
 }
@@ -264,6 +285,7 @@
   gap: 0.6rem;
   flex-wrap: wrap;
   align-items: center;
+  margin: 0.5rem 0 0;
 }
 
 .transfer-workbench__source-meta span,

@@ -57,24 +57,33 @@ public interface CommandeRepository extends JpaRepository<Commande, UUID> {
     List<Commande> findAllOrderByCreatedAtDesc();
 
     /**
-     * Paged order search with optional filters
+     * Paged order search with optional filters and atelier-based access control.
+     *
+     * <p>When {@code unrestricted = true} (ADMIN), all commandes are returned regardless of
+     * their atelier assignment — including commandes with a {@code null} atelier.
+     * When {@code unrestricted = false} (OPERATOR/READONLY), only commandes whose atelier
+     * is in {@code altierIds} are returned; commandes with a {@code null} atelier are hidden.</p>
      */
     @Query(value = "SELECT DISTINCT c FROM Commande c " +
             "LEFT JOIN FETCH c.items i " +
             "LEFT JOIN FETCH i.article a " +
             "LEFT JOIN FETCH a.color " +
-            "WHERE (:status IS NULL OR c.status = :status) " +
+            "WHERE (:unrestricted = true OR c.altier.id IN (:altierIds)) " +
+            "AND (:status IS NULL OR c.status = :status) " +
             "AND (:clientId IS NULL OR c.client.id = :clientId) " +
             "AND c.createdAt >= :fromDate " +
             "AND c.createdAt <= :toDate " +
             "AND (:search = '' OR LOWER(c.numeroCommande) LIKE CONCAT('%', :search, '%')) ",
             countQuery = "SELECT COUNT(c) FROM Commande c " +
-                    "WHERE (:status IS NULL OR c.status = :status) " +
+                    "WHERE (:unrestricted = true OR c.altier.id IN (:altierIds)) " +
+                    "AND (:status IS NULL OR c.status = :status) " +
                     "AND (:clientId IS NULL OR c.client.id = :clientId) " +
                     "AND c.createdAt >= :fromDate " +
                     "AND c.createdAt <= :toDate " +
                     "AND (:search = '' OR LOWER(c.numeroCommande) LIKE CONCAT('%', :search, '%')) ")
     Page<Commande> findFiltered(
+            @Param("unrestricted") boolean unrestricted,
+            @Param("altierIds") List<UUID> altierIds,
             @Param("status") String status,
             @Param("clientId") UUID clientId,
             @Param("fromDate") java.time.LocalDateTime fromDate,

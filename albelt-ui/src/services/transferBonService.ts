@@ -26,14 +26,22 @@ class TransferBonService {
   async listBons(params?: {
     page?: number;
     size?: number;
-    fromAltierId?: string;
-    toAltierId?: string;
+    altierIds?: string[];
+    direction?: string;
     status?: string;
     search?: string;
-    dateFrom?: string;
-    dateTo?: string;
   }): Promise<ApiResponse<PagedResponse<TransferBon>>> {
-    return ApiService.get<PagedResponse<TransferBon>>(`/transfer-bons`, params);
+    const qs = new URLSearchParams();
+    if (params?.page !== undefined) qs.append('page', String(params.page));
+    if (params?.size !== undefined) qs.append('size', String(params.size));
+    if (params?.direction) qs.append('direction', params.direction);
+    if (params?.status) qs.append('status', params.status);
+    if (params?.search) qs.append('search', params.search);
+    if (params?.altierIds?.length) {
+      params.altierIds.forEach((id) => qs.append('altierIds', id));
+    }
+    const query = qs.toString();
+    return ApiService.get<PagedResponse<TransferBon>>(`/transfer-bons${query ? `?${query}` : ''}`);
   }
 
   async getBonDetails(bonId: string): Promise<ApiResponse<TransferBon>> {

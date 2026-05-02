@@ -32,10 +32,9 @@ type CreateChuteDialogProps = {
   parentWasteOptions: { label: string; value: string }[];
   parentWastePiecesLoading: boolean;
   onParentWasteChange: (value: string) => void;
-  chutePlacementId: string;
-  chutePlacementOptions: { label: string; value: string }[];
-  chutePlacementsLoading: boolean;
-  onPlacementChange: (value: string) => void;
+  xMm: number;
+  yMm: number;
+  onPositionChange: (field: 'xMm' | 'yMm', value: string) => void;
   formData: RollRequest;
   onFieldChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onDimensionChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -70,10 +69,9 @@ export function CreateChuteDialog({
   parentWasteOptions,
   parentWastePiecesLoading,
   onParentWasteChange,
-  chutePlacementId,
-  chutePlacementOptions,
-  chutePlacementsLoading,
-  onPlacementChange,
+  xMm,
+  yMm,
+  onPositionChange,
   formData,
   onFieldChange,
   onDimensionChange,
@@ -177,28 +175,6 @@ export function CreateChuteDialog({
             </div>
           )}
 
-          {(chuteSourceType === 'ROLL' ? chuteRollId : parentWastePieceId) && (
-            <div>
-              <label htmlFor="chutePlacementId">{t('inventory.placement')} *</label>
-              <Dropdown
-                id="chutePlacementId"
-                value={chutePlacementId}
-                options={chutePlacementOptions}
-                onChange={(e) => onPlacementChange(e.value)}
-                placeholder={
-                  chutePlacementsLoading
-                    ? t('inventory.loadingPlacements')
-                    : chutePlacementOptions.length === 0
-                      ? t('inventory.noPlacementsAvailable')
-                      : 'Select placement'
-                }
-                disabled={chutePlacementsLoading || chutePlacementOptions.length === 0}
-                filter
-                required
-              />
-            </div>
-          )}
-
           <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
             <div>
               <label htmlFor="receivedDate">{t('inventory.receivedDate')} *</label>
@@ -281,6 +257,29 @@ export function CreateChuteDialog({
                   <div className="albel-article-meta-chip__value">{formData.article?.colorName || 'N/A'}</div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="albel-grid albel-grid--min220" style={{ gap: '1rem' }}>
+            <div>
+              <label htmlFor="xMm">{t('inventory.positionX') || 'Position X (mm)'}</label>
+              <InputText
+                type="number"
+                id="xMm"
+                value={String(xMm)}
+                onChange={(e) => onPositionChange('xMm', e.target.value)}
+                min="0"
+              />
+            </div>
+            <div>
+              <label htmlFor="yMm">{t('inventory.positionY') || 'Position Y (mm)'}</label>
+              <InputText
+                type="number"
+                id="yMm"
+                value={String(yMm)}
+                onChange={(e) => onPositionChange('yMm', e.target.value)}
+                min="0"
+              />
             </div>
           </div>
 

@@ -26,22 +26,27 @@ public class DashboardService {
     private final RollMapper rollMapper;
 
     @Transactional(readOnly = true)
-    public DashboardStatsResponse getDashboardStats(List<UUID> accessibleAltierIds) {
-        if (accessibleAltierIds == null || accessibleAltierIds.isEmpty()) {
+    public DashboardStatsResponse getDashboardStats(boolean unrestricted, List<UUID> accessibleAltierIds) {
+        if (!unrestricted && (accessibleAltierIds == null || accessibleAltierIds.isEmpty())) {
             return emptyResponse();
         }
+
+        // Ensure the IN-list is never empty to avoid invalid SQL when unrestricted=true.
+        List<UUID> safeAltierIds = (accessibleAltierIds == null || accessibleAltierIds.isEmpty())
+                ? List.of(java.util.UUID.randomUUID())
+                : accessibleAltierIds;
 
         List<RollStatus> activeRollStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
 
         // 1) Inventory stats: one GROUP BY query
-        List<Object[]> materialRows = rollRepository.getStatsByMaterialForAltiers(accessibleAltierIds, activeRollStatuses);
+        List<Object[]> materialRows = rollRepository.getStatsByMaterialForAltiers(unrestricted, safeAltierIds, activeRollStatuses);
         DashboardStatsResponse.InventoryMetrics inventoryMetrics = toInventoryMetrics(materialRows);
 
         // 2) Recent rolls: limited query
-        var recent = rollRepository.findRecentByAltierIds(accessibleAltierIds, PageRequest.of(0, 5));
+        var recent = rollRepository.findRecentByAltierIds(unrestricted, safeAltierIds, PageRequest.of(0, 5));
 
         // 3) Waste stats: one GROUP BY query
-        List<Object[]> wasteRows = wastePieceRepository.getStatsByStatusForAltiers(accessibleAltierIds);
+        List<Object[]> wasteRows = wastePieceRepository.getStatsByStatusForAltiers(unrestricted, safeAltierIds);
         DashboardStatsResponse.WasteMetrics wasteMetrics = toWasteMetrics(wasteRows);
 
         return DashboardStatsResponse.builder()

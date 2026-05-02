@@ -2,14 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@hooks/useI18n';
 
-import type { Roll, RollRequest, MaterialType, RollStatus, Supplier, Altier, WastePiece, WasteType, PlacedRectangle, Article } from '../types/index';
+import type { Roll, RollRequest, MaterialType, RollStatus, Supplier, Altier, WastePiece, WasteType, Article } from '../types/index';
 import type { ArticleOption } from './hooks/useCommandeLookups';
 import { RollService } from '../services/rollService';
 import { SupplierService } from '../services/supplierService';
 import { AltierService } from '../services/altierService';
 import { WastePieceService } from '../services/wastePieceService';
 import { ArticleService } from '../services/articleService';
-import { PlacedRectangleService } from '../services/placedRectangleService';
 import { getMaterialColor } from '../utils/materialColors';
 import { formatDate } from '../utils/date';
 import { getArticleDisplayLabel } from '../utils/article';
@@ -161,9 +160,8 @@ export function InventoryPage() {
     parentWastePieceId: '',
     parentWastePieces: [] as WastePiece[],
     parentWastePiecesLoading: false,
-    placementId: '',
-    placements: [] as PlacedRectangle[],
-    placementsLoading: false,
+    xMm: 0,
+    yMm: 0,
   });
 
   const resetChute = useCallback(() => {
@@ -175,9 +173,8 @@ export function InventoryPage() {
       parentWastePieceId: '',
       parentWastePieces: [],
       parentWastePiecesLoading: false,
-      placementId: '',
-      placements: [],
-      placementsLoading: false,
+      xMm: 0,
+      yMm: 0,
     });
   }, []);
 
@@ -343,38 +340,6 @@ export function InventoryPage() {
       loadParentWastePieces();
     }
   }, [dialogs.createChute, chute.sourceType]);
-
-  useEffect(() => {
-    if (!dialogs.createChute) {
-      setChute((prev) => ({ ...prev, placements: [], placementId: '' }));
-      return;
-    }
-    const sourceId = chute.sourceType === 'ROLL' ? chute.rollId : chute.parentWastePieceId;
-    if (!sourceId) {
-      setChute((prev) => ({ ...prev, placements: [], placementId: '' }));
-      return;
-    }
-
-    const loadPlacements = async () => {
-      setChute((prev) => ({ ...prev, placementsLoading: true }));
-      try {
-        const response = chute.sourceType === 'ROLL'
-          ? await PlacedRectangleService.getByRoll(sourceId)
-          : await PlacedRectangleService.getByWastePiece(sourceId);
-        if (response.success && response.data) {
-          setChute((prev) => ({ ...prev, placements: Array.isArray(response.data) ? response.data : [] }));
-        } else {
-          setChute((prev) => ({ ...prev, placements: [] }));
-        }
-      } catch (err) {
-        console.error('Failed to load placements:', err);
-        setChute((prev) => ({ ...prev, placements: [] }));
-      } finally {
-        setChute((prev) => ({ ...prev, placementsLoading: false }));
-      }
-    };
-    loadPlacements();
-  }, [dialogs.createChute, chute.sourceType, chute.rollId, chute.parentWastePieceId]);
 
   const handleDimensionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -595,15 +560,6 @@ export function InventoryPage() {
       if (!selectedParent) { alert('Please select a parent waste piece'); return; }
     }
 
-    const selectedPlacement = chute.placements.find((placement) => placement.id === chute.placementId);
-    if (!selectedPlacement) { alert('Please select a placement'); return; }
-
-    const chuteLengthMm = (formData.lengthM || 0) * 1000;
-    if (formData.widthMm > selectedPlacement.widthMm || chuteLengthMm > selectedPlacement.heightMm) {
-      alert('Chute dimensions exceed the selected placement.');
-      return;
-    }
-
     const wasteData = {
       articleId: formData.articleId,
       rollId: selectedRoll?.id || selectedParent?.rollId,
@@ -618,6 +574,8 @@ export function InventoryPage() {
       altierId: formData.altierId,
       colorId: formData.colorId,
       reference: formData.reference,
+      xMm: chute.xMm,
+      yMm: chute.yMm,
     };
 
     try {
@@ -1088,9 +1046,9 @@ export function InventoryPage() {
         t={t}
         chuteSourceType={chute.sourceType}
         chuteSourceOptions={[{ label: t('inventory.roll'), value: 'ROLL' }, { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' }]}
-        onSourceTypeChange={v => setChute(p => ({ ...p, sourceType: v as any, rollId: '', parentWastePieceId: '', placementId: '', placements: [] }))}
+        onSourceTypeChange={v => setChute(p => ({ ...p, sourceType: v as any, rollId: '', parentWastePieceId: '' }))}
         chuteRollId={chute.rollId}
-        onChuteRollChange={v => setChute(p => ({ ...p, rollId: v, placementId: '' }))}
+        onChuteRollChange={v => setChute(p => ({ ...p, rollId: v }))}
         chuteRollOptions={chute.filteredRolls.map(r => ({ label: formatRollChuteLabel(r), value: r.id }))}
         chuteRollsLoading={chute.filteredRollsLoading}
         supplierOptions={supplierOptions}
@@ -1102,21 +1060,10 @@ export function InventoryPage() {
         parentWastePieceId={chute.parentWastePieceId}
         parentWasteOptions={chute.parentWastePieces.map(p => ({ label: formatRollChuteLabel(p), value: p.id }))}
         parentWastePiecesLoading={chute.parentWastePiecesLoading}
-        onParentWasteChange={v => setChute(p => ({ ...p, parentWastePieceId: v, placementId: '' }))}
-        chutePlacementId={chute.placementId}
-        chutePlacementOptions={chute.placements.filter(p => !p.commandeItemId).map(p => ({ label: `Placement ${p.id.substring(0, 8)} • ${p.widthMm}x${p.heightMm}mm`, value: p.id }))}
-        chutePlacementsLoading={chute.placementsLoading}
-        onPlacementChange={v => {
-          setChute(p => ({ ...p, placementId: v }));
-          const placement = chute.placements.find(p => p.id === v);
-          if (placement) {
-            setFormData(prev => ({
-              ...prev,
-              widthMm: placement.widthMm,
-              lengthM: (placement.heightMm / 1000),
-            }));
-          }
-        }}
+        onParentWasteChange={v => setChute(p => ({ ...p, parentWastePieceId: v }))}
+        xMm={chute.xMm}
+        yMm={chute.yMm}
+        onPositionChange={(f, v) => setChute(p => ({ ...p, [f]: parseInt(v) || 0 }))}
         formData={formData}
         onFieldChange={handleInputChange}
         onDimensionChange={handleDimensionChange}

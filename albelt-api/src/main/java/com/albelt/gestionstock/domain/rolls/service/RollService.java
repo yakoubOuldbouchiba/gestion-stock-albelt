@@ -53,11 +53,15 @@ public class RollService {
     private final QrCodeService qrCodeService;
 
     /**
-     * Get grouped roll statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+     * Get grouped roll statistics by color, nbPlis, thicknessMm, materialType, altierId, status — scoped by atelier access.
      */
     @Transactional(readOnly = true)
-    public List<com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse> getGroupedByAllFields() {
-        List<Object[]> rows = rollRepository.groupByAllFields();
+    public List<com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse> getGroupedByAllFields(
+            boolean unrestricted, List<UUID> altierIds) {
+        List<UUID> safeAltierIds = (altierIds == null || altierIds.isEmpty())
+                ? List.of(java.util.UUID.randomUUID())
+                : altierIds;
+        List<Object[]> rows = rollRepository.groupByAllFields(unrestricted, safeAltierIds);
         return rollMapper.toGroupedStatsResponseList(rows);
     }
 
@@ -167,10 +171,15 @@ public class RollService {
     }
 
     /**
-     * Get paged rolls for user's altiers with optional filters
+     * Get paged rolls for user's altiers with optional filters.
+     *
+     * @param unrestricted when {@code true} (ADMIN role), the altier filter is bypassed and all rolls
+     *                     are visible — including those with a {@code null} atelier assignment.
+     *                     When {@code false}, only rolls whose atelier is in {@code userAltierIds} are returned.
      */
     @Transactional(readOnly = true)
-    public Page<Roll> getByUserAltiersPaged(List<UUID> userAltierIds,
+    public Page<Roll> getByUserAltiersPaged(boolean unrestricted,
+                                            List<UUID> userAltierIds,
                                             RollStatus status,
                                             UUID articleId,
                                             MaterialType materialType,
@@ -184,7 +193,7 @@ public class RollService {
                                             String search,
                                             int page,
                                             int size) {
-        if (userAltierIds == null || userAltierIds.isEmpty()) {
+        if (!unrestricted && (userAltierIds == null || userAltierIds.isEmpty())) {
             return Page.empty();
         }
 
@@ -196,9 +205,13 @@ public class RollService {
         }
         java.time.LocalDate effectiveFromDate = fromDate != null ? fromDate : java.time.LocalDate.of(1970, 1, 1);
         java.time.LocalDate effectiveToDate = toDate != null ? toDate : java.time.LocalDate.of(2100, 1, 1);
+        // Ensure the IN-list is never empty to avoid a malformed SQL query when unrestricted=true.
+        List<UUID> safeAltierIds = (userAltierIds == null || userAltierIds.isEmpty())
+                ? List.of(java.util.UUID.randomUUID())
+                : userAltierIds;
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "receivedDate"));
-        return rollRepository.findFiltered(userAltierIds, status, articleId, materialType, supplierId, altierId,
-                colorId, nbPlis, thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
+        return rollRepository.findFiltered(unrestricted, safeAltierIds, status, articleId, materialType, supplierId,
+                altierId, colorId, nbPlis, thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
     }
 
     /**

@@ -10,7 +10,6 @@ import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 
 import { CommandeService } from '../services/commandeService';
-import { PlacedRectangleService } from '../services/placedRectangleService';
 
 import { useI18n } from '@hooks/useI18n';
 import { formatRollChuteLabel } from '@utils/rollChuteLabel';
@@ -67,8 +66,6 @@ export function CommandeDetailPage() {
   const [chuteTargetItem, setChuteTargetItem] = useState<CommandeItem | null>(null);
   const [parentWastePieces, setParentWastePieces] = useState<any[]>([]);
   const [parentWastePiecesLoading, setParentWastePiecesLoading] = useState(false);
-  const [chutePlacements, setChutePlacements] = useState<PlacedRectangle[]>([]);
-  const [chutePlacementsLoading, setChutePlacementsLoading] = useState(false);
 
   const {
     commande,
@@ -167,8 +164,8 @@ export function CommandeDetailPage() {
     setChuteRollId,
     parentWastePieceId,
     setParentWastePieceId,
-    chutePlacementId,
-    setChutePlacementId,
+    chutePosition,
+    setChutePosition,
     chuteDimensions,
     setChuteDimensions,
     resetChuteForm,
@@ -209,26 +206,6 @@ export function CommandeDetailPage() {
       fetchWaste();
     }
   }, [showChuteForm, chuteTargetItem, chuteSourceType, ensureWasteForArticle, availableWasteByArticle]);
-
-  useEffect(() => {
-    const sourceId = chuteSourceType === 'ROLL' ? chuteRollId : parentWastePieceId;
-    if (showChuteForm && sourceId) {
-      const fetchPlacements = async () => {
-        setChutePlacementsLoading(true);
-        try {
-          const res = chuteSourceType === 'ROLL'
-            ? await PlacedRectangleService.getByRoll(sourceId)
-            : await PlacedRectangleService.getByWastePiece(sourceId);
-          setChutePlacements(Array.isArray(res.data) ? res.data : []);
-        } catch (err) {
-          console.error('Error fetching placements:', err);
-        } finally {
-          setChutePlacementsLoading(false);
-        }
-      };
-      fetchPlacements();
-    }
-  }, [showChuteForm, chuteSourceType, chuteRollId, parentWastePieceId]);
 
   const isBusy = updating || creatingProduction || creatingChute || creatingPlacement || deletingOrder;
 
@@ -712,10 +689,6 @@ export function CommandeDetailPage() {
         chuteParentOptions={parentWastePieces.map(p => ({ label: formatRollChuteLabel({ reference: p.reference ?? p.id.slice(0, 8), nbPlis: p.nbPlis, thicknessMm: p.thicknessMm, colorName: p.colorName, colorHexCode: p.colorHexCode }), value: p.id }))}
         onParentWasteChange={setParentWastePieceId}
         parentWastePiecesLoading={parentWastePiecesLoading}
-        chutePlacementId={chutePlacementId}
-        chutePlacementOptions={chutePlacements.map(p => ({ label: `Placement ${p.id.slice(0, 8)} • ${p.widthMm}x${p.heightMm}mm • x:${p.xMm} y:${p.yMm}`, value: p.id }))}
-        onPlacementChange={setChutePlacementId}
-        chutePlacementsLoading={chutePlacementsLoading}
         renderRollOption={opt => opt && (
           <div className="flex align-items-center gap-2">
             <span style={{ width: '14px', height: '14px', borderRadius: '3px', backgroundColor: opt.colorHexCode || 'transparent', border: '1px solid var(--surface-border)' }} />
@@ -730,7 +703,10 @@ export function CommandeDetailPage() {
           const next = { ...chuteDimensions, [f]: parseFloat(v) || 0 };
           setChuteDimensions({ ...next, areaM2: (next.widthMm / 1000) * next.lengthM });
         }}
-        onCreate={() => handleCreateChute(chuteTargetItem, rollsByArticle[getArticleId(chuteTargetItem) || ''] || [], parentWastePieces, chutePlacements).then(res => res && setShowChuteForm(false))}
+        xMm={chutePosition.xMm}
+        yMm={chutePosition.yMm}
+        onPositionChange={(f, v) => setChutePosition(p => ({ ...p, [f]: parseInt(v) || 0 }))}
+        onCreate={() => handleCreateChute(chuteTargetItem, rollsByArticle[getArticleId(chuteTargetItem) || ''] || [], parentWastePieces).then(res => res && setShowChuteForm(false))}
         creatingChute={creatingChute}
       />
 

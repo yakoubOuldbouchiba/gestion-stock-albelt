@@ -89,7 +89,8 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
      */
     @EntityGraph(attributePaths = {"article", "article.color"})
     @Query("SELECT wp FROM WastePiece wp " +
-            "WHERE (:articleId IS NULL OR wp.article.id = :articleId) " +
+            "WHERE (:unrestricted = true OR wp.altier.id IN (:altierIds)) " +
+            "AND (:articleId IS NULL OR wp.article.id = :articleId) " +
             "AND (:materialType IS NULL OR wp.materialType = :materialType) " +
             "AND (:status IS NULL OR wp.status = :status) " +
             "AND (:wasteType IS NULL OR wp.wasteType = :wasteType) " +
@@ -105,6 +106,8 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
             "LOWER(wp.materialType) LIKE CONCAT('%', :search, '%') OR " +
             "LOWER(wp.article.reference) LIKE CONCAT('%', :search, '%')) ")
     Page<WastePiece> findFiltered(
+            @Param("unrestricted") boolean unrestricted,
+            @Param("altierIds") List<UUID> altierIds,
             @Param("articleId") UUID articleId,
             @Param("materialType") MaterialType materialType,
             @Param("status") WasteStatus status,
@@ -172,9 +175,10 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
      * Returns: status, count, totalArea
      */
     @Query("SELECT wp.status, COUNT(wp), SUM(wp.areaM2) FROM WastePiece wp " +
-            "WHERE wp.altier.id IN (:altierIds) " +
+            "WHERE (:unrestricted = true OR wp.altier.id IN (:altierIds)) " +
             "GROUP BY wp.status")
-    List<Object[]> getStatsByStatusForAltiers(@Param("altierIds") List<UUID> altierIds);
+    List<Object[]> getStatsByStatusForAltiers(@Param("unrestricted") boolean unrestricted,
+                                              @Param("altierIds") List<UUID> altierIds);
 
     /**
      * Get waste reuse efficiency (total reused vs total generated)
@@ -184,7 +188,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     Object[] getWasteReuseStats(@Param("materialType") MaterialType materialType);
 
     /**
-     * Group by color, nbPlis, thicknessMm, materialType, altierId, status
+     * Group by color, nbPlis, thicknessMm, materialType, altierId, status — scoped by atelier access.
      */
     @Query("SELECT wp.article.color.id," +
             "    wp.article.color.name, " +
@@ -199,7 +203,8 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
             "    SUM(wp.areaM2), " +
             "    SUM(wp.usedAreaM2) " +
             "FROM WastePiece wp " +
-            "Where wp.wasteType = :type " +
+            "WHERE wp.wasteType = :type " +
+            "AND (:unrestricted = true OR wp.altier.id IN (:altierIds)) " +
             "GROUP BY wp.article.color.id," +
             "         wp.article.color.name," +
             "         wp.article.color.hexCode, " +
@@ -210,7 +215,9 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
             "         wp.altier.id," +
             "         wp.altier.libelle "
     )
-    List<Object[]> groupByAllFields(@Param("type") WasteType type);
+    List<Object[]> groupByAllFields(@Param("unrestricted") boolean unrestricted,
+                                    @Param("altierIds") List<UUID> altierIds,
+                                    @Param("type") WasteType type);
 
     /**
      * Transfer sources: reusable waste pieces (CHUTE_EXPLOITABLE) that are AVAILABLE/OPENED in a given altier

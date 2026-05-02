@@ -41,9 +41,11 @@ export function TransferBonsPage() {
     wasteTotal,
     rollHasMore,
     wasteHasMore,
+    bonsHasMore,
     rollsLoading,
     wasteLoading,
     loading,
+    bonsLoadingMore,
     isActionLocked,
     viewLoadingBonId,
     deleteLoadingBonId,
@@ -56,12 +58,19 @@ export function TransferBonsPage() {
     setWasteSearch,
     rollDetailsById,
     wasteDetailsById,
+    activeTab,
+    setActiveTab,
+    bonStatusFilter,
+    setBonStatusFilter,
+    bonSearch,
+    setBonSearch,
     handleCreateBon,
     handleSelectBon,
     handleDeleteBon,
     handleConfirmReceipt,
     handleRemoveMovement,
     handleDownloadTransferPdf,
+    loadMoreBons,
     toggleRollSelection,
     toggleWasteSelection,
     refreshSources,
@@ -165,6 +174,8 @@ export function TransferBonsPage() {
           selectedBonId={selectedBonId}
           detailsVisible={detailsVisible}
           loading={loading}
+          loadingMore={bonsLoadingMore}
+          hasMore={bonsHasMore}
           isActionLocked={isActionLocked}
           viewLoadingBonId={viewLoadingBonId}
           deleteLoadingBonId={deleteLoadingBonId}
@@ -173,7 +184,14 @@ export function TransferBonsPage() {
           confirmDateEntree={confirmData.dateEntree}
           rollDetailsById={rollDetailsById}
           wasteDetailsById={wasteDetailsById}
+          activeTab={activeTab}
+          statusFilter={bonStatusFilter}
+          search={bonSearch}
+          onTabChange={setActiveTab}
+          onStatusFilterChange={setBonStatusFilter}
+          onSearchChange={setBonSearch}
           onSelectBon={(id) => void handleSelectBon(id)}
+          onLoadMoreBons={() => void loadMoreBons()}
           onDeleteBon={(id) => void handleDeleteBon(id)}
           onToggleDetails={() => setDetailsVisible((prev) => !prev)}
           onDownloadPdf={() => void handleDownloadTransferPdf()}

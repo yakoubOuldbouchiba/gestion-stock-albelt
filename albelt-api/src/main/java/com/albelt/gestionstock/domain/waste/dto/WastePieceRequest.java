@@ -75,4 +75,8 @@ public class WastePieceRequest {
 
     // Waste-specific tracking
     private UUID commandeItemId; // Link to specific order line
+
+    // Placement position for the auto-created PlacedRectangle (defaults to 0,0)
+    private Integer xMm;
+    private Integer yMm;
 }

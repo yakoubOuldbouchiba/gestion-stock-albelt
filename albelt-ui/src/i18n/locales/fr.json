@@ -45,7 +45,12 @@
     "created": "Créé",
     "updated": "Mis à jour",
     "all": "Tous",
-    "navigation": "Navigation"
+    "navigation": "Navigation",
+    "dash": "-",
+    "required": "Requis",
+    "showDetails": "Afficher les détails",
+    "hideDetails": "Masquer les détails",
+    "loadMore": "Charger plus"
   },
   "navigation": {
     "dashboard": "Tableau de bord",
@@ -1298,5 +1303,27 @@
     "next": "Suivant",
     "page": "Page",
     "of": "de"
+  },
+  "transferWorkbench":{
+    "transferBons": "Bons de transfert",
+    "totalTransferredItems": "Total des articles transferes",
+    "noTransferBons": "Aucun bon de transfert trouve. Creez-en un pour commencer !",
+    "entry":"Entree",
+    "tabs": {
+      "sent": "Envoyes",
+      "received": "Recus"
+    },
+    "filters": {
+      "allStatuses": "Tous les statuts",
+      "searchPlaceholder": "Rechercher par atelier, bon, ou operateur"
+    },
+    "rolls": "Rouleaux",
+    "chutes": "Chutes",
+    "itemsReady": "{{count}} prêt(s)",
+    "sourceSubtitle": "{{selected}} sélectionné(s) — {{filtered}}/{{loaded}}/{{total}} affichés",
+    "movementsCount": "{{count}} éléments",
+    "refreshSources": "Actualiser les sources",
+    "createTransferBon": "Créer un bon de transfert",
+    "createFormDescription": "Préparez l'atelier source, la destination, le planning et les matériaux."
   }
 }

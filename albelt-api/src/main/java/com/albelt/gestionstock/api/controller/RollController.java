@@ -9,6 +9,7 @@ import com.albelt.gestionstock.domain.rolls.mapper.RollMapper;
 import com.albelt.gestionstock.domain.rolls.service.RollService;
 import com.albelt.gestionstock.domain.users.service.UserAltierService;
 import com.albelt.gestionstock.shared.enums.MaterialType;
+import com.albelt.gestionstock.shared.security.AltierSecurityContext;
 import com.albelt.gestionstock.shared.enums.RollStatus;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class RollController {
     private final RollService rollService;
     private final RollMapper rollMapper;
     private final UserAltierService userAltierService;
+    private final AltierSecurityContext altierSecurityContext;
 
     /**
      * Get grouped roll statistics by color, nbPlis, thicknessMm, materialType, altierId, status
@@ -44,7 +46,10 @@ public class RollController {
      */
     @GetMapping("/grouped")
     public ResponseEntity<ApiResponse<List<com.albelt.gestionstock.domain.rolls.dto.RollGroupedStatsResponse>>> getGroupedByAllFields() {
-        var grouped = rollService.getGroupedByAllFields();
+        UUID currentUser = altierSecurityContext.getCurrentUserId();
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
+        var altierIds = userAltierService.getAccessibleAltiers(currentUser);
+        var grouped = rollService.getGroupedByAllFields(unrestricted, altierIds);
         return ResponseEntity.ok(ApiResponse.success(grouped));
     }
 
@@ -72,11 +77,11 @@ public class RollController {
         UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         log.debug("Fetching rolls for user: {}", currentUser);
 
-        // Get accessible altiers for current user
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
         var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
 
-        // If user has no accessible altiers, return empty list
-        if (accessibleAltierIds.isEmpty()) {
+        // Non-admin users with no assigned altiers see nothing
+        if (!unrestricted && accessibleAltierIds.isEmpty()) {
             log.warn("User {} has no accessible altiers", currentUser);
             var empty = PagedResponse.<RollResponse>builder()
                     .items(List.of())
@@ -92,6 +97,7 @@ public class RollController {
         var toDate = parseDate(dateTo);
 
         var rolls = rollService.getByUserAltiersPaged(
+                unrestricted,
                 accessibleAltierIds,
                 status,
                 articleId,

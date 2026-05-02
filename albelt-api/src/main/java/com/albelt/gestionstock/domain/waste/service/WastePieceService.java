@@ -3,11 +3,15 @@ package com.albelt.gestionstock.domain.waste.service;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.altier.service.AltierService;
 import com.albelt.gestionstock.domain.articles.service.ArticleService;
+import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.domain.colors.service.ColorService;
 import com.albelt.gestionstock.domain.commandes.entity.Commande;
 import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
 import com.albelt.gestionstock.domain.commandes.repository.CommandeItemRepository;
 import com.albelt.gestionstock.domain.rolls.entity.Roll;
+import com.albelt.gestionstock.domain.placement.entity.PlacedRectangle;
+import com.albelt.gestionstock.domain.placement.repository.PlacedRectangleRepository;
+import com.albelt.gestionstock.domain.placement.service.PlacementAutoSaveService;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
@@ -45,6 +49,7 @@ import java.util.*;
 public class WastePieceService {
     private final WastePieceRepository wastePieceRepository;
     private final RollRepository rollRepository;
+    private final PlacedRectangleRepository placedRectangleRepository;
     private final WastePieceMapper wastePieceMapper;
     private final ColorService colorService;
     private final AltierService altierService;
@@ -52,13 +57,19 @@ public class WastePieceService {
     private final CommandeItemRepository commandeItemRepository;
     private final LotIdAllocator lotIdAllocator;
     private final QrCodeService qrCodeService;
+    private final PlacementAutoSaveService placementAutoSaveService;
 
     /**
-     * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
+     * Get grouped waste piece statistics — scoped by atelier access.
      */
     @Transactional(readOnly = true)
-    public List<WastePieceGroupedStatsResponse> getGroupedByAllFields(WasteType type) {
-        List<Object[]> rows = wastePieceRepository.groupByAllFields(type);
+    public List<WastePieceGroupedStatsResponse> getGroupedByAllFields(boolean unrestricted,
+                                                                       List<UUID> altierIds,
+                                                                       WasteType type) {
+        List<UUID> safeAltierIds = (altierIds == null || altierIds.isEmpty())
+                ? List.of(java.util.UUID.randomUUID())
+                : altierIds;
+        List<Object[]> rows = wastePieceRepository.groupByAllFields(unrestricted, safeAltierIds, type);
         return wastePieceMapper.toGroupedStatsResponseList(rows);
     }
 
@@ -149,7 +160,35 @@ public class WastePieceService {
         WastePiece saved = wastePieceRepository.save(wastePiece);
         saved.setQrCode(qrCodeService.generateForWastePiece(saved));
         saved = wastePieceRepository.save(saved);
+
+        // Auto-create a placement record linked to the source roll/waste piece
+        int heightMm = saved.getLengthM().multiply(BigDecimal.valueOf(1000)).intValue();
+        Color placementColor = null;
+        if (saved.getArticle() != null && saved.getArticle().getColor() != null) {
+            placementColor = saved.getArticle().getColor();
+        } else if (roll.getArticle() != null && roll.getArticle().getColor() != null) {
+            placementColor = roll.getArticle().getColor();
+        }
+        PlacedRectangle autoPlacement = PlacedRectangle.builder()
+                .roll(roll)
+                .wastePiece(parentWastePiece)
+                .xMm(request.getXMm() != null ? request.getXMm() : 0)
+                .yMm(request.getYMm() != null ? request.getYMm() : 0)
+                .widthMm(saved.getWidthMm())
+                .heightMm(heightMm)
+                .commandeItemId(request.getCommandeItemId())
+                .color(placementColor)
+                .build();
+        placementAutoSaveService.trySave(autoPlacement);
+
         return saved;
+    }
+
+    public void delete(UUID id) {
+        WastePiece wastePiece = wastePieceRepository.findById(id)
+                .orElseThrow(() -> ResourceNotFoundException.supplier(id.toString()));
+        placedRectangleRepository.deleteByWastePieceId(wastePiece.getId());
+        wastePieceRepository.delete(wastePiece);
     }
 
     /**
@@ -162,14 +201,26 @@ public class WastePieceService {
     }
 
     /**
-     * Get waste pieces with pagination and optional filters
+     * Get waste pieces with pagination and optional filters, scoped by atelier access.
+     *
+     * @param unrestricted when {@code true} (ADMIN), all waste pieces are visible
+     *                     including those with a {@code null} altier.
+     * @param altierIds    ignored when {@code unrestricted=true}
      */
     @Transactional(readOnly = true)
-    public Page<WastePiece> getAllPaged(UUID articleId, MaterialType materialType, WasteStatus status, UUID altierId,
+    public Page<WastePiece> getAllPaged(boolean unrestricted, List<UUID> altierIds,
+                                        UUID articleId, MaterialType materialType, WasteStatus status, UUID altierId,
                                         UUID colorId, Integer nbPlis, BigDecimal thicknessMm,
                                         WasteType wasteType,
                                         java.time.LocalDateTime fromDate, java.time.LocalDateTime toDate,
                                         String search, int page, int size) {
+        if (!unrestricted && (altierIds == null || altierIds.isEmpty())) {
+            return Page.empty();
+        }
+        // Ensure the IN-list is never empty to avoid invalid SQL when unrestricted=true.
+        List<UUID> safeAltierIds = (altierIds == null || altierIds.isEmpty())
+                ? List.of(java.util.UUID.randomUUID())
+                : altierIds;
         String normalizedSearch = normalize(search);
         if (normalizedSearch == null) {
             normalizedSearch = "";
@@ -179,8 +230,9 @@ public class WastePieceService {
         java.time.LocalDateTime effectiveFromDate = fromDate != null ? fromDate : java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
         java.time.LocalDateTime effectiveToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return wastePieceRepository.findFiltered(articleId, materialType, status, wasteType, altierId, colorId, nbPlis,
-                thicknessMm, effectiveFromDate, effectiveToDate, normalizedSearch, pageable);
+        return wastePieceRepository.findFiltered(unrestricted, safeAltierIds, articleId, materialType, status,
+                wasteType, altierId, colorId, nbPlis, thicknessMm, effectiveFromDate, effectiveToDate,
+                normalizedSearch, pageable);
     }
 
     /**

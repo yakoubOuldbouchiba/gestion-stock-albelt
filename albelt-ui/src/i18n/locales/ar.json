@@ -45,7 +45,12 @@
     "reason": "السبب",
     "roll": "لفيفة (Roll)",
     "all": "الكل",
-    "navigation": "التنقل"
+    "navigation": "التنقل",
+    "dash": "-",
+    "required": "مطلوب",
+    "hideDetails": "إخفاء التفاصيل",
+    "showDetails": "عرض التفاصيل",
+    "loadMore": "تحميل المزيد"
   },
   "navigation": {
     "dashboard": "لوحة التحكم",
@@ -1253,12 +1258,35 @@
     "ACTIVE": "نشط",
     "INACTIVE": "غير نشط",
     "ENCOURS": "قيد التنفيذ",
-    "ON_HOLD": "قيد الانتظار"
+    "ON_HOLD": "قيد الانتظار",
+    "DELIVERED": "تم التسليم"
   },
   "pagination": {
     "previous": "السابق",
     "next": "التالي",
     "page": "الصفحة",
     "of": "من"
+  },
+  "transferWorkbench":{
+    "transferBons": "بوناي التحويل",
+    "totalTransferredItems": "إجمالي العناصر المحولة",
+    "noTransferBons": "لا توجد بوناي تحويل. أنشئ واحدًا للبدء!",
+    "entry": "تاريخ الدخول",
+    "tabs": {
+      "sent": "المرسلة",
+      "received": "المستلمة"
+    },
+    "filters": {
+      "allStatuses": "جميع الحالات",
+      "searchPlaceholder": "البحث بالورشة، رقم البون، أو المشغل"
+    },
+    "rolls": "اللفائف",
+    "chutes": "قطع البقايا",
+    "itemsReady": "{{count}} جاهز",
+    "sourceSubtitle": "{{selected}} مختار — {{filtered}}/{{loaded}}/{{total}} معروض",
+    "movementsCount": "{{count}} عنصر",
+    "refreshSources": "تحديث المصادر",
+    "createTransferBon": "إنشاء إيصال تحويل",
+    "createFormDescription": "جهّز الورشة المصدر والوجهة والجدول الزمني والمواد."
   }
 }

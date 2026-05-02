@@ -11,6 +11,7 @@ import com.albelt.gestionstock.domain.waste.service.WastePieceService;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;
+import com.albelt.gestionstock.shared.security.AltierSecurityContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -37,14 +38,19 @@ public class WastePieceController {
     private final WastePieceService wastePieceService;
     private final WastePieceMapper wastePieceMapper;
     private final UserAltierService userAltierService;
+    private final AltierSecurityContext altierSecurityContext;
 
     /**
      * Get grouped waste piece statistics by color, nbPlis, thicknessMm, materialType, altierId, status
      * GET /api/waste-pieces/grouped
      */
     @GetMapping("/grouped")
-    public ResponseEntity<ApiResponse<List<WastePieceGroupedStatsResponse>>> getGroupedByAllFields(@RequestParam(required = false) WasteType type) {
-        var grouped = wastePieceService.getGroupedByAllFields(type);
+    public ResponseEntity<ApiResponse<List<WastePieceGroupedStatsResponse>>> getGroupedByAllFields(
+            @RequestParam(required = false) WasteType type) {
+        UUID currentUser = altierSecurityContext.getCurrentUserId();
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
+        var altierIds = userAltierService.getAccessibleAltiers(currentUser);
+        var grouped = wastePieceService.getGroupedByAllFields(unrestricted, altierIds, type);
         return ResponseEntity.ok(ApiResponse.success(grouped));
     }
 
@@ -69,9 +75,12 @@ public class WastePieceController {
             @RequestParam(required = false) String dateFrom,
             @RequestParam(required = false) String dateTo) {
         log.debug("Fetching all waste pieces: page={}, size={}", page, size);
+        UUID currentUser = altierSecurityContext.getCurrentUserId();
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
+        var altierIds = userAltierService.getAccessibleAltiers(currentUser);
         var fromDate = parseDateStart(dateFrom);
         var toDate = parseDateEnd(dateTo);
-        var wastePieces = wastePieceService.getAllPaged(articleId, materialType, status, altierId, colorId, nbPlis,
+        var wastePieces = wastePieceService.getAllPaged(unrestricted, altierIds, articleId, materialType, status, altierId, colorId, nbPlis,
                 thicknessMm, wasteType, fromDate, toDate, search, page, size);
         var responses = wastePieceMapper.toResponseList(wastePieces.getContent());
         var paged = PagedResponse.<WastePieceResponse>builder()
@@ -162,6 +171,13 @@ public class WastePieceController {
         var wastePiece = wastePieceService.getById(id);
         var response = wastePieceMapper.toResponse(wastePiece);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
+        log.info("Deleting waste piece: {}", id);
+        wastePieceService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Waste piece deleted"));
     }
 
     @PostMapping("/{id}/qr-code/regenerate")

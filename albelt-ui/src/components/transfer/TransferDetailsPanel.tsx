@@ -2,6 +2,7 @@ import type { Roll, RollMovement, WastePiece } from '../../types/index';
 import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
 import { Tag } from 'primereact/tag';
+import { t } from 'i18next';
 import {
   formatDateTimeLocalValue,
   formatTransferDate,
@@ -43,25 +44,25 @@ export function TransferDetailsPanel({
   return (
     <div className="transfer-workbench__details-panel">
       <div className="transfer-workbench__card-actions transfer-workbench__card-actions--between">
-        <h3>Transfer Details</h3>
-        <Button label="Download PDF" icon="pi pi-download" onClick={onDownloadPdf} />
+        <h3>{t('transferBons.detailsTitle')}</h3>
+        <Button label={t('transferBons.downloadPdf')} icon="pi pi-download" onClick={onDownloadPdf} />
       </div>
 
       <div className="transfer-workbench__detail-grid">
         <div>
-          <span className="transfer-workbench__detail-label">From</span>
+          <span className="transfer-workbench__detail-label">{t('transferBons.from')}</span>
           <strong>{bonDetails.fromAltier?.libelle || '-'}</strong>
         </div>
         <div>
-          <span className="transfer-workbench__detail-label">To</span>
+          <span className="transfer-workbench__detail-label">{t('transferBons.to')}</span>
           <strong>{bonDetails.toAltier?.libelle || '-'}</strong>
         </div>
         <div>
-          <span className="transfer-workbench__detail-label">Exit</span>
+          <span className="transfer-workbench__detail-label">{t('transferBons.exit')}</span>
           <strong>{formatTransferDate(bonDetails.dateSortie)}</strong>
         </div>
         <div>
-          <span className="transfer-workbench__detail-label">Entry</span>
+          <span className="transfer-workbench__detail-label">{t('transferBons.entry')}</span>
           <strong>{formatTransferDate(bonDetails.dateEntree)}</strong>
         </div>
       </div>
@@ -69,7 +70,7 @@ export function TransferDetailsPanel({
       {!bonDetails.dateEntree && (
         <form className="transfer-workbench__confirm-form" onSubmit={onConfirmReceipt}>
           <div className="transfer-workbench__field">
-            <label htmlFor="confirmDateEntree">Confirm Entry Date *</label>
+            <label htmlFor="confirmDateEntree">{t('transferBons.confirmDateEntree')} *</label>
             <div className="transfer-workbench__date-field">
               <Calendar
                 id="confirmDateEntree"
@@ -86,7 +87,7 @@ export function TransferDetailsPanel({
 
           <Button
             type="submit"
-            label="Confirm Receipt"
+            label={t('transferBons.confirmReceipt')}
             icon="pi pi-check"
             loading={confirming}
             disabled={isActionLocked}
@@ -96,19 +97,19 @@ export function TransferDetailsPanel({
 
       <div className="transfer-workbench__movements">
         <div className="transfer-workbench__card-actions transfer-workbench__card-actions--between">
-          <h3>Movements</h3>
-          <Tag value={`${bonMovements.length} items`} severity="info" />
+          <h3>{t('transferBons.movementsTitle')}</h3>
+          <Tag value={t('transferWorkbench.movementsCount', { count: bonMovements.length })} severity="info" />
         </div>
 
         {bonMovements.length === 0 ? (
-          <div className="transfer-workbench__empty-state">No movements</div>
+          <div className="transfer-workbench__empty-state">{t('transferBons.noMovements')}</div>
         ) : (
           bonMovements.map((movement) => {
             const roll = movement.rollId ? rollDetailsById[movement.rollId] : undefined;
             const wastePiece = movement.wastePieceId ? wasteDetailsById[movement.wastePieceId] : undefined;
             const display = getMovementDisplay(movement, roll, wastePiece);
             const typeLabel =
-              display.type === 'roll' ? 'Roll' : display.type === 'wastePiece' ? 'Waste Piece' : '-';
+              display.type === 'roll' ? t('transferBons.roll') : display.type === 'wastePiece' ? t('inventory.wastePiece') : '-';
 
             return (
               <article key={movement.id} className="transfer-workbench__movement-card">
@@ -118,17 +119,17 @@ export function TransferDetailsPanel({
                     <span>{display.label || shrinkId(display.fallbackId)}</span>
                   </div>
                   <Tag
-                    value={movement.dateEntree ? 'Delivered' : 'Pending'}
+                    value={movement.dateEntree ? t('statuses.DELIVERED') : t('statuses.PENDING')}
                     severity={movement.dateEntree ? 'success' : 'warning'}
                   />
                 </div>
 
                 <div className="transfer-workbench__movement-metrics">
                   <span>
-                    <strong>Exit:</strong> {formatTransferDate(movement.dateSortie)}
+                    <strong>{t('transferBons.exit')}:</strong> {formatTransferDate(movement.dateSortie)}
                   </span>
                   <span>
-                    <strong>Entry:</strong> {formatTransferDate(movement.dateEntree)}
+                    <strong>{t('transferBons.entry')}:</strong> {formatTransferDate(movement.dateEntree)}
                   </span>
                 </div>
 
@@ -137,7 +138,7 @@ export function TransferDetailsPanel({
                     <Button
                       type="button"
                       icon="pi pi-trash"
-                      label="Delete"
+                      label={t('common.delete')}
                       severity="danger"
                       text
                       onClick={() => onRemoveMovement(bonDetails.id, movement.id)}

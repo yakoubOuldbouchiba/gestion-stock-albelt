@@ -16,7 +16,7 @@ export function useWasteActions(
   const [chuteSourceType, setChuteSourceType] = useState<'ROLL' | 'WASTE_PIECE'>('ROLL');
   const [chuteRollId, setChuteRollId] = useState('');
   const [parentWastePieceId, setParentWastePieceId] = useState('');
-  const [chutePlacementId, setChutePlacementId] = useState('');
+  const [chutePosition, setChutePosition] = useState({ xMm: 0, yMm: 0 });
   const [chuteDimensions, setChuteDimensions] = useState({
     widthMm: 0,
     lengthM: 0,
@@ -27,15 +27,14 @@ export function useWasteActions(
     setChuteSourceType('ROLL');
     setChuteRollId('');
     setParentWastePieceId('');
-    setChutePlacementId('');
+    setChutePosition({ xMm: 0, yMm: 0 });
     setChuteDimensions({ widthMm: 0, lengthM: 0, areaM2: 0 });
   }, []);
 
   const handleCreateChute = async (
     chuteTargetItem: CommandeItem | null,
     rolls: Roll[],
-    parentWastePieces: any[],
-    chutePlacements: any[]
+    parentWastePieces: any[]
   ) => {
     if (!chuteTargetItem) return false;
 
@@ -64,22 +63,6 @@ export function useWasteActions(
       return false;
     }
 
-    const selectedPlacement = chutePlacements.find((placement) => placement.id === chutePlacementId);
-    if (!selectedPlacement) {
-      showError(t('inventory.placementItemRequired'));
-      setCreatingChute(false);
-      return false;
-    }
-    const chuteLengthMm = chuteDimensions.lengthM * 1000;
-    if (
-      chuteDimensions.widthMm > selectedPlacement.widthMm ||
-      chuteLengthMm > selectedPlacement.heightMm
-    ) {
-      showError(t('inventory.placementDimensionsExceeded'));
-      setCreatingChute(false);
-      return false;
-    }
-
     const wasteData = {
       articleId: getArticleId(source) ?? getArticleId(chuteTargetItem) ?? undefined,
       rollId: isRollSource ? source.id : source.rollId,
@@ -96,6 +79,8 @@ export function useWasteActions(
       colorId: source.colorId,
       reference: source.reference,
       commandeItemId: chuteTargetItem.id,
+      xMm: chutePosition.xMm,
+      yMm: chutePosition.yMm,
     };
 
     try {
@@ -121,8 +106,8 @@ export function useWasteActions(
     setChuteRollId,
     parentWastePieceId,
     setParentWastePieceId,
-    chutePlacementId,
-    setChutePlacementId,
+    chutePosition,
+    setChutePosition,
     chuteDimensions,
     setChuteDimensions,
     resetChuteForm,

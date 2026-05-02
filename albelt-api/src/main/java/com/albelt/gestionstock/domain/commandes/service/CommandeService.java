@@ -130,17 +130,31 @@ public class CommandeService {
     }
 
     /**
-     * Get orders with pagination and optional filters
+     * Get orders with pagination and optional filters, scoped by atelier access.
+     *
+     * @param unrestricted when {@code true} (ADMIN), all commandes are visible including those with
+     *                     a {@code null} atelier. When {@code false}, only commandes whose atelier
+     *                     is in {@code altierIds} are returned.
+     * @param altierIds    the caller's accessible atelier IDs; ignored when {@code unrestricted=true}
      */
     @Transactional(readOnly = true)
-    public Page<Commande> getAllPaged(String status, UUID clientId, java.time.LocalDateTime fromDate,
+    public Page<Commande> getAllPaged(boolean unrestricted, List<UUID> altierIds,
+                                      String status, UUID clientId,
+                                      java.time.LocalDateTime fromDate,
                                       java.time.LocalDateTime toDate, String search, int page, int size) {
+        if (!unrestricted && (altierIds == null || altierIds.isEmpty())) {
+            return org.springframework.data.domain.Page.empty();
+        }
+        // Ensure the IN-list is never empty so Hibernate does not generate invalid SQL.
+        List<UUID> safeAltierIds = (altierIds == null || altierIds.isEmpty())
+                ? List.of(java.util.UUID.randomUUID())
+                : altierIds;
         String normalizedStatus = normalizeNullable(status);
         String normalizedSearch = normalizeSearch(search);
         java.time.LocalDateTime safeFromDate = fromDate != null ? fromDate : java.time.LocalDateTime.of(1970, 1, 1, 0, 0);
         java.time.LocalDateTime safeToDate = toDate != null ? toDate : java.time.LocalDateTime.of(2100, 1, 1, 0, 0);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return commandeRepository.findFiltered(normalizedStatus, clientId, safeFromDate, safeToDate, normalizedSearch, pageable);
+        return commandeRepository.findFiltered(unrestricted, safeAltierIds, normalizedStatus, clientId, safeFromDate, safeToDate, normalizedSearch, pageable);
     }
 
     /**

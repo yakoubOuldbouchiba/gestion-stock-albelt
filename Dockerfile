@@ -3,7 +3,7 @@
 # Root Dockerfile for Render/CI builds.
 # Builds and runs the Spring Boot backend located in ./albelt-api.
 
-FROM maven:3.9.9-eclipse-temurin-17 AS build
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 
 WORKDIR /workspace/albelt-api
 
@@ -21,7 +21,7 @@ RUN JAR_FILE="$(ls target/*.jar | grep -v '\.jar\.original$' | head -n 1)" \
   && test -n "$JAR_FILE" \
   && cp "$JAR_FILE" /workspace/app.jar
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 

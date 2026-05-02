@@ -3,6 +3,7 @@ import type { Roll, WastePiece } from '../../types/index';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { ProgressSpinner } from 'primereact/progressspinner';
+import { t } from 'i18next';
 
 type TransferSourcePanelProps<T extends Roll | WastePiece> = {
   title: string;
@@ -51,7 +52,7 @@ export function TransferSourcePanel<T extends Roll | WastePiece>({
           <InputText
             value={searchValue}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder={`Search ${title.toLowerCase()}`}
+            placeholder={t('common.search')}
           />
         </span>
       </div>
@@ -85,7 +86,7 @@ export function TransferSourcePanel<T extends Roll | WastePiece>({
         <div className="transfer-workbench__load-more">
           <Button
             type="button"
-            label="Load more"
+            label={t('common.loadMore')}
             icon="pi pi-angle-down"
             outlined
             onClick={onLoadMore}

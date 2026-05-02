@@ -38,6 +38,22 @@ public interface TransferBonRepository extends JpaRepository<TransferBon, UUID> 
             @Param("search") String search,
             Pageable pageable);
 
+    @Query("SELECT tb FROM TransferBon tb " +
+            "WHERE ((:direction = 'sent' AND tb.fromAltier.id IN :altierIds) " +
+            "    OR (:direction = 'received' AND tb.toAltier.id IN :altierIds)) " +
+            "AND (:statusEntree IS NULL OR tb.statusEntree = :statusEntree) " +
+            "AND (:search = '' OR (" +
+            "  LOWER(tb.fromAltier.libelle) LIKE CONCAT('%', :search, '%') " +
+            "  OR LOWER(tb.toAltier.libelle) LIKE CONCAT('%', :search, '%') " +
+            "  OR LOWER(tb.operator.username) LIKE CONCAT('%', :search, '%') " +
+            "  OR LOWER(CAST(tb.id AS string)) LIKE CONCAT('%', :search, '%'))) ")
+    Page<TransferBon> findForUser(
+            @Param("altierIds") List<UUID> altierIds,
+            @Param("direction") String direction,
+            @Param("statusEntree") Boolean statusEntree,
+            @Param("search") String search,
+            Pageable pageable);
+
     @EntityGraph(attributePaths = {
             "movements",
             "movements.roll",

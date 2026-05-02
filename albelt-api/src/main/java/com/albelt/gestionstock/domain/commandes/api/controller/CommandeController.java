@@ -12,6 +12,8 @@ import com.albelt.gestionstock.domain.commandes.service.CommandeService;
 import com.albelt.gestionstock.domain.optimization.dto.AltierScoreResponse;
 import com.albelt.gestionstock.domain.optimization.service.OptimizationService;
 import com.albelt.gestionstock.domain.users.entity.User;
+import com.albelt.gestionstock.domain.users.service.UserAltierService;
+import com.albelt.gestionstock.shared.security.AltierSecurityContext;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,8 @@ public class CommandeController {
     private final CommandeMapper commandeMapper;
     private final CommandeItemMapper itemMapper;
     private final OptimizationService optimizationService;
+    private final UserAltierService userAltierService;
+    private final AltierSecurityContext altierSecurityContext;
 
     // ==================== ORDER ENDPOINTS ====================
 
@@ -73,9 +77,13 @@ public class CommandeController {
             @RequestParam(required = false) String dateTo) {
         log.info("GET /api/commandes - Fetch all orders");
 
+        UUID currentUser = getCurrentUserId();
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
+        var altierIds = userAltierService.getAccessibleAltiers(currentUser);
+
         var fromDate = parseDateStart(dateFrom);
         var toDate = parseDateEnd(dateTo);
-        var result = commandeService.getAllPaged(status, clientId, fromDate, toDate, search, page, size);
+        var result = commandeService.getAllPaged(unrestricted, altierIds, status, clientId, fromDate, toDate, search, page, size);
         var responses = commandeMapper.toResponseList(result.getContent());
         var paged = PagedResponse.<CommandeResponse>builder()
                 .items(responses)

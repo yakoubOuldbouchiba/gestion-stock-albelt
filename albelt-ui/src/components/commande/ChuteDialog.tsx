@@ -22,14 +22,13 @@ type ChuteDialogProps = {
   chuteParentOptions: any[];
   onParentWasteChange: (value: string) => void;
   parentWastePiecesLoading: boolean;
-  chutePlacementId: string;
-  chutePlacementOptions: { label: string; value: string }[];
-  onPlacementChange: (value: string) => void;
-  chutePlacementsLoading: boolean;
   renderRollOption: (option: any) => JSX.Element | null;
   chuteSource: any;
   chuteDimensions: { widthMm: number; lengthM: number; areaM2: number };
   onDimensionChange: (field: 'widthMm' | 'lengthM', value: string) => void;
+  xMm: number;
+  yMm: number;
+  onPositionChange: (field: 'xMm' | 'yMm', value: string) => void;
   onCreate: () => void;
   creatingChute: boolean;
 };
@@ -50,14 +49,13 @@ export const ChuteDialog = ({
   chuteParentOptions,
   onParentWasteChange,
   parentWastePiecesLoading,
-  chutePlacementId,
-  chutePlacementOptions,
-  onPlacementChange,
-  chutePlacementsLoading,
   renderRollOption,
   chuteSource,
   chuteDimensions,
   onDimensionChange,
+  xMm,
+  yMm,
+  onPositionChange,
   onCreate,
   creatingChute,
 }: ChuteDialogProps) => {
@@ -136,29 +134,6 @@ export const ChuteDialog = ({
         </div>
       )}
 
-      {((chuteSourceType === 'ROLL' && chuteRollId) || (chuteSourceType === 'WASTE_PIECE' && parentWastePieceId)) && (
-        <div>
-          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
-            {t('inventory.selectPlacement')} *
-          </label>
-          <Dropdown
-            value={chutePlacementId}
-            options={chutePlacementOptions}
-            onChange={(e) => onPlacementChange(e.value as string)}
-            placeholder={
-              chutePlacementsLoading
-                ? t('inventory.loadingPlacements')
-                : chutePlacementOptions.length === 0
-                  ? t('inventory.noPlacementsAvailable')
-                  : 'Select placement'
-            }
-            style={{ width: '100%' }}
-            disabled={Boolean(disabled) || creatingChute || chutePlacementsLoading || chutePlacementOptions.length === 0}
-            filter
-          />
-        </div>
-      )}
-
       <div>
         <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
           {t('inventory.reference') || 'Reference'} / {t('inventory.color') || 'Color'}
@@ -198,6 +173,33 @@ export const ChuteDialog = ({
               <div className="albel-article-meta-chip__value">{chuteSummary?.color || 'N/A'}</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="albel-grid albel-grid--min180" style={{ gap: '1rem' }}>
+        <div>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+            {t('inventory.positionX') || 'Position X (mm)'}
+          </label>
+          <InputText
+            value={String(xMm)}
+            onChange={(e) => onPositionChange('xMm', e.target.value)}
+            type="number"
+            min="0"
+            disabled={Boolean(disabled) || creatingChute}
+          />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+            {t('inventory.positionY') || 'Position Y (mm)'}
+          </label>
+          <InputText
+            value={String(yMm)}
+            onChange={(e) => onPositionChange('yMm', e.target.value)}
+            type="number"
+            min="0"
+            disabled={Boolean(disabled) || creatingChute}
+          />
         </div>
       </div>
 

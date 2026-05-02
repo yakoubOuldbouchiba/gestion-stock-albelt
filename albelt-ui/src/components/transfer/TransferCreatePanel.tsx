@@ -4,6 +4,7 @@ import { Calendar } from 'primereact/calendar';
 import { Dropdown } from 'primereact/dropdown';
 import { Tag } from 'primereact/tag';
 import { TransferSourcePanel } from './TransferSourcePanel';
+import { t } from 'i18next';
 import {
   formatDateTimeLocalValue,
   parseDateTimeLocalValue,
@@ -96,41 +97,41 @@ export function TransferCreatePanel({
       <div className="transfer-workbench__panel-header">
         <div>
           <h2>{title}</h2>
-          <p>Prepare the source workshop, destination, schedule, and materials in one workbench.</p>
+          <p>{t('transferWorkbench.createFormDescription')}</p>
         </div>
-        <Tag value={`${selectedItemsCount} ready`} severity={selectedItemsCount > 0 ? 'success' : 'info'} />
+        <Tag value={t('transferWorkbench.itemsReady', { count: selectedItemsCount })} severity={selectedItemsCount > 0 ? 'success' : 'info'} />
       </div>
 
       <form className="transfer-workbench__form" onSubmit={onSubmit}>
         <div className="transfer-workbench__field-grid">
           <div className="transfer-workbench__field">
-            <label htmlFor="fromAltierID">From Workshop *</label>
+            <label htmlFor="fromAltierID">{t('transferBons.fromAltier')} *</label>
             <Dropdown
               id="fromAltierID"
               value={formData.fromAltierID || null}
               options={userAvailableAltiers}
               optionLabel="libelle"
               optionValue="id"
-              placeholder="Select source"
+              placeholder={t('transferBons.selectSource')}
               onChange={(event) => onUpdateFormField('fromAltierID', event.value || '')}
             />
           </div>
 
           <div className="transfer-workbench__field">
-            <label htmlFor="toAltierID">To Workshop *</label>
+            <label htmlFor="toAltierID">{t('transferBons.toAltier')} *</label>
             <Dropdown
               id="toAltierID"
               value={formData.toAltierID || null}
               options={otherAltiers}
               optionLabel="libelle"
               optionValue="id"
-              placeholder="Select destination"
+              placeholder={t('transferBons.selectDestination')}
               onChange={(event) => onUpdateFormField('toAltierID', event.value || '')}
             />
           </div>
 
           <div className="transfer-workbench__field">
-            <label htmlFor="dateSortie">Exit Date *</label>
+            <label htmlFor="dateSortie">{t('transferBons.dateSortie')} *</label>
             <div className="transfer-workbench__date-field">
               <Calendar
                 id="dateSortie"
@@ -148,7 +149,7 @@ export function TransferCreatePanel({
           </div>
 
           <div className="transfer-workbench__field">
-            <label htmlFor="dateEntree">Entry Date</label>
+            <label htmlFor="dateEntree">{t('transferBons.dateEntree')}</label>
             <div className="transfer-workbench__date-field">
               <Calendar
                 id="dateEntree"
@@ -168,12 +169,12 @@ export function TransferCreatePanel({
 
         <div className="transfer-workbench__source-columns">
           <TransferSourcePanel
-            title="Rolls"
-            subtitle={`${selectedRollsCount} selected - ${filteredRolls.length}/${availableRollsCount}/${rollTotal || 0} shown`}
+            title={t('transferWorkbench.rolls')}
+            subtitle={t('transferWorkbench.sourceSubtitle', { selected: selectedRollsCount, filtered: filteredRolls.length, loaded: availableRollsCount, total: rollTotal || 0 })}
             items={filteredRolls}
             selectedIds={selectedRollIds}
             loading={rollsLoading}
-            emptyMessage="No available rolls"
+            emptyMessage={t('transferBons.noAvailableRolls')}
             hasMore={rollHasMore}
             searchValue={rollSearch}
             onSearchChange={onRollSearchChange}
@@ -184,12 +185,12 @@ export function TransferCreatePanel({
           />
 
           <TransferSourcePanel
-            title="Chutes"
-            subtitle={`${selectedWasteCount} selected - ${filteredWastePieces.length}/${availableWastePiecesCount}/${wasteTotal || 0} shown`}
+            title={t('transferWorkbench.chutes')}
+            subtitle={t('transferWorkbench.sourceSubtitle', { selected: selectedWasteCount, filtered: filteredWastePieces.length, loaded: availableWastePiecesCount, total: wasteTotal || 0 })}
             items={filteredWastePieces}
             selectedIds={selectedWastePieceIds}
             loading={wasteLoading}
-            emptyMessage="No available chutes"
+            emptyMessage={t('transferBons.noAvailableChutes')}
             hasMore={wasteHasMore}
             searchValue={wasteSearch}
             onSearchChange={onWasteSearchChange}
@@ -203,7 +204,7 @@ export function TransferCreatePanel({
         <div className="transfer-workbench__footer-actions">
           <Button
             type="button"
-            label="Refresh sources"
+            label={t('transferWorkbench.refreshSources')}
             icon="pi pi-refresh"
             severity="secondary"
             outlined
@@ -212,7 +213,7 @@ export function TransferCreatePanel({
           />
           <Button
             type="submit"
-            label="Create Transfer Bon"
+            label={t('transferWorkbench.createTransferBon')}
             icon="pi pi-check"
             loading={creating}
             disabled={isActionLocked}

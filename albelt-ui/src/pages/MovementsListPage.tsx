@@ -230,7 +230,7 @@ export function MovementsListPage() {
               <Column header={t('movementsList.entryDate')} body={(m: RollMovement) => formatDate(m.dateEntree)} />
               <Column header={t('common.status')} body={statusBody} />
               <Column header={t('common.reason')} body={(m: RollMovement) => m.reason || t('common.dash')} />
-              <Column header={t('common.action')} body={createdActionsBody} />
+              <Column header={t('common.actions')} body={createdActionsBody} />
             </DataTable>
           )}
         </TabPanel>
@@ -247,7 +247,7 @@ export function MovementsListPage() {
               <Column header={t('movementsList.exitDate')} body={(m: RollMovement) => formatDate(m.dateSortie)} />
               <Column header={t('movementsList.createdBy')} body={(m: RollMovement) => m.operator.username} />
               <Column header={t('common.reason')} body={(m: RollMovement) => m.reason || t('common.dash')} />
-              <Column header={t('common.action')} body={pendingActionsBody} />
+              <Column header={t('common.actions')} body={pendingActionsBody} />
             </DataTable>
           )}
         </TabPanel>
