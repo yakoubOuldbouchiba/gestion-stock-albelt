@@ -433,11 +433,11 @@ public class WastePieceService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    public List<Map<String, Object>> getStatsByMaterial(WasteType type) {
+    public List<Map<String, Object>> getStatsByMaterial(WasteType type , boolean unrestricted, List<UUID> altierIds) {
         log.debug("Fetching stats grouped by material type");
 
         List<WasteStatus> activeStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
-        List<Object[]> results = wastePieceRepository.getStatsByMaterial(type, activeStatuses);
+        List<Object[]> results = unrestricted ? wastePieceRepository.getStatsByMaterial(type, activeStatuses) : wastePieceRepository.getStatsByMaterial(type, activeStatuses, altierIds) ;
 
         return results.stream()
                 .map(row -> {

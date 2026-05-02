@@ -598,12 +598,12 @@ public class CommandeService {
         return trimmed.isEmpty() ? "" : trimmed.toLowerCase();
     }
 
-    public OrderSummaryStatsDto getOrderSummaryStats() {
-        long totals = commandeRepository.count();
-        long waitingItems = commandeRepository.countByStatus("PENDING");
-        long cuttingItems = commandeRepository.countByStatus("ENCOURS");
-        long completedItems = commandeRepository.countByStatus("COMPLETED");
-        long cancelled = commandeRepository.countByStatus("CANCELLED");
+    public OrderSummaryStatsDto getOrderSummaryStats(boolean unrestricted, List<UUID> altierIds) {
+        long totals = unrestricted ? commandeRepository.count() : commandeRepository.countByAltierIdIn(altierIds);
+        long waitingItems =unrestricted ? commandeRepository.countByStatus("PENDING") : commandeRepository.countByStatusAndAltierIdIn("PENDING", altierIds);
+        long cuttingItems =unrestricted ?  commandeRepository.countByStatus("ENCOURS") : commandeRepository.countByStatusAndAltierIdIn("ENCOURS", altierIds);
+        long completedItems =unrestricted ? commandeRepository.countByStatus("COMPLETED") : commandeRepository.countByStatusAndAltierIdIn("COMPLETED", altierIds);
+        long cancelled = unrestricted ? commandeRepository.countByStatus("CANCELLED") : commandeRepository.countByStatusAndAltierIdIn("CANCELLED", altierIds);
         long activeOrders = totals - completedItems - cancelled;
         return new OrderSummaryStatsDto(activeOrders, waitingItems, cuttingItems, completedItems);
     }

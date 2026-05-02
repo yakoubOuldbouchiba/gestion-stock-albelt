@@ -335,7 +335,10 @@ public class CommandeController {
 
     @GetMapping("/summary-stats")
     public ResponseEntity<ApiResponse<OrderSummaryStatsDto>> getOrderSummaryStats() {
-        return ResponseEntity.ok(ApiResponse.success(commandeService.getOrderSummaryStats(), "Summary stats retrieved successfully"));
+        UUID currentUser = altierSecurityContext.getCurrentUserId();
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
+        var altierIds = userAltierService.getAccessibleAltiers(currentUser);
+        return ResponseEntity.ok(ApiResponse.success(commandeService.getOrderSummaryStats(unrestricted,altierIds), "Summary stats retrieved successfully"));
     }
 
     private java.time.LocalDateTime parseDateStart(String value) {

@@ -37,7 +37,6 @@ export function OptimizationSection({
   onRegenerate,
   onAdoptPlan,
   onEnlarge: _onEnlarge,
-  onPrint,
   normalizeOptimizationSvg: _normalizeOptimizationSvg,
   buildOptimizationSvgSlices: _buildOptimizationSvgSlices,
 }: OptimizationSectionProps) {
@@ -144,14 +143,6 @@ export function OptimizationSection({
                 tooltipOptions={{ position: 'left' }}
                 onClick={handleDownloadSvg}
                 disabled={!svgContent}
-              />
-              <Button
-                icon="pi pi-file-pdf"
-                text
-                size="small"
-                tooltip={t('common.print') || 'Print'}
-                tooltipOptions={{ position: 'left' }}
-                onClick={() => onPrint(variant)}
               />
             </div>
           </div>

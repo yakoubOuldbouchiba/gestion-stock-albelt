@@ -323,8 +323,11 @@ public class WastePieceController {
     @GetMapping("/stats/by-material")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStatsDechetByMaterialDechet(WasteType type) {
         log.debug("Fetching stats by material type");
+        UUID currentUser = altierSecurityContext.getCurrentUserId();
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
 
-        var stats = wastePieceService.getStatsByMaterial(type);
+        var altierIds = userAltierService.getAccessibleAltiers(currentUser);
+        var stats = wastePieceService.getStatsByMaterial(type, unrestricted , altierIds);
         return ResponseEntity.ok(ApiResponse.success(stats, "Stats retrieved"));
     }
 

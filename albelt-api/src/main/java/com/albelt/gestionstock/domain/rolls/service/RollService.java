@@ -313,9 +313,10 @@ public class RollService {
      * Get inventory statistics by material
      */
     @Transactional(readOnly = true)
-    public long getCountByMaterial(MaterialType materialType) {
+    public long getCountByMaterial(MaterialType materialType, boolean unrestricted , List<UUID> altierIds) {
         List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
-        return rollRepository.countByMaterialAndStatus(materialType, availableStatuses);
+        return  unrestricted ? rollRepository.countByMaterialAndStatus(materialType, availableStatuses)
+            : rollRepository.countByMaterialAndStatusByAltier(materialType, availableStatuses, altierIds);
     }
 
     /**
@@ -452,11 +453,11 @@ public class RollService {
      * Aggregates across all waste types
      */
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> getStatsByMaterial() {
+    public List<Map<String, Object>> getStatsByMaterial(boolean unrestricted,List<UUID>  altierIds) {
         log.debug("Fetching stats grouped by material type");
 
         List<RollStatus> activeStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
-        List<Object[]> results = rollRepository.getStatsByMaterial(activeStatuses);
+        List<Object[]> results =unrestricted ?   rollRepository.getStatsByMaterial(activeStatuses) : rollRepository.getStatsByMaterial(activeStatuses,altierIds)  ;
 
         return results.stream()
                 .map(row -> {

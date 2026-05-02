@@ -315,7 +315,10 @@ public class RollController {
     @GetMapping("/stats/count")
     public ResponseEntity<ApiResponse<Long>> getCountByMaterial(@RequestParam MaterialType material) {
         log.debug("Getting roll count for material: {}", material);
-        long count = rollService.getCountByMaterial(material);
+        UUID currentUser = altierSecurityContext.getCurrentUserId();
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
+        var altierIds = userAltierService.getAccessibleAltiers(currentUser);
+        long count = rollService.getCountByMaterial(material, unrestricted, altierIds);
         return ResponseEntity.ok(ApiResponse.success(count));
     }
 
@@ -381,8 +384,10 @@ public class RollController {
     @GetMapping("/stats/by-material")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStatsByMaterial() {
         log.debug("Fetching stats by material type");
-
-        var stats = rollService.getStatsByMaterial();
+        UUID currentUser = altierSecurityContext.getCurrentUserId();
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
+        var altierIds = userAltierService.getAccessibleAltiers(currentUser);
+        var stats = rollService.getStatsByMaterial(unrestricted,altierIds);
         return ResponseEntity.ok(ApiResponse.success(stats, "Stats retrieved"));
     }
 

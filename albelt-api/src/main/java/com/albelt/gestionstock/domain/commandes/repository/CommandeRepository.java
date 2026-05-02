@@ -92,4 +92,7 @@ public interface CommandeRepository extends JpaRepository<Commande, UUID> {
             Pageable pageable);
 
     long countByStatus(String status);
+    long countByStatusAndAltierIdIn(String status, List<UUID> altierIds);
+
+    long countByAltierIdIn(List<UUID> altierIds);
 }

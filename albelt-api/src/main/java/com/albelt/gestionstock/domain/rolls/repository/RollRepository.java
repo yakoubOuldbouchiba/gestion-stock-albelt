@@ -101,6 +101,15 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
                                   @Param("statuses") List<RollStatus> statuses);
 
     /**
+     * Count available rolls by material type
+     */
+    @Query("SELECT COUNT(r) FROM Roll r WHERE r.materialType = :materialType AND r.status IN :statuses AND (:altierId IS NULL OR r.altier.id = :altierId)  ")
+    long countByMaterialAndStatusByAltier(@Param("materialType") MaterialType materialType,
+                                  @Param("statuses") List<RollStatus> statuses,
+                                  @Param("altierId") List<UUID> altierId
+    );
+
+    /**
      * Get statistics: total area available by material type
      */
     @Query("SELECT r.materialType, SUM(r.availableAreaM2) FROM Roll r " +
@@ -203,6 +212,12 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
      * Get statistics by material type only (aggregated across all waste types)
      * Returns count and total area for each material
      */
+    @Query("SELECT r.materialType, COUNT(r), SUM(r.availableAreaM2) FROM Roll r " +
+            "WHERE r.status IN (:statuses) " +
+            "And r.altier.id IN (:altierIds)  " +
+            "GROUP BY r.materialType")
+    List<Object[]> getStatsByMaterial(@Param("statuses") List<RollStatus> statuses,List<UUID>  altierIds );
+
     @Query("SELECT r.materialType, COUNT(r), SUM(r.availableAreaM2) FROM Roll r " +
             "WHERE r.status IN (:statuses) " +
             "GROUP BY r.materialType")

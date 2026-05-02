@@ -250,6 +250,12 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     List<Object[]> getStatsByMaterial(@Param("wasteType") WasteType wasteType,
                                       @Param("activeStatuses") List<WasteStatus> activeStatuses);
 
+    @Query("SELECT w.roll.materialType, COUNT(w), SUM(w.availableAreaM2) FROM WastePiece w " +
+            "WHERE w.status IN (:activeStatuses) and w.wasteType = :wasteType And w.altier.id IN (:altierIds) " +
+            "GROUP BY w.roll.materialType")
+    List<Object[]> getStatsByMaterial(@Param("wasteType") WasteType wasteType,
+                                      @Param("activeStatuses") List<WasteStatus> activeStatuses ,List<UUID>  altierIds );
+
     @Query("""
             select new com.albelt.gestionstock.domain.optimization.data.OptimizationCandidateFingerprint(
                 count(wp),
