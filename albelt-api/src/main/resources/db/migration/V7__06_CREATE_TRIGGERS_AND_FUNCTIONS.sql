@@ -149,8 +149,9 @@ BEGIN
     IF
 NOT EXISTS (SELECT 1 FROM information_schema.triggers WHERE trigger_name = 'trigger_waste_pieces_calculate_area') THEN
 CREATE TRIGGER trigger_waste_pieces_calculate_area
-    BEFORE INSERT OR UPDATE ON waste_pieces FOR EACH ROW
-EXECUTE FUNCTION calculate_waste_piece_area();
+    BEFORE INSERT OR
+UPDATE ON waste_pieces FOR EACH ROW
+    EXECUTE FUNCTION calculate_waste_piece_area();
 END IF;
 END $$;
 
@@ -237,8 +238,9 @@ BEGIN
     IF
 NOT EXISTS (SELECT 1 FROM information_schema.triggers WHERE trigger_name = 'trigger_waste_auto_classify') THEN
 CREATE TRIGGER trigger_waste_auto_classify
-    BEFORE INSERT OR UPDATE ON waste_pieces FOR EACH ROW
-EXECUTE FUNCTION auto_classify_waste();
+    BEFORE INSERT OR
+UPDATE ON waste_pieces FOR EACH ROW
+    EXECUTE FUNCTION auto_classify_waste();
 END IF;
 END $$;
 

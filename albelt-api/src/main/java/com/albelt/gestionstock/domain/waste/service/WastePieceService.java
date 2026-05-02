@@ -8,10 +8,10 @@ import com.albelt.gestionstock.domain.colors.service.ColorService;
 import com.albelt.gestionstock.domain.commandes.entity.Commande;
 import com.albelt.gestionstock.domain.commandes.entity.CommandeItem;
 import com.albelt.gestionstock.domain.commandes.repository.CommandeItemRepository;
-import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.placement.entity.PlacedRectangle;
 import com.albelt.gestionstock.domain.placement.repository.PlacedRectangleRepository;
 import com.albelt.gestionstock.domain.placement.service.PlacementAutoSaveService;
+import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.rolls.repository.RollRepository;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
@@ -64,8 +64,8 @@ public class WastePieceService {
      */
     @Transactional(readOnly = true)
     public List<WastePieceGroupedStatsResponse> getGroupedByAllFields(boolean unrestricted,
-                                                                       List<UUID> altierIds,
-                                                                       WasteType type) {
+                                                                      List<UUID> altierIds,
+                                                                      WasteType type) {
         List<UUID> safeAltierIds = (altierIds == null || altierIds.isEmpty())
                 ? List.of(java.util.UUID.randomUUID())
                 : altierIds;

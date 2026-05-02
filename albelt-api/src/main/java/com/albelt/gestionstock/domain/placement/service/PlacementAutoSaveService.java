@@ -43,9 +43,9 @@ public class PlacementAutoSaveService {
 
                 try (PreparedStatement ps = conn.prepareStatement(
                         "INSERT INTO placed_rectangles " +
-                        "(id, roll_id, waste_piece_id, commande_item_id, color_id, " +
-                        " x_mm, y_mm, width_mm, height_mm, created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                                "(id, roll_id, waste_piece_id, commande_item_id, color_id, " +
+                                " x_mm, y_mm, width_mm, height_mm, created_at, updated_at) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
 
                     ps.setObject(1, id);
                     ps.setObject(2, placement.getRoll() != null ? placement.getRoll().getId() : null);
@@ -65,7 +65,10 @@ public class PlacementAutoSaveService {
                 saved.set(true);
 
             } catch (SQLException e) {
-                try { conn.rollback(sp); } catch (SQLException ignored) {}
+                try {
+                    conn.rollback(sp);
+                } catch (SQLException ignored) {
+                }
                 log.warn("Auto-placement skipped (overlap): roll={}, x={}, y={} — {}",
                         placement.getRoll() != null ? placement.getRoll().getId() : null,
                         placement.getXMm(), placement.getYMm(), e.getMessage());
