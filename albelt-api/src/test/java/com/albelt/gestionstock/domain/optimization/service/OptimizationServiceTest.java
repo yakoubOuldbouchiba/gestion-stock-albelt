@@ -114,7 +114,6 @@ class OptimizationServiceTest {
                 .usedAreaM2(new BigDecimal("2.0000"))
                 .wasteAreaM2(new BigDecimal("0.1000"))
                 .utilizationPct(new BigDecimal("95.00"))
-                .svg("<svg/>")
                 .build();
 
         when(snapshotLoader.loadItem(itemId)).thenReturn(item);
