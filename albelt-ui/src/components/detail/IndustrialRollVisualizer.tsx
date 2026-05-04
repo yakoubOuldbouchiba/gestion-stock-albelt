@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { PlacedRectangle, OptimizationPlacementReport } from '../../types';
 import { useI18n } from '../../hooks/useI18n';
+import { PlacementDetailsDialog } from './PlacementDetailsDialog';
 import './IndustrialRollVisualizer.css';
 
 interface IndustrialRollVisualizerProps {
@@ -23,18 +24,10 @@ type NormalizedPlacement = (PlacedRectangle | OptimizationPlacementReport) & {
   metadataLabel?: string | null;
 };
 
-type TooltipState = {
-  placement: NormalizedPlacement;
-  left: number;
-  top: number;
-  horizontal: 'left' | 'right';
-  vertical: 'above' | 'below';
-  pinned: boolean;
-};
-
 /**
  * IndustrialRollVisualizer (Continuous Scroll & Map UX)
  * Keeps placement geometry untouched and upgrades only the interaction layer.
+ * Now uses PlacementDetailsDialog instead of tooltip for better UX.
  */
 export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> = ({
   widthMm,
@@ -48,10 +41,9 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
   const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const activeAnchorRef = useRef<HTMLElement | null>(null);
   const [currentM, setCurrentM] = useState(0);
-  const [tooltipState, setTooltipState] = useState<TooltipState | null>(null);
+  const [selectedPlacement, setSelectedPlacement] = useState<NormalizedPlacement | null>(null);
+  const [showPlacementDialog, setShowPlacementDialog] = useState(false);
   const isPrintMode = printMode || Boolean(printSegment);
 
   const normalizedPlacements = useMemo<NormalizedPlacement[]>(
@@ -60,7 +52,9 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
         ...placement,
         xMm: placement.xMm ?? placement.xmm,
         yMm: placement.yMm ?? placement.ymm,
-        referenceLabel: 'commandeItem' in placement ? placement.commandeItem?.reference ?? null : null,
+        referenceLabel: 
+          'referenceCommande' in placement ? (placement as any).referenceCommande ?? null :
+          'commandeItem' in placement ? placement.commandeItem?.reference ?? null : null,
         metadataLabel:
           'rotated' in placement && placement.rotated != null
             ? placement.rotated
@@ -87,105 +81,33 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
     });
   };
 
-  const positionTooltip = (
-    placement: NormalizedPlacement,
-    anchor: HTMLElement,
-    pinned: boolean
-  ) => {
-    if (isPrintMode || !bodyRef.current) return;
-
-    activeAnchorRef.current = anchor;
-
-    const bodyRect = bodyRef.current.getBoundingClientRect();
-    const anchorRect = anchor.getBoundingClientRect();
-    const tooltipWidth = tooltipRef.current?.offsetWidth ?? 220;
-    const tooltipHeight = tooltipRef.current?.offsetHeight ?? 108;
-    const gap = 14;
-
-    const spaceRight = bodyRect.right - anchorRect.right;
-    const spaceLeft = anchorRect.left - bodyRect.left;
-    const spaceAbove = anchorRect.top - bodyRect.top;
-
-    const horizontal: TooltipState['horizontal'] =
-      spaceRight >= tooltipWidth + gap || spaceRight >= spaceLeft ? 'right' : 'left';
-    const vertical: TooltipState['vertical'] =
-      spaceAbove >= tooltipHeight + gap ? 'above' : 'below';
-
-    const preferredLeft =
-      horizontal === 'right'
-        ? anchorRect.right - bodyRect.left + gap
-        : anchorRect.left - bodyRect.left - tooltipWidth - gap;
-    const preferredTop =
-      vertical === 'above'
-        ? anchorRect.top - bodyRect.top - tooltipHeight - gap
-        : anchorRect.bottom - bodyRect.top + gap;
-
-    const maxLeft = Math.max(8, bodyRect.width - tooltipWidth - 8);
-    const maxTop = Math.max(8, bodyRect.height - tooltipHeight - 8);
-
-    setTooltipState({
-      placement,
-      left: Math.min(Math.max(8, preferredLeft), maxLeft),
-      top: Math.min(Math.max(8, preferredTop), maxTop),
-      horizontal,
-      vertical,
-      pinned,
-    });
+  const calculatePlacementPercentage = (
+    placementWidth: number,
+    placementHeight: number,
+    sourceWidth: number,
+    sourceHeight: number
+  ): number => {
+    if (sourceWidth <= 0 || sourceHeight <= 0) return 0;
+    const placementArea = placementWidth * placementHeight;
+    const sourceArea = sourceWidth * sourceHeight;
+    return (placementArea * 100) / sourceArea;
   };
 
-  const clearTooltip = () => {
-    activeAnchorRef.current = null;
-    setTooltipState(null);
+  const handlePlacementClick = (placement: NormalizedPlacement) => {
+    if (isPrintMode) return;
+    setSelectedPlacement(placement);
+    setShowPlacementDialog(true);
+    onPlacementClick?.(placement);
   };
 
-  const handlePlacementEnter =
-    (placement: NormalizedPlacement) => (event: React.MouseEvent<HTMLDivElement>) => {
-      if (isPrintMode || tooltipState?.pinned) return;
-      positionTooltip(placement, event.currentTarget, false);
-    };
-
-  const handlePlacementLeave = () => {
-    if (isPrintMode || tooltipState?.pinned) return;
-    clearTooltip();
+  const handleHidePlacementDialog = () => {
+    setShowPlacementDialog(false);
+    setSelectedPlacement(null);
   };
-
-  const handlePlacementClick =
-    (placement: NormalizedPlacement) => (event: React.MouseEvent<HTMLDivElement>) => {
-      if (!isPrintMode) {
-        const isSamePlacement = tooltipState?.placement === placement;
-        if (tooltipState?.pinned && isSamePlacement) {
-          clearTooltip();
-        } else {
-          positionTooltip(placement, event.currentTarget, true);
-        }
-      }
-      onPlacementClick?.(placement);
-    };
-
-  useEffect(() => {
-    if (!tooltipState || isPrintMode) return;
-
-    const scrollElement = scrollRef.current;
-    if (!scrollElement) return;
-
-    const syncTooltip = () => {
-      if (activeAnchorRef.current && tooltipState) {
-        positionTooltip(tooltipState.placement, activeAnchorRef.current, tooltipState.pinned);
-      }
-    };
-
-    scrollElement.addEventListener('scroll', syncTooltip, { passive: true });
-    window.addEventListener('resize', syncTooltip);
-
-    return () => {
-      scrollElement.removeEventListener('scroll', syncTooltip);
-      window.removeEventListener('resize', syncTooltip);
-    };
-  }, [isPrintMode, tooltipState?.pinned]);
 
   useEffect(() => {
     if (isPrintMode) {
-      clearTooltip();
+      handleHidePlacementDialog();
     }
   }, [isPrintMode]);
 
@@ -260,76 +182,58 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
                 const width = (placement.widthMm / widthMm) * 100;
                 const cardColor =
                   ((placement as any).colorHexCode || (placement as any).placementColorHexCode) || '#3b82f6';
+                const placementPercentage = calculatePlacementPercentage(
+                  placement.widthMm,
+                  placement.heightMm,
+                  lengthMm,
+                  widthMm
+                );
 
                 return (
                   <div
                     key={(placement as any).id || `opt-${index}`}
-                    className={`ux-placement-card${tooltipState?.placement === placement ? ' is-active' : ''}`}
+                    className="ux-placement-card"
                     style={{
                       top: `${top}px`,
                       height: `${height}px`,
                       left: `${left}%`,
                       width: `${width}%`,
                       backgroundColor: cardColor,
+                      borderColor: 'white',
+                      borderWidth: 4,
+                      borderStyle: 'dashed double',
+                      cursor: 'pointer',
                     }}
-                    onMouseEnter={handlePlacementEnter(placement)}
-                    onMouseLeave={handlePlacementLeave}
-                    onClick={handlePlacementClick(placement)}
+                    onClick={() => handlePlacementClick(placement)}
                   >
                     <div className="ux-placement-info">
                       <span className="dim">{placement.heightMm}</span>
                       <span className="sep">x</span>
                       <span className="dim">{placement.widthMm}</span>
                     </div>
+                    {placementPercentage > 0 && (
+                      <div className="ux-placement-percentage">
+                        <span className="percentage-text">{placementPercentage.toFixed(1)}%</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
           </div>
         </div>
 
-        {!isPrintMode && tooltipState && (
-          <div
-            ref={tooltipRef}
-            className={`ux-placement-tooltip-overlay is-visible is-${tooltipState.horizontal} is-${tooltipState.vertical}${
-              tooltipState.pinned ? ' is-pinned' : ''
-            }`}
-            style={{
-              left: `${tooltipState.left}px`,
-              top: `${tooltipState.top}px`,
-            }}
-          >
-            <div className="ux-placement-tooltip-title">
-              {tooltipState.placement.referenceLabel || t('commandes.placement') || 'Placement'}
-            </div>
-            <div className="ux-placement-tooltip-row">
-              <span>{t('commandes.dimensions') || 'Size'}</span>
-              <strong>
-                {tooltipState.placement.widthMm} x {tooltipState.placement.heightMm} mm
-              </strong>
-            </div>
-            <div className="ux-placement-tooltip-row">
-              <span>{t('commandes.position') || 'Position'}</span>
-              <strong>
-                X {Number(tooltipState.placement.xMm / 1000).toFixed(3)} m | Y{' '}
-                {Number(tooltipState.placement.yMm / 1000).toFixed(3)} m
-              </strong>
-            </div>
-            {(tooltipState.placement as any).id && (
-              <div className="ux-placement-tooltip-row">
-                <span>ID</span>
-                <strong>{String((tooltipState.placement as any).id).slice(0, 18)}</strong>
-              </div>
+        {!isPrintMode && selectedPlacement && (
+          <PlacementDetailsDialog
+            visible={showPlacementDialog}
+            placement={selectedPlacement}
+            onHide={handleHidePlacementDialog}
+            placementPercentage={calculatePlacementPercentage(
+              selectedPlacement.widthMm,
+              selectedPlacement.heightMm,
+              lengthMm,
+              widthMm
             )}
-            {tooltipState.placement.metadataLabel && (
-              <div className="ux-placement-tooltip-row">
-                <span>{t('common.details') || 'Details'}</span>
-                <strong>{tooltipState.placement.metadataLabel}</strong>
-              </div>
-            )}
-            {tooltipState.pinned && (
-              <div className="ux-placement-tooltip-footnote">{t('common.click') || 'Click'} to unpin</div>
-            )}
-          </div>
+          />
         )}
 
         {!printSegment && (

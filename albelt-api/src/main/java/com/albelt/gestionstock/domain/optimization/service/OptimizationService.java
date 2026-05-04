@@ -279,7 +279,6 @@ public class OptimizationService {
                 .usedAreaM2(BigDecimal.ZERO)
                 .wasteAreaM2(BigDecimal.ZERO)
                 .utilizationPct(BigDecimal.ZERO)
-                .svg(null)
                 .build();
         return planRepository.save(plan);
     }
@@ -736,8 +735,6 @@ public class OptimizationService {
                                        OptimizationEngine.OptimizationResult run,
                                        String inputSignature,
                                        String stockSignature) {
-        String svg = buildSuggestedSvg(run.sourcePlans(), item);
-
         return OptimizationPlan.builder()
                 .commandeItemId(item.itemId())
                 .algorithmVersion(ALGORITHM_VERSION)
@@ -749,7 +746,6 @@ public class OptimizationService {
                 .usedAreaM2(run.usedAreaM2())
                 .wasteAreaM2(run.wasteAreaM2())
                 .utilizationPct(run.utilizationPct())
-                .svg(svg)
                 .build();
     }
 
@@ -844,7 +840,6 @@ public class OptimizationService {
                 .suggestionId(plan.getId())
                 .status(plan.getStatus().name())
                 .metrics(metrics)
-                .svg(plan.getSvg())
                 .sources(sources)
                 .placements(placements)
                 .build();
@@ -863,10 +858,15 @@ public class OptimizationService {
         List<SvgGroup> groups = new ArrayList<>();
         for (OptimizationEngine.SourcePlan plan : plans) {
             List<SvgRect> placements = plan.placements().stream()
-                    .map(record -> SvgRect.fromPlacement(record.xMm(), record.yMm(),
-                            record.widthMm(), record.heightMm(), "#8fd3ff", "#004d7a",
+                    .map(record -> {
+                        Double percentage = calculatePlacementPercentage(
+                            record.widthMm(), record.heightMm(),
+                            plan.source().widthMm(), plan.source().lengthMm());
+                        return SvgRect.fromPlacement(record.xMm(), record.yMm(),
+                            record.widthMm(), record.heightMm(), "#8fd3ff", "#004d7a", 0.9,
                             buildPlacementLabel(record.xMm(), record.yMm(),
-                                    record.widthMm(), record.heightMm())))
+                                record.widthMm(), record.heightMm()), percentage);
+                    })
                     .toList();
 
             List<SvgRect> wasteRects = plan.freeRects().stream()
@@ -898,15 +898,23 @@ public class OptimizationService {
             if (pr.getRoll() != null) {
                 String key = "ROLL-" + pr.getRoll().getId();
                 builders.computeIfAbsent(key, k -> SvgGroupBuilder.fromRoll(pr.getRoll()));
+                Roll roll = pr.getRoll();
+                Double percentage = calculatePlacementPercentage(
+                    pr.getWidthMm(), pr.getHeightMm(),
+                    roll.getWidthMm(), roll.getLengthMm() != null ? roll.getLengthMm() : 0);
                 builders.get(key).placements.add(SvgRect.fromPlacement(pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm(),
-                        "#ffd39c", "#7a4a00", buildPlacementLabel(pr.getXMm(), pr.getYMm(),
-                                pr.getWidthMm(), pr.getHeightMm())));
+                        "#ffd39c", "#7a4a00", 0.9, buildPlacementLabel(pr.getXMm(), pr.getYMm(),
+                                pr.getWidthMm(), pr.getHeightMm()), percentage));
             } else if (pr.getWastePiece() != null) {
                 String key = "WASTE-" + pr.getWastePiece().getId();
                 builders.computeIfAbsent(key, k -> SvgGroupBuilder.fromWaste(pr.getWastePiece()));
+                WastePiece waste = pr.getWastePiece();
+                Double percentage = calculatePlacementPercentage(
+                    pr.getWidthMm(), pr.getHeightMm(),
+                    waste.getWidthMm(), waste.getLengthMm() != null ? waste.getLengthMm() : 0);
                 builders.get(key).placements.add(SvgRect.fromPlacement(pr.getXMm(), pr.getYMm(), pr.getWidthMm(), pr.getHeightMm(),
-                        "#ffd39c", "#7a4a00", buildPlacementLabel(pr.getXMm(), pr.getYMm(),
-                                pr.getWidthMm(), pr.getHeightMm())));
+                        "#ffd39c", "#7a4a00", 0.9, buildPlacementLabel(pr.getXMm(), pr.getYMm(),
+                                pr.getWidthMm(), pr.getHeightMm()), percentage));
             }
         }
 
@@ -972,6 +980,13 @@ public class OptimizationService {
             String sourceId = pr.getRoll() != null
                     ? pr.getRoll().getId().toString()
                     : pr.getWastePiece() != null ? pr.getWastePiece().getId().toString() : null;
+            String commandeRef = null;
+            if (pr.getCommandeItemId() != null) {
+                CommandeItem commandeItem = itemRepository.findById(pr.getCommandeItemId()).orElse(null);
+                if (commandeItem != null && commandeItem.getCommande() != null) {
+                    commandeRef = commandeItem.getCommande().getNumeroCommande();
+                }
+            }
             results.add(OptimizationPlacementReportResponse.builder()
                     .sourceType(sourceType)
                     .sourceId(sourceId)
@@ -979,6 +994,7 @@ public class OptimizationService {
                     .yMm(pr.getYMm())
                     .widthMm(pr.getWidthMm())
                     .heightMm(pr.getHeightMm())
+                    .commandeReference(commandeRef)
                     .placementColorName(pr.getColor() != null ? pr.getColor().getName() : null)
                     .placementColorHexCode(pr.getColor() != null ? pr.getColor().getHexCode() : null)
                     .qrCode(buildPlacementQrCode(
@@ -1055,6 +1071,13 @@ public class OptimizationService {
             String sourceId = op.getRoll() != null
                     ? op.getRoll().getId().toString()
                     : op.getWastePiece() != null ? op.getWastePiece().getId().toString() : null;
+            String commandeRef = null;
+            if (op.getPlan() != null && op.getPlan().getCommandeItemId() != null) {
+                CommandeItem commandeItem = itemRepository.findById(op.getPlan().getCommandeItemId()).orElse(null);
+                if (commandeItem != null && commandeItem.getCommande() != null) {
+                    commandeRef = commandeItem.getCommande().getNumeroCommande();
+                }
+            }
             results.add(OptimizationPlacementReportResponse.builder()
                     .sourceType(sourceType)
                     .sourceId(sourceId)
@@ -1066,6 +1089,7 @@ public class OptimizationService {
                     .pieceWidthMm(op.getPieceWidthMm())
                     .pieceLengthMm(op.getPieceLengthMm())
                     .areaM2(op.getAreaM2())
+                    .commandeReference(commandeRef)
                     .qrCode(buildPlacementQrCode(
                             sourceType,
                             sourceId,
@@ -1208,6 +1232,15 @@ public class OptimizationService {
             return null;
         }
         return "x:" + xMm + " y:" + yMm + " " + widthMm + "x" + heightMm + "mm";
+    }
+
+    private Double calculatePlacementPercentage(int placementWidthMm, int placementHeightMm, int sourceWidthMm, int sourceHeightMm) {
+        if (sourceWidthMm <= 0 || sourceHeightMm <= 0 || placementWidthMm <= 0 || placementHeightMm <= 0) {
+            return null;
+        }
+        long placementArea = (long) placementWidthMm * placementHeightMm;
+        long sourceArea = (long) sourceWidthMm * sourceHeightMm;
+        return (placementArea * 100.0) / sourceArea;
     }
 
     private MaterialType parseMaterialType(String materialType) {
@@ -1568,20 +1601,25 @@ public class OptimizationService {
         private final String stroke;
         private final double opacity;
         private final String label;
+        private final Double placementPercentage;
 
         private SvgRect(int x, int y, int width, int height, String fill, String stroke) {
-            this(x, y, width, height, fill, stroke, 0.9, null);
+            this(x, y, width, height, fill, stroke, 0.9, null, null);
         }
 
         private SvgRect(int x, int y, int width, int height, String fill, String stroke, double opacity) {
-            this(x, y, width, height, fill, stroke, opacity, null);
+            this(x, y, width, height, fill, stroke, opacity, null, null);
         }
 
         private SvgRect(int x, int y, int width, int height, String fill, String stroke, String label) {
-            this(x, y, width, height, fill, stroke, 0.9, label);
+            this(x, y, width, height, fill, stroke, 0.9, label, null);
         }
 
         private SvgRect(int x, int y, int width, int height, String fill, String stroke, double opacity, String label) {
+            this(x, y, width, height, fill, stroke, opacity, label, null);
+        }
+
+        private SvgRect(int x, int y, int width, int height, String fill, String stroke, double opacity, String label, Double placementPercentage) {
             this.x = x;
             this.y = y;
             this.width = width;
@@ -1590,14 +1628,19 @@ public class OptimizationService {
             this.stroke = stroke;
             this.opacity = opacity;
             this.label = label;
+            this.placementPercentage = placementPercentage;
         }
 
         private static SvgRect fromPlacement(int xMm, int yMm, int widthMm, int heightMm, String fill, String stroke, String label) {
-            return new SvgRect(yMm, xMm, heightMm, widthMm, fill, stroke, label);
+            return new SvgRect(yMm, xMm, heightMm, widthMm, fill, stroke, 0.9, label, null);
         }
 
         private static SvgRect fromPlacement(int xMm, int yMm, int widthMm, int heightMm, String fill, String stroke, double opacity, String label) {
-            return new SvgRect(yMm, xMm, heightMm, widthMm, fill, stroke, opacity, label);
+            return new SvgRect(yMm, xMm, heightMm, widthMm, fill, stroke, opacity, label, null);
+        }
+
+        private static SvgRect fromPlacement(int xMm, int yMm, int widthMm, int heightMm, String fill, String stroke, double opacity, String label, Double placementPercentage) {
+            return new SvgRect(yMm, xMm, heightMm, widthMm, fill, stroke, opacity, label, placementPercentage);
         }
 
         private String toSvg() {
@@ -1610,6 +1653,11 @@ public class OptimizationService {
                     .append("\" width=\"").append(width).append("\" height=\"").append(height)
                     .append("\" fill=\"").append(fill).append("\" stroke=\"").append(stroke)
                     .append("\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\" opacity=\"").append(opacity).append("\"/>");
+
+            // Render placement percentage with double dashed border
+            if (placementPercentage != null && placementPercentage > 0) {
+                renderPlacementPercentage(output);
+            }
 
             if (label != null && !label.isBlank()) {
                 int fontSize = Math.max(14, Math.min(60, Math.min(width, height) / 6));
@@ -1635,6 +1683,55 @@ public class OptimizationService {
 
             output.append("</g>");
             return output.toString();
+        }
+
+        private void renderPlacementPercentage(StringBuilder output) {
+            int fontSize = Math.max(12, Math.min(36, Math.min(width, height) / 8));
+            String percentageText = String.format("%.1f%%", placementPercentage);
+            int textWidth = (int) Math.ceil(percentageText.length() * (fontSize * 0.6));
+            int padding = Math.max(4, fontSize / 3);
+            int borderRadius = Math.max(2, fontSize / 6);
+            
+            // Position percentage in the center or bottom-right if center is too crowded
+            int percentX = x + width / 2 - textWidth / 2;
+            int percentY = y + height / 2 + fontSize / 3;
+            
+            // Ensure percentage stays within bounds
+            if (percentX < x + 4) percentX = x + 4;
+            if (percentX + textWidth + 8 > x + width) percentX = x + width - textWidth - 8;
+            if (percentY < y + fontSize + 4) percentY = y + fontSize + 4;
+            if (percentY + fontSize + 4 > y + height) percentY = y + height - 4;
+            
+            int bgX = percentX - padding;
+            int bgY = percentY - fontSize - padding;
+            int bgWidth = textWidth + (padding * 2);
+            int bgHeight = fontSize + (padding * 2);
+            
+            // Background with white fill and double dashed border
+            output.append("<g class=\"placement-percentage-container\">");
+            output.append("<rect x=\"").append(bgX).append("\" y=\"").append(bgY)
+                    .append("\" width=\"").append(bgWidth).append("\" height=\"").append(bgHeight)
+                    .append("\" fill=\"#ffffff\" opacity=\"0.95\" rx=\"").append(borderRadius).append("\" ry=\"").append(borderRadius).append("\"/>");
+            
+            // Double dashed border stroke (outer)
+            output.append("<rect x=\"").append(bgX).append("\" y=\"").append(bgY)
+                    .append("\" width=\"").append(bgWidth).append("\" height=\"").append(bgHeight)
+                    .append("\" fill=\"none\" stroke=\"#1f2937\" stroke-width=\"1.5\" stroke-dasharray=\"4,2\" vector-effect=\"non-scaling-stroke\" rx=\"")
+                    .append(borderRadius).append("\" ry=\"").append(borderRadius).append("\"/>");
+            
+            // Inner dashed border for emphasis
+            int innerPadding = 2;
+            output.append("<rect x=\"").append(bgX + innerPadding).append("\" y=\"").append(bgY + innerPadding)
+                    .append("\" width=\"").append(Math.max(0, bgWidth - innerPadding * 2)).append("\" height=\"").append(Math.max(0, bgHeight - innerPadding * 2))
+                    .append("\" fill=\"none\" stroke=\"#3b82f6\" stroke-width=\"0.5\" stroke-dasharray=\"3,1\" vector-effect=\"non-scaling-stroke\" rx=\"")
+                    .append(Math.max(0, borderRadius - innerPadding)).append("\" ry=\"").append(Math.max(0, borderRadius - innerPadding)).append("\"/>");
+            
+            // Percentage text
+            output.append("<text x=\"").append(percentX).append("\" y=\"").append(percentY)
+                    .append("\" font-size=\"").append(fontSize).append("\" font-weight=\"700\" fill=\"#1f2937\" opacity=\"0.95\" text-anchor=\"start\">")
+                    .append(escape(percentageText))
+                    .append("</text>");
+            output.append("</g>");
         }
     }
 

@@ -54,6 +54,7 @@ public class PlacedRectangleMapper {
                 .roll(toRollSummary(roll))
                 .wastePiece(toWastePieceSummary(wastePiece))
                 .commandeItem(toCommandeItemSummary(commandeItem))
+                .referenceCommande(commandeItem != null ? commandeItem.getCommande().getNumeroCommande() : null)
                 .xMm(entity.getXMm())
                 .yMm(entity.getYMm())
                 .widthMm(entity.getWidthMm())

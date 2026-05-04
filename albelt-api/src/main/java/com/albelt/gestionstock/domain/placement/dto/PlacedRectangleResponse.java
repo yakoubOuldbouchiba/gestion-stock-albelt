@@ -27,6 +27,8 @@ public class PlacedRectangleResponse {
     private WastePieceSummaryResponse wastePiece;
     private CommandeItemSummaryResponse commandeItem;
 
+    private String referenceCommande;
+
     @JsonProperty("xMm")
     private Integer xMm;
     @JsonProperty("yMm")

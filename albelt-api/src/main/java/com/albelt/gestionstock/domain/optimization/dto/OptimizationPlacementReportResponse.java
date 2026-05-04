@@ -43,4 +43,9 @@ public class OptimizationPlacementReportResponse {
      * Printable QR image for the placed rectangle/report row.
      */
     private String qrCode;
+
+    /**
+     * Reference from associated commande item (if any).
+     */
+    private String commandeReference;
 }

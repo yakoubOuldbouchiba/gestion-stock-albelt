@@ -342,6 +342,7 @@ export interface PlacedRectangle {
   roll?: RollSummary | null;
   wastePiece?: WastePieceSummary | null;
   commandeItem?: CommandeItemSummary | null;
+  referenceCommande?: string | null;
   xMm: number;
   yMm: number;
   xmm: number;
@@ -896,6 +897,7 @@ export interface OptimizationPlacementReport {
   placementColorName?: string | null;
   placementColorHexCode?: string | null;
   qrCode?: string | null;
+  commandeReference?: string | null;
 }
 
 export interface OptimizationPlan {

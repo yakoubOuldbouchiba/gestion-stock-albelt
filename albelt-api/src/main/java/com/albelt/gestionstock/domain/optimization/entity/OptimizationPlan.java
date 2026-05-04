@@ -76,9 +76,6 @@ public class OptimizationPlan {
     @Builder.Default
     private BigDecimal utilizationPct = BigDecimal.ZERO;
 
-    @Column(name = "svg", columnDefinition = "TEXT")
-    private String svg;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

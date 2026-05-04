@@ -179,7 +179,11 @@
     "wastePieceDetails": "تفاصيل قطعة البقايا",
     "selectArticle": "اختر المادة",
     "totalItems": "إجمالي العناصر",
-    "lotId": "رقم "
+    "lotId": "رقم ",
+    "placementCoverage": "التغطية",
+    "saisiHistorique": "إدخال تاريخي",
+    "historical": "تاريخي",
+    "placementCoverageDescription": "نسبة مئوية من منطقة المصدر المستخدمة بواسطة هذا التقطيع"
   },
   "rolls": {
     "title": "اللفائف (Rouleaux)",

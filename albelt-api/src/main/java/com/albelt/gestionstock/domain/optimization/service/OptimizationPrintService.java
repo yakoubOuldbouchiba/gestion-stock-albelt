@@ -25,7 +25,7 @@ public class OptimizationPrintService {
         boolean suggested = "SUGGESTED".equals(normalizedVariant);
         String title = msg(suggested ? "pdf.optimization.suggestedTitle" : "pdf.optimization.actualTitle", locale);
         String svg = suggested
-                ? comparison.getSuggested() != null ? comparison.getSuggested().getSvg() : null
+                ? null  // SVG now generated on frontend
                 : comparison.getActualSvg();
         List<OptimizationSourceReportResponse> sources = suggested
                 ? comparison.getSuggested() != null ? nullSafeSources(comparison.getSuggested().getSources()) : List.of()
@@ -50,7 +50,7 @@ public class OptimizationPrintService {
         boolean suggested = "SUGGESTED".equals(normalizedVariant);
         String title = msg(suggested ? "pdf.optimization.suggestedTitle" : "pdf.optimization.actualTitle", locale);
         String svg = suggested
-                ? comparison.getSuggested() != null ? comparison.getSuggested().getSvg() : null
+                ? null  // SVG now generated on frontend
                 : comparison.getActualSvg();
         List<OptimizationSourceReportResponse> sources = suggested
                 ? comparison.getSuggested() != null ? nullSafeSources(comparison.getSuggested().getSources()) : List.of()

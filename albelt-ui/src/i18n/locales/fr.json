@@ -178,7 +178,11 @@
     "totalItems": "Nombre total d'articles",
     "placementOverlapsExisting": "Le coupe chevauche un coupe existant",
     "selectArticle": "Sélectionner un article",
-    "lotId": "ID Lot"
+    "lotId": "ID Lot",
+    "placementCoverage": "Couverture",
+    "saisiHistorique": "saisie historique",
+    "historical": "Historique",
+    "placementCoverageDescription": "Pourcentage de la surface source utilisée par ce coupe"
   },
   "rolls": {
     "title": "Rouleaux",

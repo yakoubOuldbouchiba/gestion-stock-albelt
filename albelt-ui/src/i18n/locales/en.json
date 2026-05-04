@@ -183,7 +183,11 @@
     "selectArticle": "Select Article",
     "totalItems": "Total Items",
     "lotId": "Lot ID",
-    "navigation": "Navigation"
+    "navigation": "Navigation",
+    "placementCoverage": "Coverage",
+    "saisiHistorique": "saisie historique",
+    "historical": "Historical",
+    "placementCoverageDescription": "Percentage of source area used by this placement"
   },
   "rolls": {
     "title": "Rolls",
