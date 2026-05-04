@@ -110,7 +110,10 @@ export function ChuteDetailPage() {
 
   return (
     <div className="detail-page-container p-gutter">
-      <Toast ref={toast} position="bottom-center" />
+      <Toast 
+        ref={toast} 
+        position="bottom-center"
+      />
       <header className="detail-header">
         <div className="detail-header__main">
           <Button icon="pi pi-arrow-left" text onClick={() => navigate('/inventory')} className="p-button-lg" />

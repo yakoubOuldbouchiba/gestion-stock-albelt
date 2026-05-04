@@ -1,3 +1,8 @@
+/* Fix for PrimeReact InputText not editable in LTR mode */
+.p-inputtext {
+  pointer-events: auto !important;
+  background: #fff !important;
+}
 * {
   box-sizing: border-box;
   scrollbar-color: #c53a2f #f1f5f9;
@@ -958,7 +963,7 @@ ol {
   top: calc(var(--navbar-height) + 12px) !important;
   right: 24px !important;
   left: auto !important;
-  pointer-events: auto !important;
+  pointer-events: none !important;
 }
 
 .p-toast .p-toast-message {

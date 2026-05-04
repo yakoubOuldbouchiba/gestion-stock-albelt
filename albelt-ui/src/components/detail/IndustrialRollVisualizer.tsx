@@ -165,23 +165,23 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
   useEffect(() => {
     if (!tooltipState || isPrintMode) return;
 
+    const scrollElement = scrollRef.current;
+    if (!scrollElement) return;
+
     const syncTooltip = () => {
-      if (activeAnchorRef.current) {
+      if (activeAnchorRef.current && tooltipState) {
         positionTooltip(tooltipState.placement, activeAnchorRef.current, tooltipState.pinned);
       }
     };
 
-    syncTooltip();
-
-    const scrollElement = scrollRef.current;
-    scrollElement?.addEventListener('scroll', syncTooltip, { passive: true });
+    scrollElement.addEventListener('scroll', syncTooltip, { passive: true });
     window.addEventListener('resize', syncTooltip);
 
     return () => {
-      scrollElement?.removeEventListener('scroll', syncTooltip);
+      scrollElement.removeEventListener('scroll', syncTooltip);
       window.removeEventListener('resize', syncTooltip);
     };
-  }, [isPrintMode, tooltipState]);
+  }, [isPrintMode, tooltipState?.placement?.id, tooltipState?.pinned]);
 
   useEffect(() => {
     if (isPrintMode) {

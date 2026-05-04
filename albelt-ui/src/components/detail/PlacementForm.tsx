@@ -25,52 +25,66 @@ export const PlacementForm: React.FC<PlacementFormProps> = ({
   isProcessing,
   isEditing,
 }) => {
-  const { t } = useI18n();
+  const { t, isArabic } = useI18n();
+
+  const handleNumericChange = (name: string, value: string) => {
+    // Only allow numbers (0-9)
+    const numericValue = value.replace(/[^0-9]/g, '');
+    onChange(name, numericValue);
+  };
 
   return (
-    <div className="form-card mt-4">
+    <div className="form-card mt-4" dir={isArabic() ? 'rtl' : 'ltr'} lang={isArabic() ? 'ar' : 'en'}>
       <h4 style={{ marginTop: 0, marginBottom: '1.25rem' }}>
         {isEditing ? t('rollDetail.updatePlacement') : t('rollDetail.addPlacement')}
       </h4>
       <div className="form-grid">
         <div className="form-field">
-          <label>X ({t('rollDetail.lengthOnX') || 'Length on X'})</label>
+          <label htmlFor="placement-x-mm">X ({t('rollDetail.lengthOnX') || 'Length on X'})</label>
           <InputText
+            id="placement-x-mm"
+            name="xMm"
             value={form.xMm}
-            onChange={(e) => onChange('xMm', e.target.value)}
-            type="number"
-            min={0}
+            onChange={(e) => handleNumericChange('xMm', e.target.value)}
+            type="text"
             placeholder="0"
+            dir={isArabic() ? 'rtl' : 'ltr'}
           />
         </div>
         <div className="form-field">
-          <label>Y ({t('rollDetail.widthOnY') || 'Width on Y'})</label>
+          <label htmlFor="placement-y-mm">Y ({t('rollDetail.widthOnY') || 'Width on Y'})</label>
           <InputText
+            id="placement-y-mm"
+            name="yMm"
             value={form.yMm}
-            onChange={(e) => onChange('yMm', e.target.value)}
-            type="number"
-            min={0}
+            onChange={(e) => handleNumericChange('yMm', e.target.value)}
+            type="text"
             placeholder="0"
+            dir={isArabic() ? 'rtl' : 'ltr'}
           />
         </div>
         <div className="form-field">
-          <label>{t('rollDetail.widthMm') || 'Width (mm)'}</label>
+          <label htmlFor="placement-width-mm">{t('rollDetail.widthMm') || 'Width (mm)'}</label>
           <InputText
+            id="placement-width-mm"
+            name="widthMm"
             value={form.widthMm}
-            onChange={(e) => onChange('widthMm', e.target.value)}
-            type="number"
-            min={1}
+            onChange={(e) => handleNumericChange('widthMm', e.target.value)}
+            type="text"
             placeholder="300"
+            dir={isArabic() ? 'rtl' : 'ltr'}
           />
         </div>
         <div className="form-field">
-          <label>{t('rollDetail.heightMm') || 'Height (mm)'}</label>
+          <label htmlFor="placement-height-mm">{t('rollDetail.heightMm') || 'Height (mm)'}</label>
           <InputText
+            id="placement-height-mm"
+            name="heightMm"
             value={form.heightMm}
-            onChange={(e) => onChange('heightMm', e.target.value)}
-            type="number"
-            min={1}
+            onChange={(e) => handleNumericChange('heightMm', e.target.value)}
+            type="text"
             placeholder="200"
+            dir={isArabic() ? 'rtl' : 'ltr'}
           />
         </div>
       </div>

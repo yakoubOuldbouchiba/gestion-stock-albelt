@@ -126,6 +126,10 @@ export function RollDetailPage() {
 
   return (
     <div className="detail-page-container p-gutter">
+      <Toast 
+        ref={toast} 
+        position="bottom-center"
+      />
       <header className="detail-header">
         <div className="detail-header__main">
           <Button icon="pi pi-arrow-left" text onClick={() => navigate('/inventory')} className="p-button-lg" />
@@ -147,7 +151,7 @@ export function RollDetailPage() {
           <Button label={t('rollDetail.movements')} icon="pi pi-map-marker" outlined size="small" onClick={() => navigate(`/roll/${roll.id}/movements`)} />
         </div>
       </header>
-      <Toast ref={toast} position="bottom-center" />
+      
 
       <section className="metrics-grid">
         <MetricTile label={t('rollDetail.width')} value={roll.widthMm} unit="mm" />

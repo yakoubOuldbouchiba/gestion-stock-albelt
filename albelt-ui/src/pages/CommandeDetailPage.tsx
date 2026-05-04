@@ -819,7 +819,10 @@ export function CommandeDetailPage() {
         })()}
       </Dialog>
 
-      <Toast ref={toastRef}  />
+      <Toast 
+        ref={toastRef}
+        position="bottom-center"
+      />
     </div>
   );
 }

@@ -200,7 +200,10 @@ export function CommandeCreatePage() {
 
   return (
     <div className="page-container commande-form-page">
-      <Toast ref={toastRef} />
+      <Toast 
+        ref={toastRef}
+        position="bottom-center"
+      />
       <ConfirmDialog />
 
       {error && (

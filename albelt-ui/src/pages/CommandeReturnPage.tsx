@@ -445,7 +445,10 @@ export function CommandeReturnPage() {
 
   return (
     <div style={{ padding: '1.5rem' }}>
-      <Toast ref={toastRef} />
+      <Toast 
+        ref={toastRef}
+        position="bottom-center"
+      />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
