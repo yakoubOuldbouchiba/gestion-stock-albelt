@@ -306,7 +306,7 @@ export function CommandeReturnPage() {
                   <span><strong>{t('returns.line')}</strong> {commandeItem.lineNumber}</span>
                   <span><strong>{t('returns.material')}</strong> {commandeItem.materialType}</span>
                   <span>
-                    <strong>{t('returns.dimensions')}</strong> {productionItem.pieceWidthMm}mm x {productionItem.pieceLengthM}m
+                    <strong>{t('returns.dimensions')}</strong> {productionItem.pieceWidthMm}mm x {productionItem.pieceLengthMm}mm
                   </span>
                   <span><strong>{t('returns.produced')}</strong> {productionItem.quantity}</span>
                   <span><strong>{t('returns.remaining')}</strong> {row.remaining}</span>
@@ -405,7 +405,7 @@ export function CommandeReturnPage() {
                             }))
                           }
                           min={0}
-                          max={productionItem.pieceLengthM}
+                          max={productionItem.pieceLengthMm}
                           mode="decimal"
                           minFractionDigits={1}
                           maxFractionDigits={2}

@@ -43,7 +43,7 @@ public class QrCodeService {
                                        Integer heightMm,
                                        Boolean rotated,
                                        Integer pieceWidthMm,
-                                       BigDecimal pieceLengthM,
+                                       Integer pieceLengthMm,
                                        BigDecimal areaM2,
                                        String colorName,
                                        String colorHexCode) {
@@ -57,7 +57,7 @@ public class QrCodeService {
         values.put("heightMm", heightMm);
         values.put("rotated", rotated);
         values.put("pieceWidthMm", pieceWidthMm);
-        values.put("pieceLengthM", normalizeDecimal(pieceLengthM));
+        values.put("pieceLengthMm", pieceLengthMm);
         values.put("areaM2", normalizeDecimal(areaM2));
         values.put("color", colorName);
         values.put("colorHexCode", colorHexCode);
@@ -98,7 +98,7 @@ public class QrCodeService {
         values.put("nbPlis", roll.getNbPlis());
         values.put("thicknessMm", roll.getThicknessMm());
         values.put("widthMm", roll.getWidthMm());
-        values.put("lengthM", roll.getLengthM());
+        values.put("lengthMm", roll.getLengthMm());
         values.put("areaM2", normalizeDecimal(roll.getAreaM2()));
         values.put("status", roll.getStatus());
         return toPayload(values);
@@ -120,7 +120,7 @@ public class QrCodeService {
         values.put("nbPlis", wastePiece.getNbPlis());
         values.put("thicknessMm", wastePiece.getThicknessMm());
         values.put("widthMm", wastePiece.getWidthMm());
-        values.put("lengthM", wastePiece.getLengthM());
+        values.put("lengthMm", wastePiece.getLengthMm());
         values.put("areaM2", normalizeDecimal(wastePiece.getAreaM2()));
         values.put("wasteType", wastePiece.getWasteType());
         values.put("status", wastePiece.getStatus());

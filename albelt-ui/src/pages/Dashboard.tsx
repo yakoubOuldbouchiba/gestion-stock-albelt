@@ -132,7 +132,7 @@ export function Dashboard() {
               body={(roll: Roll) => <Tag value={roll.materialType} />}
             />
             <Column field="widthMm" header={t('rolls.width')} />
-            <Column header={t('rolls.length')} body={(roll: Roll) => roll.lengthM.toFixed(2)} />
+            <Column header={t('rolls.length')} body={(roll: Roll) => roll.lengthMm} />
             <Column header={t('rolls.area')} body={(roll: Roll) => roll.areaM2.toFixed(2)} />
             <Column
               header={t('users.status')}

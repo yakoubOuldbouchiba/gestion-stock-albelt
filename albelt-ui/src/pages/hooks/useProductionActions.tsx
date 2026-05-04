@@ -33,7 +33,7 @@ export function useProductionActions(
     }
 
     const quantity = parseInt(productionForm.quantity, 10);
-    const pieceLength = parseFloat(productionForm.pieceLengthM);
+    const pieceLength = parseInt(productionForm.pieceLengthMm, 10);
     const pieceWidth = parseInt(productionForm.pieceWidthMm, 10);
 
     if (!quantity || !pieceLength || !pieceWidth) {

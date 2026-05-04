@@ -17,7 +17,7 @@ public class MaterialChuteThresholdMapper {
                 .id(entity.getId())
                 .materialType(entity.getMaterialType())
                 .minWidthMm(entity.getMinWidthMm())
-                .minLengthM(entity.getMinLengthM())
+                .minLengthMm(entity.getMinLengthMm())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
@@ -31,6 +31,6 @@ public class MaterialChuteThresholdMapper {
     public void applyRequest(MaterialChuteThreshold entity, MaterialChuteThresholdRequest request) {
         entity.setMaterialType(request.getMaterialType());
         entity.setMinWidthMm(request.getMinWidthMm());
-        entity.setMinLengthM(request.getMinLengthM());
+        entity.setMinLengthMm(request.getMinLengthMm());
     }
 }

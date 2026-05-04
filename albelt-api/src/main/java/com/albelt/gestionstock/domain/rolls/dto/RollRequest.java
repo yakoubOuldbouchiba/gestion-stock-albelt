@@ -43,22 +43,22 @@ public class RollRequest {
     @DecimalMin(value = "0.0", inclusive = false, message = "Thickness must be greater than 0")
     private BigDecimal thicknessMm;
 
-    // Dimensions (current state)
+    // Dimensions (current state - all in millimeters)
     @NotNull(message = "Width in mm is required")
     @Positive(message = "Width must be greater than 0")
     private Integer widthMm;
 
-    @NotNull(message = "Length in meters is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Length must be greater than 0")
-    private BigDecimal lengthM;
+    @NotNull(message = "Length in mm is required")
+    @Positive(message = "Length must be greater than 0")
+    private Integer lengthMm;
 
     @NotNull(message = "Area in m² is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Area must be greater than 0")
     private BigDecimal areaM2;
 
-    // Remaining dimensions (optional updates)
+    // Remaining dimensions (optional updates - all in millimeters)
     private Integer widthRemainingMm;
-    private BigDecimal lengthRemainingM;
+    private Integer lengthRemainingMm;
 
     // Status & Classification
     @NotNull(message = "Status is required")

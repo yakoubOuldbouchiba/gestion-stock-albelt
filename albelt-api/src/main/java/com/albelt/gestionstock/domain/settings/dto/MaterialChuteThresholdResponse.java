@@ -21,7 +21,7 @@ public class MaterialChuteThresholdResponse {
     private UUID id;
     private MaterialType materialType;
     private Integer minWidthMm;
-    private BigDecimal minLengthM;
+    private Integer minLengthMm;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

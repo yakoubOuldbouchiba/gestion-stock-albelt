@@ -78,7 +78,7 @@ export function usePlacementActions(
     }
 
     const sourceWidth = Number(source.widthMm) || 0;
-    const sourceLengthMm = Math.round((Number(source.lengthM) || 0) * 1000);
+    const sourceLengthMm = Number(source.lengthMm) || 0;
     if (sourceWidth <= 0 || sourceLengthMm <= 0) {
       showError(t('inventory.sourceDimensionsRequired'));
       return false;

@@ -87,7 +87,7 @@ export function ItemSidebar({
                 >
                   <strong>{getArticleDisplayLabel(item)}</strong>
                   <span>
-                    {getArticleMaterialType(item)} • {getArticleNbPlis(item)}P • {getArticleThicknessMm(item)} {t('commandes.mm')} • {item.longueurM} {t('commandes.m')} x {item.largeurMm} {t('commandes.mm')}
+                    {getArticleMaterialType(item)} • {getArticleNbPlis(item)}P • {getArticleThicknessMm(item)} {t('commandes.mm')} • {item.longueurMm} {t('commandes.mm')} x {item.largeurMm} {t('commandes.mm')}
                   </span>
                 </div>
 

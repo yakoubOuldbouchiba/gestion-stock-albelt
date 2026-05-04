@@ -13,7 +13,7 @@ public record OptimizationSourceSnapshot(
         UUID wastePieceId,
         UUID articleId,
         Integer widthMm,
-        BigDecimal lengthM,
+        Integer lengthMm,
         BigDecimal availableAreaM2,
         BigDecimal fullAreaM2,
         String sourceStatus,
@@ -29,7 +29,7 @@ public record OptimizationSourceSnapshot(
                                       UUID rollId,
                                       UUID wastePieceId,
                                       Integer widthMm,
-                                      BigDecimal lengthM,
+                                      Integer lengthMm,
                                       BigDecimal availableAreaM2,
                                       BigDecimal fullAreaM2,
                                       Integer nbPlis,
@@ -44,7 +44,7 @@ public record OptimizationSourceSnapshot(
                 wastePieceId,
                 null,
                 widthMm,
-                lengthM,
+                lengthMm,
                 availableAreaM2,
                 fullAreaM2,
                 null,
@@ -61,7 +61,7 @@ public record OptimizationSourceSnapshot(
                                       UUID rollId,
                                       UUID wastePieceId,
                                       Integer widthMm,
-                                      BigDecimal lengthM,
+                                      Integer lengthMm,
                                       BigDecimal availableAreaM2,
                                       BigDecimal fullAreaM2,
                                       String sourceStatus,
@@ -77,7 +77,7 @@ public record OptimizationSourceSnapshot(
                 wastePieceId,
                 null,
                 widthMm,
-                lengthM,
+                lengthMm,
                 availableAreaM2,
                 fullAreaM2,
                 sourceStatus,
@@ -92,13 +92,6 @@ public record OptimizationSourceSnapshot(
 
     public UUID sourceId() {
         return rollId != null ? rollId : wastePieceId;
-    }
-
-    public int lengthMm() {
-        if (lengthM == null) {
-            return 0;
-        }
-        return lengthM.multiply(BigDecimal.valueOf(1000)).intValue();
     }
 
     public BigDecimal effectiveAreaM2() {

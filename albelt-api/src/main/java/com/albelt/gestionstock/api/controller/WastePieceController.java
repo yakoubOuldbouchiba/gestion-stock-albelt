@@ -143,7 +143,7 @@ public class WastePieceController {
     public ResponseEntity<ApiResponse<WastePieceResponse>> recordWaste(
             @RequestBody WastePieceRequest request) {
         log.info("Recording waste piece: material={}, area_m2={}",
-                request.getMaterialType(), request.getLengthM());
+                request.getMaterialType(), request.getLengthMm());
 
         // Get current user from SecurityContext (JWT token)
         var authentication = SecurityContextHolder.getContext().getAuthentication();

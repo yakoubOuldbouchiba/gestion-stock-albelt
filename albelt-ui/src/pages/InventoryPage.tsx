@@ -142,7 +142,7 @@ export function InventoryPage() {
     nbPlis: 1,
     thicknessMm: 2.5,
     widthMm: 1000,
-    lengthM: 50,
+    lengthMm: 50000,
     areaM2: 50,
     status: 'AVAILABLE',
     supplierId: '',
@@ -324,8 +324,8 @@ export function InventoryPage() {
           nbPlis: selectedParent.nbPlis,
           thicknessMm: selectedParent.thicknessMm,
           widthMm: selectedParent.widthMm,
-          lengthM: selectedParent.lengthM,
-          areaM2: (selectedParent.widthMm / 1000) * Number(selectedParent.lengthM),
+          lengthMm: selectedParent.lengthMm,
+          areaM2: (selectedParent.widthMm * selectedParent.lengthMm) / 1_000_000,
           altierId: selectedParent.altierId ?? undefined,
           colorId: selectedParent.colorId ?? undefined,
           reference: selectedParent.reference ?? undefined,
@@ -346,9 +346,8 @@ export function InventoryPage() {
     const numValue = parseFloat(value) || 0;
     setFormData((prev) => {
       const updated = { ...prev, [name]: numValue } as RollRequest;
-      if (name === 'widthMm' || name === 'lengthM') {
-        const widthInMeters = updated.widthMm / 1000;
-        updated.areaM2 = widthInMeters * updated.lengthM;
+      if (name === 'widthMm' || name === 'lengthMm') {
+        updated.areaM2 = (updated.widthMm * updated.lengthMm) / 1_000_000;
       }
       return updated;
     });
@@ -497,7 +496,7 @@ export function InventoryPage() {
           : ['thicknessMm', 'lengthM', 'widthMm', 'lengthRemainingM'].includes(name) ? parseFloat(value) || 0
             : value,
       } as RollRequest;
-      updated.areaM2 = (updated.lengthM || 0) * ((updated.widthMm || 0) / 1000);
+      updated.areaM2 = (updated.lengthMm * updated.widthMm) / 1_000_000;
       return updated;
     });
   };
@@ -529,7 +528,7 @@ export function InventoryPage() {
       nbPlis: 1,
       thicknessMm: 2.5,
       widthMm: 1000,
-      lengthM: 50,
+      lengthMm: 50000,
       areaM2: 50,
       status: 'AVAILABLE',
       supplierId: '',
@@ -568,7 +567,7 @@ export function InventoryPage() {
       nbPlis: formData.nbPlis,
       thicknessMm: formData.thicknessMm,
       widthMm: formData.widthMm,
-      lengthM: formData.lengthM,
+      lengthMm: formData.lengthMm,
       areaM2: formData.areaM2,
       status: 'AVAILABLE',
       altierId: formData.altierId,
@@ -708,7 +707,7 @@ export function InventoryPage() {
           <div><strong>{t('rollDetail.workshop')}:</strong> {roll.altierLibelle || t('rollDetail.unassigned')}</div>
           <div><strong>{t('rollDetail.receivedDate')}:</strong> {formatDate(roll.receivedDate)}</div>
           <div><strong>{t('rollDetail.status')}:</strong> {t(`statuses.${roll.status}`)}</div>
-          <div><strong>{t('rollDetail.dimensions')}:</strong> {roll.widthMm} mm x {roll.lengthM} m</div>
+          <div><strong>{t('rollDetail.dimensions')}:</strong> {roll.widthMm} mm x {roll.lengthMm} mm</div>
           <div><strong>{t('rollDetail.area')}:</strong> {roll.areaM2.toFixed(2)} m2</div>
           <div><strong>{t('inventory.availableArea')}:</strong> {available.toFixed(2)} m2</div>
         </div>
@@ -749,7 +748,7 @@ export function InventoryPage() {
           <div><strong>{t('rollDetail.workshop')}:</strong> {piece.altierLibelle || t('rollDetail.unassigned')}</div>
           <div><strong>{t('waste.tableType') || 'Type'}:</strong> {piece.wasteType || 'N/A'}</div>
           <div><strong>{t('rollDetail.status')}:</strong> {t(`statuses.${piece.status}`)}</div>
-          <div><strong>{t('rollDetail.dimensions')}:</strong> {piece.widthMm} mm x {piece.lengthM} m</div>
+          <div><strong>{t('rollDetail.dimensions')}:</strong> {piece.widthMm} mm x {piece.lengthMm} mm</div>
           <div><strong>{t('rollDetail.area')}:</strong> {piece.areaM2.toFixed(2)} m2</div>
           <div><strong>{t('inventory.availableArea')}:</strong> {available.toFixed(2)} m2</div>
           <div><strong>{t('waste.detailCreated') || 'Created'}:</strong> {formatDate(piece.createdAt)}</div>

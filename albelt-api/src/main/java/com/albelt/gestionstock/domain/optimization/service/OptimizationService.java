@@ -770,7 +770,7 @@ public class OptimizationService {
                         .heightMm(record.heightMm())
                         .rotated(record.rotated())
                         .pieceWidthMm(record.pieceWidthMm())
-                        .pieceLengthM(record.pieceLengthM())
+                        .pieceLengthMm(record.pieceLengthMm())
                         .areaM2(record.areaM2())
                         .build())
                 .toList();
@@ -857,7 +857,7 @@ public class OptimizationService {
         MaterialType materialType = parseMaterialType(item.materialType());
         MaterialChuteThreshold threshold = thresholdRepository.findByMaterialType(materialType).orElse(null);
         ThresholdSpec spec = threshold != null
-                ? new ThresholdSpec(threshold.getMinWidthMm(), toLengthMm(threshold.getMinLengthM()))
+                ? new ThresholdSpec(threshold.getMinWidthMm(), threshold.getMinLengthMm())
                 : new ThresholdSpec(0, 0);
 
         List<SvgGroup> groups = new ArrayList<>();
@@ -879,10 +879,10 @@ public class OptimizationService {
                     plan.source().nbPlis(),
                     plan.source().thicknessMm(),
                     plan.source().widthMm(),
-                    toLengthMm(plan.source().lengthM())
+                    plan.source().lengthMm()
             );
             groups.add(new SvgGroup(sourceLabel, sourceDetails,
-                    toLengthMm(plan.source().lengthM()), plan.source().widthMm(), placements, wasteRects));
+                    plan.source().lengthMm(), plan.source().widthMm(), placements, wasteRects));
         }
 
         return renderSvg(groups, false);
@@ -935,7 +935,7 @@ public class OptimizationService {
                         .nbPlis(r.getNbPlis())
                         .thicknessMm(r.getThicknessMm())
                         .widthMm(r.getWidthMm())
-                        .lengthM(r.getLengthM())
+                        .lengthMm(r.getLengthMm())
                         .colorName((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getName() : null)
                         .colorHexCode((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getHexCode() : null)
                         .qrCode(r.getQrCode())
@@ -952,7 +952,7 @@ public class OptimizationService {
                         .nbPlis(w.getNbPlis())
                         .thicknessMm(w.getThicknessMm())
                         .widthMm(w.getWidthMm())
-                        .lengthM(w.getLengthM())
+                        .lengthMm(w.getLengthMm())
                         .colorName((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getName() : null)
                         .colorHexCode((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getHexCode() : null)
                         .qrCode(w.getQrCode())
@@ -1018,7 +1018,7 @@ public class OptimizationService {
                         .nbPlis(r.getNbPlis())
                         .thicknessMm(r.getThicknessMm())
                         .widthMm(r.getWidthMm())
-                        .lengthM(r.getLengthM())
+                        .lengthMm(r.getLengthMm())
                         .colorName((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getName() : null)
                         .colorHexCode((r.getArticle() != null && r.getArticle().getColor() != null) ? r.getArticle().getColor().getHexCode() : null)
                         .qrCode(r.getQrCode())
@@ -1035,7 +1035,7 @@ public class OptimizationService {
                         .nbPlis(w.getNbPlis())
                         .thicknessMm(w.getThicknessMm())
                         .widthMm(w.getWidthMm())
-                        .lengthM(w.getLengthM())
+                        .lengthMm(w.getLengthMm())
                         .colorName((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getName() : null)
                         .colorHexCode((w.getArticle() != null && w.getArticle().getColor() != null) ? w.getArticle().getColor().getHexCode() : null)
                         .qrCode(w.getQrCode())
@@ -1064,7 +1064,7 @@ public class OptimizationService {
                     .heightMm(op.getHeightMm())
                     .rotated(op.getRotated())
                     .pieceWidthMm(op.getPieceWidthMm())
-                    .pieceLengthM(op.getPieceLengthM())
+                    .pieceLengthMm(op.getPieceLengthMm())
                     .areaM2(op.getAreaM2())
                     .qrCode(buildPlacementQrCode(
                             sourceType,
@@ -1075,7 +1075,7 @@ public class OptimizationService {
                             op.getHeightMm(),
                             op.getRotated(),
                             op.getPieceWidthMm(),
-                            op.getPieceLengthM(),
+                            op.getPieceLengthMm(),
                             op.getAreaM2(),
                             null,
                             null
@@ -1093,7 +1093,7 @@ public class OptimizationService {
                                         Integer heightMm,
                                         Boolean rotated,
                                         Integer pieceWidthMm,
-                                        BigDecimal pieceLengthM,
+                                        Integer pieceLengthMm,
                                         BigDecimal areaM2,
                                         String colorName,
                                         String colorHexCode) {
@@ -1106,7 +1106,7 @@ public class OptimizationService {
                 heightMm,
                 rotated,
                 pieceWidthMm,
-                pieceLengthM,
+                pieceLengthMm,
                 areaM2,
                 colorName,
                 colorHexCode
@@ -1264,13 +1264,9 @@ public class OptimizationService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private int toLengthMm(BigDecimal lengthM) {
-        if (lengthM == null) {
-            return 0;
-        }
-        return lengthM.multiply(BigDecimal.valueOf(1000))
-                .setScale(0, RoundingMode.HALF_UP)
-                .intValue();
+    private int toLengthMm(int lengthMm) {
+        // Length is now always in mm, no conversion needed
+        return lengthMm;
     }
 
     private BigDecimal toAreaM2(int widthMm, int lengthMm) {
@@ -1350,7 +1346,7 @@ public class OptimizationService {
                     roll,
                     null,
                     roll.getWidthMm(),
-                    toLengthMmStatic(roll.getLengthM()),
+                    roll.getLengthMm() != null ? roll.getLengthMm() : 0,
                     roll.getAreaM2(),
                     roll.getAreaM2(),
                     "ROLL",
@@ -1368,7 +1364,7 @@ public class OptimizationService {
                     null,
                     wp,
                     wp.getWidthMm(),
-                    toLengthMmStatic(wp.getLengthM()),
+                    wp.getLengthMm() != null ? wp.getLengthMm() : 0,
                     wp.getAreaM2(),
                     wp.getAreaM2(),
                     "CHUTE",
@@ -1379,13 +1375,9 @@ public class OptimizationService {
             );
         }
 
-        static int toLengthMmStatic(BigDecimal lengthM) {
-            if (lengthM == null) {
-                return 0;
-            }
-            return lengthM.multiply(BigDecimal.valueOf(1000))
-                    .setScale(0, RoundingMode.HALF_UP)
-                    .intValue();
+        static int toLengthMmStatic(int lengthMm) {
+            // Length is now always in mm, no conversion needed
+            return lengthMm != 0 ? lengthMm : 0;
         }
 
         boolean canFit(Piece piece) {
@@ -1395,7 +1387,7 @@ public class OptimizationService {
 
         boolean canFit(CommandeItem item) {
             int pieceWidth = item.getLargeurMm();
-            int pieceLength = toLengthMmStatic(item.getLongueurM());
+            int pieceLength = item.getLongueurMm();
             return (pieceWidth <= widthMm && pieceLength <= heightMm)
                     || (pieceLength <= widthMm && pieceWidth <= heightMm);
         }
@@ -1681,7 +1673,7 @@ public class OptimizationService {
 
         static SvgGroupBuilder fromRoll(Roll roll) {
             int width = roll.getWidthMm();
-            int length = SourceCandidate.toLengthMmStatic(roll.getLengthM());
+            int length = roll.getLengthMm() != null ? roll.getLengthMm() : 0;
             String reference = roll.getReference() != null ? roll.getReference() : roll.getId().toString();
             String details = buildSourceDetails(reference, roll.getNbPlis(), roll.getThicknessMm(), width, length);
             return new SvgGroupBuilder("ROLL", details, length, width);
@@ -1689,7 +1681,7 @@ public class OptimizationService {
 
         static SvgGroupBuilder fromWaste(WastePiece wastePiece) {
             int width = wastePiece.getWidthMm();
-            int length = SourceCandidate.toLengthMmStatic(wastePiece.getLengthM());
+            int length = wastePiece.getLengthMm() != null ? wastePiece.getLengthMm() : 0;
             String reference = wastePiece.getReference() != null ? wastePiece.getReference() : wastePiece.getId().toString();
             String details = buildSourceDetails(reference, wastePiece.getNbPlis(), wastePiece.getThicknessMm(), width, length);
             return new SvgGroupBuilder("CHUTE", details, length, width);

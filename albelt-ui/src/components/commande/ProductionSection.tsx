@@ -63,8 +63,8 @@ export const ProductionSection = ({
 
                 <div className="operator-metrics-hero">
                   <div className="operator-hero-metric">
-                    <span className="operator-hero-metric__label">{t('rollDetail.lengthM') || 'Length'}</span>
-                    <span className="operator-hero-metric__value">{production.pieceLengthM}m</span>
+                    <span className="operator-hero-metric__label">{t('rollDetail.lengthMm') || 'Length'}</span>
+                    <span className="operator-hero-metric__value">{production.pieceLengthMm}mm</span>
                   </div>
                   <div className="operator-hero-metric">
                     <span className="operator-hero-metric__label">{t('rollDetail.widthMm') || 'Width'}</span>

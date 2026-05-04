@@ -30,9 +30,9 @@ public class RollSummaryResponse {
 
     private Integer widthRemainingMm;
 
-    private BigDecimal lengthM;
+    private Integer lengthMm;
 
-    private BigDecimal lengthRemainingM;
+    private Integer lengthRemainingMm;
 
     private BigDecimal areaM2;
 

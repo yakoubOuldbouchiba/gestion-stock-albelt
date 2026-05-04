@@ -165,8 +165,8 @@ export function PurchaseBonFormPanel({
             <div className="purchase-workbench__field">
               <label>{t('purchaseBons.length')}</label>
               <InputNumber
-                value={itemForm.lengthM}
-                onValueChange={(event) => onUpdateItemField('lengthM', event.value ?? 0)}
+                value={itemForm.lengthMm}
+                onValueChange={(event) => onUpdateItemField('lengthMm', event.value ?? 0)}
                 min={0}
                 step={0.1}
               />

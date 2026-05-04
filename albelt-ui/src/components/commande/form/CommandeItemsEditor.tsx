@@ -105,14 +105,14 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
 
   const longueurBodyTemplate = (rowData: TItem, rowIndex: any) => (
     <InputNumber
-      value={rowData.longueurM}
-      onValueChange={(e) => onItemChange(rowIndex.rowIndex, 'longueurM', e.value || 0)}
-      min={0.1}
-      max={1000}
-      step={0.1}
+      value={rowData.longueurMm}
+      onValueChange={(e) => onItemChange(rowIndex.rowIndex, 'longueurMm', e.value || 0)}
+      min={100}
+      max={1000000}
+      step={100}
       mode="decimal"
-      minFractionDigits={1}
-      maxFractionDigits={2}
+      minFractionDigits={0}
+      maxFractionDigits={0}
       style={{ width: '100%' }}
       disabled={disabled}
     />
@@ -342,14 +342,14 @@ export function CommandeItemsEditor<TItem extends EditableItem>({
                 <div>
                   <label className="commande-field-label">{t('commandes.length')}</label>
                   <InputNumber
-                    value={item.longueurM}
-                    onValueChange={(e) => onItemChange(index, 'longueurM', e.value || 0)}
-                    min={0.1}
-                    max={1000}
-                    step={0.1}
+                    value={item.longueurMm}
+                    onValueChange={(e) => onItemChange(index, 'longueurMm', e.value || 0)}
+                    min={100}
+                    max={1000000}
+                    step={100}
                     mode="decimal"
-                    minFractionDigits={1}
-                    maxFractionDigits={2}
+                    minFractionDigits={0}
+                    maxFractionDigits={0}
                     disabled={disabled}
                   />
                 </div>

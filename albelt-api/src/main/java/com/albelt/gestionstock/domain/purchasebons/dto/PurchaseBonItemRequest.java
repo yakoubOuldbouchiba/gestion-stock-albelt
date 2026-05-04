@@ -33,9 +33,9 @@ public class PurchaseBonItemRequest {
     @Positive(message = "Width must be greater than 0")
     private Integer widthMm;
 
-    @NotNull(message = "Length in meters is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Length must be greater than 0")
-    private BigDecimal lengthM;
+    @NotNull(message = "Length in mm is required")
+    @Positive(message = "Length must be greater than 0")
+    private Integer lengthMm;
 
     @NotNull(message = "Area in m2 is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Area must be greater than 0")

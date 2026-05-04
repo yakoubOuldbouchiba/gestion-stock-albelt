@@ -65,7 +65,7 @@ public class ReturnBonMapper {
                 .returnType(item.getReturnType())
                 .measureAction(item.getMeasureAction())
                 .adjustedWidthMm(item.getAdjustedWidthMm())
-                .adjustedLengthM(item.getAdjustedLengthM())
+                .adjustedLengthMm(item.getAdjustedLengthMm())
                 .createdAt(item.getCreatedAt())
                 .updatedAt(item.getUpdatedAt())
                 .build();

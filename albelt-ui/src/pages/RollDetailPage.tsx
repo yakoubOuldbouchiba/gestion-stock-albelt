@@ -122,7 +122,7 @@ export function RollDetailPage() {
   const wastePercent = roll.areaM2 ? (usedAreaM2 / roll.areaM2) * 100 : 0;
   
   const sourceWidth = roll.widthMm;
-  const sourceLength = Math.round(roll.lengthM * 1000);
+  const sourceLength = roll.lengthMm;
 
   return (
     <div className="detail-page-container p-gutter">
@@ -157,9 +157,9 @@ export function RollDetailPage() {
         <MetricTile label={t('rollDetail.width')} value={roll.widthMm} unit="mm" />
         <MetricTile 
           label={t('rollDetail.length')} 
-          value={roll.lengthM.toFixed(2)} 
-          unit="m" 
-          subValue={`${(roll.lengthRemainingM ?? roll.lengthM).toFixed(2)}m remaining`} 
+          value={roll.lengthMm} 
+          unit="mm"
+          subValue={`${roll.lengthRemainingMm ?? roll.lengthMm}mm remaining`}
         />
         <MetricTile label={t('rollDetail.area')} value={roll.areaM2.toFixed(2)} unit="m²">
           <div className="mt-2">
@@ -249,7 +249,7 @@ export function RollDetailPage() {
             <DataTable value={wastePieces} dataKey="id" size="small" responsiveLayout="scroll" className="p-datatable-sm">
               <Column field="lotId" header={t('inventory.lotId') || 'Lot ID'} sortable />
               <Column field="id" header={t('waste.tableWasteId')} sortable />
-              <Column header={t('waste.tableDimensions')} body={p => `${p.widthMm}mm × ${p.lengthM.toFixed(2)}m`} />
+              <Column header={t('waste.tableDimensions')} body={p => `${p.widthMm}mm × ${p.lengthMm}mm`} />
               <Column field="areaM2" header={t('waste.tableArea')} body={p => `${p.areaM2.toFixed(2)} m²`} sortable />
               <Column field="status" header={t('waste.tableStatus')} body={p => <Tag value={p.status} severity={p.status === 'AVAILABLE' ? 'success' : 'info'} />} />
               <Column field="wasteType" header={t('waste.tableType')} />

@@ -56,8 +56,8 @@ export function OptimizationSection({
       <div className="optimization-visualizers-list">
         {sources.map((source, idx) => {
           const sourcePlacements = (allPlacements ?? []).filter(p => p.sourceId === source.sourceId);
-          // Convert lengthM to mm if needed
-          const lengthMm = source.lengthM ? source.lengthM * 1000 : 0;
+          // Length is now in mm already, no conversion needed
+          const lengthMm = source.lengthMm ?? 0;
 
           // Always use the raw SVG for the current variant
           const rawSvg = variant === 'actual'

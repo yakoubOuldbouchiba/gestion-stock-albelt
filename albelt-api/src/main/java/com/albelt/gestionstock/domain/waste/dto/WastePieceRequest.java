@@ -41,22 +41,22 @@ public class WastePieceRequest {
     @DecimalMin(value = "0.0", inclusive = false, message = "Thickness must be greater than 0")
     private BigDecimal thicknessMm;
 
-    // Dimensions (same as Roll)
+    // Dimensions (same as Roll - all in millimeters)
     @NotNull(message = "Width in mm is required")
     @Positive(message = "Width must be greater than 0")
     private Integer widthMm;
 
-    @NotNull(message = "Length in meters is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Length must be greater than 0")
-    private BigDecimal lengthM;
+    @NotNull(message = "Length in mm is required")
+    @Positive(message = "Length must be greater than 0")
+    private Integer lengthMm;
 
     @NotNull(message = "Area in m² is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Area must be greater than 0")
     private BigDecimal areaM2;
 
-    // Remaining dimensions (optional)
+    // Remaining dimensions (optional - all in millimeters)
     private Integer widthRemainingMm;
-    private BigDecimal lengthRemainingM;
+    private Integer lengthRemainingMm;
 
     // Status & Classification (same as Roll)
     private String status; // AVAILABLE, OPENED, EXHAUSTED, ARCHIVED

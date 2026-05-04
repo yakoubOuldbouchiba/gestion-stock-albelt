@@ -91,7 +91,7 @@ export function CommandesWorkbenchWorkspace({
                 <span>{getArticleMaterialType(item)}</span>
                 <span>{getArticleNbPlis(item)} {t('ordersWorkbench.plies', 'plies')}</span>
                 <span>{item.largeurMm} {t('ordersWorkbench.mm', 'mm')}</span>
-                <span>{item.longueurM} {t('ordersWorkbench.m', 'm')}</span>
+                <span>{item.longueurMm} {t('ordersWorkbench.mm', 'mm')}</span>
               </div>
 
               <div className="orders-workbench__stats-grid">

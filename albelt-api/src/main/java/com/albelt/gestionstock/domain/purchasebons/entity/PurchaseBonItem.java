@@ -3,6 +3,7 @@ package com.albelt.gestionstock.domain.purchasebons.entity;
 import com.albelt.gestionstock.domain.altier.entity.Altier;
 import com.albelt.gestionstock.domain.colors.entity.Color;
 import com.albelt.gestionstock.shared.persistence.ArticleSnapshotEntity;
+import com.albelt.gestionstock.domain.purchasebons.entity.PurchaseBon;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -43,8 +44,8 @@ public class PurchaseBonItem extends ArticleSnapshotEntity {
     @Column(name = "width_mm", nullable = false)
     private Integer widthMm;
 
-    @Column(name = "length_m", nullable = false, columnDefinition = "DECIMAL(10,2)")
-    private BigDecimal lengthM;
+    @Column(name = "length_mm", nullable = false)
+    private Integer lengthMm;
 
     @Column(name = "area_m2", nullable = false, columnDefinition = "DECIMAL(12,4)")
     private BigDecimal areaM2;

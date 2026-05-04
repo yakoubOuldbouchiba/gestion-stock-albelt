@@ -15,12 +15,12 @@ type ProductionDialogProps = {
   selectedProductionLabel: string;
   disabled?: boolean;
   productionForm: {
-    pieceLengthM: string;
+    pieceLengthMm: string;
     pieceWidthMm: string;
     quantity: string;
     notes: string;
   };
-  onFieldChange: (name: 'pieceLengthM' | 'pieceWidthMm' | 'quantity' | 'notes', value: string) => void;
+  onFieldChange: (name: 'pieceLengthMm' | 'pieceWidthMm' | 'quantity' | 'notes', value: string) => void;
   onSave: () => void;
   creatingProduction: boolean;
 };
@@ -101,8 +101,8 @@ export const ProductionDialog = ({
           {t('commandes.productionPieceLength')}
         </label>
         <InputText
-          value={productionForm.pieceLengthM}
-          onChange={(e) => onFieldChange('pieceLengthM', e.target.value)}
+          value={productionForm.pieceLengthMm}
+          onChange={(e) => onFieldChange('pieceLengthMm', e.target.value)}
           placeholder="0.00"
           type="number"
           style={{ width: '100%' }}

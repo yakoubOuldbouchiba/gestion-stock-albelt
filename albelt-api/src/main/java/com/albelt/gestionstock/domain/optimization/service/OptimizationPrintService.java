@@ -329,8 +329,8 @@ public class OptimizationPrintService {
         if (source.getWidthMm() != null) {
             fields.add(simpleSourceField(msg("pdf.optimization.widthMm", locale), formatInteger(source.getWidthMm()) + " mm"));
         }
-        if (source.getLengthM() != null) {
-            fields.add(simpleSourceField(msg("pdf.optimization.lengthM", locale), formatNumber(source.getLengthM()) + " m"));
+        if (source.getLengthMm() != null) {
+            fields.add(simpleSourceField(msg("pdf.optimization.lengthMm", locale), formatInteger(source.getLengthMm()) + " mm"));
         }
         if (source.getNbPlis() != null) {
             fields.add(simpleSourceField(msg("pdf.optimization.plies", locale), formatInteger(source.getNbPlis())));
@@ -690,7 +690,7 @@ public class OptimizationPrintService {
                     .append(td(formatNumber(source != null ? source.getThicknessMm() : null)))
                     .append(td(color))
                     .append(td(formatInteger(source != null ? source.getWidthMm() : null)))
-                    .append(td(formatNumber(source != null ? source.getLengthM() : null)))
+                    .append(td(formatInteger(source != null ? source.getLengthMm() : null)))
                     .append(tdQr(qr, msg("pdf.qr", locale)))
                     .append("</tr>");
         }
@@ -780,10 +780,10 @@ public class OptimizationPrintService {
     }
 
     private String buildPieceLabel(OptimizationPlacementReportResponse placement) {
-        if (placement == null || placement.getPieceWidthMm() == null || placement.getPieceLengthM() == null) {
+        if (placement == null || placement.getPieceWidthMm() == null || placement.getPieceLengthMm() == null) {
             return "-";
         }
-        return placement.getPieceWidthMm() + "mm x " + formatNumber(placement.getPieceLengthM()) + "m";
+        return placement.getPieceWidthMm() + "mm x " + placement.getPieceLengthMm() + "mm";
     }
 
     private String localizeRotation(Boolean rotated, Locale locale) {

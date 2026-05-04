@@ -62,18 +62,16 @@ public class OptimizationEngine {
     }
 
     private List<Piece> buildPieces(OptimizationItemSnapshot item) {
-        if (item.quantite() == null || item.quantite() <= 0 || item.largeurMm() == null || item.longueurM() == null) {
+        if (item.quantite() == null || item.quantite() <= 0 || item.largeurMm() == null || item.longueurMm() == null) {
             return List.of();
         }
 
-        int lengthMm = item.longueurM().multiply(BigDecimal.valueOf(1000))
-                .setScale(0, RoundingMode.HALF_UP)
-                .intValue();
+        int lengthMm = item.longueurMm();
         BigDecimal areaM2 = toAreaM2(item.largeurMm(), lengthMm);
 
         List<Piece> pieces = new ArrayList<>();
         for (int i = 0; i < item.quantite(); i++) {
-            pieces.add(new Piece(i, item.largeurMm(), lengthMm, item.longueurM(), areaM2));
+            pieces.add(new Piece(i, item.largeurMm(), lengthMm, areaM2));
         }
 
         pieces.sort(Comparator
@@ -130,7 +128,7 @@ public class OptimizationEngine {
                     choice.placedHeightMm(),
                     choice.rotated(),
                     piece.widthMm(),
-                    piece.lengthM(),
+                    piece.lengthMm(),
                     piece.areaM2()
             ));
 
@@ -327,7 +325,7 @@ public class OptimizationEngine {
             int heightMm,
             boolean rotated,
             int pieceWidthMm,
-            BigDecimal pieceLengthM,
+            int pieceLengthMm,
             BigDecimal areaM2
     ) {
     }
@@ -336,7 +334,6 @@ public class OptimizationEngine {
             int index,
             int widthMm,
             int lengthMm,
-            BigDecimal lengthM,
             BigDecimal areaM2
     ) {
     }

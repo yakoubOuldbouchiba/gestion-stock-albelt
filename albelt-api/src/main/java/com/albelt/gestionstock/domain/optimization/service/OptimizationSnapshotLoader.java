@@ -63,7 +63,7 @@ public class OptimizationSnapshotLoader {
                             safe(itemSnapshot.materialType()),
                             safe(itemSnapshot.nbPlis()),
                             safe(itemSnapshot.thicknessMm()),
-                            safe(itemSnapshot.longueurM()),
+                            safe(itemSnapshot.longueurMm()),
                             safe(itemSnapshot.largeurMm()),
                             safe(itemSnapshot.quantite()),
                             safe(itemSnapshot.colorId()),
@@ -137,7 +137,7 @@ public class OptimizationSnapshotLoader {
                 safe(itemSnapshot.materialType()),
                 safe(itemSnapshot.nbPlis()),
                 safe(itemSnapshot.thicknessMm()),
-                safe(itemSnapshot.longueurM()),
+                safe(itemSnapshot.longueurMm()),
                 safe(itemSnapshot.largeurMm()),
                 safe(itemSnapshot.quantite()),
                 safe(itemSnapshot.colorId()),
@@ -157,7 +157,7 @@ public class OptimizationSnapshotLoader {
                                 + safe(source.sourceId()) + "|"
                                 + safe(source.articleId()) + "|"
                                 + safe(source.widthMm()) + "|"
-                                + safe(source.lengthM()) + "|"
+                                + safe(source.lengthMm()) + "|"
                                 + safe(source.availableAreaM2()) + "|"
                                 + safe(source.fullAreaM2()) + "|"
                                 + safe(source.sourceStatus()) + "|"
@@ -238,26 +238,24 @@ public class OptimizationSnapshotLoader {
     }
 
     private BigDecimal requiredArea(OptimizationItemSnapshot itemSnapshot) {
-        if (itemSnapshot.largeurMm() == null || itemSnapshot.longueurM() == null) {
+        if (itemSnapshot.largeurMm() == null || itemSnapshot.longueurMm() == null) {
             return null;
         }
         return BigDecimal.valueOf(itemSnapshot.largeurMm())
-                .multiply(itemSnapshot.longueurM().multiply(BigDecimal.valueOf(1000)))
+                .multiply(BigDecimal.valueOf(itemSnapshot.longueurMm()))
                 .divide(BigDecimal.valueOf(1_000_000), 4, java.math.RoundingMode.HALF_UP);
     }
 
     private boolean canFit(OptimizationSourceSnapshot source, OptimizationItemSnapshot itemSnapshot) {
-        if (source.widthMm() == null || source.lengthM() == null
-                || itemSnapshot.largeurMm() == null || itemSnapshot.longueurM() == null) {
+        if (source.widthMm() == null || source.lengthMm() == null
+                || itemSnapshot.largeurMm() == null || itemSnapshot.longueurMm() == null) {
             return false;
         }
 
         int sourceWidth = source.widthMm();
         int sourceLength = source.lengthMm();
         int pieceWidth = itemSnapshot.largeurMm();
-        int pieceLength = itemSnapshot.longueurM().multiply(BigDecimal.valueOf(1000))
-                .setScale(0, java.math.RoundingMode.HALF_UP)
-                .intValue();
+        int pieceLength = itemSnapshot.longueurMm();
 
         return (pieceWidth <= sourceWidth && pieceLength <= sourceLength)
                 || (pieceLength <= sourceWidth && pieceWidth <= sourceLength);

@@ -3,7 +3,7 @@ import type { ApiResponse, MaterialChuteThreshold } from '../types/index';
 
 export type MaterialChuteThresholdUpdate = Pick<
   MaterialChuteThreshold,
-  'materialType' | 'minWidthMm' | 'minLengthM'
+  'materialType' | 'minWidthMm' | 'minLengthMm'
 >;
 
 /**

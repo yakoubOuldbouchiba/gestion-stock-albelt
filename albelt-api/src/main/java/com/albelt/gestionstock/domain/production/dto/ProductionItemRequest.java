@@ -24,8 +24,8 @@ public class ProductionItemRequest {
     private UUID placedRectangleId;
 
     @NotNull(message = "Piece length is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Piece length must be greater than 0")
-    private BigDecimal pieceLengthM;
+    @Positive(message = "Piece length must be greater than 0")
+    private Integer pieceLengthMm;
 
     @NotNull(message = "Piece width is required")
     @Positive(message = "Piece width must be greater than 0")

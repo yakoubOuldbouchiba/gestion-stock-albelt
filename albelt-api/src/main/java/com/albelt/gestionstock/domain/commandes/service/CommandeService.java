@@ -371,7 +371,7 @@ public class CommandeService {
                         .nbPlis(nbPlis)
                         .thicknessMm(thicknessMm)
                         .widthMm(productionItem.getPieceWidthMm())
-                        .lengthM(productionItem.getPieceLengthM())
+                        .lengthMm(productionItem.getPieceLengthMm())
                         .areaM2(productionItem.getAreaPerPieceM2())
                         .wasteType(classifyWasteType(productionItem))
                         .altierId(altierId)
@@ -525,7 +525,7 @@ public class CommandeService {
                 .nbPlis(nbPlis)
                 .thicknessMm(thicknessMm)
                 .widthMm(productionItem.getPieceWidthMm())
-                .lengthM(productionItem.getPieceLengthM())
+                .lengthMm(productionItem.getPieceLengthMm())
                 .areaM2(productionItem.getAreaPerPieceM2())
                 .wasteType(classifyWasteType(productionItem))
                 .altierId(altierId)
@@ -569,11 +569,10 @@ public class CommandeService {
         BigDecimal area = productionItem.getAreaPerPieceM2();
         if (area == null) {
             Integer widthMm = productionItem.getPieceWidthMm();
-            BigDecimal lengthM = productionItem.getPieceLengthM();
-            if (widthMm != null && lengthM != null) {
-                area = BigDecimal.valueOf(widthMm)
-                        .divide(BigDecimal.valueOf(1000), 6, java.math.RoundingMode.HALF_UP)
-                        .multiply(lengthM);
+            Integer lengthMm = productionItem.getPieceLengthMm();
+            if (widthMm != null && lengthMm != null) {
+                area = BigDecimal.valueOf((long) widthMm * lengthMm)
+                        .divide(BigDecimal.valueOf(1_000_000), 4, java.math.RoundingMode.HALF_UP);
             }
         }
 

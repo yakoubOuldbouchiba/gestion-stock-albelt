@@ -34,8 +34,8 @@ public class ProductionItem {
     @JoinColumn(name = "placed_rectangle_id", nullable = false)
     private PlacedRectangle placedRectangle;
 
-    @Column(name = "piece_length_m", nullable = false, precision = 10, scale = 2)
-    private BigDecimal pieceLengthM;
+    @Column(name = "piece_length_mm", nullable = false)
+    private Integer pieceLengthMm;
 
     @Column(name = "piece_width_mm", nullable = false)
     private Integer pieceWidthMm;

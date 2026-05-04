@@ -67,8 +67,8 @@ public class OptimizationPlacement {
     @Column(name = "piece_width_mm", nullable = false)
     private Integer pieceWidthMm;
 
-    @Column(name = "piece_length_m", nullable = false, columnDefinition = "DECIMAL(10,2)")
-    private BigDecimal pieceLengthM;
+    @Column(name = "piece_length_mm", nullable = false)
+    private Integer pieceLengthMm;
 
     @Column(name = "area_m2", nullable = false, columnDefinition = "DECIMAL(12,4)")
     private BigDecimal areaM2;

@@ -114,7 +114,7 @@ export function ItemDetailHeader({
         <div className="commande-detail-kpi-card">
           <span>{t('commandes.cutSize')}</span>
           <strong>
-            {selectedItem.longueurM} {t('commandes.m')} x {selectedItem.largeurMm} {t('commandes.mm')}
+            {selectedItem.longueurMm} {t('commandes.mm')} x {selectedItem.largeurMm} {t('commandes.mm')}
           </strong>
         </div>
       </div>

@@ -38,8 +38,8 @@ public class MaterialChuteThreshold {
     @Column(name = "min_width_mm", nullable = false)
     private Integer minWidthMm;
 
-    @Column(name = "min_length_m", nullable = false, columnDefinition = "DECIMAL(10,2)")
-    private BigDecimal minLengthM;
+    @Column(name = "min_length_mm", nullable = false)
+    private Integer minLengthMm;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

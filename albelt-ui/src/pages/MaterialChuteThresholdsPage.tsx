@@ -15,13 +15,13 @@ const MATERIAL_TYPES: MaterialType[] = ['PU', 'PVC', 'CAOUTCHOUC'];
 
 type EditableRow = Pick<
   MaterialChuteThreshold,
-  'materialType' | 'minWidthMm' | 'minLengthM'
+  'materialType' | 'minWidthMm' | 'minLengthMm'
 >;
 
 const createDefaultRow = (materialType: MaterialType): EditableRow => ({
   materialType,
   minWidthMm: 0,
-  minLengthM: 0,
+  minLengthMm: 0,
 });
 
 export function MaterialChuteThresholdsPage({ hideHeader = false }: { hideHeader?: boolean }) {
@@ -59,7 +59,7 @@ export function MaterialChuteThresholdsPage({ hideHeader = false }: { hideHeader
           ? {
               materialType: found.materialType,
               minWidthMm: Number(found.minWidthMm ?? 0),
-              minLengthM: Number(found.minLengthM ?? 0),
+              minLengthMm: Number(found.minLengthMm ?? 0),
             }
           : createDefaultRow(type);
       });
@@ -81,7 +81,7 @@ export function MaterialChuteThresholdsPage({ hideHeader = false }: { hideHeader
   const validateAll = (): string | null => {
     for (const type of MATERIAL_TYPES) {
       const row = rowsByType.get(type) || createDefaultRow(type);
-      if (row.minWidthMm < 0 || row.minLengthM < 0) {
+      if (row.minWidthMm < 0 || row.minLengthMm < 0) {
         return t('materialChuteThresholds.invalidValues', { type });
       }
     }
@@ -168,12 +168,12 @@ export function MaterialChuteThresholdsPage({ hideHeader = false }: { hideHeader
           header={t('materialChuteThresholds.minLength')}
           body={(row: EditableRow) => (
             <InputNumber
-              value={row.minLengthM}
+              value={row.minLengthMm}
               min={0}
               mode="decimal"
               minFractionDigits={0}
               maxFractionDigits={2}
-              onValueChange={(e) => updateRow(row.materialType, { minLengthM: e.value ?? 0 })}
+              onValueChange={(e) => updateRow(row.materialType, { minLengthMm: e.value ?? 0 })}
               inputStyle={{ width: '100%' }}
               disabled={isLocked('threshold-save')}
             />

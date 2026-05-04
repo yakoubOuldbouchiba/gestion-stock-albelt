@@ -408,7 +408,7 @@ export function WastePage() {
             />
             <Column
               header={t('waste.tableDimensions')}
-              body={(waste: WastePiece) => `${waste.widthMm}mm × ${waste.lengthM}m`}
+              body={(waste: WastePiece) => `${waste.widthMm}mm × ${waste.lengthMm}mm`}
             />
             <Column
               header={t('waste.tableArea')}
@@ -483,7 +483,7 @@ export function WastePage() {
             <div><strong>{t('rollDetail.plies')}:</strong> {selectedWaste.nbPlis}</div>
             <div><strong>{t('rollDetail.thickness')}:</strong> {selectedWaste.thicknessMm} mm</div>
             <div><strong>{t('inventory.color') || 'Color'}:</strong> {selectedWaste.colorName || selectedWaste.colorHexCode || 'N/A'}</div>
-            <div><strong>{t('waste.detailDimensions')}:</strong> {selectedWaste.widthMm}mm × {selectedWaste.lengthM}m</div>
+            <div><strong>{t('waste.detailDimensions')}:</strong> {selectedWaste.widthMm}mm × {selectedWaste.lengthMm}mm</div>
             <div><strong>{t('waste.detailArea')}:</strong> {(selectedWaste.areaM2 || 0).toFixed(2)} m²</div>
             <div><strong>{t('waste.detailStatus')}:</strong> {getStatusLabel(selectedWaste.status)}</div>
             <div><strong>{t('waste.detailLargeWaste')}:</strong> {((selectedWaste.areaM2 || 0) > 3.0) ? t('waste.yes') : t('waste.no')}</div>

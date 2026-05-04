@@ -45,7 +45,7 @@ export function usePurchaseBonsPage() {
     nbPlis: 1,
     thicknessMm: 2.5,
     widthMm: 1000,
-    lengthM: 50,
+    lengthMm: 50000,
     areaM2: 50,
     quantity: 1,
     colorId: undefined,
@@ -134,8 +134,8 @@ export function usePurchaseBonsPage() {
         [field]: value
       };
 
-      if (field === 'widthMm' || field === 'lengthM') {
-        updated.areaM2 = computeAreaM2(updated.widthMm || 0, updated.lengthM || 0);
+      if (field === 'widthMm' || field === 'lengthMm') {
+        updated.areaM2 = computeAreaM2(updated.widthMm || 0, updated.lengthMm || 0);
       }
 
       return updated;

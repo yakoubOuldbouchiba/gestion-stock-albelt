@@ -321,7 +321,7 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
                 null,
                 article.id,
                 coalesce(r.widthRemainingMm, r.widthMm),
-                coalesce(r.lengthRemainingM, r.lengthM),
+                coalesce(r.lengthRemainingMm, r.lengthMm),
                 coalesce(r.availableAreaM2, r.areaM2),
                 r.areaM2,
                 cast(r.status as string),

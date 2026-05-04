@@ -30,7 +30,7 @@ public class OptimizationPlacementReportResponse {
      */
     private Boolean rotated;
     private Integer pieceWidthMm;
-    private BigDecimal pieceLengthM;
+    private Integer pieceLengthMm;
     private BigDecimal areaM2;
 
     /**

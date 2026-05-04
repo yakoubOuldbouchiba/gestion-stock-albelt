@@ -119,11 +119,11 @@ public class CommandeItemService {
         item.setArticle(getRequiredArticle(request));
 
         // Update fields
-        if (request.getLongueurM() != null) {
-            item.setLongueurM(request.getLongueurM());
+        if (request.getLongueurMm() != null) {
+            item.setLongueurMm(request.getLongueurMm());
         }
-        if (request.getLongueurToleranceM() != null) {
-            item.setLongueurToleranceM(request.getLongueurToleranceM());
+        if (request.getLongueurToleranceMm() != null) {
+            item.setLongueurToleranceMm(request.getLongueurToleranceMm());
         }
         if (request.getLargeurMm() != null) {
             item.setLargeurMm(request.getLargeurMm());

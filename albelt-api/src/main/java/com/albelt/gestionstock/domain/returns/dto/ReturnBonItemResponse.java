@@ -31,7 +31,7 @@ public class ReturnBonItemResponse {
 
     private Integer adjustedWidthMm;
 
-    private BigDecimal adjustedLengthM;
+    private Integer adjustedLengthMm;
 
     private LocalDateTime createdAt;
 

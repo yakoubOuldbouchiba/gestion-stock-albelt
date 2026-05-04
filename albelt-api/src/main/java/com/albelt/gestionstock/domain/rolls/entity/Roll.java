@@ -57,11 +57,11 @@ public class Roll extends ReferencedArticleSnapshotEntity {
     @Column(name = "width_remaining_mm")
     private Integer widthRemainingMm;
 
-    @Column(name = "length_m", nullable = false, columnDefinition = "DECIMAL(10,2)")
-    private BigDecimal lengthM;
+    @Column(name = "length_mm", nullable = false)
+    private Integer lengthMm;
 
-    @Column(name = "length_remaining_m", columnDefinition = "DECIMAL(10,2)")
-    private BigDecimal lengthRemainingM;
+    @Column(name = "length_remaining_mm")
+    private Integer lengthRemainingMm;
 
     @Column(name = "area_m2", nullable = false, columnDefinition = "DECIMAL(12,4)")
     private BigDecimal areaM2;

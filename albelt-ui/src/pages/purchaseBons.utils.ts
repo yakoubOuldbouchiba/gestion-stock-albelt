@@ -25,9 +25,9 @@ export function formatPurchaseDate(value: unknown) {
   return formatDate(value as any);
 }
 
-export function computeAreaM2(widthMm: number, lengthM: number) {
-  const widthM = widthMm / 1000;
-  return parseFloat((widthM * lengthM).toFixed(4));
+export function computeAreaM2(widthMm: number, lengthMm: number) {
+  // Both dimensions now in mm, convert to m² by dividing by 1,000,000
+  return parseFloat(((widthMm * lengthMm) / 1_000_000).toFixed(4));
 }
 
 export function buildNextItemForm(itemForm: PurchaseBonItemRequest): PurchaseBonItemRequest {
@@ -36,7 +36,7 @@ export function buildNextItemForm(itemForm: PurchaseBonItemRequest): PurchaseBon
     nbPlis: itemForm.nbPlis,
     thicknessMm: itemForm.thicknessMm,
     widthMm: itemForm.widthMm,
-    lengthM: itemForm.lengthM,
+    lengthMm: itemForm.lengthMm,
     areaM2: itemForm.areaM2,
     quantity: 1,
     colorId: itemForm.colorId,
@@ -47,8 +47,8 @@ export function buildNextItemForm(itemForm: PurchaseBonItemRequest): PurchaseBon
 
 export function getDimensionsLabel(item: {
   widthMm: number;
-  lengthM: number;
+  lengthMm: number;
   areaM2: number;
 }) {
-  return `${item.widthMm} x ${item.lengthM} (${item.areaM2} m2)`;
+  return `${item.widthMm} x ${item.lengthMm} mm (${item.areaM2} m²)`;
 }

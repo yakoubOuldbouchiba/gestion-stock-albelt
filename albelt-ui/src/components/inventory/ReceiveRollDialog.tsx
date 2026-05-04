@@ -177,7 +177,7 @@ export function ReceiveRollDialog({
                 type="number"
                 id="lengthM"
                 name="lengthM"
-                value={String(formData.lengthM ?? '')}
+                value={String(formData.lengthMm ?? '')}
                 onChange={onFieldChange}
                 step="0.01"
                 required

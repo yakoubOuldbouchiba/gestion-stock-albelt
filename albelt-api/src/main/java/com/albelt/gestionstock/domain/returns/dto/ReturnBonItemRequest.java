@@ -33,5 +33,5 @@ public class ReturnBonItemRequest {
 
     private Integer adjustedWidthMm;
 
-    private BigDecimal adjustedLengthM;
+    private Integer adjustedLengthMm;
 }

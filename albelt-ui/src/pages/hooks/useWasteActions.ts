@@ -19,7 +19,7 @@ export function useWasteActions(
   const [chutePosition, setChutePosition] = useState({ xMm: 0, yMm: 0 });
   const [chuteDimensions, setChuteDimensions] = useState({
     widthMm: 0,
-    lengthM: 0,
+    lengthMm: 0,
     areaM2: 0,
   });
 
@@ -28,7 +28,7 @@ export function useWasteActions(
     setChuteRollId('');
     setParentWastePieceId('');
     setChutePosition({ xMm: 0, yMm: 0 });
-    setChuteDimensions({ widthMm: 0, lengthM: 0, areaM2: 0 });
+    setChuteDimensions({ widthMm: 0, lengthMm: 0, areaM2: 0 });
   }, []);
 
   const handleCreateChute = async (
@@ -57,7 +57,7 @@ export function useWasteActions(
       return false;
     }
 
-    if (chuteDimensions.widthMm <= 0 || chuteDimensions.lengthM <= 0) {
+    if (chuteDimensions.widthMm <= 0 || chuteDimensions.lengthMm <= 0) {
       showError(t('commandes.invalidDimensionsError'));
       setCreatingChute(false);
       return false;
@@ -71,7 +71,7 @@ export function useWasteActions(
       nbPlis: source.nbPlis,
       thicknessMm: source.thicknessMm,
       widthMm: chuteDimensions.widthMm,
-      lengthM: chuteDimensions.lengthM,
+      lengthMm: chuteDimensions.lengthMm,
       areaM2: chuteDimensions.areaM2,
       status: 'AVAILABLE',
       wasteType: 'CHUTE_EXPLOITABLE',

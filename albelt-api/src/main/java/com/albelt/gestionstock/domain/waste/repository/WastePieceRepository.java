@@ -283,7 +283,7 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
                 wp.id,
                 article.id,
                 coalesce(wp.widthRemainingMm, wp.widthMm),
-                coalesce(wp.lengthRemainingM, wp.lengthM),
+                coalesce(wp.lengthRemainingMm, wp.lengthMm),
                 coalesce(wp.availableAreaM2, wp.areaM2),
                 wp.areaM2,
                 cast(wp.status as string),

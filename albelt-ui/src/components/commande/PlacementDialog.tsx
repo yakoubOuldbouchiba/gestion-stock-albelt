@@ -83,7 +83,7 @@ export const PlacementDialog = ({
       : wasteForItem.find((waste: any) => waste.id === placementForm.sourceId)
     : null;
   const sourceWidthMm = Number(source?.widthMm) || 0;
-  const sourceLengthMm = Math.round((Number(source?.lengthM) || 0) * 1000);
+  const sourceLengthMm = Number(source?.lengthMm) || 0;
   const sourcePlacements = placementForm.sourceId
     ? placementsForItem.filter((placement) => (
         placementForm.sourceType === 'ROLL'

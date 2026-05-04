@@ -1,16 +1,16 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { CommandeItemRequest } from '../../types';
 
-export function calculateSurfaceM2(item: { longueurM: number; largeurMm: number }): number {
-  return (item.longueurM * item.largeurMm) / 1000;
+export function calculateSurfaceM2(item: { longueurMm: number; largeurMm: number }): number {
+  return (item.longueurMm * item.largeurMm) / 1_000_000;
 }
 
-export function calculateTotalSurfaceM2(item: { longueurM: number; largeurMm: number; quantite: number }): number {
+export function calculateTotalSurfaceM2(item: { longueurMm: number; largeurMm: number; quantite: number }): number {
   return calculateSurfaceM2(item) * item.quantite;
 }
 
 export function createDefaultCommandeItem(lineNumber: number): CommandeItemRequest {
-  const longueurM = 5;
+  const longueurMm = 5000;
   const largeurMm = 1000;
   return {
     articleId: undefined,
@@ -18,11 +18,11 @@ export function createDefaultCommandeItem(lineNumber: number): CommandeItemReque
     materialType: 'PU',
     nbPlis: 1,
     thicknessMm: 2.5,
-    longueurM,
-    longueurToleranceM: 0,
+    longueurMm,
+    longueurToleranceMm: 0,
     largeurMm,
     quantite: 1,
-    surfaceConsommeeM2: calculateSurfaceM2({ longueurM, largeurMm }),
+    surfaceConsommeeM2: calculateSurfaceM2({ longueurMm, largeurMm }),
     typeMouvement: 'COUPE',
     reference: '',
     colorId: undefined,

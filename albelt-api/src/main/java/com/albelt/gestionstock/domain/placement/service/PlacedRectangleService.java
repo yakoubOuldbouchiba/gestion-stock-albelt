@@ -47,8 +47,8 @@ public class PlacedRectangleService {
         assertCommandeNotLocked(commandeItem);
 
         Integer parentWidthMm = roll != null ? roll.getWidthMm() : wastePiece != null ? wastePiece.getWidthMm() : null;
-        BigDecimal parentLengthM = roll != null ? roll.getLengthM() : wastePiece != null ? wastePiece.getLengthM() : null;
-        validateBounds(request, parentWidthMm, parentLengthM);
+        Integer parentLengthMm = roll != null ? roll.getLengthMm() : wastePiece != null ? wastePiece.getLengthMm() : null;
+        validateBounds(request, parentWidthMm, parentLengthMm);
         validateOverlap(request, roll, wastePiece, null);
 
         Color color = resolveColor(request, commandeItem, roll, wastePiece);
@@ -108,8 +108,8 @@ public class PlacedRectangleService {
         }
 
         Integer parentWidthMm = roll != null ? roll.getWidthMm() : wastePiece != null ? wastePiece.getWidthMm() : null;
-        BigDecimal parentLengthM = roll != null ? roll.getLengthM() : wastePiece != null ? wastePiece.getLengthM() : null;
-        validateBounds(request, parentWidthMm, parentLengthM);
+        Integer parentLengthMm = roll != null ? roll.getLengthMm() : wastePiece != null ? wastePiece.getLengthMm() : null;
+        validateBounds(request, parentWidthMm, parentLengthMm);
         validateOverlap(request, roll, wastePiece, existing.getId());
 
         existing.setXMm(request.getXMm());
@@ -200,12 +200,11 @@ public class PlacedRectangleService {
                 .collect(Collectors.toMap(CommandeItem::getId, Function.identity()));
     }
 
-    private void validateBounds(PlacedRectangleRequest request, Integer parentWidthMm, BigDecimal parentLengthM) {
-        if (parentWidthMm == null || parentLengthM == null) {
+    private void validateBounds(PlacedRectangleRequest request, Integer parentWidthMm, Integer parentLengthMm) {
+        if (parentWidthMm == null || parentLengthMm == null) {
             throw new IllegalArgumentException("Source dimensions are required for placement validation");
         }
 
-        BigDecimal maxLengthMm = parentLengthM.multiply(BigDecimal.valueOf(1000));
         BigDecimal x = BigDecimal.valueOf(request.getXMm());
         BigDecimal y = BigDecimal.valueOf(request.getYMm());
         BigDecimal width = BigDecimal.valueOf(request.getWidthMm());
@@ -214,13 +213,13 @@ public class PlacedRectangleService {
         if (x.compareTo(BigDecimal.valueOf(parentWidthMm)) >= 0) {
             throw new IllegalArgumentException("x must be < source width");
         }
-        if (y.compareTo(maxLengthMm) >= 0) {
+        if (y.compareTo(BigDecimal.valueOf(parentLengthMm)) >= 0) {
             throw new IllegalArgumentException("y must be < source length");
         }
         if (x.add(width).compareTo(BigDecimal.valueOf(parentWidthMm)) > 0) {
             throw new IllegalArgumentException("x + width must be <= source width");
         }
-        if (y.add(height).compareTo(maxLengthMm) > 0) {
+        if (y.add(height).compareTo(BigDecimal.valueOf(parentLengthMm)) > 0) {
             throw new IllegalArgumentException("y + height must be <= source length");
         }
     }

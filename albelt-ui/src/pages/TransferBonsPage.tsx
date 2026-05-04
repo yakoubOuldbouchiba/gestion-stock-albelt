@@ -147,7 +147,7 @@ export function TransferBonsPage() {
             <>
               <span>{roll.materialType}</span>
               <span>{roll.widthMm} mm</span>
-              <span>{(roll.lengthRemainingM || roll.lengthM).toFixed(2)} m</span>
+              <span>{(roll.lengthRemainingMm || roll.lengthMm)} mm</span>
               <Tag
                 value={roll.status}
                 severity={roll.status === 'AVAILABLE' ? 'success' : roll.status === 'OPENED' ? 'warning' : 'info'}
@@ -158,7 +158,7 @@ export function TransferBonsPage() {
             <>
               <span>{piece.materialType}</span>
               <span>{piece.widthMm} mm</span>
-              <span>{piece.lengthM.toFixed(2)} m</span>
+              <span>{piece.lengthMm} mm</span>
               <Tag
                 value={piece.status}
                 severity={piece.status === 'AVAILABLE' ? 'success' : piece.status === 'OPENED' ? 'warning' : 'info'}

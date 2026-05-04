@@ -55,8 +55,8 @@ public class ReturnBonItem {
     @Column(name = "adjusted_width_mm")
     private Integer adjustedWidthMm;
 
-    @Column(name = "adjusted_length_m", precision = 10, scale = 2)
-    private BigDecimal adjustedLengthM;
+    @Column(name = "adjusted_length_mm")
+    private Integer adjustedLengthMm;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

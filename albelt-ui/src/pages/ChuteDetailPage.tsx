@@ -103,7 +103,7 @@ export function ChuteDetailPage() {
   const isCommandePlacement = (p: any) => Boolean(p.commandeItemId || p.commandeItem?.id);
 
   const sourceWidth = wastePiece?.widthMm || 0;
-  const sourceLength = Math.round((wastePiece?.lengthM || 0) * 1000);
+  const sourceLength = wastePiece?.lengthMm || 0;
 
   if (isLoading) return <div className="flex justify-center p-8"><ProgressSpinner /></div>;
   if (!wastePiece) return <div className="p-4"><Message severity="error" text={t('waste.noPiecesFound')} /></div>;
@@ -139,7 +139,7 @@ export function ChuteDetailPage() {
 
       <section className="metrics-grid">
         <MetricTile label={t('rollDetail.width')} value={wastePiece.widthMm} unit="mm" />
-        <MetricTile label={t('rollDetail.length')} value={wastePiece.lengthM.toFixed(2)} unit="m" />
+        <MetricTile label={t('rollDetail.length')} value={wastePiece.lengthMm} unit="mm" />
         <MetricTile label={t('rollDetail.area')} value={wastePiece.areaM2.toFixed(2)} unit="m²" />
         <MetricTile label={t('rollDetail.material')} value={wastePiece.materialType} subValue={`${wastePiece.nbPlis} plies • ${wastePiece.thicknessMm}mm`} />
       </section>
@@ -217,7 +217,7 @@ export function ChuteDetailPage() {
             <Card title={t('waste.detailParentWaste')} className="mt-4">
               <div className="text-sm">
                 <div>ID: {parentWaste.id}</div>
-                <div>{parentWaste.widthMm}mm x {parentWaste.lengthM.toFixed(2)}m</div>
+                <div>{parentWaste.widthMm}mm x {parentWaste.lengthMm}mm</div>
                 <Button label="View Parent" icon="pi pi-external-link" text size="small" className="mt-2" onClick={() => navigate(`/chute/${parentWaste.id}`)} />
               </div>
             </Card>

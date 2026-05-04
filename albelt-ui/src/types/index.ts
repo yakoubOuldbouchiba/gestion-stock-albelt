@@ -79,7 +79,7 @@ export interface MaterialChuteThreshold {
   id: string;
   materialType: MaterialType;
   minWidthMm: number;
-  minLengthM: number;
+  minLengthMm: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -144,8 +144,8 @@ export interface Roll {
   // Dimensions (current state - no "initial" suffix)
   widthMm: number;
   widthRemainingMm?: number;
-  lengthM: number;
-  lengthRemainingM?: number;
+  lengthMm: number;
+  lengthRemainingMm?: number;
   areaM2: number;
   usedAreaM2?: number;
   availableAreaM2?: number;
@@ -182,8 +182,8 @@ export interface RollSummary {
   thicknessMm?: number;
   widthMm?: number;
   widthRemainingMm?: number;
-  lengthM?: number;
-  lengthRemainingM?: number;
+  lengthMm?: number;
+  lengthRemainingMm?: number;
   areaM2?: number;
   usedAreaM2?: number;
   availableAreaM2?: number;
@@ -204,8 +204,8 @@ export interface RollRequest {
   thicknessMm: number;
   widthMm: number;
   widthRemainingMm?: number;
-  lengthM: number;
-  lengthRemainingM?: number;
+  lengthMm: number;
+  lengthRemainingMm?: number;
   areaM2: number;
   status: RollStatus;
   qrCode?: string;
@@ -271,8 +271,8 @@ export interface WastePiece {
   thicknessMm: number;
   widthMm: number;
   widthRemainingMm?: number;
-  lengthM: number;
-  lengthRemainingM?: number;
+  lengthMm: number;
+  lengthRemainingMm?: number;
   areaM2: number;
   usedAreaM2?: number;
   availableAreaM2?: number;
@@ -304,8 +304,8 @@ export interface WastePieceSummary {
   thicknessMm?: number;
   widthMm?: number;
   widthRemainingMm?: number;
-  lengthM?: number;
-  lengthRemainingM?: number;
+  lengthMm?: number;
+  lengthRemainingMm?: number;
   areaM2?: number;
   usedAreaM2?: number;
   availableAreaM2?: number;
@@ -322,7 +322,7 @@ export interface WastePieceRequest {
   commandeItemId?: string;
   materialType: MaterialType;
   widthMm: number;
-  lengthM: number;
+  lengthMm: number;
   colorId?: string;
   wasteType?: WasteType;
   quantityPieces?: number;
@@ -519,7 +519,7 @@ export interface ReturnBonItem {
   returnType: ReturnType;
   measureAction?: ReturnMeasureAction | null;
   adjustedWidthMm?: number | null;
-  adjustedLengthM?: number | null;
+  adjustedLengthMm?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -550,7 +550,7 @@ export interface ReturnBonItemRequest {
   returnType: ReturnType;
   measureAction?: ReturnMeasureAction;
   adjustedWidthMm?: number;
-  adjustedLengthM?: number;
+  adjustedLengthMm?: number;
 }
 
 export interface ReturnBonRequest {
@@ -574,7 +574,7 @@ export interface PurchaseBonItemRequest {
   nbPlis: number;
   thicknessMm: number;
   widthMm: number;
-  lengthM: number;
+  lengthMm: number;
   areaM2: number;
   quantity: number;
   colorId?: string;
@@ -591,7 +591,7 @@ export interface PurchaseBonItem {
   nbPlis: number;
   thicknessMm: number;
   widthMm: number;
-  lengthM: number;
+  lengthMm: number;
   areaM2: number;
   quantity: number;
   colorId?: string;
@@ -750,8 +750,8 @@ export interface CommandeItemSummary {
   materialType?: string;
   nbPlis?: number;
   thicknessMm?: number;
-  longueurM?: number;
-  longueurToleranceM?: number;
+  longueurMm?: number;
+  longueurToleranceMm?: number;
   largeurMm?: number;
   quantite?: number;
   status?: ItemStatus;
@@ -770,8 +770,8 @@ export interface CommandeItem {
   materialType: MaterialType;
   nbPlis: number;
   thicknessMm: number;
-  longueurM: number;
-  longueurToleranceM: number;
+  longueurMm: number;
+  longueurToleranceMm: number;
   largeurMm: number;
   quantite: number;
   surfaceConsommeeM2: number;
@@ -801,8 +801,8 @@ export interface CommandeItemRequest {
   materialType: MaterialType;
   nbPlis: number;
   thicknessMm: number;
-  longueurM: number;
-  longueurToleranceM?: number;
+  longueurMm: number;
+  longueurToleranceMm?: number;
   largeurMm: number;
   quantite: number;
   surfaceConsommeeM2: number;
@@ -874,7 +874,7 @@ export interface OptimizationSourceReport {
   nbPlis?: number | null;
   thicknessMm?: number | null;
   widthMm?: number | null;
-  lengthM?: number | null;
+  lengthMm?: number | null;
   colorName?: string | null;
   colorHexCode?: string | null;
   qrCode?: string | null;
@@ -891,7 +891,7 @@ export interface OptimizationPlacementReport {
   heightMm: number;
   rotated?: boolean | null;
   pieceWidthMm?: number | null;
-  pieceLengthM?: number | null;
+  pieceLengthMm?: number | null;
   areaM2?: number | null;
   placementColorName?: string | null;
   placementColorHexCode?: string | null;
@@ -922,7 +922,7 @@ export interface ProductionItem {
   id: string;
   placedRectangleId: string;
   placedRectangle?: PlacedRectangle | null;
-  pieceLengthM: number;
+  pieceLengthMm: number;
   pieceWidthMm: number;
   quantity: number;
   areaPerPieceM2: number;
@@ -936,7 +936,7 @@ export interface ProductionItem {
 
 export interface ProductionItemRequest {
   placedRectangleId: string;
-  pieceLengthM: number;
+  pieceLengthMm: number;
   pieceWidthMm: number;
   quantity: number;
   notes?: string;

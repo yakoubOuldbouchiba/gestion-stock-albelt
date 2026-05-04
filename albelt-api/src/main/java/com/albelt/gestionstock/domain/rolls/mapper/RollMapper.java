@@ -70,8 +70,8 @@ public class RollMapper {
                 .thicknessMm(request.getThicknessMm())
                 .widthMm(request.getWidthMm())
                 .widthRemainingMm(request.getWidthRemainingMm())
-                .lengthM(request.getLengthM())
-                .lengthRemainingM(request.getLengthRemainingM())
+                .lengthMm(request.getLengthMm())
+                .lengthRemainingMm(request.getLengthRemainingMm())
                 .areaM2(request.getAreaM2())
                 .usedAreaM2(BigDecimal.ZERO)
                 .availableAreaM2(request.getAreaM2())
@@ -120,11 +120,11 @@ public class RollMapper {
         if (request.getWidthRemainingMm() != null) {
             existing.setWidthRemainingMm(request.getWidthRemainingMm());
         }
-        if (request.getLengthM() != null) {
-            existing.setLengthM(request.getLengthM());
+        if (request.getLengthMm() != null) {
+            existing.setLengthMm(request.getLengthMm());
         }
-        if (request.getLengthRemainingM() != null) {
-            existing.setLengthRemainingM(request.getLengthRemainingM());
+        if (request.getLengthRemainingMm() != null) {
+            existing.setLengthRemainingMm(request.getLengthRemainingMm());
         }
         if (request.getAreaM2() != null) {
             existing.setAreaM2(request.getAreaM2());
@@ -168,8 +168,8 @@ public class RollMapper {
                 .thicknessMm(entity.getThicknessMm())
                 .widthMm(entity.getWidthMm())
                 .widthRemainingMm(entity.getWidthRemainingMm())
-                .lengthM(entity.getLengthM())
-                .lengthRemainingM(entity.getLengthRemainingM())
+                .lengthMm(entity.getLengthMm())
+                .lengthRemainingMm(entity.getLengthRemainingMm())
                 .areaM2(entity.getAreaM2())
                 .usedAreaM2(entity.getUsedAreaM2())
                 .availableAreaM2(entity.getAvailableAreaM2())

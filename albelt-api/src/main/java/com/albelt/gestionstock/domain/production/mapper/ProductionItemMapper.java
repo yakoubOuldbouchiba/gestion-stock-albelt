@@ -32,7 +32,7 @@ public class ProductionItemMapper {
 
         return ProductionItem.builder()
                 .placedRectangle(placedRectangle)
-                .pieceLengthM(request.getPieceLengthM())
+                .pieceLengthMm(request.getPieceLengthMm())
                 .pieceWidthMm(request.getPieceWidthMm())
                 .quantity(request.getQuantity())
                 .areaPerPieceM2(areaPerPiece)
@@ -53,7 +53,7 @@ public class ProductionItemMapper {
                 .id(entity.getId())
                 .placedRectangleId(placedRectangle != null ? placedRectangle.getId() : null)
                 .placedRectangle(placedRectangleMapper.toResponse(placedRectangle, commandeItem))
-                .pieceLengthM(entity.getPieceLengthM())
+                .pieceLengthMm(entity.getPieceLengthMm())
                 .pieceWidthMm(entity.getPieceWidthMm())
                 .quantity(entity.getQuantity())
                 .areaPerPieceM2(entity.getAreaPerPieceM2())

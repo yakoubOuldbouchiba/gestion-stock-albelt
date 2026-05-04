@@ -24,8 +24,8 @@ type ChuteDialogProps = {
   parentWastePiecesLoading: boolean;
   renderRollOption: (option: any) => JSX.Element | null;
   chuteSource: any;
-  chuteDimensions: { widthMm: number; lengthM: number; areaM2: number };
-  onDimensionChange: (field: 'widthMm' | 'lengthM', value: string) => void;
+  chuteDimensions: { widthMm: number; lengthMm: number; areaM2: number };
+  onDimensionChange: (field: 'widthMm' | 'lengthMm', value: string) => void;
   xMm: number;
   yMm: number;
   onPositionChange: (field: 'xMm' | 'yMm', value: string) => void;
@@ -220,8 +220,8 @@ export const ChuteDialog = ({
             {t('rolls.length')}
           </label>
           <InputText
-            value={chuteDimensions.lengthM ? String(chuteDimensions.lengthM) : ''}
-            onChange={(e) => onDimensionChange('lengthM', e.target.value)}
+            value={chuteDimensions.lengthMm ? String(chuteDimensions.lengthMm) : ''}
+            onChange={(e) => onDimensionChange('lengthMm', e.target.value)}
             type="number"
             disabled={Boolean(disabled) || creatingChute}
           />

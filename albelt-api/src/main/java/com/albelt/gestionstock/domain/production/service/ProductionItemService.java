@@ -45,17 +45,17 @@ public class ProductionItemService {
         Roll roll = placedRectangle.getRoll();
         WastePiece wastePiece = placedRectangle.getWastePiece();
 
-        BigDecimal areaPerPiece = calculateAreaPerPiece(request.getPieceWidthMm(), request.getPieceLengthM());
+        BigDecimal areaPerPiece = calculateAreaPerPiece(request.getPieceWidthMm(), request.getPieceLengthMm());
         BigDecimal totalArea = calculateTotalArea(areaPerPiece, request.getQuantity());
 
-        validatePlacementFit(placedRectangle, request.getPieceWidthMm(), request.getPieceLengthM());
+        validatePlacementFit(placedRectangle, request.getPieceWidthMm(), request.getPieceLengthMm());
         validateArea(placedRectangle, totalArea, null);
 
         ProductionMatchResult matchResult = evaluateProductionMatch(
                 commandeItem,
                 roll,
                 wastePiece,
-                request.getPieceLengthM(),
+                request.getPieceLengthMm(),
                 request.getPieceWidthMm()
         );
 
@@ -87,22 +87,22 @@ public class ProductionItemService {
         Roll roll = placedRectangle.getRoll();
         WastePiece wastePiece = placedRectangle.getWastePiece();
 
-        BigDecimal areaPerPiece = calculateAreaPerPiece(request.getPieceWidthMm(), request.getPieceLengthM());
+        BigDecimal areaPerPiece = calculateAreaPerPiece(request.getPieceWidthMm(), request.getPieceLengthMm());
         BigDecimal totalArea = calculateTotalArea(areaPerPiece, request.getQuantity());
 
-        validatePlacementFit(placedRectangle, request.getPieceWidthMm(), request.getPieceLengthM());
+        validatePlacementFit(placedRectangle, request.getPieceWidthMm(), request.getPieceLengthMm());
         validateArea(placedRectangle, totalArea, existing.getId());
 
         ProductionMatchResult matchResult = evaluateProductionMatch(
                 commandeItem,
                 roll,
                 wastePiece,
-                request.getPieceLengthM(),
+                request.getPieceLengthMm(),
                 request.getPieceWidthMm()
         );
 
         existing.setPlacedRectangle(placedRectangle);
-        existing.setPieceLengthM(request.getPieceLengthM());
+        existing.setPieceLengthMm(request.getPieceLengthMm());
         existing.setPieceWidthMm(request.getPieceWidthMm());
         existing.setQuantity(request.getQuantity());
         existing.setAreaPerPieceM2(areaPerPiece);
@@ -173,10 +173,10 @@ public class ProductionItemService {
         return getCommandeItem(commandeItemId);
     }
 
-    private BigDecimal calculateAreaPerPiece(Integer widthMm, BigDecimal lengthM) {
-        BigDecimal widthM = BigDecimal.valueOf(widthMm)
-                .divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
-        return widthM.multiply(lengthM).setScale(4, RoundingMode.HALF_UP);
+    private BigDecimal calculateAreaPerPiece(Integer widthMm, Integer lengthMm) {
+        // Calculate m² from mm values: (widthMm * lengthMm) / 1,000,000
+        return BigDecimal.valueOf((long) widthMm * lengthMm)
+                .divide(BigDecimal.valueOf(1_000_000), 4, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calculateTotalArea(BigDecimal areaPerPiece, Integer quantity) {
@@ -205,8 +205,8 @@ public class ProductionItemService {
         }
     }
 
-    private void validatePlacementFit(PlacedRectangle placedRectangle, Integer pieceWidthMm, BigDecimal pieceLengthM) {
-        if (placedRectangle == null || pieceWidthMm == null || pieceLengthM == null) {
+    private void validatePlacementFit(PlacedRectangle placedRectangle, Integer pieceWidthMm, Integer pieceLengthMm) {
+        if (placedRectangle == null || pieceWidthMm == null || pieceLengthMm == null) {
             return;
         }
         Integer rectWidth = placedRectangle.getWidthMm();
@@ -219,8 +219,7 @@ public class ProductionItemService {
             throw new IllegalArgumentException("Piece width exceeds placed rectangle width");
         }
 
-        BigDecimal lengthMm = pieceLengthM.multiply(BigDecimal.valueOf(1000));
-        if (lengthMm.compareTo(BigDecimal.valueOf(rectHeight)) > 0) {
+        if (pieceLengthMm > rectHeight) {
             throw new IllegalArgumentException("Piece length exceeds placed rectangle length");
         }
     }
@@ -229,7 +228,7 @@ public class ProductionItemService {
             CommandeItem commandeItem,
             Roll roll,
             WastePiece wastePiece,
-            BigDecimal pieceLengthM,
+            Integer pieceLengthMm,
             Integer pieceWidthMm
     ) {
         List<String> mismatches = new java.util.ArrayList<>();
@@ -276,10 +275,10 @@ public class ProductionItemService {
                     formatColor(sourceColor)));
         }
 
-        if (!matchesDecimal(pieceLengthM, commandeItem.getLongueurM())) {
-            mismatches.add(buildMismatch("piece_length_m",
-                    formatDecimal(commandeItem.getLongueurM()),
-                    formatDecimal(pieceLengthM)));
+        if (!matchesInteger(pieceLengthMm, commandeItem.getLongueurMm())) {
+            mismatches.add(buildMismatch("piece_length_mm",
+                    formatInteger(commandeItem.getLongueurMm()),
+                    formatInteger(pieceLengthMm)));
         }
 
         if (!matchesInteger(pieceWidthMm, commandeItem.getLargeurMm())) {

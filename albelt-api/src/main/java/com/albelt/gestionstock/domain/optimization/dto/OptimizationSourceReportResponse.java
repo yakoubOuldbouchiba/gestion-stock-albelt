@@ -31,7 +31,7 @@ public class OptimizationSourceReportResponse {
     private BigDecimal thicknessMm;
 
     private Integer widthMm;
-    private BigDecimal lengthM;
+    private Integer lengthMm;
 
     private String colorName;
     private String colorHexCode;

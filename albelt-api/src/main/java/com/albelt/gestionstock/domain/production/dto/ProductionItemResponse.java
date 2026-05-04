@@ -25,7 +25,7 @@ public class ProductionItemResponse {
 
     private PlacedRectangleResponse placedRectangle;
 
-    private BigDecimal pieceLengthM;
+    private Integer pieceLengthMm;
 
     private Integer pieceWidthMm;
 

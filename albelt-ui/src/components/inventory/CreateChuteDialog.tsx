@@ -301,7 +301,7 @@ export function CreateChuteDialog({
                 type="number"
                 id="lengthM"
                 name="lengthM"
-                value={String(formData.lengthM ?? '')}
+                value={String(formData.lengthMm ?? '')}
                 onChange={onDimensionChange}
                 step="0.01"
                 required

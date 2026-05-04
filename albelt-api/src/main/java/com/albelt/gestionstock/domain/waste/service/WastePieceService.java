@@ -81,8 +81,8 @@ public class WastePieceService {
      * @return Saved WastePiece entity
      */
     public WastePiece recordWaste(WastePieceRequest request, UUID createdBy) {
-        log.info("Recording waste piece: material={}, area_m2={}",
-                request.getMaterialType(), request.getLengthM());
+        log.info("Recording waste piece: material={}, lengthMm={}",
+                request.getMaterialType(), request.getLengthMm());
 
         WastePiece parentWastePiece = null;
         Roll roll = null;
@@ -162,7 +162,7 @@ public class WastePieceService {
         saved = wastePieceRepository.save(saved);
 
         // Auto-create a placement record linked to the source roll/waste piece
-        int heightMm = saved.getLengthM().multiply(BigDecimal.valueOf(1000)).intValue();
+        int heightMm = saved.getLengthMm();
         Color placementColor = null;
         if (saved.getArticle() != null && saved.getArticle().getColor() != null) {
             placementColor = saved.getArticle().getColor();

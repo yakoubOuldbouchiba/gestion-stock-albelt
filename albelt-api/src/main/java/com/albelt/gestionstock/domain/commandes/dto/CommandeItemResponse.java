@@ -33,9 +33,9 @@ public class CommandeItemResponse {
 
     private BigDecimal thicknessMm;
 
-    private BigDecimal longueurM;
+    private Integer longueurMm;
 
-    private BigDecimal longueurToleranceM;
+    private Integer longueurToleranceMm;
 
     private Integer largeurMm;
 

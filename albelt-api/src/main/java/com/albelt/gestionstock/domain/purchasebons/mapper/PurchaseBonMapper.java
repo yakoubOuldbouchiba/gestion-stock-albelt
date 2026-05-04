@@ -63,7 +63,7 @@ public class PurchaseBonMapper {
                 .nbPlis(item.getNbPlis())
                 .thicknessMm(item.getThicknessMm())
                 .widthMm(item.getWidthMm())
-                .lengthM(item.getLengthM())
+                .lengthMm(item.getLengthMm())
                 .areaM2(item.getAreaM2())
                 .quantity(item.getQuantity())
                 .colorId(item.getColor() != null ? item.getColor().getId() : null)

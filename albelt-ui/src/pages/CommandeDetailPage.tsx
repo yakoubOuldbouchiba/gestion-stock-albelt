@@ -303,8 +303,8 @@ export function CommandeDetailPage() {
     if (source?.thicknessMm != null && item.thicknessMm != null && source.thicknessMm !== item.thicknessMm) warnings.push(t('commandes.productionMismatchThickness', { expected: item.thicknessMm, actual: source.thicknessMm }));
     if (item.largeurMm != null && pieceWidth !== item.largeurMm) warnings.push(t('commandes.productionMismatchWidth', { expected: item.largeurMm, actual: pieceWidth }));
 
-    const itemLength = item.longueurM;
-    const tolerance = item.longueurToleranceM ?? 0;
+    const itemLength = item.longueurMm;
+    const tolerance = item.longueurToleranceMm ?? 0;
     if (itemLength != null && (pieceLength < itemLength - tolerance || pieceLength > itemLength + tolerance)) {
       warnings.push(t('commandes.productionMismatchLength', { expected: itemLength, actual: pieceLength, tolerance }));
     }
@@ -341,7 +341,7 @@ export function CommandeDetailPage() {
   const handleOpenProductionModal = (item: CommandeItem, placementId: string) => {
     if (isCommandeLocked) return showWarning(t('commandes.editLocked'));
     setProductionTargetItem(item);
-    setProductionForm({ placedRectangleId: placementId, pieceLengthM: '', pieceWidthMm: '', quantity: '', notes: '' });
+    setProductionForm({ placedRectangleId: placementId, pieceLengthMm: '', pieceWidthMm: '', quantity: '', notes: '' });
     setShowProductionModal(true);
   };
 
@@ -701,7 +701,7 @@ export function CommandeDetailPage() {
         chuteDimensions={chuteDimensions}
         onDimensionChange={(f, v) => {
           const next = { ...chuteDimensions, [f]: parseFloat(v) || 0 };
-          setChuteDimensions({ ...next, areaM2: (next.widthMm / 1000) * next.lengthM });
+          setChuteDimensions({ ...next, areaM2: (next.widthMm * next.lengthMm) / 1_000_000 });
         }}
         xMm={chutePosition.xMm}
         yMm={chutePosition.yMm}
@@ -768,7 +768,7 @@ export function CommandeDetailPage() {
           return `${formatSourceLabel(s, p.id.slice(0, 8))} | x:${p.xMm} y:${p.yMm} ${p.widthMm}x${p.heightMm}mm`;
         })() : t('commandes.notAvailable')}
         onSave={() => {
-          const warnings = getProductionWarnings(productionTargetItem!, placementsForItem.find(p => p.id === productionForm.placedRectangleId), parseFloat(productionForm.pieceLengthM), parseInt(productionForm.pieceWidthMm, 10));
+          const warnings = getProductionWarnings(productionTargetItem!, placementsForItem.find(p => p.id === productionForm.placedRectangleId), parseInt(productionForm.pieceLengthMm, 10), parseInt(productionForm.pieceWidthMm, 10));
           handleCreateProductionItem(productionTargetItem, warnings).then(res => res && setShowProductionModal(false));
         }}
         creatingProduction={creatingProduction}

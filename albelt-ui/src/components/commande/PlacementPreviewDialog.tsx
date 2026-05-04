@@ -43,7 +43,7 @@ export const PlacementPreviewDialog = ({
               .join(' • ')
           : null;
         const sourceWidthMm = Number(source?.widthMm) || 0;
-        const sourceLengthMm = Math.round((Number(source?.lengthM) || 0) * 1000);
+        const sourceLengthMm = Number(source?.lengthMm) || 0;
         const sourcePlacements = placementsForItem.filter((placement) => (
           isRoll
             ? placement.rollId === rollId

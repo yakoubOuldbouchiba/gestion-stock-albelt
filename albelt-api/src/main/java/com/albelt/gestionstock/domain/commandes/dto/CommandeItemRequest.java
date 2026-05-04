@@ -30,9 +30,10 @@ public class CommandeItemRequest {
 
     @NotNull(message = "Length is required")
     @Positive(message = "Length must be positive")
-    private BigDecimal longueurM;
+    private Integer longueurMm;
 
-    private BigDecimal longueurToleranceM;
+    @Positive(message = "Length tolerance must be positive")
+    private Integer longueurToleranceMm;
 
     @NotNull(message = "Width is required")
     @Positive(message = "Width must be positive")

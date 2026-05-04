@@ -41,8 +41,8 @@ public class WastePieceResponse {
     // Dimensions (same as Roll)
     private Integer widthMm;
     private Integer widthRemainingMm;
-    private BigDecimal lengthM;
-    private BigDecimal lengthRemainingM;
+    private Integer lengthMm;
+    private Integer lengthRemainingMm;
     private BigDecimal areaM2;
     private BigDecimal usedAreaM2;
     private BigDecimal availableAreaM2;

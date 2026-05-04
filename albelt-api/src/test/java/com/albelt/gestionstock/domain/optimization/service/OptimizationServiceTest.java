@@ -96,7 +96,7 @@ class OptimizationServiceTest {
                 "PVC",
                 1,
                 BigDecimal.ONE,
-                BigDecimal.ONE,
+                1000,
                 1000,
                 2,
                 null,

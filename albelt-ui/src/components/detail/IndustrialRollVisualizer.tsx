@@ -181,7 +181,7 @@ export const IndustrialRollVisualizer: React.FC<IndustrialRollVisualizerProps> =
       scrollElement.removeEventListener('scroll', syncTooltip);
       window.removeEventListener('resize', syncTooltip);
     };
-  }, [isPrintMode, tooltipState?.placement?.id, tooltipState?.pinned]);
+  }, [isPrintMode, tooltipState?.pinned]);
 
   useEffect(() => {
     if (isPrintMode) {

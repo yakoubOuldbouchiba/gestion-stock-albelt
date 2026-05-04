@@ -21,7 +21,7 @@ public class PurchaseBonItemResponse {
     private Integer nbPlis;
     private BigDecimal thicknessMm;
     private Integer widthMm;
-    private BigDecimal lengthM;
+    private Integer lengthMm;
     private BigDecimal areaM2;
     private Integer quantity;
 

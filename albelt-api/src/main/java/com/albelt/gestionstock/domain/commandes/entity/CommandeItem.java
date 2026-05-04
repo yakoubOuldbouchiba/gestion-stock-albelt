@@ -54,12 +54,12 @@ public class CommandeItem {
     private BigDecimal thicknessMm;
 
     // Dimensions
-    @Column(name = "longueur_m", nullable = false, precision = 10, scale = 2)
-    private BigDecimal longueurM;
+    @Column(name = "longueur_mm", nullable = false)
+    private Integer longueurMm;
 
-    @Column(name = "longueur_tolerance_m", precision = 10, scale = 2)
+    @Column(name = "longueur_tolerance_mm")
     @Builder.Default
-    private BigDecimal longueurToleranceM = BigDecimal.ZERO;
+    private Integer longueurToleranceMm = 0;
 
     @Column(name = "largeur_mm", nullable = false)
     private Integer largeurMm;

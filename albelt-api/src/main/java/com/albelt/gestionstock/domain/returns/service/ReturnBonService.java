@@ -140,7 +140,7 @@ public class ReturnBonService {
                 .returnType(returnType)
                 .measureAction(measureAction)
                 .adjustedWidthMm(request.getAdjustedWidthMm())
-                .adjustedLengthM(request.getAdjustedLengthM())
+                .adjustedLengthMm(request.getAdjustedLengthMm())
                 .build();
     }
 
@@ -158,19 +158,19 @@ public class ReturnBonService {
 
     private void validateAdjustment(ReturnBonItemRequest request, ProductionItem productionItem) {
         Integer adjustedWidth = request.getAdjustedWidthMm();
-        BigDecimal adjustedLength = request.getAdjustedLengthM();
+        Integer adjustedLength = request.getAdjustedLengthMm();
 
         if (adjustedWidth == null || adjustedLength == null) {
             throw new IllegalArgumentException("Adjusted width and length are required for AJUST");
         }
-        if (adjustedWidth <= 0 || adjustedLength.compareTo(BigDecimal.ZERO) <= 0) {
+        if (adjustedWidth <= 0 || adjustedLength <= 0) {
             throw new IllegalArgumentException("Adjusted dimensions must be positive");
         }
 
         if (adjustedWidth > productionItem.getPieceWidthMm()) {
             throw new IllegalArgumentException("Adjusted width cannot exceed original width");
         }
-        if (adjustedLength.compareTo(productionItem.getPieceLengthM()) > 0) {
+        if (adjustedLength > productionItem.getPieceLengthMm()) {
             throw new IllegalArgumentException("Adjusted length cannot exceed original length");
         }
     }
@@ -179,8 +179,8 @@ public class ReturnBonService {
         if (request.getAdjustedWidthMm() != null) {
             commandeItem.setLargeurMm(request.getAdjustedWidthMm());
         }
-        if (request.getAdjustedLengthM() != null) {
-            commandeItem.setLongueurM(request.getAdjustedLengthM());
+        if (request.getAdjustedLengthMm() != null) {
+            commandeItem.setLongueurMm(request.getAdjustedLengthMm());
         }
         commandeItemRepository.save(commandeItem);
     }
@@ -210,14 +210,14 @@ public class ReturnBonService {
 
     private WasteSpec buildWasteSpec(ProductionItem productionItem, ReturnBonItemRequest request, String measureAction) {
         int originalWidth = productionItem.getPieceWidthMm();
-        BigDecimal originalLength = productionItem.getPieceLengthM();
+        int originalLength = productionItem.getPieceLengthMm();
 
         if (!"AJUST".equals(measureAction)) {
             return new WasteSpec(originalWidth, originalLength);
         }
 
         Integer adjustedWidth = request.getAdjustedWidthMm();
-        BigDecimal adjustedLength = request.getAdjustedLengthM();
+        Integer adjustedLength = request.getAdjustedLengthMm();
         if (adjustedWidth == null || adjustedLength == null) {
             return null;
         }
@@ -229,10 +229,12 @@ public class ReturnBonService {
             return null;
         }
 
+        // Calculate waste length: diffArea / (originalWidth / 1000)
         BigDecimal widthM = BigDecimal.valueOf(originalWidth)
                 .divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
-        BigDecimal diffLength = diffArea.divide(widthM, 6, RoundingMode.HALF_UP);
-        return new WasteSpec(originalWidth, diffLength.setScale(2, RoundingMode.HALF_UP));
+        BigDecimal diffLengthM = diffArea.divide(widthM, 6, RoundingMode.HALF_UP);
+        int wasteLength = diffLengthM.multiply(BigDecimal.valueOf(1000)).intValue();
+        return new WasteSpec(originalWidth, wasteLength);
     }
 
     private WastePieceRequest buildWasteRequest(ProductionItem productionItem, CommandeItem commandeItem, WasteSpec spec) {
@@ -255,7 +257,7 @@ public class ReturnBonService {
             throw new IllegalArgumentException("Source material specifications are required to create waste pieces");
         }
 
-        BigDecimal areaM2 = calculateAreaM2(spec.widthMm(), spec.lengthM());
+        BigDecimal areaM2 = calculateAreaM2(spec.widthMm(), spec.lengthMm());
 
         return WastePieceRequest.builder()
                 .rollId(roll != null ? roll.getId() : null)
@@ -264,7 +266,7 @@ public class ReturnBonService {
                 .nbPlis(nbPlis)
                 .thicknessMm(thickness)
                 .widthMm(spec.widthMm())
-                .lengthM(spec.lengthM())
+                .lengthMm(spec.lengthMm())
                 .areaM2(areaM2)
                 .wasteType(WasteType.DECHET)
                 .altierId(altierId)
@@ -273,10 +275,10 @@ public class ReturnBonService {
                 .build();
     }
 
-    private BigDecimal calculateAreaM2(Integer widthMm, BigDecimal lengthM) {
-        BigDecimal widthM = BigDecimal.valueOf(widthMm)
-                .divide(BigDecimal.valueOf(1000), 6, RoundingMode.HALF_UP);
-        return widthM.multiply(lengthM).setScale(4, RoundingMode.HALF_UP);
+    private BigDecimal calculateAreaM2(Integer widthMm, Integer lengthMm) {
+        // Calculate m² from mm values: (widthMm * lengthMm) / 1,000,000
+        return BigDecimal.valueOf((long) widthMm * lengthMm)
+                .divide(BigDecimal.valueOf(1_000_000), 4, RoundingMode.HALF_UP);
     }
 
     private void ensureProductionItemMatchesCommandeItem(ProductionItem productionItem, CommandeItem commandeItem) {
@@ -314,6 +316,6 @@ public class ReturnBonService {
         return value.trim().toUpperCase(Locale.ROOT);
     }
 
-    private record WasteSpec(Integer widthMm, BigDecimal lengthM) {
+    private record WasteSpec(Integer widthMm, Integer lengthMm) {
     }
 }

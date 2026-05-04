@@ -28,5 +28,5 @@ public class MaterialChuteThresholdRequest {
 
     @NotNull
     @PositiveOrZero
-    private BigDecimal minLengthM;
+    private Integer minLengthMm;
 }

@@ -73,7 +73,7 @@ public class PdfExportService {
             for (PurchaseBonItemResponse item : items) {
                 addBodyCell(itemsTable, String.valueOf(item.getLineNumber()), locale, fonts);
                 addBodyCell(itemsTable, enumOrText(item.getMaterialType()), locale, fonts);
-                addBodyCell(itemsTable, buildDimensions(item.getWidthMm(), item.getLengthM(), item.getAreaM2()), locale, fonts);
+                addBodyCell(itemsTable, buildDimensions(item.getWidthMm(), item.getLengthMm(), item.getAreaM2()), locale, fonts);
                 addBodyCell(itemsTable, String.valueOf(item.getQuantity()), locale, fonts);
                 addBodyCell(itemsTable, item.getColorName(), locale, fonts);
                 addBodyCell(itemsTable, item.getAltierLibelle(), locale, fonts);
@@ -294,8 +294,8 @@ public class PdfExportService {
         }
     }
 
-    private String buildDimensions(Integer widthMm, BigDecimal lengthM, BigDecimal areaM2) {
-        return orDash(widthMm != null ? widthMm + " mm x " + decimal(lengthM) + " m (" + decimal(areaM2) + " m2)" : null);
+    private String buildDimensions(Integer widthMm, Integer lengthMm, BigDecimal areaM2) {
+        return orDash(widthMm != null && lengthMm != null ? widthMm + " mm x " + lengthMm + " mm (" + decimal(areaM2) + " m²)" : null);
     }
 
     private String buildMovementLabel(RollMovementDTO movement) {

@@ -152,7 +152,7 @@ export function PlacementsSection({
                                     severity={p.goodProduction ? 'success' : 'danger'} 
                                     style={{ width: '8px', height: '8px', borderRadius: '50%', padding: 0 }}
                                   />
-                                  <span>{p.quantity} x {p.pieceLengthM}m x {p.pieceWidthMm}mm</span>
+                                  <span>{p.quantity} x {p.pieceLengthMm}mm x {p.pieceWidthMm}mm</span>
                                 </div>
                                 {onDeleteProduction && (
                                   <Button 
