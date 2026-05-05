@@ -1057,7 +1057,6 @@ export function InventoryPage() {
         onChuteRollChange={v => setChute(p => ({ ...p, rollId: v }))}
         chuteRollOptions={chute.filteredRolls.map(r => ({ label: formatRollChuteLabel(r), value: r.id }))}
         chuteRollsLoading={chute.filteredRollsLoading}
-        selectedRoll={chute.filteredRolls.find(r => r.id === chute.rollId)}
         supplierOptions={supplierOptions}
         materialOptions={materials.map(m => ({ label: m, value: m }))}
         supplierId={formData.supplierId}
@@ -1067,7 +1066,6 @@ export function InventoryPage() {
         parentWastePieceId={chute.parentWastePieceId}
         parentWasteOptions={chute.parentWastePieces.map(p => ({ label: formatRollChuteLabel(p), value: p.id }))}
         parentWastePiecesLoading={chute.parentWastePiecesLoading}
-        selectedWastePiece={chute.parentWastePieces.find(p => p.id === chute.parentWastePieceId)}
         onParentWasteChange={v => setChute(p => ({ ...p, parentWastePieceId: v }))}
         xMm={chute.xMm}
         yMm={chute.yMm}
