@@ -61,6 +61,18 @@ export const ChuteDialog = ({
 }: ChuteDialogProps) => {
   const chuteSummary = chuteSource ? getRollChuteSummary(chuteSource) : null;
 
+  const renderWasteOption = (option: any) => {
+    if (!option) return null;
+    return (
+      <div className="flex align-items-center gap-2">
+        <span style={{ width: '14px', height: '14px', borderRadius: '3px', backgroundColor: option.colorHexCode || 'transparent', border: '1px solid var(--surface-border)' }} />
+        <span>{option.colorName || t('commandes.notAvailable')}</span>
+        <span className="text-secondary">•</span>
+        <span>{option.label}</span>
+      </div>
+    );
+  };
+
   return (
   <Dialog
     header={
@@ -90,11 +102,14 @@ export const ChuteDialog = ({
           {t('inventory.sourceType')}
         </label>
         <Dropdown
+          key={`chute-source-${showChuteForm}`}
           value={chuteSourceType}
           options={chuteSourceOptions}
           onChange={(e) => onSourceTypeChange(e.value)}
           style={{ width: '100%' }}
           disabled={Boolean(disabled) || creatingChute}
+          optionLabel="label"
+          optionValue="value"
         />
       </div>
 
@@ -112,6 +127,7 @@ export const ChuteDialog = ({
             placeholder={t('commandes.selectRollOption')}
             style={{ width: '100%' }}
             disabled={Boolean(disabled) || creatingChute}
+            filter
           />
         </div>
       ) : (
@@ -122,6 +138,8 @@ export const ChuteDialog = ({
           <Dropdown
             value={parentWastePieceId}
             options={chuteParentOptions}
+            itemTemplate={renderWasteOption}
+            valueTemplate={(option) => renderWasteOption(option)}
             onChange={(e) => onParentWasteChange(e.value as string)}
             placeholder={
               parentWastePiecesLoading
@@ -130,6 +148,7 @@ export const ChuteDialog = ({
             }
             style={{ width: '100%' }}
             disabled={Boolean(disabled) || creatingChute || parentWastePiecesLoading}
+            filter
           />
         </div>
       )}
@@ -175,6 +194,79 @@ export const ChuteDialog = ({
           </div>
         </div>
       </div>
+
+      {chuteSource && (
+        <div style={{ border: '1px solid var(--surface-border)', borderRadius: '6px', padding: '1rem', backgroundColor: 'var(--surface-50)' }}>
+          <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+            {t('commandes.preview') || 'Preview'} - {chuteSourceType === 'ROLL' ? t('inventory.roll') : t('inventory.wastePiece')}
+          </label>
+          <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--surface-border)' }}>
+            <div style={{ fontWeight: 600 }}>
+              {chuteSource.reference || chuteSource.id.slice(0, 8)}
+            </div>
+            <div style={{ fontSize: '0.9rem', color: 'var(--text-color-secondary)' }}>
+              {(chuteSource.lengthMm / 1000).toFixed(2)}m × {chuteSource.widthMm}mm
+            </div>
+          </div>
+          <div style={{ 
+            width: '100%', 
+            minHeight: '200px', 
+            backgroundColor: 'white', 
+            border: '1px solid var(--surface-border)', 
+            borderRadius: '4px', 
+            padding: '1rem',
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            overflow: 'auto'
+          }}>
+            <svg
+              viewBox={`0 0 ${Math.max(chuteSource.lengthMm || 100, 100)} ${Math.max(chuteSource.widthMm || 100, 100)}`}
+              style={{ width: '100%', height: 'auto', display: 'block' }}
+              preserveAspectRatio="xMinYMid meet"
+            >
+              {/* Source item background rectangle */}
+              <rect
+                x="0"
+                y="0"
+                width={chuteSource.lengthMm || 100}
+                height={chuteSource.widthMm || 100}
+                fill={chuteSource.colorHexCode || '#f5f5f5'}
+                stroke="#bdbdbd"
+                strokeWidth="2"
+                vectorEffect="non-scaling-stroke"
+              />
+              {/* Length label (X axis) */}
+              <text
+                x={(chuteSource.lengthMm || 100) / 2}
+                y={-10}
+                textAnchor="middle"
+                fontSize="14"
+                fontWeight="bold"
+                fill="#333"
+              >
+                {(chuteSource.lengthMm / 1000).toFixed(2)}m
+              </text>
+              {/* Width label (Y axis) */}
+              <text
+                x={-15}
+                y={(chuteSource.widthMm || 100) / 2}
+                textAnchor="middle"
+                fontSize="14"
+                fontWeight="bold"
+                fill="#333"
+                transform={`rotate(-90 -15 ${(chuteSource.widthMm || 100) / 2})`}
+              >
+                {chuteSource.widthMm}mm
+              </text>
+            </svg>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--surface-border)', fontSize: '0.85rem', color: 'var(--text-color-secondary)' }}>
+            <i className="pi pi-info-circle" style={{ fontSize: '0.8rem' }}></i>
+            <span>{t('rollDetail.lengthOnX') || 'Length on X'}, {t('rollDetail.widthOnY') || 'Width on Y'}</span>
+          </div>
+        </div>
+      )}
 
       <div className="albel-grid albel-grid--min180" style={{ gap: '1rem' }}>
         <div>

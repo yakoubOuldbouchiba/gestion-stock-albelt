@@ -100,9 +100,10 @@ EXECUTE FUNCTION prevent_supplier_deletion();
 CREATE OR REPLACE FUNCTION flag_waste_for_reuse()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Waste pieces > 3000mm (3.0 m2) are automatically flagged as AVAILABLE
+    -- Waste pieces > 3.0 m2 are automatically flagged as AVAILABLE
     -- Smaller pieces are marked as SCRAP
-    IF (NEW.width_mm * 1.0 * NEW.length_m) > 3.0 THEN
+    -- Calculation: area_m2 = (width_mm / 1000) * length_m
+    IF ((NEW.width_mm::DECIMAL / 1000.0) * NEW.length_m) > 3.0 THEN
         NEW.status := 'AVAILABLE';
         NEW.notes := COALESCE(NEW.notes, '') || ' [AUTO: Large waste - available for reuse]';
     ELSE

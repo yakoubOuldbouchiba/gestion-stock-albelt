@@ -43,6 +43,16 @@ export const WastePieceService = {
     return ApiService.get<WastePiece[]>('/waste-pieces/available', { material, page, size });
   },
 
+  /**
+   * Get all available waste pieces (CHUTE_EXPLOITABLE type)
+   */
+  async getAvailable(page = 0, size = 20): Promise<ApiResponse<any>> {
+    return ApiService.get<any>('/waste-pieces', { page, size, wasteType: 'CHUTE_EXPLOITABLE' });
+  },
+
+  /**
+   * Get available waste pieces for a specific article
+   */
   async getAvailableByArticle(articleId: string, page = 0, size = 20): Promise<ApiResponse<WastePiece[]>> {
     return ApiService.get<WastePiece[]>('/waste-pieces/available', { articleId, page, size });
   },

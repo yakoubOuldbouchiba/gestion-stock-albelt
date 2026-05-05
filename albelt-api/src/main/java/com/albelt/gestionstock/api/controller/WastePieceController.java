@@ -6,6 +6,7 @@ import com.albelt.gestionstock.domain.users.service.UserAltierService;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceGroupedStatsResponse;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceRequest;
 import com.albelt.gestionstock.domain.waste.dto.WastePieceResponse;
+import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.waste.mapper.WastePieceMapper;
 import com.albelt.gestionstock.domain.waste.service.WastePieceService;
 import com.albelt.gestionstock.shared.enums.MaterialType;
@@ -252,17 +253,26 @@ public class WastePieceController {
     }
 
     /**
-     * Get available waste pieces by material
-     * GET /api/waste-pieces/available?articleId={articleId}&page={page}&size={size}
+     * Get available waste pieces, optionally filtered by article.
+     * GET /api/waste-pieces/available?articleId={articleId}&page={page}&size={size} - filter by article
+     * GET /api/waste-pieces/available?page={page}&size={size} - get all available waste pieces
      */
     @GetMapping("/available")
     @Transactional(readOnly = true)
-    public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getAvailableByArticle(
-            @RequestParam UUID articleId,
+    public ResponseEntity<ApiResponse<List<WastePieceResponse>>> getAvailable(
+            @RequestParam(required = false) UUID articleId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        log.debug("Fetching available waste pieces for article: {}", articleId);
-        var wastePieces = wastePieceService.getAvailableByArticle(articleId, page, size);
+        List<WastePiece> wastePieces;
+        if (articleId != null) {
+            log.debug("Fetching available waste pieces for article: {}", articleId);
+            wastePieces = wastePieceService.getAvailableByArticle(articleId, page, size);
+        } else {
+            log.debug("Fetching all available waste pieces");
+            UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
+            wastePieces = wastePieceService.getAvailableByUserAltiers(accessibleAltierIds, page, size);
+        }
         var responses = wastePieceMapper.toResponseList(wastePieces);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }

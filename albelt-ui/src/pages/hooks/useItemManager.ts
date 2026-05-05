@@ -110,7 +110,8 @@ export function useItemManager(selectedItemId: string | null) {
 
     setRollsLoadingByArticle((prev) => ({ ...prev, [articleId]: true }));
     try {
-      const response = await RollService.getAvailableByArticle(articleId);
+      // Get ALL available rolls (no article filter)
+      const response = await RollService.getAvailable();
       if (response.success && response.data) {
         setRollsByArticle((prev) => ({ ...prev, [articleId]: response.data || [] }));
       } else {
@@ -131,10 +132,11 @@ export function useItemManager(selectedItemId: string | null) {
 
     setWasteLoadingByArticle((prev) => ({ ...prev, [articleId]: true }));
     try {
-      const response = await WastePieceService.getAvailableByArticle(articleId, 0, 200);
+      // Get ALL available waste pieces (no article filter)
+      const response = await WastePieceService.getAvailable(0, 200);
       setAvailableWasteByArticle((prev) => ({ ...prev, [articleId]: response.data || [] }));
     } catch (err) {
-      console.error('Error loading article waste:', err);
+      console.error('Error loading all waste:', err);
       setAvailableWasteByArticle((prev) => ({ ...prev, [articleId]: [] }));
     } finally {
       setWasteLoadingByArticle((prev) => ({ ...prev, [articleId]: false }));

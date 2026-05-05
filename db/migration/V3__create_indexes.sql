@@ -66,7 +66,7 @@ CREATE INDEX idx_waste_pieces_status ON waste_pieces(status);
 CREATE INDEX idx_waste_pieces_area ON waste_pieces(area_m2 DESC);
 CREATE INDEX idx_waste_pieces_created_at ON waste_pieces(created_at DESC);
 
--- Index for finding large waste pieces (> 3000mm)
+-- Index for finding large waste pieces (>= 3.0 m2) eligible for reuse
 CREATE INDEX idx_waste_pieces_large ON waste_pieces(status) 
     WHERE area_m2 >= 3.0 AND status = 'AVAILABLE';
 

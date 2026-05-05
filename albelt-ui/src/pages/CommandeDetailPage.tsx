@@ -10,6 +10,7 @@ import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 
 import { CommandeService } from '../services/commandeService';
+import { WastePieceService } from '../services/wastePieceService';
 
 import { useI18n } from '@hooks/useI18n';
 import { formatRollChuteLabel } from '@utils/rollChuteLabel';
@@ -30,6 +31,7 @@ import { PlacementsSection } from '../components/commande/PlacementsSection';
 
 import { useCommandeDetail } from './hooks/useCommandeDetail';
 import { useItemManager } from './hooks/useItemManager';
+import { useSourcePlacements } from './hooks/useSourcePlacements';
 import { usePlacementActions } from './hooks/usePlacementActions';
 import { useProductionActions } from './hooks/useProductionActions';
 import { useWasteActions } from './hooks/useWasteActions';
@@ -139,6 +141,13 @@ export function CommandeDetailPage() {
     isCommandeLocked
   );
 
+  // Load placements for the currently selected source in the placement dialog
+  const currentPlacementSourceType = placementForm.sourceType === 'ROLL' ? 'roll' : 'waste';
+  const { placements: sourcePlacements } = useSourcePlacements(
+    placementForm.sourceId || null,
+    placementForm.sourceId ? currentPlacementSourceType : null
+  );
+
   const {
     creatingProduction,
     productionForm,
@@ -190,22 +199,26 @@ export function CommandeDetailPage() {
   }, [commande?.items, selectedItemId]);
 
   useEffect(() => {
-    const articleId = getArticleId(chuteTargetItem);
-    if (showChuteForm && articleId && chuteSourceType === 'WASTE_PIECE') {
+    if (showChuteForm && chuteSourceType === 'WASTE_PIECE') {
       const fetchWaste = async () => {
         setParentWastePiecesLoading(true);
         try {
-          await ensureWasteForArticle(articleId);
-          setParentWastePieces(availableWasteByArticle[articleId] || []);
+          // Load waste pieces with CHUTE_EXPLOITABLE type
+          const response = await WastePieceService.getAvailable(0, 200);
+          // API returns paginated response with items property
+          const items = (response.data as any)?.items || [];
+          setParentWastePieces(items);
+          console.log('Loaded waste pieces:', items.length, items);
         } catch (err) {
           console.error('Error fetching parent waste pieces:', err);
+          setParentWastePieces([]);
         } finally {
           setParentWastePiecesLoading(false);
         }
       };
       fetchWaste();
     }
-  }, [showChuteForm, chuteTargetItem, chuteSourceType, ensureWasteForArticle, availableWasteByArticle]);
+  }, [showChuteForm, chuteSourceType]);
 
   const isBusy = updating || creatingProduction || creatingChute || creatingPlacement || deletingOrder;
 
@@ -366,7 +379,7 @@ export function CommandeDetailPage() {
   };
 
   const buildRollOptions = (rolls: Roll[]) => rolls.map(r => ({
-    label: formatRollChuteLabel({ reference: r.reference ?? (r as any).referenceRouleau ?? 'N/A', nbPlis: r.nbPlis, thicknessMm: r.thicknessMm, colorName: r.colorName, colorHexCode: r.colorHexCode }),
+    label: formatRollChuteLabel({ lotId: r.lotId, reference: r.reference ?? (r as any).referenceRouleau ?? 'N/A', nbPlis: r.nbPlis, thicknessMm: r.thicknessMm, colorName: r.colorName, colorHexCode: r.colorHexCode }),
     value: r.id,
     colorHexCode: r.colorHexCode,
     colorName: r.colorName,
@@ -681,12 +694,17 @@ export function CommandeDetailPage() {
         disabled={isCommandeLocked}
         chuteSourceType={chuteSourceType}
         chuteSourceOptions={[{ label: t('inventory.roll'), value: 'ROLL' }, { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' }]}
-        onSourceTypeChange={v => { setChuteSourceType(v as any); resetChuteForm(); }}
+        onSourceTypeChange={v => { 
+          setChuteSourceType(v as 'ROLL' | 'WASTE_PIECE'); 
+          // Clear selection fields only, preserve the source type
+          setChuteRollId('');
+          setParentWastePieceId('');
+        }}
         chuteRollId={chuteRollId}
         chuteRollOptions={buildRollOptions(chuteTargetItem ? (rollsByArticle[getArticleId(chuteTargetItem) || ''] || []) : [])}
         onRollChange={setChuteRollId}
         parentWastePieceId={parentWastePieceId}
-        chuteParentOptions={parentWastePieces.map(p => ({ label: formatRollChuteLabel({ reference: p.reference ?? p.id.slice(0, 8), nbPlis: p.nbPlis, thicknessMm: p.thicknessMm, colorName: p.colorName, colorHexCode: p.colorHexCode }), value: p.id }))}
+        chuteParentOptions={parentWastePieces.map(p => ({ label: formatRollChuteLabel({ lotId: p.lotId, reference: p.reference ?? p.id.slice(0, 8), nbPlis: p.nbPlis, thicknessMm: p.thicknessMm, colorName: p.colorName, colorHexCode: p.colorHexCode }), value: p.id }))}
         onParentWasteChange={setParentWastePieceId}
         parentWastePiecesLoading={parentWastePiecesLoading}
         renderRollOption={opt => opt && (
@@ -721,14 +739,14 @@ export function CommandeDetailPage() {
         placementSourceOptionsDialog={[{ label: t('inventory.roll'), value: 'ROLL' }, { label: t('inventory.wastePiece'), value: 'WASTE_PIECE' }]}
         onSourceTypeChange={v => setPlacementForm({ ...placementForm, sourceType: v as any, sourceId: '' })}
         placementRollOptionsDialog={buildRollOptions(placementTargetItem ? (rollsByArticle[getArticleId(placementTargetItem) || ''] || []) : [])}
-        placementWasteOptionsDialog={(placementTargetItem ? (availableWasteByArticle[getArticleId(placementTargetItem) || ''] || []) : []).map(w => ({ label: formatRollChuteLabel({ reference: w.reference ?? w.id.slice(0, 8), nbPlis: w.nbPlis, thicknessMm: w.thicknessMm, colorName: w.colorName, colorHexCode: w.colorHexCode }), value: w.id }))}
+        placementWasteOptionsDialog={(placementTargetItem ? (availableWasteByArticle[getArticleId(placementTargetItem) || ''] || []) : []).map(w => ({ label: formatRollChuteLabel({ lotId: w.lotId, reference: w.reference ?? w.id.slice(0, 8), nbPlis: w.nbPlis, thicknessMm: w.thicknessMm, colorName: w.colorName, colorHexCode: w.colorHexCode }), value: w.id }))}
         onSourceIdChange={v => setPlacementForm({ ...placementForm, sourceId: v })}
         onFieldChange={(f, v) => setPlacementForm({ ...placementForm, [f]: v })}
         onSave={() => handleCreatePlacement(placementTargetItem!, rollsByArticle[getArticleId(placementTargetItem) || ''] || [], wasteForItem, placementsForItem).then(res => res && setShowPlacementModal(false))}
         creatingPlacement={creatingPlacement}
         rolls={placementTargetItem ? (rollsByArticle[getArticleId(placementTargetItem) || ''] || []) : []}
         wasteForItem={wasteForItem}
-        placementsForItem={placementsForItem}
+        placementsForItem={sourcePlacements}
         renderRollOption={opt => opt && (
           <div className="flex align-items-center gap-2">
             <span style={{ width: '14px', height: '14px', borderRadius: '3px', backgroundColor: opt.colorHexCode || 'transparent', border: '1px solid var(--surface-border)' }} />

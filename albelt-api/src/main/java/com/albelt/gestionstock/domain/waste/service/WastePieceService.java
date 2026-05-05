@@ -376,6 +376,22 @@ public class WastePieceService {
     }
 
     /**
+     * Get all available waste pieces (excluding EXHAUSTED and ARCHIVED) in user's altiers
+     */
+    @Transactional(readOnly = true)
+    public List<WastePiece> getAvailableByUserAltiers(List<UUID> userAltierIds, int page, int size) {
+        if (userAltierIds == null || userAltierIds.isEmpty()) {
+            return List.of();
+        }
+        List<WasteStatus> availableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
+        return wastePieceRepository.findAvailableByMaterial(
+                null,
+                availableStatuses,
+                PageRequest.of(page, size)
+        );
+    }
+
+    /**
      * Get waste statistics
      */
     @Transactional(readOnly = true)

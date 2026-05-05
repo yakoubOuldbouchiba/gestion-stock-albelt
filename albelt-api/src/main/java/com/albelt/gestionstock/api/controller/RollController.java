@@ -5,6 +5,7 @@ import com.albelt.gestionstock.api.response.PagedResponse;
 import com.albelt.gestionstock.domain.rolls.dto.RollRequest;
 import com.albelt.gestionstock.domain.rolls.dto.RollResponse;
 import com.albelt.gestionstock.domain.rolls.dto.RollStatusRequest;
+import com.albelt.gestionstock.domain.rolls.entity.Roll;
 import com.albelt.gestionstock.domain.rolls.mapper.RollMapper;
 import com.albelt.gestionstock.domain.rolls.service.RollService;
 import com.albelt.gestionstock.domain.users.service.UserAltierService;
@@ -125,20 +126,26 @@ public class RollController {
     }
 
     /**
-     * Get available rolls for a material type, scoped to the current user's accessible altiers.
+     * Get available rolls, optionally filtered by article.
      * Status is restricted to AVAILABLE/OPENED.
-     * GET /api/rolls/available?articleId={articleId}
+     * GET /api/rolls/available?articleId={articleId} - filter by article
+     * GET /api/rolls/available - get all available rolls
      */
     @GetMapping("/available")
-    public ResponseEntity<ApiResponse<List<RollResponse>>> getAvailableByArticle(
-            @RequestParam UUID articleId) {
+    public ResponseEntity<ApiResponse<List<RollResponse>>> getAvailable(
+            @RequestParam(required = false) UUID articleId) {
         UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
         if (accessibleAltierIds.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(List.of(), "No accessible rolls"));
         }
 
-        var rolls = rollService.getAvailableByUserAltiersAndArticle(accessibleAltierIds, articleId);
+        List<Roll> rolls;
+        if (articleId != null) {
+            rolls = rollService.getAvailableByUserAltiersAndArticle(accessibleAltierIds, articleId);
+        } else {
+            rolls = rollService.getAvailableByUserAltiers(accessibleAltierIds);
+        }
         var responses = rollMapper.toResponseList(rolls);
         return ResponseEntity.ok(ApiResponse.success(responses, "Available rolls retrieved"));
     }

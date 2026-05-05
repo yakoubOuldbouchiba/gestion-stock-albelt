@@ -296,11 +296,11 @@ export function CreateChuteDialog({
               />
             </div>
             <div>
-              <label htmlFor="lengthM">{t('rolls.length')} *</label>
+              <label htmlFor="lengthMm">{t('rolls.length')} *</label>
               <InputText
                 type="number"
-                id="lengthM"
-                name="lengthM"
+                id="lengthMm"
+                name="lengthMm"
                 value={String(formData.lengthMm ?? '')}
                 onChange={onDimensionChange}
                 step="0.01"

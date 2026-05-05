@@ -72,6 +72,16 @@ export const RollService = {
     return ApiService.get<Roll[]>('/rolls/available', { materialType });
   },
 
+  /**
+   * Get all available rolls (no article filter)
+   */
+  async getAvailable(): Promise<ApiResponse<Roll[]>> {
+    return ApiService.get<Roll[]>('/rolls/available', {});
+  },
+
+  /**
+   * Get available rolls for a specific article
+   */
   async getAvailableByArticle(articleId: string): Promise<ApiResponse<Roll[]>> {
     return ApiService.get<Roll[]>('/rolls/available', { articleId });
   },
