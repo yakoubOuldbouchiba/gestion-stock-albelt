@@ -53,7 +53,7 @@ public class ReturnBonService {
         log.info("Creating return bon for commande {}", request.getCommandeId());
 
         Commande commande = commandeService.getById(request.getCommandeId());
-        assertCommandeNotLocked(commande);
+        // Note: Return bons are allowed even when the commande is COMPLETED or CANCELLED
         User createdBy = userService.getById(userId);
 
         ReturnBon bon = ReturnBon.builder()
@@ -204,7 +204,8 @@ public class ReturnBonService {
 
         for (int i = 0; i < item.getQuantity(); i++) {
             WastePieceRequest wasteRequest = buildWasteRequest(productionItem, item.getCommandeItem(), spec);
-            wastePieceService.recordWaste(wasteRequest, userId);
+            // Allow waste creation for returns even when commande is locked
+            wastePieceService.recordWaste(wasteRequest, userId, true);
         }
     }
 

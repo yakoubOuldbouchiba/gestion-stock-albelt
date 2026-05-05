@@ -81,6 +81,13 @@ public class WastePieceService {
      * @return Saved WastePiece entity
      */
     public WastePiece recordWaste(WastePieceRequest request, UUID createdBy) {
+        return recordWaste(request, createdBy, false);
+    }
+
+    /**
+     * Record waste with optional bypass of commande lock check (for returns)
+     */
+    public WastePiece recordWaste(WastePieceRequest request, UUID createdBy, boolean allowLockedCommande) {
         log.info("Recording waste piece: material={}, lengthMm={}",
                 request.getMaterialType(), request.getLengthMm());
 
@@ -91,7 +98,9 @@ public class WastePieceService {
         if (request.getCommandeItemId() != null) {
             CommandeItem item = commandeItemRepository.findById(request.getCommandeItemId())
                     .orElseThrow(() -> new ResourceNotFoundException("Order item not found: " + request.getCommandeItemId()));
-            assertCommandeNotLocked(item.getCommande());
+            if (!allowLockedCommande) {
+                assertCommandeNotLocked(item.getCommande());
+            }
         }
 
         if (request.getParentWastePieceId() != null) {
