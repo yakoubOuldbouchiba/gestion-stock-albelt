@@ -341,6 +341,7 @@ export function CommandeEditPage() {
       <Toast 
         ref={toastRef}
         position="bottom-center"
+        appendTo={document.body}
       />
       <ConfirmDialog />
 

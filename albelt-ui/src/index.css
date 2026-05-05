@@ -958,20 +958,19 @@ ol {
 }
 
 .p-toast {
-  z-index: 9999 !important;
-  position: fixed !important;
-  top: calc(var(--navbar-height) + 12px) !important;
-  right: 24px !important;
-  left: auto !important;
   pointer-events: none !important;
 }
 
+.p-toast.p-toast-top-right,
+.p-toast.p-toast-top-left,
+.p-toast.p-toast-top-center {
+  top: calc(var(--navbar-height) + 12px) !important;
+}
+
 .p-toast .p-toast-message {
-  z-index: 9999 !important;
   pointer-events: auto !important;
 }
 
 .p-toast .p-toast-message .p-toast-message-content {
-  z-index: 9999 !important;
   pointer-events: auto !important;
 }

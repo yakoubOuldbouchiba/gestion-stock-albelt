@@ -9,6 +9,7 @@ import com.albelt.gestionstock.domain.waste.dto.WastePieceResponse;
 import com.albelt.gestionstock.domain.waste.entity.WastePiece;
 import com.albelt.gestionstock.domain.waste.mapper.WastePieceMapper;
 import com.albelt.gestionstock.domain.waste.service.WastePieceService;
+import jakarta.validation.Valid;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteStatus;
 import com.albelt.gestionstock.shared.enums.WasteType;
@@ -142,7 +143,7 @@ public class WastePieceController {
      */
     @PostMapping
     public ResponseEntity<ApiResponse<WastePieceResponse>> recordWaste(
-            @RequestBody WastePieceRequest request) {
+            @Valid @RequestBody WastePieceRequest request) {
         log.info("Recording waste piece: material={}, area_m2={}",
                 request.getMaterialType(), request.getLengthMm());
 

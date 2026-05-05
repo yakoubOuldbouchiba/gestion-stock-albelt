@@ -75,7 +75,7 @@ export function useWasteActions(
       areaM2: chuteDimensions.areaM2,
       status: 'AVAILABLE',
       wasteType: 'CHUTE_EXPLOITABLE',
-      altierID: source.altierId,
+      altierId: source.altierId,
       colorId: source.colorId,
       reference: source.reference,
       commandeItemId: chuteTargetItem.id,

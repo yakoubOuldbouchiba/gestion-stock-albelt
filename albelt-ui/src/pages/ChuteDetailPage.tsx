@@ -113,6 +113,7 @@ export function ChuteDetailPage() {
       <Toast 
         ref={toast} 
         position="bottom-center"
+        appendTo={document.body}
       />
       <header className="detail-header">
         <div className="detail-header__main">

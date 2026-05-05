@@ -469,6 +469,12 @@ export function CommandeDetailPage() {
   if (!commande) return <div className="commande-detail-page"><Message severity="warn" text={t('commandes.notFound')} /><Button label={t('commandes.backToOrders')} onClick={() => navigate('/commandes')} /></div>;
 
   return (
+        <>
+        <Toast 
+        ref={toastRef}
+        position="bottom-center"
+          appendTo={document.body}
+      />
     <div className="commande-detail-page">
       <ConfirmDialog />
 
@@ -836,12 +842,7 @@ export function CommandeDetailPage() {
           );
         })()}
       </Dialog>
-
-      <Toast 
-        ref={toastRef}
-        position="bottom-center"
-      />
-    </div>
+    </div></>
   );
 }
 

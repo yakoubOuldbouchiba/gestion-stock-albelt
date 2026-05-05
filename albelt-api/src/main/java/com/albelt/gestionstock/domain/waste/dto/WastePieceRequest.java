@@ -1,5 +1,6 @@
 package com.albelt.gestionstock.domain.waste.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.albelt.gestionstock.shared.enums.MaterialType;
 import com.albelt.gestionstock.shared.enums.WasteType;
 import jakarta.validation.constraints.DecimalMin;
@@ -68,6 +69,7 @@ public class WastePieceRequest {
 
     // Location (same as Roll) on create
     @NotNull
+    @JsonAlias("altierID")
     private UUID altierId;
     private String qrCode;
     @NotNull

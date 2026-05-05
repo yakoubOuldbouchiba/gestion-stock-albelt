@@ -448,6 +448,7 @@ export function CommandeReturnPage() {
       <Toast 
         ref={toastRef}
         position="bottom-center"
+        appendTo={document.body}
       />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
