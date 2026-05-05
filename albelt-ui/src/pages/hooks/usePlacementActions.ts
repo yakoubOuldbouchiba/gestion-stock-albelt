@@ -5,6 +5,7 @@ import { ProductionItemService } from '../../services/productionItemService';
 import { CommandeService } from '../../services/commandeService';
 import type { CommandeItem, PlacedRectangle, Commande } from '../../types';
 import { useI18n } from '@hooks/useI18n';
+import { extractApiErrorMessage } from '@utils/apiError';
 
 export function usePlacementActions(
   commandeId: string | undefined,
@@ -160,9 +161,11 @@ export function usePlacementActions(
       return true;
     } catch (err) {
       console.error('Error creating placement:', err);
-      showError(
-        isEditing ? t('inventory.placementUpdateFailed') : t('inventory.placementSaveFailed')
-      );
+      showError(extractApiErrorMessage(
+        err,
+        isEditing ? t('inventory.placementUpdateFailed') : t('inventory.placementSaveFailed'),
+        t
+      ));
     } finally {
       setCreatingPlacement(false);
     }
@@ -215,7 +218,7 @@ export function usePlacementActions(
                   showSuccess(t('inventory.productionItemsDeleted'));
                 } catch (err) {
                   console.error('Error deleting linked production items:', err);
-                  showError(t('inventory.unableToDeleteProductionItems'));
+                  showError(extractApiErrorMessage(err, t('inventory.unableToDeleteProductionItems'), t));
                 }
               },
             });
@@ -248,7 +251,7 @@ export function usePlacementActions(
           }
         } catch (err) {
           console.error('Error deleting placement:', err);
-          showError(t('inventory.placementDeleteFailed'));
+          showError(extractApiErrorMessage(err, t('inventory.placementDeleteFailed'), t));
         }
       },
     });

@@ -1250,6 +1250,9 @@
     "createdBy": "بواسطة",
     "noReturns": "لا توجد مرتجعات مسجلة"
   },
+  "apiErrors": {
+    "wastePieceChildAreaExceeded": "المساحة الإجمالية للبقايا الفرعية تتجاوز مساحة البقايا الأصلية."
+  },
   "statuses": {
     "AVAILABLE": "متاح",
     "OPENED": "مفتوح",

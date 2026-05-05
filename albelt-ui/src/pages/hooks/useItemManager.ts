@@ -5,6 +5,7 @@ import { PlacedRectangleService } from '../../services/placedRectangleService';
 import { CommandeService } from '../../services/commandeService';
 import { RollService } from '../../services/rollService';
 import type { 
+  PagedResponse,
   ProductionItem, 
   PlacedRectangle, 
   OptimizationComparison, 
@@ -27,6 +28,18 @@ export function useItemManager(selectedItemId: string | null) {
 
   const [rollsByArticle, setRollsByArticle] = useState<Record<string, Roll[]>>({});
   const [rollsLoadingByArticle, setRollsLoadingByArticle] = useState<Record<string, boolean>>({});
+
+  const extractWasteItems = useCallback((data: PagedResponse<any> | any[] | null | undefined) => {
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (Array.isArray(data?.items)) {
+      return data.items;
+    }
+
+    return [];
+  }, []);
 
   const loadWasteForItem = useCallback(async (itemId: string) => {
     try {
@@ -134,14 +147,17 @@ export function useItemManager(selectedItemId: string | null) {
     try {
       // Get ALL available waste pieces (no article filter)
       const response = await WastePieceService.getAvailable(0, 200);
-      setAvailableWasteByArticle((prev) => ({ ...prev, [articleId]: response.data || [] }));
+      setAvailableWasteByArticle((prev) => ({
+        ...prev,
+        [articleId]: extractWasteItems(response.data),
+      }));
     } catch (err) {
       console.error('Error loading all waste:', err);
       setAvailableWasteByArticle((prev) => ({ ...prev, [articleId]: [] }));
     } finally {
       setWasteLoadingByArticle((prev) => ({ ...prev, [articleId]: false }));
     }
-  }, [availableWasteByArticle, wasteLoadingByArticle]);
+  }, [availableWasteByArticle, extractWasteItems, wasteLoadingByArticle]);
 
   useEffect(() => {
     if (!selectedItemId) {

@@ -1232,6 +1232,9 @@
     "createdBy": "Created By",
     "noReturns": "No returns recorded yet"
   },
+  "apiErrors": {
+    "wastePieceChildAreaExceeded": "The total area of child waste pieces exceeds the area of the parent waste piece."
+  },
   "statuses": {
     "DRAFT": "Draft",
     "VALIDATED": "Validated",

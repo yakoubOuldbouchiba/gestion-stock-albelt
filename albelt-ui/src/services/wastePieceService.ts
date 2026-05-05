@@ -46,8 +46,8 @@ export const WastePieceService = {
   /**
    * Get all available waste pieces (CHUTE_EXPLOITABLE type)
    */
-  async getAvailable(page = 0, size = 20): Promise<ApiResponse<any>> {
-    return ApiService.get<any>('/waste-pieces', { page, size, wasteType: 'CHUTE_EXPLOITABLE' });
+  async getAvailable(page = 0, size = 20): Promise<ApiResponse<PagedResponse<WastePiece>>> {
+    return ApiService.get<PagedResponse<WastePiece>>('/waste-pieces', { page, size, wasteType: 'CHUTE_EXPLOITABLE' });
   },
 
   /**

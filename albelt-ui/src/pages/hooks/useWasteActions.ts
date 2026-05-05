@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { WastePieceService } from '../../services/wastePieceService';
 import type { CommandeItem, Roll } from '../../types';
 import { useI18n } from '@hooks/useI18n';
+import { extractApiErrorMessage } from '@utils/apiError';
 import { getArticleId } from '../../utils/article';
 
 export function useWasteActions(
@@ -91,7 +92,7 @@ export function useWasteActions(
       return true;
     } catch (err) {
       console.error('Error creating chute:', err);
-      showError(t('commandes.wasteRecordError'));
+      showError(extractApiErrorMessage(err, t('commandes.wasteRecordError'), t));
     } finally {
       setCreatingChute(false);
     }

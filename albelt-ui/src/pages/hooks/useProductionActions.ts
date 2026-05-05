@@ -4,6 +4,7 @@ import { ProductionItemService } from '../../services/productionItemService';
 import { CommandeService } from '../../services/commandeService';
 import type { CommandeItem, Commande } from '../../types';
 import { useI18n } from '@hooks/useI18n';
+import { extractApiErrorMessage } from '@utils/apiError';
 
 export function useProductionActions(
   commandeId: string | undefined,
@@ -85,7 +86,7 @@ export function useProductionActions(
         return true;
       } catch (err) {
         console.error('Error creating production item:', err);
-        showError(t('commandes.productionItemCreateError'));
+        showError(extractApiErrorMessage(err, t('commandes.productionItemCreateError'), t));
       } finally {
         setCreatingProduction(false);
       }
@@ -153,7 +154,7 @@ export function useProductionActions(
           showSuccess('Production item deleted.');
         } catch (err) {
           console.error('Error deleting production item:', err);
-          showError('Unable to delete production item.');
+          showError(extractApiErrorMessage(err, 'Unable to delete production item.', t));
         }
       },
     });

@@ -1285,6 +1285,9 @@
   "suggestedLayout": "Disposition suggérée",
   "noActualSvg": "Aucun SVG réel disponible.",
   "noSuggestedSvg": "Aucun SVG de suggestion disponible.",
+  "apiErrors": {
+    "wastePieceChildAreaExceeded": "La surface totale des chutes enfants depasse la surface de la chute parente."
+  },
   "statuses": {
     "DRAFT": "Brouillon",
     "VALIDATED": "Validé",
