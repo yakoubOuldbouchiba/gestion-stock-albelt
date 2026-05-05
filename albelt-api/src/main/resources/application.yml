@@ -114,6 +114,12 @@ management:
         enabled: true
 
 # Application-specific Configuration
+app:
+  flyway:
+    # Enable only for a one-time deployment when the target environment needs Flyway
+    # schema-history checksums repaired to match the current migration sources.
+    repair-on-checksum-mismatch: ${APP_FLYWAY_REPAIR_ON_CHECKSUM_MISMATCH:false}
+
 albel:
   api:
     version: 1.0.0

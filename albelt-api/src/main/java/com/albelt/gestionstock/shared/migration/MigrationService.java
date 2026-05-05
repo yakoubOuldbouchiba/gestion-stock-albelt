@@ -6,8 +6,11 @@ import com.albelt.gestionstock.shared.exceptions.MigrationExecutionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.ErrorCode;
 import org.flywaydb.core.api.FlywayException;
+import org.flywaydb.core.api.output.ValidateOutput;
 import org.flywaydb.core.api.output.ValidateResult;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.dao.DataAccessException;
@@ -31,9 +34,15 @@ public class MigrationService {
 
     private final DatabaseErrorMapper databaseErrorMapper;
     private final MessageSource messageSource;
+    @Value("${app.flyway.repair-on-checksum-mismatch:false}")
+    private boolean repairOnChecksumMismatch;
 
     public void executeMigrations(Flyway flyway) {
         ValidateResult validateResult = validate(flyway);
+        if (!validateResult.validationSuccessful) {
+            validateResult = tryRepairChecksumMismatches(flyway, validateResult);
+        }
+
         if (!validateResult.validationSuccessful) {
             throw buildException(
                     VALIDATION_FAILURE_CODE,
@@ -64,6 +73,39 @@ public class MigrationService {
         } catch (RuntimeException ex) {
             throw buildException(VALIDATION_FAILURE_CODE, VALIDATION_FAILURE_MESSAGE_KEY, databaseErrorMapper.mapExecutionErrors(ex), ex);
         }
+    }
+
+    private ValidateResult tryRepairChecksumMismatches(Flyway flyway, ValidateResult validateResult) {
+        if (!repairOnChecksumMismatch || !containsOnlyChecksumMismatches(validateResult)) {
+            return validateResult;
+        }
+
+        log.warn("Flyway checksum mismatches detected and app.flyway.repair-on-checksum-mismatch=true. Repairing schema history before migration.");
+        try {
+            flyway.repair();
+        } catch (DataAccessException ex) {
+            throw buildException(EXECUTION_FAILURE_CODE, EXECUTION_FAILURE_MESSAGE_KEY, databaseErrorMapper.mapExecutionErrors(ex), ex);
+        } catch (FlywayException ex) {
+            throw buildException(EXECUTION_FAILURE_CODE, EXECUTION_FAILURE_MESSAGE_KEY, databaseErrorMapper.mapExecutionErrors(ex), ex);
+        } catch (RuntimeException ex) {
+            throw buildException(EXECUTION_FAILURE_CODE, EXECUTION_FAILURE_MESSAGE_KEY, databaseErrorMapper.mapExecutionErrors(ex), ex);
+        }
+
+        ValidateResult postRepairValidation = validate(flyway);
+        if (postRepairValidation.validationSuccessful) {
+            log.warn("Flyway schema history repair completed successfully. Disable app.flyway.repair-on-checksum-mismatch after this deployment.");
+        }
+        return postRepairValidation;
+    }
+
+    private boolean containsOnlyChecksumMismatches(ValidateResult validateResult) {
+        if (validateResult.invalidMigrations == null || validateResult.invalidMigrations.isEmpty()) {
+            return false;
+        }
+
+        return validateResult.invalidMigrations.stream()
+            .map(invalidMigration -> invalidMigration.errorDetails)
+            .allMatch(errorDetails -> errorDetails != null && errorDetails.errorCode == ErrorCode.CHECKSUM_MISMATCH);
     }
 
     private MigrationExecutionException buildException(String code,
