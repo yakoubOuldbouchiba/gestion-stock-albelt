@@ -43,7 +43,7 @@ public class MigrationService {
             validateResult = tryRepairChecksumMismatches(flyway, validateResult);
         }
 
-        if (!validateResult.validationSuccessful) {
+        if (!validateResult.validationSuccessful && !containsOnlyPendingMigrations(validateResult)) {
             throw buildException(
                     VALIDATION_FAILURE_CODE,
                     VALIDATION_FAILURE_MESSAGE_KEY,
@@ -106,6 +106,18 @@ public class MigrationService {
         return validateResult.invalidMigrations.stream()
             .map(invalidMigration -> invalidMigration.errorDetails)
             .allMatch(errorDetails -> errorDetails != null && errorDetails.errorCode == ErrorCode.CHECKSUM_MISMATCH);
+    }
+
+    private boolean containsOnlyPendingMigrations(ValidateResult validateResult) {
+        if (validateResult.invalidMigrations == null || validateResult.invalidMigrations.isEmpty()) {
+            return false;
+        }
+
+        return validateResult.invalidMigrations.stream()
+            .map(invalidMigration -> invalidMigration.errorDetails)
+            .allMatch(errorDetails -> errorDetails != null
+                    && (errorDetails.errorCode == ErrorCode.RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED
+                        || errorDetails.errorCode == ErrorCode.RESOLVED_REPEATABLE_MIGRATION_NOT_APPLIED));
     }
 
     private MigrationExecutionException buildException(String code,

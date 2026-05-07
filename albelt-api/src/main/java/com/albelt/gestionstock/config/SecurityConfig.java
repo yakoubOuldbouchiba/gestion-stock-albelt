@@ -65,12 +65,32 @@ public class SecurityConfig {
 
                 // Permit public endpoints
                 .authorizeHttpRequests(auth -> auth
+                        // ── Fully public ─────────────────────────────────────────────────────
                         .requestMatchers("/api/auth/login", "/api/auth/health").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/operators").authenticated()
-                        .requestMatchers("/api/users/**", "/api/user-altiers/**").hasRole("ADMIN")
-                        // All other requests require authentication
+                        // Swagger: restrict to admins in production to avoid leaking API details
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        // ── Authenticated-only shortcuts (override broader rules below) ────────
+                        .requestMatchers(HttpMethod.GET,   "/api/users/operators").authenticated()
+                        .requestMatchers(HttpMethod.GET,   "/api/auth/me").authenticated()
+                        // Users may change their own password regardless of role
+                        .requestMatchers(HttpMethod.PATCH, "/api/users/me/password").authenticated()
+
+                        // ── Admin-only management areas ───────────────────────────────────────
+                        .requestMatchers("/api/users/**",       "/api/user-altiers/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        .requestMatchers("/api/audit-logs/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+
+                        // ── Global HTTP-verb rules (defence-in-depth; controllers add @PreAuthorize too)
+                        // DELETE always requires ADMIN or above — no OPERATOR/READONLY deletion
+                        .requestMatchers(HttpMethod.DELETE, "/api/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                        // Write operations (create / update) require at least OPERATOR
+                        .requestMatchers(HttpMethod.POST,  "/api/**").hasAnyRole("OPERATOR", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PUT,   "/api/**").hasAnyRole("OPERATOR", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/**").hasAnyRole("OPERATOR", "ADMIN", "SUPER_ADMIN")
+
+                        // ── All other requests require authentication ─────────────────────────
                         .anyRequest().authenticated()
                 )
 

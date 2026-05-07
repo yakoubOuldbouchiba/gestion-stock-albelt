@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.albelt.gestionstock.shared.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +30,7 @@ public class ProductionItemController {
     private final ProductionItemService productionItemService;
     private final ProductionItemMapper productionItemMapper;
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     public ResponseEntity<ApiResponse<ProductionItemResponse>> create(
             @Valid @RequestBody ProductionItemRequest request) {
@@ -39,6 +42,7 @@ public class ProductionItemController {
                 .body(ApiResponse.success(response, "Production item created successfully"));
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ProductionItemResponse>> update(
             @PathVariable UUID id,
@@ -88,6 +92,7 @@ public class ProductionItemController {
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         log.info("DELETE /api/production-items/{} - Delete production item", id);

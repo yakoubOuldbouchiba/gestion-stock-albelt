@@ -370,19 +370,78 @@ export interface PlacedRectangleRequest {
 /**
  * User Types
  */
-export type UserRole = 'ADMIN' | 'OPERATOR' | 'READONLY';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'OPERATOR' | 'READONLY';
 
 export interface User {
   id: string;
   username: string;
   email: string;
+  fullName?: string;
   role: UserRole;
   isActive: boolean;
-  altierId?: string;  // Primary altier assignment
-  altierIds?: string[];  // All altiers user has access to
-  lastLoginDate: string | null;
+  altierId?: string;
+  altierIds?: string[];
+  lastLogin?: string | null;
+  lastLoginDate?: string | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  email: string;
+  password: string;
+  fullName?: string;
+  role: UserRole;
+  primaryAltierId?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateUserRequest {
+  email: string;
+  fullName?: string;
+  role?: UserRole;
+  primaryAltierId?: string;
+  isActive?: boolean;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword?: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+/**
+ * Audit Log Types
+ */
+export type AuditAction =
+  | 'LOGIN_SUCCESS'
+  | 'LOGIN_FAILURE'
+  | 'LOGOUT'
+  | 'USER_CREATED'
+  | 'USER_UPDATED'
+  | 'USER_DEACTIVATED'
+  | 'USER_ACTIVATED'
+  | 'USER_DELETED'
+  | 'USER_PASSWORD_CHANGED'
+  | 'USER_PASSWORD_RESET'
+  | 'USER_ROLE_CHANGED'
+  | 'ROLE_PERMISSION_UPDATED'
+  | 'ACCESS_DENIED'
+  | 'DATA_VIEWED'
+  | 'DATA_EXPORTED';
+
+export interface AuditLog {
+  id: string;
+  actorId: string | null;
+  actorUsername: string;
+  action: AuditAction;
+  targetEntity: string | null;
+  targetId: string | null;
+  timestamp: string;
+  metadata: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
 }
 
 /**

@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.albelt.gestionstock.shared.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,6 +34,7 @@ public class ClientController {
 
     // ==================== CLIENT CRUD ====================
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     @Operation(summary = "Create a new client", description = "Creates a new client with phone numbers, emails, addresses, and representatives")
     public ResponseEntity<ApiResponse<ClientResponse>> create(@Valid @RequestBody ClientRequest request) {
@@ -119,6 +122,7 @@ public class ClientController {
         }
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{id}")
     @Operation(summary = "Update client", description = "Updates an existing client and all its details")
     public ResponseEntity<ApiResponse<ClientResponse>> update(@PathVariable UUID id,
@@ -134,6 +138,7 @@ public class ClientController {
         }
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{id}/deactivate")
     @Operation(summary = "Deactivate client", description = "Marks a client as inactive (soft delete)")
     public ResponseEntity<ApiResponse<String>> deactivate(@PathVariable UUID id) {
@@ -147,6 +152,7 @@ public class ClientController {
         }
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{id}/activate")
     @Operation(summary = "Activate client", description = "Marks a previously inactive client as active")
     public ResponseEntity<ApiResponse<String>> activate(@PathVariable UUID id) {
@@ -160,6 +166,7 @@ public class ClientController {
         }
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete client", description = "Permanently deletes a client")
     public ResponseEntity<ApiResponse<String>> delete(@PathVariable UUID id) {
@@ -193,6 +200,7 @@ public class ClientController {
 
     // ==================== PHONE MANAGEMENT ====================
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{clientId}/phones")
     @Operation(summary = "Add phone to client", description = "Adds a new phone number to a client")
     public ResponseEntity<ApiResponse<ClientPhoneResponse>> addPhone(@PathVariable UUID clientId,
@@ -225,6 +233,7 @@ public class ClientController {
         }
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{clientId}/phones/{phoneId}")
     @Operation(summary = "Update phone", description = "Updates a phone number for a client")
     public ResponseEntity<ApiResponse<ClientPhoneResponse>> updatePhone(@PathVariable UUID clientId,
@@ -241,6 +250,7 @@ public class ClientController {
         }
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{clientId}/phones/{phoneId}")
     @Operation(summary = "Delete phone", description = "Removes a phone number from a client")
     public ResponseEntity<ApiResponse<String>> deletePhone(@PathVariable UUID clientId,
@@ -257,6 +267,7 @@ public class ClientController {
 
     // ==================== EMAIL MANAGEMENT ====================
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{clientId}/emails")
     @Operation(summary = "Add email to client", description = "Adds a new email address to a client")
     public ResponseEntity<ApiResponse<ClientEmailResponse>> addEmail(@PathVariable UUID clientId,
@@ -289,6 +300,7 @@ public class ClientController {
         }
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{clientId}/emails/{emailId}")
     @Operation(summary = "Update email", description = "Updates an email address for a client")
     public ResponseEntity<ApiResponse<ClientEmailResponse>> updateEmail(@PathVariable UUID clientId,
@@ -305,6 +317,7 @@ public class ClientController {
         }
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{clientId}/emails/{emailId}")
     @Operation(summary = "Delete email", description = "Removes an email address from a client")
     public ResponseEntity<ApiResponse<String>> deleteEmail(@PathVariable UUID clientId,
@@ -321,6 +334,7 @@ public class ClientController {
 
     // ==================== ADDRESS MANAGEMENT ====================
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{clientId}/addresses")
     @Operation(summary = "Add address to client", description = "Adds a new address to a client")
     public ResponseEntity<ApiResponse<ClientAddressResponse>> addAddress(@PathVariable UUID clientId,
@@ -353,6 +367,7 @@ public class ClientController {
         }
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{clientId}/addresses/{addressId}")
     @Operation(summary = "Update address", description = "Updates an address for a client")
     public ResponseEntity<ApiResponse<ClientAddressResponse>> updateAddress(@PathVariable UUID clientId,
@@ -369,6 +384,7 @@ public class ClientController {
         }
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{clientId}/addresses/{addressId}")
     @Operation(summary = "Delete address", description = "Removes an address from a client")
     public ResponseEntity<ApiResponse<String>> deleteAddress(@PathVariable UUID clientId,

@@ -17,9 +17,11 @@ import com.albelt.gestionstock.shared.security.AltierSecurityContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import com.albelt.gestionstock.shared.security.Roles;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -141,6 +143,7 @@ public class WastePieceController {
      * Record a new waste piece from roll processing
      * POST /api/waste-pieces
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     public ResponseEntity<ApiResponse<WastePieceResponse>> recordWaste(
             @Valid @RequestBody WastePieceRequest request) {
@@ -175,6 +178,7 @@ public class WastePieceController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         log.info("Deleting waste piece: {}", id);
@@ -182,6 +186,7 @@ public class WastePieceController {
         return ResponseEntity.ok(ApiResponse.success(null, "Waste piece deleted"));
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{id}/qr-code/regenerate")
     @Transactional
     public ResponseEntity<ApiResponse<WastePieceResponse>> regenerateQrCode(@PathVariable UUID id) {
@@ -283,6 +288,7 @@ public class WastePieceController {
      * Archive waste piece
      * PATCH /api/waste-pieces/{id}/mark-scrap
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PatchMapping("/{id}/mark-scrap")
     public ResponseEntity<ApiResponse<WastePieceResponse>> markAsScrap(@PathVariable UUID id) {
         log.info("Archiving waste piece: {}", id);

@@ -54,7 +54,7 @@ spring:
   # Jackson Configuration (JSON serialization)
   jackson:
     serialization:
-      write-dates-as-timestamps: true
+      write-dates-as-timestamps: false
       indent-output: true
     default-property-inclusion: non_null
     time-zone: UTC

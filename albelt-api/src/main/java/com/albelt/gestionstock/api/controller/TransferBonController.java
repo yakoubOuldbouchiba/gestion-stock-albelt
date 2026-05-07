@@ -12,7 +12,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.albelt.gestionstock.shared.security.Roles;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -37,6 +39,7 @@ public class TransferBonController {
     private final UserAltierService userAltierService;
     private final AltierSecurityContext altierSecurityContext;
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     public ResponseEntity<ApiResponse<TransferBonDTO>> createBon(
             @RequestParam UUID fromAltierID,
@@ -111,6 +114,7 @@ public class TransferBonController {
                 .body(pdf);
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{bonId}")
     public ResponseEntity<ApiResponse<TransferBonDTO>> updateBon(
             @PathVariable UUID bonId,
@@ -124,6 +128,7 @@ public class TransferBonController {
         }
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{bonId}/confirm")
     public ResponseEntity<ApiResponse<TransferBonDTO>> confirmReceipt(
             @PathVariable UUID bonId,
@@ -139,6 +144,7 @@ public class TransferBonController {
         }
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{bonId}")
     public ResponseEntity<ApiResponse<Void>> deleteBon(@PathVariable UUID bonId) {
         try {
@@ -150,6 +156,7 @@ public class TransferBonController {
         }
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{bonId}/movements/{movementId}")
     public ResponseEntity<ApiResponse<Void>> removeMovement(
             @PathVariable UUID bonId,

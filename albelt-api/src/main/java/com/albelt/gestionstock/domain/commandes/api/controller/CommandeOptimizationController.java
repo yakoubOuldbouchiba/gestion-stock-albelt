@@ -9,7 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.albelt.gestionstock.shared.security.Roles;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -31,6 +33,7 @@ public class CommandeOptimizationController {
         return ResponseEntity.ok(ApiResponse.success(comparison, "Optimization comparison retrieved"));
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{itemId}/optimization/regenerate")
     public ResponseEntity<ApiResponse<OptimizationComparisonResponse>> regenerateOptimization(
             @PathVariable UUID itemId) {
@@ -72,6 +75,7 @@ public class CommandeOptimizationController {
                 .body(html);
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{itemId}/optimization/adopt")
     public ResponseEntity<ApiResponse<Void>> adoptOptimization(
             @PathVariable UUID itemId,

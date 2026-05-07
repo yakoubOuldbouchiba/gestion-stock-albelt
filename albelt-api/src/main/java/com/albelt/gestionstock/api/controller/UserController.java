@@ -2,12 +2,20 @@ package com.albelt.gestionstock.api.controller;
 
 import com.albelt.gestionstock.api.response.ApiResponse;
 import com.albelt.gestionstock.api.response.PagedResponse;
+import com.albelt.gestionstock.domain.users.dto.ChangePasswordRequest;
+import com.albelt.gestionstock.domain.users.dto.CreateUserRequest;
+import com.albelt.gestionstock.domain.users.dto.UpdateUserRequest;
 import com.albelt.gestionstock.domain.users.dto.UserDTO;
 import com.albelt.gestionstock.domain.users.mapper.UserMapper;
 import com.albelt.gestionstock.domain.users.service.UserService;
 import com.albelt.gestionstock.shared.enums.UserRole;
+import com.albelt.gestionstock.shared.security.AltierSecurityContext;
+import com.albelt.gestionstock.shared.security.Roles;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +34,7 @@ import java.util.UUID;
 public class UserController {
     private final UserService userService;
     private final UserMapper userMapper;
+    private final AltierSecurityContext altierSecurityContext;
 
     /**
      * Get users with pagination and filters
@@ -155,9 +164,11 @@ public class UserController {
     }
 
     /**
-     * Change user role
+     * Change user role.
+     * Restricted to SUPER_ADMIN to prevent an ADMIN from self-promoting to SUPER_ADMIN.
      * PATCH /api/users/{id}/role?newRole={role}
      */
+    @PreAuthorize(Roles.SUPER_ADMIN_ONLY)
     @PatchMapping("/{id}/role")
     public ResponseEntity<ApiResponse<Void>> changeRole(
             @PathVariable UUID id,
@@ -165,6 +176,76 @@ public class UserController {
         log.info("Changing user role: id={}, newRole={}", id, newRole);
         userService.changeRole(id, newRole);
         return ResponseEntity.ok(ApiResponse.success(null, "User role changed"));
+    }
+
+    /**
+     * Create a new user
+     * POST /api/users
+     */
+    @PostMapping
+    public ResponseEntity<ApiResponse<UserDTO>> createUser(@Valid @RequestBody CreateUserRequest request) {
+        log.info("Creating user: {}", request.getUsername());
+        var user = userService.createUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(userMapper.toDTO(user), "User created"));
+    }
+
+    /**
+     * Update an existing user
+     * PUT /api/users/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<UserDTO>> updateUser(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateUserRequest request) {
+        log.info("Updating user: {}", id);
+        var user = userService.updateUser(id, request);
+        return ResponseEntity.ok(ApiResponse.success(userMapper.toDTO(user), "User updated"));
+    }
+
+    /**
+     * Admin password reset
+     * PATCH /api/users/{id}/password
+     */
+    @PatchMapping("/{id}/password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @PathVariable UUID id,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        log.info("Admin resetting password for user: {}", id);
+        userService.adminResetPassword(id, request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success(null, "Password reset successfully"));
+    }
+
+    /**
+     * Self-service password change (uses currentPassword verification).
+     * Any authenticated user may change their own password.
+     * PATCH /api/users/me/password
+     */
+    @PreAuthorize(Roles.AUTHENTICATED)
+    @PatchMapping("/me/password")
+    public ResponseEntity<ApiResponse<Void>> changeOwnPassword(
+            @Valid @RequestBody ChangePasswordRequest request) {
+        UUID userId = altierSecurityContext.getCurrentUserId();
+        log.info("User changing own password: {}", userId);
+        userService.changeOwnPassword(userId, request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Password changed successfully"));
+    }
+
+    /**
+     * Toggle user active status
+     * PATCH /api/users/{id}/status
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<Void>> toggleStatus(
+            @PathVariable UUID id,
+            @RequestParam boolean active) {
+        log.info("Toggling user status: id={}, active={}", id, active);
+        if (active) {
+            userService.activateUser(id);
+        } else {
+            userService.deactivateUser(id);
+        }
+        return ResponseEntity.ok(ApiResponse.success(null, active ? "User activated" : "User deactivated"));
     }
 
     private Boolean parseStatus(String status) {

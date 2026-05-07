@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.albelt.gestionstock.shared.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +24,7 @@ public class PlacedRectangleController {
 
     private final PlacedRectangleService placedRectangleService;
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     public ResponseEntity<ApiResponse<PlacedRectangleResponse>> create(
             @Valid @RequestBody PlacedRectangleRequest request) {
@@ -33,6 +36,7 @@ public class PlacedRectangleController {
                 .body(ApiResponse.success(response, "Placed rectangle created successfully"));
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PlacedRectangleResponse>> update(
             @PathVariable UUID id,
@@ -80,6 +84,7 @@ public class PlacedRectangleController {
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         log.info("DELETE /api/placed-rectangles/{} - Delete placed rectangle", id);
@@ -88,6 +93,7 @@ public class PlacedRectangleController {
         return ResponseEntity.ok(ApiResponse.success(null, "Placed rectangle deleted successfully"));
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/by-roll/{rollId}")
     public ResponseEntity<ApiResponse<Long>> clearByRoll(@PathVariable UUID rollId) {
         log.info("DELETE /api/placed-rectangles/by-roll/{} - Clear placed rectangles", rollId);
@@ -96,6 +102,7 @@ public class PlacedRectangleController {
         return ResponseEntity.ok(ApiResponse.success(deleted, "Placements cleared successfully"));
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/by-waste-piece/{wastePieceId}")
     public ResponseEntity<ApiResponse<Long>> clearByWastePiece(@PathVariable UUID wastePieceId) {
         log.info("DELETE /api/placed-rectangles/by-waste-piece/{} - Clear placed rectangles", wastePieceId);

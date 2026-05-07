@@ -7,6 +7,9 @@ import {
   FilePlus,
   ClipboardList,
   Settings,
+  Users,
+  ShieldCheck,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useAuthStore } from '@hooks/useAuth';
 import { useI18n } from '@hooks/useI18n';
@@ -23,7 +26,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { t } = useI18n();
 
   const isActive = (path: string) => location.pathname === path;
-  const isAdmin = user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
   const handleNavigate = () => {
     if (onClose) {
       onClose();
@@ -99,6 +102,36 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
               <Settings size={20} className="nav-icon" />
               <span>{t('sidebar.configuration')}</span>
+            </Link>
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="nav-section">
+            <h3 className="nav-title">{t('sidebar.admin') || 'Administration'}</h3>
+            <Link
+              to="/admin"
+              className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
+              onClick={handleNavigate}
+            >
+              <LayoutDashboard size={20} className="nav-icon" />
+              <span>{t('navigation.adminDashboard') || 'Admin Dashboard'}</span>
+            </Link>
+            <Link
+              to="/admin/users"
+              className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}
+              onClick={handleNavigate}
+            >
+              <Users size={20} className="nav-icon" />
+              <span>{t('navigation.userManagement') || 'User Management'}</span>
+            </Link>
+            <Link
+              to="/admin/audit-logs"
+              className={`nav-link ${isActive('/admin/audit-logs') ? 'active' : ''}`}
+              onClick={handleNavigate}
+            >
+              <ShieldCheck size={20} className="nav-icon" />
+              <span>{t('navigation.auditLogs') || 'Audit Logs'}</span>
             </Link>
           </div>
         )}

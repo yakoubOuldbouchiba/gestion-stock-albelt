@@ -1,0 +1,203 @@
+/* ===================================================
+   Admin Panel Shared Styles
+   =================================================== */
+
+.admin-page {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.admin-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.admin-page__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.admin-page__subtitle {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary, #6c757d);
+  margin: 0.25rem 0 0;
+}
+
+/* Summary Cards */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.admin-stat-card {
+  background: var(--surface-card, #fff);
+  border: 1px solid var(--surface-border, #dee2e6);
+  border-radius: 8px;
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-stat-card__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-color-secondary, #6c757d);
+}
+
+.admin-stat-card__value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Filters bar (generic) */
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+/* ── Audit Logs filter bar ────────────────────────── */
+.audit-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-card, #fff);
+  border: 1px solid var(--surface-border, #dee2e6);
+  border-radius: 8px;
+}
+
+.audit-filter-dropdown {
+  min-width: 190px;
+  flex: 1 1 190px;
+  max-width: 260px;
+}
+
+.audit-filter-text {
+  min-width: 140px;
+  flex: 1 1 140px;
+  max-width: 200px;
+}
+
+/* Date-range pill */
+.audit-date-range {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--surface-ground, #f8f9fa);
+  border: 1px solid var(--surface-border, #dee2e6);
+  border-radius: 6px;
+  padding: 0 0.625rem;
+  height: 2.5rem;
+  flex: 1 1 280px;
+  max-width: 380px;
+  transition: border-color 0.15s;
+}
+
+.audit-date-range:focus-within {
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color, #3b82f6) 20%, transparent);
+}
+
+.audit-date-range__icon {
+  color: var(--text-color-secondary, #6c757d);
+  font-size: 0.875rem;
+  margin-right: 0.375rem;
+  flex-shrink: 0;
+}
+
+.audit-date-range__sep {
+  color: var(--text-color-secondary, #6c757d);
+  padding: 0 0.375rem;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.audit-date-input {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  width: 110px !important;
+  font-size: 0.875rem !important;
+  padding: 0.375rem 0.25rem !important;
+}
+
+.audit-date-input:focus {
+  box-shadow: none !important;
+}
+
+/* Clear + Refresh buttons */
+.audit-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+}
+
+/* Table actions column */
+.admin-table-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Modal form */
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-form-field label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.admin-form-field .p-inputtext,
+.admin-form-field .p-dropdown,
+.admin-form-field .p-password {
+  width: 100%;
+}
+
+.admin-form-field--full {
+  grid-column: 1 / -1;
+}
+
+/* Role badge colours */
+.role-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2em 0.6em;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.role-badge--SUPER_ADMIN { background: #7c3aed22; color: #7c3aed; }
+.role-badge--ADMIN       { background: #0284c722; color: #0284c7; }
+.role-badge--OPERATOR    { background: #16a34a22; color: #16a34a; }
+.role-badge--READONLY    { background: #9ca3af22; color: #374151; }

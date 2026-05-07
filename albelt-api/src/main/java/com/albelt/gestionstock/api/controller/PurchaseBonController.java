@@ -14,8 +14,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.albelt.gestionstock.shared.security.Roles;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
@@ -34,6 +36,7 @@ public class PurchaseBonController {
     private final PurchaseBonService purchaseBonService;
     private final PdfExportService pdfExportService;
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     public ResponseEntity<ApiResponse<PurchaseBonResponse>> create(@Valid @RequestBody PurchaseBonRequest request) {
         try {
@@ -100,6 +103,7 @@ public class PurchaseBonController {
                 .body(pdf);
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PurchaseBonResponse>> update(
             @PathVariable UUID id,
@@ -113,6 +117,7 @@ public class PurchaseBonController {
         }
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{id}/validate")
     public ResponseEntity<ApiResponse<PurchaseBonResponse>> validate(@PathVariable UUID id) {
         try {
@@ -125,6 +130,7 @@ public class PurchaseBonController {
         }
     }
 
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         try {

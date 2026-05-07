@@ -47,7 +47,7 @@ public class AltierSecurityContext {
      */
     public boolean isUnrestricted(UUID userId) {
         return userRepository.findById(userId)
-                .map(user -> user.getRole() == UserRole.ADMIN)
+                .map(user -> user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.SUPER_ADMIN)
                 .orElse(false);
     }
 }

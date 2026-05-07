@@ -1,5 +1,8 @@
 import ApiService from './api';
-import type { User, UserRole, ApiResponse, PagedResponse } from '../types/index';
+import type {
+  User, UserRole, ApiResponse, PagedResponse,
+  CreateUserRequest, UpdateUserRequest, ChangePasswordRequest,
+} from '../types/index';
 
 /**
  * User API Service
@@ -86,6 +89,41 @@ export const UserService = {
    * Change user role
    */
   async changeRole(id: string, newRole: UserRole): Promise<ApiResponse<void>> {
-    return ApiService.patch<void>(`/users/${id}/role`, { newRole });
+    return ApiService.patch<void>(`/users/${id}/role?newRole=${newRole}`, null);
+  },
+
+  /**
+   * Create a new user (admin)
+   */
+  async createUser(data: CreateUserRequest): Promise<ApiResponse<User>> {
+    return ApiService.post<User>('/users', data);
+  },
+
+  /**
+   * Update an existing user (admin)
+   */
+  async updateUser(id: string, data: UpdateUserRequest): Promise<ApiResponse<User>> {
+    return ApiService.put<User>(`/users/${id}`, data);
+  },
+
+  /**
+   * Admin password reset
+   */
+  async resetPassword(id: string, data: ChangePasswordRequest): Promise<ApiResponse<void>> {
+    return ApiService.patch<void>(`/users/${id}/password`, data);
+  },
+
+  /**
+   * Self-service password change
+   */
+  async changeOwnPassword(data: ChangePasswordRequest): Promise<ApiResponse<void>> {
+    return ApiService.patch<void>('/users/me/password', data);
+  },
+
+  /**
+   * Toggle user status
+   */
+  async toggleStatus(id: string, active: boolean): Promise<ApiResponse<void>> {
+    return ApiService.patch<void>(`/users/${id}/status?active=${active}`, null);
   },
 };

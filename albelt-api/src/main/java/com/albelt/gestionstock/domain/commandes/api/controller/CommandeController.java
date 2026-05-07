@@ -19,10 +19,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import com.albelt.gestionstock.shared.security.Roles;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,6 +53,7 @@ public class CommandeController {
      * Create a new order
      * POST /api/commandes
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     public ResponseEntity<ApiResponse<CommandeResponse>> createOrder(@Valid @RequestBody CommandeRequest request) {
         log.info("POST /api/commandes - Create order: {}", request.getNumeroCommande());
@@ -181,6 +184,7 @@ public class CommandeController {
      * Update order
      * PUT /api/commandes/{id}
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<CommandeResponse>> updateOrder(
             @PathVariable UUID id,
@@ -198,6 +202,7 @@ public class CommandeController {
      * Update order status
      * PATCH /api/commandes/{id}/status
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<CommandeResponse>> updateOrderStatus(
             @PathVariable UUID id,
@@ -215,6 +220,7 @@ public class CommandeController {
      * Delete order
      * DELETE /api/commandes/{id}
      */
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOrder(@PathVariable UUID id) {
         log.info("DELETE /api/commandes/{} - Delete order", id);
@@ -245,6 +251,7 @@ public class CommandeController {
      * Create item for an order
      * POST /api/commandes/{commandeId}/items
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{commandeId}/items")
     public ResponseEntity<ApiResponse<CommandeItemResponse>> createOrderItem(
             @PathVariable UUID commandeId,
@@ -263,6 +270,7 @@ public class CommandeController {
      * Update item
      * PUT /api/commandes/items/{itemId}
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/items/{itemId}")
     public ResponseEntity<ApiResponse<CommandeItemResponse>> updateOrderItem(
             @PathVariable UUID itemId,
@@ -309,6 +317,7 @@ public class CommandeController {
      * Update item status
      * PATCH /api/commandes/items/{itemId}/status
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PatchMapping("/items/{itemId}/status")
     public ResponseEntity<ApiResponse<CommandeItemResponse>> updateItemStatus(
             @PathVariable UUID itemId,
@@ -325,6 +334,7 @@ public class CommandeController {
      * Delete item
      * DELETE /api/commandes/items/{itemId}
      */
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<Void> deleteItem(@PathVariable UUID itemId) {
         log.info("DELETE /api/commandes/items/{} - Delete item", itemId);

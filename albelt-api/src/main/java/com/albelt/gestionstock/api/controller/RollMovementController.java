@@ -7,7 +7,9 @@ import com.albelt.gestionstock.domain.rolls.service.RollMovementService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.albelt.gestionstock.shared.security.Roles;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -30,6 +32,7 @@ public class RollMovementController {
      * Record a new roll movement
      * POST /api/roll-movements
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     public ResponseEntity<ApiResponse<RollMovementDTO>> recordMovement(
             @RequestParam(required = false) UUID rollId,
@@ -276,6 +279,7 @@ public class RollMovementController {
      * Update movement record
      * PUT /api/roll-movements/{movementId}
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{movementId}")
     public ResponseEntity<ApiResponse<RollMovementDTO>> updateMovement(
             @PathVariable UUID movementId,
@@ -296,6 +300,7 @@ public class RollMovementController {
      * Confirm receipt of a movement (set entry date)
      * POST /api/roll-movements/{movementId}/confirm
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{movementId}/confirm")
     public ResponseEntity<ApiResponse<RollMovementDTO>> confirmReceipt(
             @PathVariable UUID movementId,
@@ -374,6 +379,7 @@ public class RollMovementController {
      * Delete movement record
      * DELETE /api/roll-movements/{movementId}
      */
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{movementId}")
     public ResponseEntity<ApiResponse<Void>> deleteMovement(
             @PathVariable UUID movementId

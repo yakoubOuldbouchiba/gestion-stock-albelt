@@ -27,6 +27,9 @@ const CommandeCreatePage = lazy(() => import('./pages/CommandeCreatePage'));
 const CommandeEditPage = lazy(() => import('./pages/CommandeEditPage'));
 const CommandeDetailPage = lazy(() => import('./pages/CommandeDetailPage'));
 const CommandeReturnPage = lazy(() => import('./pages/CommandeReturnPage'));
+const AdminDashboardPage  = lazy(() => import('./pages/admin/AdminDashboardPage'));
+const UserManagementPage  = lazy(() => import('./pages/admin/UserManagementPage'));
+const AuditLogsPage       = lazy(() => import('./pages/admin/AuditLogsPage'));
 
 import './App.css';
 
@@ -256,6 +259,44 @@ export function App() {
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <Layout>
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <AdminDashboardPage />
+                </Suspense>
+              </Layout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <Layout>
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <UserManagementPage />
+                </Suspense>
+              </Layout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/audit-logs"
+          element={
+            <AdminRoute>
+              <Layout>
+                <Suspense fallback={<LazyLoadingFallback />}>
+                  <AuditLogsPage />
+                </Suspense>
+              </Layout>
+            </AdminRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

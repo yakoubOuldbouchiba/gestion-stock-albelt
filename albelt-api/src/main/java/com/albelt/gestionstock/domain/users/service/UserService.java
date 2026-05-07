@@ -1,14 +1,23 @@
 package com.albelt.gestionstock.domain.users.service;
 
+import com.albelt.gestionstock.domain.altier.entity.Altier;
+import com.albelt.gestionstock.domain.altier.repository.AltierRepository;
+import com.albelt.gestionstock.domain.users.dto.ChangePasswordRequest;
+import com.albelt.gestionstock.domain.users.dto.CreateUserRequest;
+import com.albelt.gestionstock.domain.users.dto.UpdateUserRequest;
 import com.albelt.gestionstock.domain.users.entity.User;
 import com.albelt.gestionstock.domain.users.repository.UserRepository;
+import com.albelt.gestionstock.shared.audit.Audited;
+import com.albelt.gestionstock.shared.enums.AuditAction;
 import com.albelt.gestionstock.shared.enums.UserRole;
+import com.albelt.gestionstock.shared.exceptions.BusinessException;
 import com.albelt.gestionstock.shared.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +37,8 @@ import java.util.UUID;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AltierRepository altierRepository;
 
     /**
      * Get user by ID
@@ -129,6 +140,7 @@ public class UserService {
     /**
      * Deactivate user account
      */
+    @Audited(action = AuditAction.USER_DEACTIVATED, entity = "User", idExpression = "#userId.toString()")
     public void deactivateUser(UUID userId) {
         User user = getById(userId);
         user.setIsActive(false);
@@ -139,6 +151,7 @@ public class UserService {
     /**
      * Activate user account
      */
+    @Audited(action = AuditAction.USER_ACTIVATED, entity = "User", idExpression = "#userId.toString()")
     public void activateUser(UUID userId) {
         User user = getById(userId);
         user.setIsActive(true);
@@ -149,6 +162,7 @@ public class UserService {
     /**
      * Change user role
      */
+    @Audited(action = AuditAction.USER_ROLE_CHANGED, entity = "User", idExpression = "#userId.toString()")
     public void changeRole(UUID userId, UserRole newRole) {
         User user = getById(userId);
         UserRole oldRole = user.getRole();
@@ -161,5 +175,108 @@ public class UserService {
         if (value == null) return "";
         String trimmed = value.trim();
         return trimmed.isEmpty() ? "" : trimmed.toLowerCase();
+    }
+
+    // ------------------------------------------------------------------ admin
+
+    /**
+     * Create a new user (admin operation).
+     */
+    @Audited(action = AuditAction.USER_CREATED, entity = "User")
+    public User createUser(CreateUserRequest req) {
+        if (userRepository.existsByUsernameIgnoreCase(req.getUsername())) {
+            throw new BusinessException("Username already exists: " + req.getUsername());
+        }
+        if (userRepository.existsByEmailIgnoreCase(req.getEmail())) {
+            throw new BusinessException("Email already exists: " + req.getEmail());
+        }
+
+        Altier altier = null;
+        if (req.getPrimaryAltierId() != null) {
+            altier = altierRepository.findById(req.getPrimaryAltierId())
+                    .orElseThrow(() -> ResourceNotFoundException.forEntity("Altier", req.getPrimaryAltierId().toString()));
+        }
+
+        User user = User.builder()
+                .username(req.getUsername().trim())
+                .email(req.getEmail().trim().toLowerCase())
+                .passwordHash(passwordEncoder.encode(req.getPassword()))
+                .fullName(req.getFullName())
+                .role(req.getRole())
+                .isActive(req.getIsActive() != null ? req.getIsActive() : true)
+                .primaryAltier(altier)
+                .build();
+
+        User saved = userRepository.save(user);
+        log.info("User created by admin: id={}, username={}", saved.getId(), saved.getUsername());
+        return saved;
+    }
+
+    /**
+     * Update an existing user's mutable fields (admin operation).
+     */
+    @Audited(action = AuditAction.USER_UPDATED, entity = "User", idExpression = "#id.toString()")
+    public User updateUser(UUID id, UpdateUserRequest req) {
+        User user = getById(id);
+
+        if (req.getEmail() != null) {
+            String normalizedEmail = req.getEmail().trim().toLowerCase();
+            if (!normalizedEmail.equalsIgnoreCase(user.getEmail())
+                    && userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+                throw new BusinessException("Email already in use: " + normalizedEmail);
+            }
+            user.setEmail(normalizedEmail);
+        }
+
+        if (req.getFullName() != null) {
+            user.setFullName(req.getFullName());
+        }
+        if (req.getRole() != null) {
+            user.setRole(req.getRole());
+        }
+        if (req.getIsActive() != null) {
+            user.setIsActive(req.getIsActive());
+        }
+        if (req.getPrimaryAltierId() != null) {
+            Altier altier = altierRepository.findById(req.getPrimaryAltierId())
+                    .orElseThrow(() -> ResourceNotFoundException.forEntity("Altier", req.getPrimaryAltierId().toString()));
+            user.setPrimaryAltier(altier);
+        }
+
+        User saved = userRepository.save(user);
+        log.info("User updated by admin: id={}", id);
+        return saved;
+    }
+
+    /**
+     * Admin-initiated password reset (no current-password check).
+     */
+    @Audited(action = AuditAction.USER_PASSWORD_RESET, entity = "User", idExpression = "#userId.toString()")
+    public void adminResetPassword(UUID userId, String newPassword) {
+        if (newPassword == null || newPassword.length() < 8) {
+            throw new BusinessException("Password must be at least 8 characters");
+        }
+        User user = getById(userId);
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Password reset by admin for user: {}", userId);
+    }
+
+    /**
+     * Self-service password change (requires current password verification).
+     */
+    @Audited(action = AuditAction.USER_PASSWORD_CHANGED, entity = "User", idExpression = "#userId.toString()")
+    public void changeOwnPassword(UUID userId, ChangePasswordRequest req) {
+        if (!req.getNewPassword().equals(req.getConfirmPassword())) {
+            throw new BusinessException("New password and confirmation do not match");
+        }
+        User user = getById(userId);
+        if (req.getCurrentPassword() != null
+                && !passwordEncoder.matches(req.getCurrentPassword(), user.getPasswordHash())) {
+            throw new BusinessException("Current password is incorrect");
+        }
+        user.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+        userRepository.save(user);
+        log.info("Password changed for user: {}", userId);
     }
 }

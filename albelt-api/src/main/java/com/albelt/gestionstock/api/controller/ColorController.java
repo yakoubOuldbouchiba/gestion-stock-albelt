@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.albelt.gestionstock.shared.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,6 +35,7 @@ public class ColorController {
      * Create a new color
      * POST /api/colors
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     public ResponseEntity<ApiResponse<ColorResponse>> create(@Valid @RequestBody ColorRequest request) {
         log.info("Creating color: {}", request.getName());
@@ -101,6 +104,7 @@ public class ColorController {
      * Update color
      * PUT /api/colors/{id}
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ColorResponse>> update(
             @PathVariable UUID id,
@@ -114,6 +118,7 @@ public class ColorController {
      * Delete color
      * DELETE /api/colors/{id}
      */
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         colorService.delete(id);

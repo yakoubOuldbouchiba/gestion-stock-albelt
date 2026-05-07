@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.albelt.gestionstock.shared.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,6 +35,7 @@ public class SupplierController {
      * Create a new supplier
      * POST /api/suppliers
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     public ResponseEntity<ApiResponse<SupplierResponse>> create(@Valid @RequestBody SupplierRequest request) {
         log.info("Creating supplier: {}", request.getName());
@@ -121,6 +124,7 @@ public class SupplierController {
      * Update supplier
      * PUT /api/suppliers/{id}
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<SupplierResponse>> update(
             @PathVariable UUID id,
@@ -135,6 +139,7 @@ public class SupplierController {
      * Delete supplier
      * DELETE /api/suppliers/{id}
      */
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         log.info("Deleting supplier: {}", id);

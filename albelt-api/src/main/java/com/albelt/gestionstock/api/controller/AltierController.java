@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.albelt.gestionstock.shared.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -32,6 +34,7 @@ public class AltierController {
      * Create a new altier
      * POST /api/altiers
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping
     public ResponseEntity<ApiResponse<AltierResponse>> create(@Valid @RequestBody AltierRequest request) {
         log.info("Creating altier: {}", request.getLibelle());
@@ -95,6 +98,7 @@ public class AltierController {
      * Update an altier
      * PUT /api/altiers/{id}
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<AltierResponse>> update(
             @PathVariable UUID id,
@@ -109,6 +113,7 @@ public class AltierController {
      * Delete an altier
      * DELETE /api/altiers/{id}
      */
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         log.info("Deleting altier: {}", id);

@@ -23,4 +23,8 @@ public class ResourceNotFoundException extends RuntimeException {
     public static ResourceNotFoundException user(String identifier) {
         return new ResourceNotFoundException("User not found: " + identifier);
     }
+
+    public static ResourceNotFoundException forEntity(String entity, String identifier) {
+        return new ResourceNotFoundException(entity + " not found: " + identifier);
+    }
 }

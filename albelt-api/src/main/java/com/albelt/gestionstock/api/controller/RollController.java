@@ -17,8 +17,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.albelt.gestionstock.shared.security.Roles;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -191,6 +193,7 @@ public class RollController {
      * Receive a new roll (stock in)
      * POST /api/rolls/receive
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/receive")
     public ResponseEntity<ApiResponse<RollResponse>> receive(
             @Valid @RequestBody RollRequest request) {
@@ -268,6 +271,7 @@ public class RollController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{id}/qr-code/regenerate")
     public ResponseEntity<ApiResponse<RollResponse>> regenerateQrCode(@PathVariable UUID id) {
         log.info("Regenerating QR code for roll: {}", id);
@@ -306,6 +310,7 @@ public class RollController {
      * PATCH /api/rolls/{id}/status
      * Body: { "status": "AVAILABLE" }
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PatchMapping("/{id}/status")
     public ResponseEntity<ApiResponse<RollResponse>> updateStatus(
             @PathVariable UUID id,
@@ -352,6 +357,7 @@ public class RollController {
      * - Last processing date
      * - Status (AVAILABLE → OPENED on first cut, → EXHAUSTED at 90% waste)
      */
+    @PreAuthorize(Roles.OPERATOR_OR_ABOVE)
     @PostMapping("/{id}/record-consumption")
     public ResponseEntity<ApiResponse<RollResponse>> recordConsumption(
             @PathVariable UUID id,

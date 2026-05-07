@@ -9,6 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.albelt.gestionstock.shared.security.Roles;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,8 +35,10 @@ public class MaterialChuteThresholdController {
     }
 
     /**
-     * Upsert thresholds in bulk (one row per materialType)
+     * Upsert thresholds in bulk (one row per materialType).
+     * Restricted to ADMIN and SUPER_ADMIN — this is a system-level configuration change.
      */
+    @PreAuthorize(Roles.ADMIN_OR_ABOVE)
     @PutMapping
     public ResponseEntity<ApiResponse<List<MaterialChuteThresholdResponse>>> upsertAll(
             @Valid @RequestBody List<MaterialChuteThresholdRequest> requests
