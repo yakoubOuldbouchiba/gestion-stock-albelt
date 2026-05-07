@@ -48,7 +48,7 @@ export default function AuditLogsPage() {
   const [total, setTotal]         = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [actorFilter, setActorFilter]   = useState('');
+
   const [actionFilter, setActionFilter] = useState('');
   const [entityFilter, setEntityFilter] = useState('');
   const [dateFrom, setDateFrom]         = useState<Date | null>(null);
@@ -154,7 +154,6 @@ export default function AuditLogsPage() {
               setEntityFilter('');
               setDateFrom(null);
               setDateTo(null);
-              setActorFilter('');
               setPage(0);
             }}
           />
