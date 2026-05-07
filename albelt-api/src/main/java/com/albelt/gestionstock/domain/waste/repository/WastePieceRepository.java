@@ -47,6 +47,14 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     @Query("SELECT wp FROM WastePiece wp " +
             "JOIN FETCH wp.article ra " +
             "LEFT JOIN FETCH ra.color " +
+            "WHERE wp.status IN (:statuses) ORDER BY wp.availableAreaM2 DESC")
+    List<WastePiece> findAvailable(@Param("statuses") List<WasteStatus> statuses,
+                                   Pageable pageable);
+
+    @EntityGraph(attributePaths = {"article", "article.color", "altier", "roll"})
+    @Query("SELECT wp FROM WastePiece wp " +
+            "JOIN FETCH wp.article ra " +
+            "LEFT JOIN FETCH ra.color " +
             "WHERE ra.id = :articleId " +
             "AND wp.status IN (:statuses) " +
             "AND (wp.wasteType = com.albelt.gestionstock.shared.enums.WasteType.CHUTE_EXPLOITABLE or wp.wasteType is null) " +
@@ -54,6 +62,30 @@ public interface WastePieceRepository extends JpaRepository<WastePiece, UUID> {
     List<WastePiece> findAvailableByArticle(@Param("articleId") UUID articleId,
                                             @Param("statuses") List<WasteStatus> statuses,
                                             Pageable pageable);
+
+    @EntityGraph(attributePaths = {"article", "article.color", "altier", "roll"})
+    @Query("SELECT wp FROM WastePiece wp " +
+            "JOIN FETCH wp.article ra " +
+            "LEFT JOIN FETCH ra.color " +
+            "WHERE wp.altier.id IN (:altierIds) " +
+            "AND wp.status IN (:statuses) ORDER BY wp.availableAreaM2 DESC")
+    List<WastePiece> findAvailableByAltierIds(@Param("altierIds") List<UUID> altierIds,
+                                              @Param("statuses") List<WasteStatus> statuses,
+                                              Pageable pageable);
+
+    @EntityGraph(attributePaths = {"article", "article.color", "altier", "roll"})
+    @Query("SELECT wp FROM WastePiece wp " +
+            "JOIN FETCH wp.article ra " +
+            "LEFT JOIN FETCH ra.color " +
+            "WHERE wp.altier.id IN (:altierIds) " +
+            "AND ra.id = :articleId " +
+            "AND wp.status IN (:statuses) " +
+            "AND (wp.wasteType = com.albelt.gestionstock.shared.enums.WasteType.CHUTE_EXPLOITABLE or wp.wasteType is null) " +
+            "ORDER BY wp.availableAreaM2 DESC")
+    List<WastePiece> findAvailableByAltierIdsAndArticle(@Param("altierIds") List<UUID> altierIds,
+                                                        @Param("articleId") UUID articleId,
+                                                        @Param("statuses") List<WasteStatus> statuses,
+                                                        Pageable pageable);
 
     /**
      * Find available waste pieces for a specific material, optionally restricted to an altier.

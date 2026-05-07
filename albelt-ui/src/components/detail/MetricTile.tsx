@@ -24,7 +24,7 @@ export const MetricTile: React.FC<MetricTileProps> = ({
         {value}
         {unit && <span className="metric-tile__unit">{unit}</span>}
       </div>
-      {subValue && <div className="metric-tile__unit" style={{ marginTop: '0.25rem' }}>{subValue}</div>}
+      {subValue && <div className="metric-tile__sub">{subValue}</div>}
       {children}
     </div>
   );

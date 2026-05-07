@@ -22,7 +22,7 @@ export const PlacementSVG: React.FC<PlacementSVGProps> = ({
   onPlacementClick
 }) => {
   return (
-    <div className="svg-preview-card" style={{ height: '700px' }}>
+    <div className="svg-preview-card">
       <IndustrialRollVisualizer
         widthMm={widthMm}
         lengthMm={lengthMm}

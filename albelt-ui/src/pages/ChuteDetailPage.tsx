@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { WastePiece } from '../types/index';
 import { WastePieceService } from '../services/wastePieceService';
@@ -12,7 +12,9 @@ import { ProgressSpinner } from 'primereact/progressspinner';
 import { Tag } from 'primereact/tag';
 import { QrCodeCard } from '../components/QrCodeCard';
 import { MetricTile } from '../components/detail/MetricTile';
-import { PlacementSVG } from '../components/detail/PlacementSVG';
+const PlacementSVG = lazy(() =>
+  import('../components/detail/PlacementSVG').then(m => ({ default: m.PlacementSVG }))
+);
 import { PlacementForm } from '../components/detail/PlacementForm';
 import { PlacementList } from '../components/detail/PlacementList';
 import { usePlacements } from './hooks/usePlacements';
@@ -117,7 +119,7 @@ export function ChuteDetailPage() {
       />
       <header className="detail-header">
         <div className="detail-header__main">
-          <Button icon="pi pi-arrow-left" text onClick={() => navigate('/inventory')} className="p-button-lg" />
+          <Button icon="pi pi-arrow-left" text onClick={() => navigate('/inventory')} className="p-button-lg" aria-label={t('navigation.backToInventory') || 'Back to inventory'} />
           <div>
             <h1 className="detail-dashboard__title text-2xl">{t('waste.wasteDetailsTitle')}</h1>
             <div className="flex gap-2 text-sm text-muted">
@@ -127,7 +129,7 @@ export function ChuteDetailPage() {
             </div>
           </div>
         </div>
-        <div className="detail-header__actions">
+        <div className="detail-header__actions" role="toolbar" aria-label={t('waste.wasteDetailsTitle')}>
           <Tag value={wastePiece.wasteType?.replace('_', ' ')} severity={wastePiece.wasteType === 'CHUTE_EXPLOITABLE' ? 'success' : 'warning'} />
           <Tag value={wastePiece.materialType} severity="info" />
           <Tag value={t(`waste.status.${wastePiece.status}`)} severity={wastePiece.status === 'AVAILABLE' ? 'success' : 'warning'} />
@@ -136,9 +138,11 @@ export function ChuteDetailPage() {
         </div>
       </header>
 
-      {combinedError && <Message severity="error" text={combinedError} className="mb-4 w-full" />}
+      <div aria-live="polite" aria-atomic="true">
+        {combinedError && <Message severity="error" text={combinedError} className="mb-4 w-full" />}
+      </div>
 
-      <section className="metrics-grid">
+      <section className="metrics-grid" aria-label={t('rollDetail.metrics') || 'Key metrics'}>
         <MetricTile label={t('rollDetail.width')} value={wastePiece.widthMm} unit="mm" />
         <MetricTile label={t('rollDetail.length')} value={wastePiece.lengthMm} unit="mm" />
         <MetricTile label={t('rollDetail.area')} value={wastePiece.areaM2.toFixed(2)} unit="m²" />
@@ -147,12 +151,14 @@ export function ChuteDetailPage() {
 
       <main className="detail-content-grid">
         <div className="detail-main">
-          <PlacementSVG
-            widthMm={sourceWidth}
-            lengthMm={sourceLength}
-            placements={placements}
-            baseColor={wastePiece.colorHexCode}
-          />
+          <Suspense fallback={<div className="svg-preview-card" aria-busy="true" aria-label="Loading visualizer" />}>
+            <PlacementSVG
+              widthMm={sourceWidth}
+              lengthMm={sourceLength}
+              placements={placements}
+              baseColor={wastePiece.colorHexCode}
+            />
+          </Suspense>
 
           <PlacementList
             placements={placements}
@@ -185,14 +191,9 @@ export function ChuteDetailPage() {
                   {wastePiece.colorName || wastePiece.article?.color?.name || 'N/A'}
                   {(wastePiece.colorHexCode || wastePiece.article?.color?.hexCode) && (
                     <span 
-                      className="inline-block" 
-                      style={{ 
-                        width: '12px', 
-                        height: '12px', 
-                        borderRadius: '50%', 
-                        backgroundColor: wastePiece.colorHexCode || wastePiece.article?.color?.hexCode,
-                        border: '1px solid var(--surface-border)'
-                      }} 
+                      className="color-swatch"
+                      aria-hidden="true"
+                      style={{ backgroundColor: wastePiece.colorHexCode || wastePiece.article?.color?.hexCode }}
                     />
                   )}
                 </span>

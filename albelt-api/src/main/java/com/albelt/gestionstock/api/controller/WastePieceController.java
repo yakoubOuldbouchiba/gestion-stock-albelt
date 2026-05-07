@@ -264,15 +264,16 @@ public class WastePieceController {
             @RequestParam(required = false) UUID articleId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        UUID currentUser = altierSecurityContext.getCurrentUserId();
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
+        var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
         List<WastePiece> wastePieces;
         if (articleId != null) {
             log.debug("Fetching available waste pieces for article: {}", articleId);
-            wastePieces = wastePieceService.getAvailableByArticle(articleId, page, size);
+            wastePieces = wastePieceService.getAvailableByArticle(unrestricted, accessibleAltierIds, articleId, page, size);
         } else {
             log.debug("Fetching all available waste pieces");
-            UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
-            wastePieces = wastePieceService.getAvailableByUserAltiers(accessibleAltierIds, page, size);
+            wastePieces = wastePieceService.getAvailableByUserAltiers(unrestricted, accessibleAltierIds, page, size);
         }
         var responses = wastePieceMapper.toResponseList(wastePieces);
         return ResponseEntity.ok(ApiResponse.success(responses));

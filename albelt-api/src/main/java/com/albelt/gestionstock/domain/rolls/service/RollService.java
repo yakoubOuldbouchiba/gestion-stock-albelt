@@ -218,11 +218,14 @@ public class RollService {
      * Get available rolls in user's assigned altiers
      */
     @Transactional(readOnly = true)
-    public List<Roll> getAvailableByUserAltiers(List<UUID> userAltierIds) {
+    public List<Roll> getAvailableByUserAltiers(boolean unrestricted, List<UUID> userAltierIds) {
+        List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
+        if (unrestricted) {
+            return rollRepository.findAvailable(availableStatuses);
+        }
         if (userAltierIds == null || userAltierIds.isEmpty()) {
             return List.of();
         }
-        List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
         return rollRepository.findAvailableByAltierIds(userAltierIds, availableStatuses);
     }
 
@@ -230,11 +233,17 @@ public class RollService {
      * Get available rolls for a material in user's assigned altiers.
      */
     @Transactional(readOnly = true)
-    public List<Roll> getAvailableByUserAltiersAndArticle(List<UUID> userAltierIds, UUID articleId) {
-        if (userAltierIds == null || userAltierIds.isEmpty() || articleId == null) {
+    public List<Roll> getAvailableByUserAltiersAndArticle(boolean unrestricted, List<UUID> userAltierIds, UUID articleId) {
+        if (articleId == null) {
             return List.of();
         }
         List<RollStatus> availableStatuses = Arrays.asList(RollStatus.AVAILABLE, RollStatus.OPENED);
+        if (unrestricted) {
+            return rollRepository.findAvailableByArticle(articleId, availableStatuses);
+        }
+        if (userAltierIds == null || userAltierIds.isEmpty()) {
+            return List.of();
+        }
         return rollRepository.findAvailableByAltierIdsAndArticle(userAltierIds, articleId, availableStatuses);
     }
 

@@ -132,6 +132,10 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
                                         @Param("statuses") List<RollStatus> statuses);
 
     @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
+    @Query("SELECT r FROM Roll r WHERE r.status IN (:statuses) ORDER BY r.receivedDate ASC")
+    List<Roll> findAvailable(@Param("statuses") List<RollStatus> statuses);
+
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
     @Query("SELECT r FROM Roll r " +
             "JOIN r.article article " +
             "WHERE r.altier.id IN (:altierIds) " +
@@ -142,6 +146,15 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
             @Param("altierIds") List<UUID> altierIds,
             @Param("articleId") UUID articleId,
             @Param("statuses") List<RollStatus> statuses);
+
+    @EntityGraph(attributePaths = {"article", "article.color", "supplier", "altier"})
+    @Query("SELECT r FROM Roll r " +
+            "JOIN r.article article " +
+            "WHERE article.id = :articleId " +
+            "AND r.status IN (:statuses) " +
+            "ORDER BY r.receivedDate ASC")
+    List<Roll> findAvailableByArticle(@Param("articleId") UUID articleId,
+                                      @Param("statuses") List<RollStatus> statuses);
 
     /**
      * Find available rolls for a specific material in user's assigned altiers.
@@ -347,4 +360,3 @@ public interface RollRepository extends JpaRepository<Roll, UUID> {
             @Param("altierId") UUID altierId
     );
 }
-

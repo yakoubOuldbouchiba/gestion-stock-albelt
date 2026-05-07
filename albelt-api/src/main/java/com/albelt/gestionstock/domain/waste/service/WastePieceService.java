@@ -363,32 +363,35 @@ public class WastePieceService {
     }
 
     @Transactional(readOnly = true)
-    public List<WastePiece> getAvailableByArticle(UUID articleId, int page, int size) {
+    public List<WastePiece> getAvailableByArticle(boolean unrestricted, List<UUID> userAltierIds, UUID articleId, int page, int size) {
         if (articleId == null) {
             return List.of();
         }
         List<WasteStatus> availableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
-        return wastePieceRepository.findAvailableByArticle(
-                articleId,
-                availableStatuses,
-                PageRequest.of(page, size)
-        );
+        var pageable = PageRequest.of(page, size);
+        if (unrestricted) {
+            return wastePieceRepository.findAvailableByArticle(articleId, availableStatuses, pageable);
+        }
+        if (userAltierIds == null || userAltierIds.isEmpty()) {
+            return List.of();
+        }
+        return wastePieceRepository.findAvailableByAltierIdsAndArticle(userAltierIds, articleId, availableStatuses, pageable);
     }
 
     /**
      * Get all available waste pieces (excluding EXHAUSTED and ARCHIVED) in user's altiers
      */
     @Transactional(readOnly = true)
-    public List<WastePiece> getAvailableByUserAltiers(List<UUID> userAltierIds, int page, int size) {
+    public List<WastePiece> getAvailableByUserAltiers(boolean unrestricted, List<UUID> userAltierIds, int page, int size) {
+        List<WasteStatus> availableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
+        var pageable = PageRequest.of(page, size);
+        if (unrestricted) {
+            return wastePieceRepository.findAvailable(availableStatuses, pageable);
+        }
         if (userAltierIds == null || userAltierIds.isEmpty()) {
             return List.of();
         }
-        List<WasteStatus> availableStatuses = Arrays.asList(WasteStatus.AVAILABLE, WasteStatus.OPENED);
-        return wastePieceRepository.findAvailableByMaterial(
-                null,
-                availableStatuses,
-                PageRequest.of(page, size)
-        );
+        return wastePieceRepository.findAvailableByAltierIds(userAltierIds, availableStatuses, pageable);
     }
 
     /**

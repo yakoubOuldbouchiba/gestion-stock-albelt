@@ -22,8 +22,8 @@ export const PlacementList: React.FC<PlacementListProps> = ({
 
   return (
     <div className="placements-section">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{t('rollDetail.existingPlacements') || 'Recorded Placements'}</h3>
+      <div className="placements-section__header">
+        <h3 className="placements-section__title">{t('rollDetail.existingPlacements') || 'Recorded Placements'}</h3>
         {placements.length > 0 && (
           <Button
             label={t('rollDetail.clearChute') || 'Clear all'}
@@ -38,9 +38,9 @@ export const PlacementList: React.FC<PlacementListProps> = ({
       </div>
 
       {placements.length === 0 ? (
-        <div className="form-card" style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc' }}>
-          <i className="pi pi-map" style={{ fontSize: '2rem', color: '#cbd5e1', marginBottom: '1rem' }}></i>
-          <p style={{ color: '#64748b', margin: 0 }}>{t('rollDetail.noPlacements') || 'No placements recorded.'}</p>
+        <div className="placement-empty" role="status">
+          <i className="pi pi-map placement-empty__icon" aria-hidden="true"></i>
+          <p className="placement-empty__text">{t('rollDetail.noPlacements') || 'No placements recorded.'}</p>
         </div>
       ) : (
         <div>
@@ -54,26 +54,31 @@ export const PlacementList: React.FC<PlacementListProps> = ({
                   Pos: ({placement.xMm}, {placement.yMm})
                   {placement.colorHexCode && (
                     <>
-                      <span className="mx-2">•</span>
-                      <span className="placement-color-badge" style={{ backgroundColor: placement.colorHexCode }}></span>
+                      <span aria-hidden="true"> • </span>
+                      <span
+                        className="placement-color-badge"
+                        aria-hidden="true"
+                        style={{ backgroundColor: placement.colorHexCode }}
+                      ></span>
                       {placement.colorName || placement.colorHexCode}
                     </>
                   )}
                 </div>
                 {placement.commandeItem?.reference && (
-                  <div style={{ color: 'var(--color-accent)', fontWeight: 600, fontSize: '0.85rem' }}>
+                  <div className="placement-ref">
                     Ref: {placement.commandeItem.reference}
                   </div>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div className="placement-actions">
                 <Button
                   icon="pi pi-pencil"
                   text
                   rounded
                   onClick={() => onEdit(placement)}
                   disabled={isCommandePlacement(placement)}
-                  tooltip="Edit"
+                  aria-label={`${t('common.edit') || 'Edit'} ${placement.widthMm}×${placement.heightMm}mm`}
+                  tooltip={t('common.edit') || 'Edit'}
                 />
                 <Button
                   icon="pi pi-trash"
@@ -82,7 +87,8 @@ export const PlacementList: React.FC<PlacementListProps> = ({
                   severity="danger"
                   onClick={() => onDelete(placement.id)}
                   disabled={isCommandePlacement(placement)}
-                  tooltip="Delete"
+                  aria-label={`${t('common.delete') || 'Delete'} ${placement.widthMm}×${placement.heightMm}mm`}
+                  tooltip={t('common.delete') || 'Delete'}
                 />
               </div>
             </div>

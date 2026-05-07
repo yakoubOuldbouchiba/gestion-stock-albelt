@@ -135,16 +135,17 @@ public class RollController {
     public ResponseEntity<ApiResponse<List<RollResponse>>> getAvailable(
             @RequestParam(required = false) UUID articleId) {
         UUID currentUser = (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        boolean unrestricted = altierSecurityContext.isUnrestricted(currentUser);
         var accessibleAltierIds = userAltierService.getAccessibleAltiers(currentUser);
-        if (accessibleAltierIds.isEmpty()) {
+        if (!unrestricted && accessibleAltierIds.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success(List.of(), "No accessible rolls"));
         }
 
         List<Roll> rolls;
         if (articleId != null) {
-            rolls = rollService.getAvailableByUserAltiersAndArticle(accessibleAltierIds, articleId);
+            rolls = rollService.getAvailableByUserAltiersAndArticle(unrestricted, accessibleAltierIds, articleId);
         } else {
-            rolls = rollService.getAvailableByUserAltiers(accessibleAltierIds);
+            rolls = rollService.getAvailableByUserAltiers(unrestricted, accessibleAltierIds);
         }
         var responses = rollMapper.toResponseList(rolls);
         return ResponseEntity.ok(ApiResponse.success(responses, "Available rolls retrieved"));
