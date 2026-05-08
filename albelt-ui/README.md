@@ -97,10 +97,38 @@ npm run build  # Outputs to dist/
 npm run preview
 ```
 
+## Render Deployment
+
+This app is intended to be deployed to Render as a Static Site.
+
+Use these settings:
+
+```text
+Build Command: npm ci && npm run build
+Publish Directory: dist
+```
+
+For React Router deep links such as `/dashboard`, Render must rewrite all non-file paths to `index.html`.
+
+Keep exactly one rewrite rule:
+
+```text
+Source: /*
+Destination: /index.html
+Action: Rewrite
+```
+
+Notes:
+
+- Do not use a redirect for SPA routing.
+- Remove conflicting route rules before redeploying.
+- A checked-in Render blueprint is provided in `render.yaml`.
+
 ## Environment Configuration
 
 Create `.env` file:
-```
+
+```env
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
