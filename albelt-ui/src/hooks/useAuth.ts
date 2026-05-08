@@ -2,6 +2,19 @@ import { create } from 'zustand';
 import type { User } from '../types/index';
 import ApiService from '@services/api';
 
+function parseStoredUser(): User | null {
+  const raw = localStorage.getItem('authUser');
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    // Prevent bootstrap crashes caused by malformed persisted data.
+    localStorage.removeItem('authUser');
+    return null;
+  }
+}
+
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -17,8 +30,8 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => {
-  // Load initial user from localStorage if available
-  const initialUser = localStorage.getItem('authUser') ? JSON.parse(localStorage.getItem('authUser')!) : null;
+  // Load initial user from localStorage with safe parsing.
+  const initialUser = parseStoredUser();
 
   return {
     user: initialUser,
@@ -72,7 +85,7 @@ export const useAuthStore = create<AuthState>((set) => {
 
     checkAuth: () => {
       const token = localStorage.getItem('authToken');
-      const authUser = localStorage.getItem('authUser') ? JSON.parse(localStorage.getItem('authUser')!) : null;
+      const authUser = parseStoredUser();
       set({ token, user: authUser, isAuthenticated: !!token });
     },
 
